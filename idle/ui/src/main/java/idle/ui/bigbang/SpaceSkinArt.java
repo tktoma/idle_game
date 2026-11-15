@@ -2,11 +2,7 @@ package idle.ui.bigbang;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 
 /**
  * Les six skins du Big Bang de la version 0.191, dessinés à côté de {@link SpaceView} pour la garder
@@ -26,7 +22,6 @@ import javafx.scene.paint.Stop;
  * </ul>
  */
 final class SpaceSkinArt {
-
     // Version 0.203 (retour de jeu) : l'encre, le papier plié et la carte ancienne passent en version nuit. Leurs fonds
     // clairs (papier crème, parchemin jaune) juraient avec le reste de la fenêtre, sombre partout : papier noir et
     // encre claire, feuille bleu nuit, carte à l'encre d'or sur vélin sombre.

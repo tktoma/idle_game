@@ -1,6 +1,8 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.collider.*;
+import idle.core.save.SaveCodec;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -8,9 +10,8 @@ import idle.core.math.BigNum;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Le détail des multiplicateurs (version 0.123) : ses facteurs redonnent toujours la grandeur. */
+/** Le détail des multiplicateurs : ses facteurs redonnent toujours la grandeur. */
 class MultipliersTest {
-
     /** La somme des facteurs, en ordres de grandeur, est la grandeur elle-même. */
     static void assertAddsUp(Game game) {
         for (Multipliers.Quantity quantity : Multipliers.Quantity.values()) {
@@ -44,7 +45,7 @@ class MultipliersTest {
     void unePartieRicheSeDecompose() {
         Game game = new Game(42L);
         try {
-            idle.core.save.SaveCodec.readInto(game.state(), idle.core.save.SaveCodec.write(SaveTest.richState(), 0));
+            SaveCodec.readInto(game.state(), SaveCodec.write(SaveTest.richState(), 0));
         } catch (Exception unreadable) {
             throw new AssertionError(unreadable);
         }
@@ -74,7 +75,7 @@ class MultipliersTest {
         assertTrue(game.productionPerSecond().gt(BigNum.ZERO));
     }
 
-    /** Version 0.144 : l'énergie du collisionneur, l'énergie du vide et les segments de la ligne se décomposent aussi. */
+    /** L'énergie du collisionneur, l'énergie du vide et les segments de la ligne se décomposent aussi. */
     @Test
     void leCollisionneurLeVideEtLaLigneSeDecomposent() {
         Game fresh = GameTestSupport.realGame();
@@ -83,8 +84,8 @@ class MultipliersTest {
             assertFalse(Multipliers.isAvailable(fresh, quantity), quantity + " : rien avant son ouverture");
         }
         Game game = VideTest.open();
-        game.state().setColliderGenerators(idle.core.collider.ColliderGenerator.BEAM, 7);
-        game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.ENERGY, 3);
+        game.state().setColliderGenerators(ColliderGenerator.BEAM, 7);
+        game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 3);
         game.state().setVoidLevel(Game.VoidUpgrade.RATE.ordinal(), 4);
         game.state().setVoidLevel(Game.VoidUpgrade.GAIN.ordinal(), 2);
         game.state().setLineTicksLevel(5);

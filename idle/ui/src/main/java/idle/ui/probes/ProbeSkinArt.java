@@ -3,31 +3,25 @@ package idle.ui.probes;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les skins des sondes (version 0.194, {@link SkinVisual#PROBE}) : la sonde, sa trajectoire et le ciel
- * qu'elle traverse ({@link ProbesView}), et le dos de la carte de son butin ({@link LootPane}). Chaque
- * skin a sa trajectoire, qui le suit : il n'y a pas de visuel à part pour elle.
+ * Les skins des sondes ({@link SkinVisual#PROBE}) : la sonde, sa trajectoire et le ciel qu'elle traverse ({@link
+ * ProbesView}), et le dos de la carte de son butin ({@link LootPane}). Chaque skin a sa trajectoire, qui le suit : il
+ * n'y a pas de visuel à part pour elle.
  * <ul>
- *   <li>« Avion de papier » ({@link Skin#PROBE_PAPER}) : un ciel de papier bleu pâle à nuages, une
- *       trajectoire en pointillés bruns de carte au trésor qui finit par une croix, un avion plié blanc
- *       à plis gris ;</li>
- *   <li>« Montgolfière » ({@link Skin#PROBE_BALLOON}) : une aube orangée, une traînée de condensation
- *       blanche qui s'élargit et pâlit derrière, une enveloppe rayée rouge et jaune sous laquelle pend
- *       une nacelle ;</li>
- *   <li>« Bouteille à la mer » ({@link Skin#PROBE_BOTTLE}) : une mer sombre à vagues, un fil d'Ariane
- *       rouge qui ondule depuis le hangar, une bouteille de verre penchée, son bouchon et son message ;</li>
- *   <li>« Pigeon » ({@link Skin#PROBE_PIGEON}) : un crépuscule violet, des plumes semées le long du
- *       chemin, un pigeon gris aux ailes qui battent.</li>
+ * <li>« Avion de papier » ({@link Skin#PROBE_PAPER}) : un ciel de papier bleu pâle à nuages, une trajectoire en
+ * pointillés bruns de carte au trésor qui finit par une croix, un avion plié blanc à plis gris ;</li>
+ * <li>« Montgolfière » ({@link Skin#PROBE_BALLOON}) : une aube orangée, une traînée de condensation blanche qui
+ * s'élargit et pâlit derrière, une enveloppe rayée rouge et jaune sous laquelle pend une nacelle ;</li>
+ * <li>« Bouteille à la mer » ({@link Skin#PROBE_BOTTLE}) : une mer sombre à vagues, un fil d'Ariane rouge qui ondule
+ * depuis le hangar, une bouteille de verre penchée, son bouchon et son message ;</li>
+ * <li>« Pigeon » ({@link Skin#PROBE_PIGEON}) : un crépuscule violet, des plumes semées le long du chemin, un pigeon
+ * gris aux ailes qui battent.</li>
  * </ul>
  */
 final class ProbeSkinArt {
-
     // Avion de papier
     private static final Color PAPER_SKY = Color.web("#cfe6f7");
     private static final Color CLOUD = Color.web("#ffffff");
@@ -67,9 +61,7 @@ final class ProbeSkinArt {
     private ProbeSkinArt() {}
 
     /** Vrai si ce skin habille les sondes : {@code null} ou un autre visuel, c'est le Classique. */
-    static boolean draws(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.PROBE;
-    }
+    static boolean draws(Skin skin) { return skin != null && skin.visual() == SkinVisual.PROBE; }
 
     /** La couleur des textes vifs (butin prêt, nom d'une destination atteinte, « Hangar »). */
     static Color text(Skin skin) {

@@ -1,31 +1,22 @@
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Le bot analyste sur plusieurs graines (version 0.164) : la même façon de jouer, d'autres tirages du hasard. Pour
- * chaque palier, le plus tôt, la médiane et le plus tard ; l'écart dit ce qui tient au hasard et ce qui tient au jeu.
- * Chaque partie s'écrit dans son dossier (graine-201…), sans les « et si » ; le résumé dans graines.txt, graines.csv et
- * graines.html.
+ * Le bot analyste sur plusieurs graines : la même façon de jouer, d'autres tirages du hasard. Pour chaque palier, le
+ * plus tôt, la médiane et le plus tard ; l'écart dit ce qui tient au hasard et ce qui tient au jeu. Chaque partie
+ * s'écrit dans son dossier (graine-201…), sans les « et si » ; le résumé dans graines.txt, graines.csv et graines.html.
  *
  * <p>Usage : {@code AnalyseGraines <sortie> <univers ou fin> <graine> [graine…]}. Les parties se jouent l'une après
- * l'autre ; {@link #resumer} relit des dossiers déjà joués. Version 0.168 : une graine peut porter l'ordre des bulles
- * imposé ({@code 201:moins-cher}), pour mesurer ce qui tient à l'ordre des bulles et non au hasard.
+ * l'autre ; {@link #resumer} relit des dossiers déjà joués. Une graine peut porter l'ordre des bulles imposé ({@code
+ * 201:moins-cher}), pour mesurer ce qui tient à l'ordre des bulles et non au hasard.
  */
 final class AnalyseGraines {
-
     private AnalyseGraines() {}
 
     /** Un palier sur toutes les graines : combien l'ont atteint, et quand (plus tôt, médiane, plus tard). */
     record Resume(String palier, int atteint, double min, double mediane, double max) {
         /** L'écart entre le plus tard et le plus tôt, rapporté à la médiane. */
-        double dispersion() {
-            return mediane > 0 ? (max - min) / mediane : 0;
-        }
+        double dispersion() { return mediane > 0 ? (max - min) / mediane : 0; }
     }
 
     static List<Resume> resumer(List<Path> dossiers) throws Exception {

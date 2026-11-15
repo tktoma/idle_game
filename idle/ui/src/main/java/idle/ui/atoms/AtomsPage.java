@@ -2,6 +2,7 @@ package idle.ui.atoms;
 
 import idle.core.Game;
 import idle.core.Resource;
+import idle.core.universe.SkinVisual;
 import idle.core.math.BigNum;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
@@ -20,40 +21,29 @@ import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Atomes ». En haut, les atomes disponibles et le bonus en cours ;
- * en dessous, deux sous-pages :
+ * Contenu de l'onglet « Atomes ». En haut, les atomes disponibles et le bonus en cours ; en dessous, deux sous-pages :
  * <ul>
- *   <li>« Atome » : le grand atome animé, qui porte une orbe par atome disponible.
- *       Dépenser un atome lui retire donc une orbe ;</li>
- *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, une {@link Card}
- *       chacune, rangées en colonnes selon la largeur de la fenêtre. Chaque carte dit le
- *       niveau, ce que l'amélioration vaut déjà, ce qu'elle fait en quelques mots, son prix
- *       et le nombre de fusions qu'il reste à faire ; l'explication complète vient en mode
- *       détails ({@link Detail}) ;</li>
- *   <li>« Tableau périodique » : la synthèse d'éléments et leurs effets ({@link PeriodicTablePage}).
- *       Cette sous-page n'apparaît qu'une fois assez d'atomes créés, comme l'automatisation.</li>
+ * <li>« Atome » : le grand atome animé, qui porte une orbe par atome disponible. Dépenser un atome lui retire donc une
+ * orbe ;</li>
+ * <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, une {@link Card} chacune, rangées en colonnes
+ * selon la largeur de la fenêtre. Chaque carte dit le niveau, ce que l'amélioration vaut déjà, ce qu'elle fait en
+ * quelques mots, son prix et le nombre de fusions qu'il reste à faire ; l'explication complète vient en mode détails
+ * ({@link Detail}) ;</li>
+ * <li>« Tableau périodique » : la synthèse d'éléments et leurs effets ({@link PeriodicTablePage}). Cette sous-page
+ * n'apparaît qu'une fois assez d'atomes créés, comme l'automatisation.</li>
  * </ul>
  */
 public final class AtomsPage extends VBox {
-
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
     private HBox subTabs;
 
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     private final Game game;
     private final Settings settings;
@@ -159,9 +149,7 @@ public final class AtomsPage extends VBox {
 
     /** Affiche une sous-page : 0 = atome, 1 = améliorations, 2 = tableau périodique. */
     /** Niveaux demandés à chaque clic : la quantité choisie une fois l'achat groupé acquis, un seul sinon. */
-    private int amount() {
-        return game.isBulkAtomBuyUnlocked() ? settings.buyAmount().count() : 1;
-    }
+    private int amount() { return game.isBulkAtomBuyUnlocked() ? settings.buyAmount().count() : 1; }
 
     /** Passe à la sous-page suivante ou précédente, en boucle ; le tableau périodique seulement s'il est ouvert. */
     public void step(int direction) {
@@ -171,9 +159,7 @@ public final class AtomsPage extends VBox {
     }
 
     /** La sous-page affichée : 0 l'atome, 1 les améliorations, 2 le tableau périodique. Pour les vérifications. */
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     private void select(int index) {
         selected = index;
@@ -188,13 +174,11 @@ public final class AtomsPage extends VBox {
     /** Fait avancer l'animation de l'atome, quand il est visible ; figé si le joueur a coupé son effet. */
     public void frame(double dt) {
         if (selected == 0) atomView.frame(settings.effect(Settings.Effect.ATOM_MODEL) ? dt : 0);
-        if (selected == 2) tablePage.frame(dt);     // la fumée du creuset (version 0.192)
+        if (selected == 2) tablePage.frame(dt);     // la fumée du creuset
     }
 
     /** Recopie l'état du jeu dans les textes et les boutons. */
-    public void refresh() {
-        refresh(true);
-    }
+    public void refresh() { refresh(true); }
 
     /**
      * Recopie l'état du jeu dans la page : son en-tête, et la sous-page affichée.
@@ -204,13 +188,13 @@ public final class AtomsPage extends VBox {
      *                périodique, pour que la page soit au retour comme si elle était restée affichée.
      */
     public void refresh(boolean visible) {
-        atomView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.ATOM));
+        atomView.setSkin(game.chosenSkin(SkinVisual.ATOM));
         BigNum atoms = game.state().atoms();
         // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
         // un atome dépensé quitte le visuel.
         int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
         atomView.setOrbs(orbs);
-        // Au-delà, des copies de l'atome autour du grand (version 0.077) : un ordre de grandeur de plus, quelques copies de plus.
+        // Au-delà, des copies de l'atome autour du grand : un ordre de grandeur de plus, quelques copies de plus.
         BigNum extra = atoms.subtract(BigNum.of(AtomModelView.MAX_ORBS));
         atomView.setExtraDecades(extra.sign() > 0 ? extra.add(BigNum.ONE).log10() : 0);
         // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
@@ -252,8 +236,7 @@ public final class AtomsPage extends VBox {
                         + " de l'atome autour" + (atomView.copies() == AtomModelView.MAX_COPIES ? " (pas plus)" : "") : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
-        hintLabel.setText(game.isAtomCapReached()
-                ? (tableUnlocked && !game.isPeriodicTableComplete()
+        hintLabel.setText(game.isAtomCapReached() ? (tableUnlocked && !game.isPeriodicTableComplete()
                         ? "Maximum atteint : dépensez des atomes ou synthétisez un élément."
                         : "Maximum atteint : dépensez des atomes pour fusionner de nouveau.")
                 : tableUnlocked ? Detail.only("Fusionnez les générateurs pour créer un atome de plus.")
@@ -378,17 +361,11 @@ public final class AtomsPage extends VBox {
     }
 
     /** Écrit 2.0 comme « 2 » et 2.5 comme « 2.5 ». */
-    private static String trim(double value) {
-        return ElementText.number(value);
-    }
+    private static String trim(double value) { return ElementText.number(value); }
 
     /** Un atome vient d'être créé : l'atome grossit d'un coup puis reprend sa taille. */
-    public void celebrate() {
-        atomView.celebrate();
-    }
+    public void celebrate() { atomView.celebrate(); }
 
     /** Le tableau périodique : pour les vérifications. */
-    public PeriodicTablePage tablePage() {
-        return tablePage;
-    }
+    public PeriodicTablePage tablePage() { return tablePage; }
 }

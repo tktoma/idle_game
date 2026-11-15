@@ -3,14 +3,11 @@ package idle.ui.bigbang;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les skins du cosmos (version 0.194) que montrent {@link GalaxyView} et, de loin, {@link SpaceView} :
+ * Les skins du cosmos que montrent {@link GalaxyView} et, de loin, {@link SpaceView} :
  * la galaxie ({@link SkinVisual#GALAXY}), l'amas de galaxies ({@link SkinVisual#GALAXY_CLUSTER}) et la
  * toile de l'univers ({@link SkinVisual#COSMIC_WEB}). Chaque skin garde la place et la couleur des
  * points de la vue classique (les molécules du joueur, {@link GalaxyView#tint}) et les redessine autrement.
@@ -32,7 +29,6 @@ import javafx.scene.shape.StrokeLineCap;
  * « Métro », des lignes épaisses de quatre couleurs et des stations cerclées de blanc.
  */
 final class GalaxySkinArt {
-
     // Nautile
     private static final Color SHELL = Color.web("#f1e4cf");
     private static final Color SHELL_EDGE = Color.web("#8a5a3a");
@@ -190,7 +186,7 @@ final class GalaxySkinArt {
 
     /**
      * Empreinte digitale : des crêtes d'encre claire concentriques, ondulées et interrompues çà et là, à même le ciel.
-     * Version 0.203 : la carte crème qui les portait (un carré jaune pâle au milieu du ciel noir) est retirée.
+     * La carte crème qui les portait (un carré jaune pâle au milieu du ciel noir) est retirée.
      */
     private static void fingerprint(GraphicsContext g, double cx, double cy, double radius, double turn) {
         // Une lueur douce sous les crêtes, pour que l'empreinte se détache du ciel.
@@ -280,7 +276,7 @@ final class GalaxySkinArt {
     // ------------------------------------------------------------------
 
     /**
-     * Version 0.203 : range les membres de l'amas en grappe pour le skin « Grappe de raisin ». Les grains se touchent, par
+     * Range les membres de l'amas en grappe pour le skin « Grappe de raisin ». Les grains se touchent, par
      * rangs de plus en plus courts vers le bas (trois, trois, deux, un pour neuf membres) ; celui du joueur, le premier,
      * prend le milieu du deuxième rang. Les autres skins gardent les places que la vue leur donne.
      */
@@ -317,7 +313,7 @@ final class GalaxySkinArt {
         g.setGlobalAlpha(1);
         switch (skin) {
             case CLUSTER_GRAPES -> {
-                // Version 0.203 : une vraie grappe ({@link #bunch} a serré les grains). La rafle descend du haut jusqu'aux
+                // Une vraie grappe ({@link #bunch} a serré les grains). La rafle descend du haut jusqu'aux
                 // premiers grains, une feuille à trois lobes et une vrille à son départ. Avant : des grains épars reliés
                 // au centre par des traits droits.
                 double top = Double.MAX_VALUE, grain = radii[0];
@@ -410,7 +406,7 @@ final class GalaxySkinArt {
         g.setGlobalAlpha(1);
         switch (skin) {
             case CLUSTER_GRAPES -> {
-                // Version 0.203 : tous les grains du même violet, plus ou moins mûr (plus de grains verts), cernés d'une
+                // Tous les grains du même violet, plus ou moins mûr (plus de grains verts), cernés d'une
                 // ombre, la pruine en voile bleuté et un reflet ; celui du joueur, plus clair, a un liseré doré.
                 Color body = rank % 3 == 1 ? GRAPE.interpolate(Color.web("#3a2a7a"), 0.45) : rank % 3 == 2 ? GRAPE.interpolate(Color.web("#8a2a5a"), 0.4) : GRAPE;
                 g.setFill(Color.color(0, 0, 0, 0.35));

@@ -1,28 +1,22 @@
 package idle.ui.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.ui.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
-import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import idle.core.universe.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les animations plein écran des six animations de la matière noire et des neuf skins du Big
+ * Les animations plein écran des six animations de la matière noire et des neuf skins du Big
  * Bang, sous Xvfb. Chacune joue du début à la fin, à deux tailles de fenêtre et avant la première mise en page,
  * sans exception, puis s'arrête d'elle-même.
  */
 class BurstSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -73,9 +67,9 @@ class BurstSkinsTest {
     @Test
     void lEclairDeLExplosionAUneCouleurParAnimation() {
         List<String> colors = new ArrayList<>();
-        colors.add(idle.ui.GameAppTabs.explosionFlashColor(null));
+        colors.add(GameAppTabs.explosionFlashColor(null));
         for (Skin skin : skinsOf(SkinVisual.DARK_ANIMATION)) {
-            String color = idle.ui.GameAppTabs.explosionFlashColor(skin);
+            String color = GameAppTabs.explosionFlashColor(skin);
             assertTrue(color.matches("#[0-9a-f]{6}"), color);
             assertFalse(colors.contains(color), skin.name() + " : une couleur à elle");
             colors.add(color);

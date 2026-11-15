@@ -1,28 +1,19 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import java.util.function.*;
+
 import idle.core.achievements.Achievement;
 import idle.core.collider.ColliderUpgrade;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * L'arbre de matière noire : ses achats et ses effets, calculés une fois par version des niveaux.
- */
+/** L'arbre de matière noire : ses achats et ses effets, calculés une fois par version des niveaux. */
 public abstract class GameDarkTree extends GameSystems {
-
     GameDarkTree(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -41,15 +32,12 @@ public abstract class GameDarkTree extends GameSystems {
     public abstract int generatorsPerAtom();
     abstract DarkUpgrade darkUpgrade(String darkUpgradeId);
 
-
     // ------------------------------------------------------------------
     // L'arbre de matière noire
     // ------------------------------------------------------------------
 
     /** Toutes les améliorations de matière noire, dans l'ordre du catalogue : l'arbre, puis celles payées en matière noire. */
-    public Collection<DarkUpgrade> darkUpgrades() {
-        return darkUpgrades.values();
-    }
+    public Collection<DarkUpgrade> darkUpgrades() { return darkUpgrades.values(); }
 
     /** Les améliorations de matière noire d'une branche, dans l'ordre du catalogue, sans les liaisons. */
     public List<DarkUpgrade> darkUpgrades(DarkUpgrade.Branch branch) {
@@ -60,16 +48,14 @@ public abstract class GameDarkTree extends GameSystems {
         return result;
     }
 
-    /** Les liaisons entre branches (version 0.070), dans l'ordre du catalogue. */
+    /** Les liaisons entre branches, dans l'ordre du catalogue. */
     public List<DarkUpgrade> darkLinks() {
         List<DarkUpgrade> result = new ArrayList<>();
         for (DarkUpgrade dark : darkUpgrades.values()) if (dark.isLink()) result.add(dark);
         return result;
     }
 
-    public int darkLevelOf(String darkUpgradeId) {
-        return state.darkLevelOf(darkUpgrade(darkUpgradeId).id());
-    }
+    public int darkLevelOf(String darkUpgradeId) { return state.darkLevelOf(darkUpgrade(darkUpgradeId).id()); }
 
     public boolean isDarkMaxed(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
@@ -77,10 +63,9 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /**
-     * Vrai si la case est accessible : la matière noire existe et la case du dessus est acquise
-     * (s'il y en a une). Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires
-     * gagnées : seuls les prix rythment l'arbre. Depuis la version 0.209, ce qui se paie en matière noire
-     * attend Noyaux sombres ({@link #darkKeyFirst}).
+     * Vrai si la case est accessible : la matière noire existe et la case du dessus est acquise (s'il y en a une).
+     * Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires gagnées : seuls les prix rythment
+     * l'arbre. Depuis la version 0.209, ce qui se paie en matière noire attend Noyaux sombres ({@link #darkKeyFirst}).
      */
     public boolean isDarkAvailable(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
@@ -88,7 +73,7 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /**
-     * Version 0.209 : la première matière noire dépensée va à Noyaux sombres ({@link #KEY_DARK_UPGRADE}), la case qui
+     * La première matière noire dépensée va à Noyaux sombres ({@link #KEY_DARK_UPGRADE}), la case qui
      * compte le plus (sans elle, l'univers 2 du Speedrunner se bloque, mesure 0.208). Tout ce qui se paie en matière
      * noire, accords compris, attend qu'elle ait un niveau ; elle-même n'attend rien. Les niveaux déjà pris dans une
      * ancienne sauvegarde restent : seul l'achat suivant attend.
@@ -98,10 +83,8 @@ public abstract class GameDarkTree extends GameSystems {
                 || state.darkLevelOf(KEY_DARK_UPGRADE) > 0;
     }
 
-    /** Vrai si cette case ne s'achète pas encore parce que Noyaux sombres n'a pas de niveau (version 0.209) : pour les textes. */
-    public boolean darkWaitsForKey(String darkUpgradeId) {
-        return !darkKeyFirst(darkUpgrade(darkUpgradeId));
-    }
+    /** Vrai si cette case ne s'achète pas encore parce que Noyaux sombres n'a pas de niveau : pour les textes. */
+    public boolean darkWaitsForKey(String darkUpgradeId) { return !darkKeyFirst(darkUpgrade(darkUpgradeId)); }
 
     /** Vrai si la case du dessus est acquise : une case ordinaire, ou l'une des voies d'une bifurcation. */
     private boolean hasDarkParent(DarkUpgrade dark) {
@@ -124,7 +107,7 @@ public abstract class GameDarkTree extends GameSystems {
 
     /**
      * L'autre voie de la bifurcation, si le joueur l'a prise : elle ferme celle-ci jusqu'au prochain
-     * Big Bang (version 0.069). {@code null} si la case n'est pas une voie, ou si l'autre n'est pas prise.
+     * Big Bang. {@code null} si la case n'est pas une voie, ou si l'autre n'est pas prise.
      */
     public DarkUpgrade darkForkRival(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
@@ -136,12 +119,10 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /**
-     * Vrai une fois la « Superposition » du collisionneur prise (version 0.070) : les deux voies de chaque
+     * Vrai une fois la « Superposition » du collisionneur prise : les deux voies de chaque
      * bifurcation se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre.
      */
-    public boolean hasSuperposition() {
-        return colliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION) > 0;
-    }
+    public boolean hasSuperposition() { return colliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION) > 0; }
 
     // Les effets de l'arbre qui ne dépendent que de ses niveaux : calculés une fois par version des
     // niveaux. Sans ce cache, chaque appel parcourait tout l'arbre, des milliers de fois par seconde
@@ -150,7 +131,7 @@ public abstract class GameDarkTree extends GameSystems {
     private long darkMemoVersion = Long.MIN_VALUE;
 
     @SuppressWarnings("unchecked")
-    <T> T darkMemo(Object key, java.util.function.Supplier<T> compute) {
+    <T> T darkMemo(Object key, Supplier<T> compute) {
         // Depuis la version 0.070, les défis et leurs récompenses changent ce que valent les cases : ils comptent aussi.
         long stamp = state.darkVersion() * 1_000_003L + state.challengesVersion() * 31L
                 + (state.activeChallenge() == null ? 0 : state.activeChallenge().hashCode());
@@ -167,7 +148,7 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /** La somme, sur les cases de l'arbre dont l'effet est de cette sorte, de {@code perLevel(effet) × niveau effectif}. */
-    private <E extends DarkEffect> double darkSum(Class<E> type, java.util.function.ToDoubleFunction<E> perLevel) {
+    private <E extends DarkEffect> double darkSum(Class<E> type, ToDoubleFunction<E> perLevel) {
         double sum = 0;
         for (DarkUpgrade dark : darkUpgrades.values()) {
             if (type.isInstance(dark.effect())) sum += perLevel.applyAsDouble(type.cast(dark.effect())) * effectLevel(dark);
@@ -300,14 +281,10 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /** Vrai quand l'arbre a débloqué le verrou de l'appui sur la matière noire. */
-    public boolean isHoldLockUnlocked() {
-        return hasDark(DarkEffect.HoldLock.class);
-    }
+    public boolean isHoldLockUnlocked() { return hasDark(DarkEffect.HoldLock.class); }
 
     /** Vrai quand l'arbre a débloqué le réglage du seuil de fusion. */
-    public boolean isFusionThresholdUnlocked() {
-        return hasDark(DarkEffect.FusionThreshold.class);
-    }
+    public boolean isFusionThresholdUnlocked() { return hasDark(DarkEffect.FusionThreshold.class); }
 
     /**
      * Nombre de générateurs que la fusion automatique attend avant de fusionner : celui qu'il
@@ -332,7 +309,5 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /** Vrai quand l'arbre a levé le plafond d'atomes. */
-    public boolean isAtomCapLifted() {
-        return hasDark(DarkEffect.UncapAtoms.class);
-    }
+    public boolean isAtomCapLifted() { return hasDark(DarkEffect.UncapAtoms.class); }
 }

@@ -5,38 +5,30 @@ import idle.core.GameUniverse.PlaneUpgrade;
 import idle.core.GameUniverse.VolumeUpgrade;
 import idle.core.GameUniverse.PlaneShard;
 import idle.core.GameUniverse.VolumeBall;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.function.ToDoubleFunction;
-import java.util.function.ToIntFunction;
+import java.nio.file.*;
+import java.util.*;
+import java.util.function.*;
 
 /**
- * Un bot par dimension (version 0.136) : la ligne, le plan, le volume et la durée se jouent chacun à part, sans le
- * reste de la partie, parce que leurs mécaniques ne dépendent de rien d'autre (leurs éclats ne servent qu'à elles). Chaque
- * bot part de la dimension qui vient de s'ouvrir, joue comme un joueur appliqué, et mesure le temps jusqu'au rond vert
- * (le seuil de la dimension).
+ * Un bot par dimension : la ligne, le plan, le volume et la durée se jouent chacun à part, sans le reste de la partie,
+ * parce que leurs mécaniques ne dépendent de rien d'autre (leurs éclats ne servent qu'à elles). Chaque bot part de la
+ * dimension qui vient de s'ouvrir, joue comme un joueur appliqué, et mesure le temps jusqu'au rond vert (le seuil de la
+ * dimension).
  *
  * <p>Le joueur appliqué, ce que le bot imite :
  * <ul>
- *   <li><b>la ligne</b> tourne seule ; le joueur passe toutes les {@link #LINE_CHECK_SECONDS} secondes acheter ;</li>
- *   <li><b>le plan</b> : il file droit vers l'éclat le plus proche, et met {@link #PLANE_REACTION_SECONDS} à repartir
- *       après chaque éclat ramassé ;</li>
- *   <li><b>le volume</b> : il vise chaque boule, en un temps qui dépend de sa taille ({@link #volumeAimSeconds}), replonge
- *       {@link #VOLUME_REENTRY_SECONDS} après la fin d'une plongée et achète entre deux ;</li>
- *   <li><b>la durée</b> : il tient jusqu'au centre, relâche, et met {@link #DURATION_REACTION_SECONDS} à rappuyer.</li>
- * </ul>
- * Les achats suivent le meilleur rapport : le gain d'éclats par seconde que donne un niveau, divisé par son prix, d'après
- * un modèle simple de chaque dimension (le modèle choisit, la partie réelle du jeu mesure).
+ * <li><b>la ligne</b> tourne seule ; le joueur passe toutes les {@link #LINE_CHECK_SECONDS} secondes acheter ;</li>
+ * <li><b>le plan</b> : il file droit vers l'éclat le plus proche, et met {@link #PLANE_REACTION_SECONDS} à repartir
+ * après chaque éclat ramassé ;</li>
+ * <li><b>le volume</b> : il vise chaque boule, en un temps qui dépend de sa taille ({@link #volumeAimSeconds}),
+ * replonge {@link #VOLUME_REENTRY_SECONDS} après la fin d'une plongée et achète entre deux ;</li>
+ * <li><b>la durée</b> : il tient jusqu'au centre, relâche, et met {@link #DURATION_REACTION_SECONDS} à rappuyer.</li>
+ * </ul> Les achats suivent le meilleur rapport : le gain d'éclats par seconde que donne un niveau, divisé par son prix,
+ * d'après un modèle simple de chaque dimension (le modèle choisit, la partie réelle du jeu mesure).
  *
  * <p>Usage : {@code DimensionBots [ligne|plan|volume|duree|toutes] [minutes au plus] [sortie.csv]}.
  */
 final class DimensionBots {
-
     static final Path START = Path.of("sauvegardes", "reference", "checkpoint_universe1_speedrunner.save");
     /** Le pas de la simulation : petit, pour que le point du plan ne saute pas par-dessus les éclats. */
     static final double STEP = 0.05;
@@ -54,9 +46,7 @@ final class DimensionBots {
 
     /** Ce qu'un bot a fait : le temps jusqu'au rond vert, les achats, et l'avancée minute par minute. */
     record Result(String dimension, double seconds, boolean reached, List<String> purchases, List<double[]> curve) {
-        String minutes() {
-            return reached ? String.format(Locale.ROOT, "%.1f min", seconds / 60) : "pas atteint";
-        }
+        String minutes() { return reached ? String.format(Locale.ROOT, "%.1f min", seconds / 60) : "pas atteint"; }
     }
 
     /** Une partie où la dimension {@code number} vient de s'ouvrir, avec tout ce qui la concerne à zéro. */
@@ -148,9 +138,7 @@ final class DimensionBots {
     // ------------------------------------------------------------------
 
     /** Le temps de viser une boule : plus elle est petite, plus il est long (0,78 s au départ, 0,42 s à 0,1 de rayon). */
-    static double volumeAimSeconds(double radius) {
-        return (0.3 + 0.012 / radius) * SLOW;
-    }
+    static double volumeAimSeconds(double radius) { return (0.3 + 0.012 / radius) * SLOW; }
 
     /** Éclats du volume par seconde : par plongée, les boules qu'on a le temps de viser et qui ont eu le temps de naître. */
     static double volumeRate(double dive, double value, double spawn, double radius) {
@@ -197,7 +185,7 @@ final class DimensionBots {
     }
 
     // ------------------------------------------------------------------
-    // Le joueur appliqué, pas à pas (version 0.140)
+    // Le joueur appliqué, pas à pas
     // ------------------------------------------------------------------
 
     /** Le numéro de la dimension d'un bot : 1 pour la ligne, 2 le plan, 3 le volume, 4 la durée. */
@@ -223,12 +211,10 @@ final class DimensionBots {
     }
 
     /** Le joueur appliqué d'une dimension, pour cette partie : celle d'une mesure, ou celle du profil de test. */
-    static Player player(Game game, String name) {
-        return new Player(game, name);
-    }
+    static Player player(Game game, String name) { return new Player(game, name); }
 
     /**
-     * Le joueur appliqué d'une dimension, pas à pas (version 0.140) : avant chaque pas du jeu, {@link #decide} achète,
+     * Le joueur appliqué d'une dimension, pas à pas : avant chaque pas du jeu, {@link #decide} achète,
      * vise, plonge, tient ou relâche, comme décrit en tête de la classe. Les mesures s'en servent sur une partie neuve ;
      * le profil de test, sur la partie en cours (outils « Bots dimension »), en direct ou en avance rapide.
      */
@@ -250,9 +236,7 @@ final class DimensionBots {
         }
 
         /** Vrai si la dimension est ouverte dans cette partie : sinon le joueur n'y fait rien. */
-        boolean isOpen() {
-            return g.dimensionsUnlocked() >= number;
-        }
+        boolean isOpen() { return g.dimensionsUnlocked() >= number; }
 
         /** Les éclats gagnés dans cette dimension. */
         double earned() {
@@ -275,13 +259,9 @@ final class DimensionBots {
         }
 
         /** Vrai si la dimension a son rond vert dans cette partie. */
-        boolean reached() {
-            return earned() >= threshold();
-        }
+        boolean reached() { return earned() >= threshold(); }
 
-        List<String> purchases() {
-            return purchases;
-        }
+        List<String> purchases() { return purchases; }
 
         /** Ce que fait le joueur avant un pas de {@code dt} secondes du jeu. Vrai s'il a pu jouer (la dimension est ouverte). */
         boolean decide(double dt) {
@@ -305,10 +285,8 @@ final class DimensionBots {
                 purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, choice, level.applyAsInt(choice)));
         }
 
-        /** Vrai si le joueur achète à ce prix, près de l'automatisme suivant de la dimension (version 0.209). */
-        private boolean affordable(double price) {
-            return UniverseTreePolicy.handBuys(g, number, price);
-        }
+        /** Vrai si le joueur achète à ce prix, près de l'automatisme suivant de la dimension. */
+        private boolean affordable(double price) { return UniverseTreePolicy.handBuys(g, number, price); }
 
         /** La ligne tourne seule : un passage toutes les quelques secondes pour acheter. */
         private void line() {

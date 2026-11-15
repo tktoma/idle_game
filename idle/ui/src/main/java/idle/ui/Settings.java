@@ -1,20 +1,24 @@
 package idle.ui;
 
-import idle.ui.common.Card;
-import idle.ui.common.Format;
+import idle.ui.common.*;
+import idle.core.*;
+import idle.ui.bigbang.BigBangPage;
+import idle.ui.collider.EnergyView;
+import idle.ui.darkmatter.DarkMatterView;
+import idle.ui.particles.ParticleView;
+import idle.ui.universe.DimensionWindow;
+import java.util.*;
 import java.util.prefs.Preferences;
 import javafx.scene.input.KeyCode;
 
 /**
- * Les réglages du joueur : ils ne changent rien aux règles, seulement à la façon dont le jeu
- * s'affiche et se pilote. Ils sont gardés d'un lancement à l'autre dans les préférences de
- * l'utilisateur ({@link Preferences}), avec la place de la fenêtre et l'onglet ouvert ; la partie
- * elle-même est sauvegardée à part, dans un fichier ({@link SaveStore}).
+ * Les réglages du joueur : ils ne changent rien aux règles, seulement à la façon dont le jeu s'affiche et se pilote.
+ * Ils sont gardés d'un lancement à l'autre dans les préférences de l'utilisateur ({@link Preferences}), avec la place
+ * de la fenêtre et l'onglet ouvert ; la partie elle-même est sauvegardée à part, dans un fichier ({@link SaveStore}).
  *
  * <p>La pause n'est pas gardée : le jeu repart toujours en marche.
  */
 public final class Settings {
-
     /** Façon d'écrire les grands nombres. */
     public enum Notation {
         /** 1.23e7 : une mantisse entre 1 et 10, et la puissance de dix. */
@@ -33,7 +37,7 @@ public final class Settings {
         LOG("Logarithme", Cosmetic.LOG),
         /** 1.23 ×X^VII : la puissance de dix en chiffres romains. À débloquer. */
         ROMAN("Romaine", Cosmetic.ROMAN),
-        // Version 0.200 : six notations de plus (SKINS.md, section 8), toutes à débloquer.
+        // Six notations de plus (SKINS.md, section 8), toutes à débloquer.
         /** 1.21×2^10 : une mantisse entre 1 et 2, et la puissance de deux. */
         BINARY("Binaire", Cosmetic.BINARY),
         /** 0x4D2 jusqu'à 1e15, puis 1.23×16^5 : la puissance de seize. */
@@ -50,23 +54,17 @@ public final class Settings {
         private final String label;
         private final Cosmetic unlock;
 
-        Notation(String label) {
-            this(label, null);
-        }
+        Notation(String label) { this(label, null); }
 
         Notation(String label, Cosmetic unlock) {
             this.label = label;
             this.unlock = unlock;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Ce qui l'ouvre, ou {@code null} si elle est offerte d'emblée. */
-        public Cosmetic unlock() {
-            return unlock;
-        }
+        public Cosmetic unlock() { return unlock; }
     }
 
     /** Combien de niveaux achète un clic sur une amélioration payée en particules. */
@@ -84,14 +82,10 @@ public final class Settings {
             this.count = count;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Nombre de niveaux demandés à chaque clic ; l'achat s'arrête à ce que le joueur peut payer. */
-        public int count() {
-            return count;
-        }
+        public int count() { return count; }
     }
 
     /**
@@ -122,7 +116,7 @@ public final class Settings {
         NEBULA("Nébuleuse", false, 0.15, 0.2, 0, 0, "#e3a8ff", Cosmetic.NEBULA),
         /** Or : tout en reflets dorés. */
         GOLD("Or", false, 0, -1, 0.12, 0.2, "#ffd36a", Cosmetic.GOLD),
-        // Version 0.200 : huit thèmes de plus (SKINS.md, section 8), tous des filtres.
+        // Huit thèmes de plus (SKINS.md, section 8), tous des filtres.
         /** Encre : noir et blanc tranché, le contraste au plus fort. */
         INK("Encre", false, 0, -1, 0.05, 1.0, null, null, Cosmetic.INK),
         /** Cyanotype : du bleu de Prusse au blanc, les noirs voilés de bleu. */
@@ -167,42 +161,26 @@ public final class Settings {
             this.unlock = unlock;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Vrai si le thème part de l'image inversée (le thème clair). */
-        public boolean invert() {
-            return invert;
-        }
+        public boolean invert() { return invert; }
 
         /** Rotation des teintes, de −1 à 1 (1 : un demi-tour). */
-        public double hue() {
-            return hue;
-        }
+        public double hue() { return hue; }
 
         /** Saturation ajoutée, de −1 (gris) à 1. */
-        public double saturation() {
-            return saturation;
-        }
+        public double saturation() { return saturation; }
 
-        public double brightness() {
-            return brightness;
-        }
+        public double brightness() { return brightness; }
 
-        public double contrast() {
-            return contrast;
-        }
+        public double contrast() { return contrast; }
 
         /** La couleur qui teinte toute l'image (multipliée), ou {@code null}. */
-        public String tint() {
-            return tint;
-        }
+        public String tint() { return tint; }
 
-        /** Le voile qui éclaircit les noirs (version 0.200, mélange « écran » : le blanc reste blanc), ou {@code null}. */
-        public String shade() {
-            return shade;
-        }
+        /** Le voile qui éclaircit les noirs (mélange « écran » : le blanc reste blanc), ou {@code null}. */
+        public String shade() { return shade; }
 
         /** Vrai si le thème ne change rien : le thème sombre. */
         public boolean isPlain() {
@@ -210,13 +188,11 @@ public final class Settings {
         }
 
         /** Ce qui l'ouvre, ou {@code null} s'il est offert d'emblée. */
-        public Cosmetic unlock() {
-            return unlock;
-        }
+        public Cosmetic unlock() { return unlock; }
     }
 
     /**
-     * Les effets visuels qu'on peut couper un par un (version 0.063). Le grand interrupteur des
+     * Les effets visuels qu'on peut couper un par un. Le grand interrupteur des
      * effets les coupe tous ; sinon, chacun suit son propre réglage.
      */
     public enum Effect {
@@ -242,13 +218,9 @@ public final class Settings {
             this.description = description;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        public String description() {
-            return description;
-        }
+        public String description() { return description; }
     }
 
     /** Toutes les combien de secondes la partie s'écrit d'elle-même. */
@@ -266,13 +238,9 @@ public final class Settings {
             this.seconds = seconds;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        public double seconds() {
-            return seconds;
-        }
+        public double seconds() { return seconds; }
     }
 
     /** Nombre d'images par seconde au plus : moins d'images, moins de calcul et moins de batterie. */
@@ -289,13 +257,9 @@ public final class Settings {
             this.perSecond = perSecond;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        int perSecond() {
-            return perSecond;
-        }
+        int perSecond() { return perSecond; }
     }
 
     /** Taille de l'interface : tout grandit ou rétrécit ensemble, textes, boutons et dessins. */
@@ -312,18 +276,14 @@ public final class Settings {
             this.factor = factor;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Facteur d'agrandissement : 1 pour la taille normale. */
-        double factor() {
-            return factor;
-        }
+        double factor() { return factor; }
     }
 
     /**
-     * Les formats de fenêtre prédéfinis (version 0.093), en pixels d'écran, puis le plein écran fenêtré
+     * Les formats de fenêtre prédéfinis, en pixels d'écran, puis le plein écran fenêtré
      * (la fenêtre agrandie) et le vrai plein écran. Un format plus grand que l'écran est grisé.
      */
     public enum WindowSize {
@@ -345,25 +305,17 @@ public final class Settings {
             this.height = height;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        public double width() {
-            return width;
-        }
+        public double width() { return width; }
 
-        public double height() {
-            return height;
-        }
+        public double height() { return height; }
 
         /** Le texte du bouton : son nom et ses dimensions. */
-        public String text() {
-            return width <= 0 ? label : label + " (" + (int) width + " × " + (int) height + ")";
-        }
+        public String text() { return width <= 0 ? label : label + " (" + (int) width + " × " + (int) height + ")"; }
     }
 
-    /** La plus petite fenêtre où tout reste utilisable, à la taille normale de l'interface (version 0.092). */
+    /** La plus petite fenêtre où tout reste utilisable, à la taille normale de l'interface. */
     public static final double MIN_WINDOW_WIDTH = 820;
     public static final double MIN_WINDOW_HEIGHT = 600;
 
@@ -385,7 +337,7 @@ public final class Settings {
     private static final String TABS_LEFT = "tabsLeft";
     private static final String TAB_ORDER = "tabOrder";
     private static final String EFFECTS_OFF = "effectsOff";
-    /** Les catégories coupées (version 0.146) : des notifications, des morceaux de l'objectif, des pastilles. */
+    /** Les catégories coupées : des notifications, des morceaux de l'objectif, des pastilles. */
     private static final String NOTICES_OFF = "noticesOff";
     private static final String GOAL_PARTS_OFF = "goalPartsOff";
     private static final String DOTS_OFF = "dotsOff";
@@ -393,16 +345,16 @@ public final class Settings {
     private static final String OFFLINE = "offline";
     private static final String COSMETICS = "cosmetics";
     private static final String VOLUME = "volume";
-    /** La musique de fond (version 0.210) : son interrupteur et son volume, à part des sons. */
+    /** La musique de fond : son interrupteur et son volume, à part des sons. */
     private static final String MUSIC = "music";
     private static final String MUSIC_VOLUME = "musicVolume";
-    /** Les catégories de sons coupées (version 0.213). */
+    /** Les catégories de sons coupées. */
     private static final String SOUNDS_OFF = "soundsOff";
     private static final String FRAME_RATE = "frameRate";
     private static final String SAVE_ENERGY = "saveEnergy";
     /** Volume de départ, sur 100 : assez bas pour qu'un premier son ne surprenne pas. */
     static final int DEFAULT_VOLUME = 40;
-    /** Volume de départ de la musique (version 0.210) : un fond, sous les sons. */
+    /** Volume de départ de la musique : un fond, sous les sons. */
     static final int DEFAULT_MUSIC_VOLUME = 30;
     private static final String BUY_AMOUNT = "buyAmount";
     private static final String SHORTCUTS = "shortcuts";
@@ -414,7 +366,7 @@ public final class Settings {
     private static final String CONFIRM_CHALLENGE = "confirmChallenge";
     /** Préfixe des touches choisies par le joueur : une préférence par raccourci. */
     private static final String KEY_PREFIX = "key.";
-    /** Les touches des cercles de la boucle (version 0.153) : une préférence par cercle, de 0 à 6, et le métronome. */
+    /** Les touches des cercles de la boucle : une préférence par cercle, de 0 à 6, et le métronome. */
     private static final String LOOP_KEY_PREFIX = "loopKey.";
     private static final String LOOP_METRONOME = "loopMetronome";
     private static final String WINDOW = "window";
@@ -440,25 +392,25 @@ public final class Settings {
     private boolean stateSigns = true;
     private boolean chrono = true;
     private boolean skyEvents = true;
-    /** La caméra libre du volume (version 0.128) : le regard suit la souris sans clic. Coupée au départ. */
+    /** La caméra libre du volume : le regard suit la souris sans clic. Coupée au départ. */
     private boolean freeCamera = false;
     private boolean sound = true;
-    /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.057) ; sinon, la disposition d'avant. */
+    /** Les onglets à gauche, et les sous-onglets en haut à leur place ; sinon, la disposition d'avant. */
     private boolean tabsLeft = false;
-    /** L'ordre des onglets choisi en les glissant (version 0.060) : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
+    /** L'ordre des onglets choisi en les glissant : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
     private String tabOrder = "";
-    /** Les effets coupés un par un (version 0.063). */
-    private final java.util.EnumSet<Effect> effectsOff = java.util.EnumSet.noneOf(Effect.class);
-    /** Les notifications coupées par catégorie, les morceaux de l'objectif cachés et les pastilles cachées (version 0.146). */
-    private final java.util.EnumSet<Notice> noticesOff = java.util.EnumSet.noneOf(Notice.class);
-    private final java.util.EnumSet<SoundKind> soundsOff = java.util.EnumSet.noneOf(SoundKind.class);
-    private final java.util.EnumSet<Goals.Part> goalPartsOff = java.util.EnumSet.noneOf(Goals.Part.class);
-    private final java.util.EnumSet<Readiness.Kind> dotsOff = java.util.EnumSet.noneOf(Readiness.Kind.class);
+    /** Les effets coupés un par un. */
+    private final EnumSet<Effect> effectsOff = EnumSet.noneOf(Effect.class);
+    /** Les notifications coupées par catégorie, les morceaux de l'objectif cachés et les pastilles cachées. */
+    private final EnumSet<Notice> noticesOff = EnumSet.noneOf(Notice.class);
+    private final EnumSet<SoundKind> soundsOff = EnumSet.noneOf(SoundKind.class);
+    private final EnumSet<Goals.Part> goalPartsOff = EnumSet.noneOf(Goals.Part.class);
+    private final EnumSet<Readiness.Kind> dotsOff = EnumSet.noneOf(Readiness.Kind.class);
     private SaveDelay saveDelay = SaveDelay.THIRTY;
     /** Vrai si le temps passé jeu fermé est rejoué au retour. */
     private boolean offline = true;
-    /** Les thèmes et notations débloqués (version 0.063). */
-    private final java.util.EnumSet<Cosmetic> cosmetics = java.util.EnumSet.noneOf(Cosmetic.class);
+    /** Les thèmes et notations débloqués. */
+    private final EnumSet<Cosmetic> cosmetics = EnumSet.noneOf(Cosmetic.class);
     private int volume = DEFAULT_VOLUME;
     private boolean music = true;
     private int musicVolume = DEFAULT_MUSIC_VOLUME;
@@ -468,13 +420,12 @@ public final class Settings {
     private boolean detailToggle = false;
     private boolean confirmBigBang = true;
     private boolean confirmChallenge = true;
-    private final java.util.Map<Shortcuts.Action, KeyCode> keys = new java.util.EnumMap<>(Shortcuts.Action.class);
+    private final Map<Shortcuts.Action, KeyCode> keys = new EnumMap<>(Shortcuts.Action.class);
     /**
-     * La touche de chaque cercle de la boucle (version 0.153), {@code null} s'il n'en a pas. Elles ne servent que dans la
-     * fenêtre de la boucle : elles peuvent reprendre la touche d'un raccourci, pas celle d'un autre cercle ni la touche
-     * de détail.
+     * La touche de chaque cercle de la boucle, {@code null} s'il n'en a pas. Elles ne servent que dans la fenêtre de la
+     * boucle : elles peuvent reprendre la touche d'un raccourci, pas celle d'un autre cercle ni la touche de détail.
      */
-    private final KeyCode[] loopKeys = new KeyCode[idle.core.Game.MAX_RINGS];
+    private final KeyCode[] loopKeys = new KeyCode[Game.MAX_RINGS];
     /** Le métronome de la boucle : coupé au départ. */
     private boolean loopMetronome = false;
 
@@ -513,7 +464,7 @@ public final class Settings {
             try {
                 settings.offline = store.getBoolean(OFFLINE, true);
                 settings.effectsOff.addAll(names(Effect.class, store.get(EFFECTS_OFF, "")));
-                // Version 0.146 : absentes d'avant, tout est affiché.
+                // Absentes d'avant, tout est affiché.
                 settings.noticesOff.addAll(names(Notice.class, store.get(NOTICES_OFF, "")));
                 settings.soundsOff.addAll(names(SoundKind.class, store.get(SOUNDS_OFF, "")));
                 settings.goalPartsOff.addAll(names(Goals.Part.class, store.get(GOAL_PARTS_OFF, "")));
@@ -570,7 +521,7 @@ public final class Settings {
      * touche de détail (préférences touchées à la main) laisse la place à celle d'origine si elle est libre, sinon à aucune.
      */
     private void loadLoopKeys() {
-        java.util.Arrays.fill(loopKeys, null);
+        Arrays.fill(loopKeys, null);
         for (int ring = 0; ring < loopKeys.length; ring++) {
             if (store == null) break;
             try {
@@ -592,14 +543,10 @@ public final class Settings {
     }
 
     /** La touche d'origine du cercle {@code ring} : S D F Espace J K L. */
-    static KeyCode defaultLoopKey(int ring) {
-        return idle.ui.universe.DimensionWindow.DEFAULT_LOOP_KEYS.get(ring);
-    }
+    static KeyCode defaultLoopKey(int ring) { return DimensionWindow.DEFAULT_LOOP_KEYS.get(ring); }
 
     /** La touche du cercle {@code ring} de la boucle (0 à 6), ou {@code null} s'il n'en a pas. */
-    public KeyCode loopKey(int ring) {
-        return ring >= 0 && ring < loopKeys.length ? loopKeys[ring] : null;
-    }
+    public KeyCode loopKey(int ring) { return ring >= 0 && ring < loopKeys.length ? loopKeys[ring] : null; }
 
     /** Le cercle de la boucle qui porte cette touche, ou −1. */
     public int loopRingOf(KeyCode key) {
@@ -642,9 +589,7 @@ public final class Settings {
     }
 
     /** Vrai si le métronome de la boucle bat : un tic à chaque passage du point du premier cercle sur le centre d'une zone. */
-    public boolean loopMetronome() {
-        return loopMetronome;
-    }
+    public boolean loopMetronome() { return loopMetronome; }
 
     public void setLoopMetronome(boolean on) {
         loopMetronome = on;
@@ -652,37 +597,31 @@ public final class Settings {
     }
 
     /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus (d'une autre version) sont ignorés. */
-    private static <E extends Enum<E>> java.util.List<E> names(Class<E> type, String text) {
-        return idle.core.Enums.parseAll(type, text);
-    }
+    private static <E extends Enum<E>> List<E> names(Class<E> type, String text) { return Enums.parseAll(type, text); }
 
     /**
-     * Version 0.214 : une constante relue dans les préférences (huit blocs pareils avant). Un nom inconnu, d'une autre
+     * Une constante relue dans les préférences (huit blocs pareils avant). Un nom inconnu, d'une autre
      * version, ou des préférences illisibles donnent {@code fallback}.
      */
     private static <E extends Enum<E>> E stored(Preferences store, String key, E fallback) {
         try {
-            return idle.core.Enums.parse(fallback.getDeclaringClass(), store.get(key, fallback.name()), fallback);
+            return Enums.parse(fallback.getDeclaringClass(), store.get(key, fallback.name()), fallback);
         } catch (RuntimeException unreadable) {
             return fallback;
         }
     }
 
-    private static <E extends Enum<E>> String joined(java.util.Set<E> values) {
+    private static <E extends Enum<E>> String joined(Set<E> values) {
         StringBuilder text = new StringBuilder();
         for (E value : values) text.append(text.length() == 0 ? "" : ",").append(value.name());
         return text.toString();
     }
 
     /** Vrai si cet effet est affiché : les effets en marche, et lui pas coupé. */
-    public boolean effect(Effect effect) {
-        return effects && !effectsOff.contains(effect);
-    }
+    public boolean effect(Effect effect) { return effects && !effectsOff.contains(effect); }
 
     /** Vrai si cet effet est en marche dans son propre réglage, quel que soit le grand interrupteur. */
-    public boolean effectChosen(Effect effect) {
-        return !effectsOff.contains(effect);
-    }
+    public boolean effectChosen(Effect effect) { return !effectsOff.contains(effect); }
 
     public void setEffect(Effect effect, boolean on) {
         if (on) effectsOff.remove(effect);
@@ -693,18 +632,16 @@ public final class Settings {
 
     /** Les dessins lisent leurs effets dans un drapeau commun : le recopier après chaque changement. */
     private void applyEffects() {
-        idle.ui.particles.ParticleView.setSpeedLook(effect(Effect.PARTICLE_SPEED));
-        idle.ui.collider.EnergyView.setSparks(effect(Effect.COLLIDER_SPARKS));
-        idle.ui.darkmatter.DarkMatterView.setFall(effect(Effect.DARK_FALL));
-        idle.ui.particles.ParticleView.setCreationLook(effect(Effect.PARTICLE_CREATION));
-        idle.ui.darkmatter.DarkMatterView.setMotion(effect(Effect.DARK_MATTER_MOTION));
-        idle.ui.bigbang.BigBangPage.setMotion(effect(Effect.BIG_BANG_MOTION));
-        idle.ui.collider.EnergyView.setMotion(effect(Effect.COLLIDER_MOTION));
+        ParticleView.setSpeedLook(effect(Effect.PARTICLE_SPEED));
+        EnergyView.setSparks(effect(Effect.COLLIDER_SPARKS));
+        DarkMatterView.setFall(effect(Effect.DARK_FALL));
+        ParticleView.setCreationLook(effect(Effect.PARTICLE_CREATION));
+        DarkMatterView.setMotion(effect(Effect.DARK_MATTER_MOTION));
+        BigBangPage.setMotion(effect(Effect.BIG_BANG_MOTION));
+        EnergyView.setMotion(effect(Effect.COLLIDER_MOTION));
     }
 
-    public SaveDelay saveDelay() {
-        return saveDelay;
-    }
+    public SaveDelay saveDelay() { return saveDelay; }
 
     public void setSaveDelay(SaveDelay delay) {
         this.saveDelay = delay;
@@ -712,9 +649,7 @@ public final class Settings {
     }
 
     /** Vrai si le temps passé jeu fermé est rejoué au retour ; faux pour repartir d'où on était. */
-    public boolean offline() {
-        return offline;
-    }
+    public boolean offline() { return offline; }
 
     public void setOffline(boolean offline) {
         this.offline = offline;
@@ -722,14 +657,10 @@ public final class Settings {
     }
 
     /** Vrai si ce thème ou cette notation à débloquer l'est déjà. */
-    public boolean hasCosmetic(Cosmetic cosmetic) {
-        return cosmetics.contains(cosmetic);
-    }
+    public boolean hasCosmetic(Cosmetic cosmetic) { return cosmetics.contains(cosmetic); }
 
     /** Vrai si ce thème peut être choisi : offert, ou débloqué. */
-    public boolean isOpen(Theme theme) {
-        return theme.unlock() == null || cosmetics.contains(theme.unlock());
-    }
+    public boolean isOpen(Theme theme) { return theme.unlock() == null || cosmetics.contains(theme.unlock()); }
 
     public boolean isOpen(Notation notation) {
         return notation.unlock() == null || cosmetics.contains(notation.unlock());
@@ -762,13 +693,9 @@ public final class Settings {
         if (notation.unlock() != null) setNotation(Notation.SCIENTIFIC);
     }
 
-    private Settings(Preferences store) {
-        this.store = store;
-    }
+    private Settings(Preferences store) { this.store = store; }
 
-    public Notation notation() {
-        return notation;
-    }
+    public Notation notation() { return notation; }
 
     public void setNotation(Notation notation) {
         this.notation = notation;
@@ -777,9 +704,7 @@ public final class Settings {
     }
 
     /** Vrai si les effets visuels sont affichés : éclair de l'explosion, fond animé, onglet qui bat. */
-    public boolean effects() {
-        return effects;
-    }
+    public boolean effects() { return effects; }
 
     public void setEffects(boolean effects) {
         this.effects = effects;
@@ -788,9 +713,7 @@ public final class Settings {
     }
 
     /** Vrai si l'explosion demande un second clic de confirmation. */
-    public boolean confirmExplosion() {
-        return confirmExplosion;
-    }
+    public boolean confirmExplosion() { return confirmExplosion; }
 
     public void setConfirmExplosion(boolean confirmExplosion) {
         this.confirmExplosion = confirmExplosion;
@@ -798,9 +721,7 @@ public final class Settings {
     }
 
     /** Vrai si le Big Bang demande un second clic de confirmation. */
-    public boolean confirmBigBang() {
-        return confirmBigBang;
-    }
+    public boolean confirmBigBang() { return confirmBigBang; }
 
     public void setConfirmBigBang(boolean confirm) {
         confirmBigBang = confirm;
@@ -809,9 +730,7 @@ public final class Settings {
     }
 
     /** Vrai si commencer ou abandonner un défi demande un second clic de confirmation. */
-    public boolean confirmChallenge() {
-        return confirmChallenge;
-    }
+    public boolean confirmChallenge() { return confirmChallenge; }
 
     public void setConfirmChallenge(boolean confirm) {
         confirmChallenge = confirm;
@@ -820,13 +739,11 @@ public final class Settings {
     }
 
     /** La touche d'un raccourci, ou {@code null} s'il n'en a pas (la sienne a été donnée à un autre). */
-    public KeyCode key(Shortcuts.Action action) {
-        return keys.get(action);
-    }
+    public KeyCode key(Shortcuts.Action action) { return keys.get(action); }
 
     /** Le raccourci que porte cette touche, ou {@code null}. */
     public Shortcuts.Action actionOf(KeyCode key) {
-        for (java.util.Map.Entry<Shortcuts.Action, KeyCode> entry : keys.entrySet()) {
+        for (Map.Entry<Shortcuts.Action, KeyCode> entry : keys.entrySet()) {
             if (entry.getValue() == key) return entry.getKey();
         }
         return null;
@@ -870,9 +787,7 @@ public final class Settings {
     }
 
     /** Quantité achetée à chaque clic sur une amélioration payée en particules. */
-    public BuyAmount buyAmount() {
-        return buyAmount;
-    }
+    public BuyAmount buyAmount() { return buyAmount; }
 
     public void setBuyAmount(BuyAmount buyAmount) {
         this.buyAmount = buyAmount;
@@ -880,27 +795,21 @@ public final class Settings {
     }
 
     /** Vrai si les raccourcis clavier sont actifs. */
-    public boolean shortcuts() {
-        return shortcuts;
-    }
+    public boolean shortcuts() { return shortcuts; }
 
     public void setShortcuts(boolean shortcuts) {
         this.shortcuts = shortcuts;
         save(SHORTCUTS, String.valueOf(shortcuts));
     }
 
-    public Theme theme() {
-        return theme;
-    }
+    public Theme theme() { return theme; }
 
     public void setTheme(Theme theme) {
         this.theme = theme;
         save(THEME, theme.name());
     }
 
-    public Scale scale() {
-        return scale;
-    }
+    public Scale scale() { return scale; }
 
     public void setScale(Scale scale) {
         this.scale = scale;
@@ -908,32 +817,21 @@ public final class Settings {
     }
 
     /** Vrai si les notifications s'affichent : nouvel élément, succès, déblocage… */
-    public boolean notifications() {
-        return notifications;
-    }
+    public boolean notifications() { return notifications; }
 
     public void setNotifications(boolean notifications) {
         this.notifications = notifications;
         save(NOTIFICATIONS, String.valueOf(notifications));
     }
 
-    /**
-     * Vrai si les notifications de cette catégorie s'affichent (version 0.146) : les notifications en marche, et elle
-     * pas coupée.
-     */
-    public boolean notice(Notice kind) {
-        return notifications && !noticesOff.contains(kind);
-    }
+    /** Vrai si les notifications de cette catégorie s'affichent : les notifications en marche, et elle pas coupée. */
+    public boolean notice(Notice kind) { return notifications && !noticesOff.contains(kind); }
 
     /** Vrai si cette catégorie est en marche dans son propre réglage, quel que soit le grand interrupteur. */
-    public boolean noticeChosen(Notice kind) {
-        return !noticesOff.contains(kind);
-    }
+    public boolean noticeChosen(Notice kind) { return !noticesOff.contains(kind); }
 
-    /** Vrai si cette catégorie de sons est gardée (version 0.213) : toutes le sont au départ. */
-    public boolean soundKind(SoundKind kind) {
-        return !soundsOff.contains(kind);
-    }
+    /** Vrai si cette catégorie de sons est gardée : toutes le sont au départ. */
+    public boolean soundKind(SoundKind kind) { return !soundsOff.contains(kind); }
 
     public void setSoundKind(SoundKind kind, boolean on) {
         if (on) soundsOff.remove(kind);
@@ -948,12 +846,10 @@ public final class Settings {
     }
 
     /**
-     * Vrai si ce morceau de la ligne d'objectif s'affiche (version 0.146) : l'objectif en marche, et lui pas caché. Le
+     * Vrai si ce morceau de la ligne d'objectif s'affiche : l'objectif en marche, et lui pas caché. Le
      * chrono garde son réglage d'avant.
      */
-    public boolean goalPart(Goals.Part part) {
-        return showGoal && goalPartChosen(part);
-    }
+    public boolean goalPart(Goals.Part part) { return showGoal && goalPartChosen(part); }
 
     public boolean goalPartChosen(Goals.Part part) {
         return part == Goals.Part.CHRONO ? chrono : !goalPartsOff.contains(part);
@@ -969,10 +865,8 @@ public final class Settings {
         save(GOAL_PARTS_OFF, joined(goalPartsOff));
     }
 
-    /** Vrai si cette sorte de pastille s'allume sur les onglets (version 0.146). */
-    public boolean dot(Readiness.Kind kind) {
-        return !dotsOff.contains(kind);
-    }
+    /** Vrai si cette sorte de pastille s'allume sur les onglets. */
+    public boolean dot(Readiness.Kind kind) { return !dotsOff.contains(kind); }
 
     public void setDot(Readiness.Kind kind, boolean on) {
         if (on) dotsOff.remove(kind);
@@ -982,9 +876,7 @@ public final class Settings {
     }
 
     /** Vrai si l'objectif du moment est rappelé sous les onglets. */
-    public boolean showGoal() {
-        return showGoal;
-    }
+    public boolean showGoal() { return showGoal; }
 
     public void setShowGoal(boolean showGoal) {
         this.showGoal = showGoal;
@@ -992,9 +884,7 @@ public final class Settings {
     }
 
     /** L'ordre des onglets : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
-    public String tabOrder() {
-        return tabOrder;
-    }
+    public String tabOrder() { return tabOrder; }
 
     public void setTabOrder(String order) {
         this.tabOrder = order == null ? "" : order;
@@ -1002,18 +892,14 @@ public final class Settings {
     }
 
     /** Vrai si les onglets sont rangés en colonne, à gauche. */
-    public boolean tabsLeft() {
-        return tabsLeft;
-    }
+    public boolean tabsLeft() { return tabsLeft; }
 
     public void setTabsLeft(boolean left) {
         this.tabsLeft = left;
         save(TABS_LEFT, String.valueOf(left));
     }
 
-    public boolean sound() {
-        return sound;
-    }
+    public boolean sound() { return sound; }
 
     public void setSound(boolean sound) {
         this.sound = sound;
@@ -1021,38 +907,30 @@ public final class Settings {
     }
 
     /** Volume des sons, de 0 à 100. */
-    public int volume() {
-        return volume;
-    }
+    public int volume() { return volume; }
 
     public void setVolume(int volume) {
         this.volume = Math.max(0, Math.min(100, volume));
         save(VOLUME, String.valueOf(this.volume));
     }
 
-    /** Vrai si la musique de fond joue (version 0.210). */
-    public boolean music() {
-        return music;
-    }
+    /** Vrai si la musique de fond joue. */
+    public boolean music() { return music; }
 
     public void setMusic(boolean music) {
         this.music = music;
         save(MUSIC, String.valueOf(music));
     }
 
-    /** Volume de la musique, de 0 à 100 (version 0.210). */
-    public int musicVolume() {
-        return musicVolume;
-    }
+    /** Volume de la musique, de 0 à 100. */
+    public int musicVolume() { return musicVolume; }
 
     public void setMusicVolume(int volume) {
         this.musicVolume = Math.max(0, Math.min(100, volume));
         save(MUSIC_VOLUME, String.valueOf(this.musicVolume));
     }
 
-    public FrameRate frameRate() {
-        return frameRate;
-    }
+    public FrameRate frameRate() { return frameRate; }
 
     public void setFrameRate(FrameRate frameRate) {
         this.frameRate = frameRate;
@@ -1060,9 +938,7 @@ public final class Settings {
     }
 
     /** Vrai si la fenêtre ralentit quand elle n'est pas au premier plan : quatre images par seconde, une si elle est réduite. */
-    public boolean saveEnergy() {
-        return saveEnergy;
-    }
+    public boolean saveEnergy() { return saveEnergy; }
 
     public void setSaveEnergy(boolean saveEnergy) {
         this.saveEnergy = saveEnergy;
@@ -1070,9 +946,7 @@ public final class Settings {
     }
 
     /** Vrai si la ligne d'objectif dit l'écart au record sur la prochaine étape, quand il y a un record. */
-    public boolean chrono() {
-        return chrono;
-    }
+    public boolean chrono() { return chrono; }
 
     public void setChrono(boolean chrono) {
         this.chrono = chrono;
@@ -1083,9 +957,7 @@ public final class Settings {
      * Vrai si les anomalies du ciel (version 0.127 : vent de particules, fenêtre d'exploration) sont montrées et
      * annoncées. Coupées, elles passent sans se montrer : elles sont facultatives, rien n'en dépend.
      */
-    public boolean skyEvents() {
-        return skyEvents;
-    }
+    public boolean skyEvents() { return skyEvents; }
 
     public void setSkyEvents(boolean shown) {
         this.skyEvents = shown;
@@ -1093,12 +965,10 @@ public final class Settings {
     }
 
     /**
-     * Vrai si la caméra du volume est libre (version 0.128) : dans le cube, le regard suit la souris sans qu'on tienne
+     * Vrai si la caméra du volume est libre : dans le cube, le regard suit la souris sans qu'on tienne
      * le clic gauche, et une croix au centre vise. Faux : on regarde autour de soi clic gauche tenu.
      */
-    public boolean freeCamera() {
-        return freeCamera;
-    }
+    public boolean freeCamera() { return freeCamera; }
 
     public void setFreeCamera(boolean free) {
         this.freeCamera = free;
@@ -1106,9 +976,7 @@ public final class Settings {
     }
 
     /** Vrai si les cartes écrivent le signe de leur état devant leur nom, pour le reconnaître sans la couleur. */
-    public boolean stateSigns() {
-        return stateSigns;
-    }
+    public boolean stateSigns() { return stateSigns; }
 
     public void setStateSigns(boolean stateSigns) {
         this.stateSigns = stateSigns;
@@ -1117,9 +985,7 @@ public final class Settings {
     }
 
     /** La touche qui fait apparaître les explications complètes des cartes et des pages. */
-    public KeyCode detailKey() {
-        return detailKey;
-    }
+    public KeyCode detailKey() { return detailKey; }
 
     public void setDetailKey(KeyCode detailKey) {
         this.detailKey = detailKey;
@@ -1130,9 +996,7 @@ public final class Settings {
      * Vrai si la touche de détail bascule (un appui affiche les détails, un autre les cache) ;
      * faux s'il faut la tenir enfoncée.
      */
-    public boolean detailToggle() {
-        return detailToggle;
-    }
+    public boolean detailToggle() { return detailToggle; }
 
     public void setDetailToggle(boolean detailToggle) {
         this.detailToggle = detailToggle;
@@ -1140,18 +1004,13 @@ public final class Settings {
     }
 
     /** Vrai si le jeu est en pause : le temps ne passe plus, rien ne se crée. */
-    public boolean paused() {
-        return paused;
-    }
+    public boolean paused() { return paused; }
 
-    public void setPaused(boolean paused) {
-        this.paused = paused;
-    }
+    public void setPaused(boolean paused) { this.paused = paused; }
 
     /**
-     * La place de la fenêtre à la dernière fermeture : {@code x, y, largeur, hauteur}, puis 1 si
-     * elle était agrandie au maximum, 0 sinon. {@code null} tant que le jeu n'a jamais été fermé,
-     * ou si ce qui est gardé est illisible.
+     * La place de la fenêtre à la dernière fermeture : {@code x, y, largeur, hauteur}, puis 1 si elle était agrandie au
+     * maximum, 0 sinon. {@code null} tant que le jeu n'a jamais été fermé, ou si ce qui est gardé est illisible.
      */
     double[] window() {
         if (store == null) return null;
@@ -1183,9 +1042,7 @@ public final class Settings {
         }
     }
 
-    void setLastTab(String name) {
-        save(LAST_TAB, name);
-    }
+    void setLastTab(String name) { save(LAST_TAB, name); }
 
     private void save(String key, String value) {
         if (store == null) return;

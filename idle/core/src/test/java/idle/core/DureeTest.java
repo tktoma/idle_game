@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.upgrades.Upgrades;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,16 +12,13 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.134 : la durée, quatrième dimension. Un bouton au milieu d'un rond : tant qu'on le tient, les spirales
+ * La durée, quatrième dimension. Un bouton au milieu d'un rond : tant qu'on le tient, les spirales
  * avancent vers le centre, qu'elles atteignent au temps au plus ; au relâchement, chaque spirale donne ses éclats,
  * d'autant plus qu'on a tenu longtemps. Quatre améliorations : vitesse, nombre de spirales, valeur, temps au plus.
  */
 class DureeTest {
-
     /** Une partie au quatrième univers : la quatrième dimension est ouverte. */
-    static Game fourth() {
-        return GameTestSupport.universe(4);
-    }
+    static Game fourth() { return GameTestSupport.universe(4); }
 
     /** Tient le bouton {@code seconds} secondes, par petits pas, puis le relâche ; rend ce qu'il a donné. */
     private static double hold(Game game, double seconds) {
@@ -156,7 +156,7 @@ class DureeTest {
         assertTrue(game.holdDuration());
         game.tick(3);
         GameState read = SaveCodec.read(SaveCodec.write(game.state(), 0)).state();
-        Game back = new Game(read, idle.core.upgrades.Upgrades.DEFAULT);
+        Game back = new Game(read, Upgrades.DEFAULT);
         back.restored();
         assertFalse(back.isDurationHeld());
         game.restored();

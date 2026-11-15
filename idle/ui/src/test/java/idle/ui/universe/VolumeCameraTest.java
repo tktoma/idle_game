@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.128 : la caméra du volume, sans affichage. Elle dessine le cube, et retrouve la direction d'un clic. */
 class VolumeCameraTest {
-
     private static VolumeCamera inside(double yaw, double pitch) {
         VolumeCamera camera = new VolumeCamera();
         camera.yaw = yaw;

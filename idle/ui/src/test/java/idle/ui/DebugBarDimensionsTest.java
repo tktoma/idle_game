@@ -1,30 +1,24 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.*;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.140 : les outils d'essai des dimensions, refaits en une rangée par dimension (plus la graine et son chrono),
+ * Les outils d'essai des dimensions, refaits en une rangée par dimension (plus la graine et son chrono),
  * et le groupe « Bots dimension » à côté. Les bots ne sont pas dans les tests de l'interface : le groupe le dit.
  */
 class DebugBarDimensionsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static DebugBar bar(Game game) {
         DebugBar bar = new DebugBar(game);
@@ -138,7 +132,7 @@ class DebugBarDimensionsTest {
             int at = dimensions.getParent().getChildrenUnmodifiable().indexOf(dimensions);
             assertEquals(at + 1, bots.getParent().getChildrenUnmodifiable().indexOf(bots), "juste à côté de Dimensions");
             bots.fire();
-            assertEquals(java.util.List.of("Ligne", "Plan", "Volume", "Durée"), bar.dimensionBotChoice().getItems());
+            assertEquals(List.of("Ligne", "Plan", "Volume", "Durée"), bar.dimensionBotChoice().getItems());
             assertFalse(DimensionBotBridge.available(), "les bots ne sont pas dans les tests de l'interface");
             bar.dimensionLiveButton().fire();
             assertFalse(bar.dimensionBotLive());

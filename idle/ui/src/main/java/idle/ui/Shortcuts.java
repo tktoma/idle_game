@@ -4,14 +4,12 @@ import idle.ui.common.Detail;
 import javafx.scene.input.KeyCode;
 
 /**
- * Les raccourcis clavier du jeu : ce que chacun fait, et sa touche d'origine. La touche que le
- * joueur a choisie pour chacun est dans {@link Settings#key(Action)} ; c'est {@link GameApp} qui
- * exécute.
+ * Les raccourcis clavier du jeu : ce que chacun fait, et sa touche d'origine. La touche que le joueur a choisie pour
+ * chacun est dans {@link Settings#key(Action)} ; c'est {@link GameApp} qui exécute.
  *
  * <p>La touche de détail n'en fait pas partie : elle se tient enfoncée, les raccourcis se frappent.
  */
 public final class Shortcuts {
-
     /** Une chose que le clavier peut déclencher. */
     public enum Action {
         SPEED("Acheter la vitesse de création", KeyCode.V),
@@ -41,14 +39,10 @@ public final class Shortcuts {
         }
 
         /** Ce que fait le raccourci, en quelques mots. */
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Sa touche tant que le joueur n'en a pas choisi une autre. */
-        KeyCode defaultKey() {
-            return key;
-        }
+        KeyCode defaultKey() { return key; }
     }
 
     private Shortcuts() {

@@ -11,7 +11,6 @@ package idle.core.elements;
  * compilateur signale les {@code switch} à compléter.
  */
 public sealed interface ElementEffect {
-
     /** Les trois grandeurs de production du jeu. */
     enum Stat {
         /** Particules obtenues à chaque création. */

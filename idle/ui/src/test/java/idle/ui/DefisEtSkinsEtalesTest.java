@@ -9,19 +9,15 @@ import idle.core.math.BigNum;
 import idle.core.universe.Skin;
 import idle.ui.pages.SkinsPage;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.206 : les annonces des défis de matière noire (commencé, tableau assez lourd, abandonné, poids à chaque
+ * Les annonces des défis de matière noire (commencé, tableau assez lourd, abandonné, poids à chaque
  * univers formé) et la carte d'un skin qui attend son univers.
  */
 class DefisEtSkinsEtalesTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static Game game() {
         Game game = new Game();
@@ -117,7 +113,7 @@ class DefisEtSkinsEtalesTest {
             assertTrue(text.contains("★ Noyaux sombres") && text.contains("la case qui compte le plus"), text);
             assertTrue(card.hint().startsWith("Mesuré sur une partie entière"), card.hint());
             idle.ui.common.Card other = page.treePane().card("dark_shop_cadence");
-            // Version 0.209 : tant que Noyaux sombres n'a pas de niveau, les autres achats en matière noire l'attendent.
+            // Tant que Noyaux sombres n'a pas de niveau, les autres achats en matière noire l'attendent.
             assertTrue(other.text().endsWith("| Après ★ Noyaux sombres"), other.text());
             assertEquals("", other.hint());
             assertTrue(game.buyDark(Game.KEY_DARK_UPGRADE));
@@ -126,5 +122,4 @@ class DefisEtSkinsEtalesTest {
             return null;
         });
     }
-
 }

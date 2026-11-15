@@ -1,10 +1,8 @@
 import idle.core.Game;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
+import idle.core.molecules.*;
 import idle.core.sky.Cosmos;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 
 /** Garde-fou des 24 profils du premier univers : l'AFK n'est pas un blocage. */
 final class ProfileProgressGuard {
@@ -28,13 +26,11 @@ final class ProfileProgressGuard {
         this(p.id(),p.name(),STAGNATION_SECONDS,BLOCK_SECONDS,MIN_ACTIVE_SECONDS,MIN_DECISIONS);
     }
     ProfileProgressGuard(int id,String name,double stale,double blocked,double active,int decisions) {
-        if(stale<=0||blocked<=stale||active<=0||decisions<=0)
-            throw new IllegalArgumentException("Seuils invalides");
+        if(stale<=0||blocked<=stale||active<=0||decisions<=0) throw new IllegalArgumentException("Seuils invalides");
         this.id=id;this.name=name;staleThreshold=stale;blockedThreshold=blocked;
         activeThreshold=active;decisionThreshold=decisions;
     }
-    static Snapshot capture(Game g,double wall,double online,double offline,
-            int decisions,boolean active) {
+    static Snapshot capture(Game g,double wall,double online,double offline, int decisions,boolean active) {
         ShoppingList list=g.shoppingList();
         long missing=0,gathered=0;
         for(ShoppingList.Item item:list.items())missing+=Math.max(0,item.missing());
@@ -52,10 +48,8 @@ final class ProfileProgressGuard {
     private static boolean valid(double n){return Double.isFinite(n)&&n>=0;}
     private static boolean valid(BigNum n){return n!=null&&Double.isFinite(n.mantissa())&&n.sign()>=0;}
     private static String invalid(Snapshot s) {
-        if(!valid(s.wall())||!valid(s.gameTime())||!valid(s.online())||!valid(s.offline()))
-            return "temps invalide";
-        if(s.online()>s.wall()+.01||s.offline()>s.wall()+.01)
-            return "temps actif/hors ligne incoherent";
+        if(!valid(s.wall())||!valid(s.gameTime())||!valid(s.online())||!valid(s.offline())) return "temps invalide";
+        if(s.online()>s.wall()+.01||s.offline()>s.wall()+.01) return "temps actif/hors ligne incoherent";
         if(s.decisions()<0||s.bangs()<0||s.mature()<0||s.cosmos()<0
                 ||s.molecules()<0||s.creations()<0||s.gathered()<0||s.deficits()<0
                 ||s.fusions()<0||s.syntheses()<0)return "compteur negatif";
@@ -71,7 +65,7 @@ final class ProfileProgressGuard {
                 ||s.online()+.001<previous.online()||s.offline()+.001<previous.offline()
                 ||s.decisions()<previous.decisions())
             return save(s,Verdict.INVALID,"horloge ou decisions en regression");
-        // Version 0.135 : la matière rassemblée ne compte plus seule comme un jalon. Le collectionneur rassemblait des
+        // La matière rassemblée ne compte plus seule comme un jalon. Le collectionneur rassemblait des
         // molécules hors de la liste pendant 150 h, bloqué au premier astre, et le garde-fou y voyait un progrès ; la
         // matière que la liste demande, elle, fait baisser les manques.
         boolean objective=s.won()||s.bangs()>previous.bangs()
@@ -83,16 +77,14 @@ final class ProfileProgressGuard {
                 ||s.particles().gt(previous.particles())||s.atoms().gt(previous.atoms());
         if(objective)lastObjective=s;
         if(production)lastProduction=s;
-        if(!s.won()&&s.online()-previous.online()>=1800
-                &&s.gameTime()-previous.gameTime()<1)
+        if(!s.won()&&s.online()-previous.online()>=1800 &&s.gameTime()-previous.gameTime()<1)
             return save(s,Verdict.BLOCKED,"horloge moteur figee pendant session active");
         if(objective)return save(s,Verdict.PROGRESS,"jalon ou deficit ameliore");
         double stale=s.wall()-lastObjective.wall();
         double active=s.online()-lastObjective.online();
         int decisions=s.decisions()-lastObjective.decisions();
         if(stale<staleThreshold)return save(s,Verdict.PROGRESS,"observation trop courte");
-        if(active<3600||decisions<2||!s.active())
-            return save(s,Verdict.ABSENCE,"absence ou rares decisions");
+        if(active<3600||decisions<2||!s.active()) return save(s,Verdict.ABSENCE,"absence ou rares decisions");
         if(s.gameTime()-lastProduction.gameTime()>=blockedThreshold
                 &&s.online()-lastProduction.online()>=activeThreshold
                 &&s.decisions()-lastProduction.decisions()>=decisionThreshold)
@@ -118,8 +110,7 @@ final class ProfileProgressGuard {
                 s.decisions(),s.bangs(),s.mature(),s.cosmos(),s.molecules(),s.creations(),
                 s.gathered(),s.deficits(),s.fusions(),s.syntheses(),s.particles(),
                 s.atoms(),s.space(),s.freeSpace(),a.verdict());
-        if(a.verdict()!=Verdict.PROGRESS)
-            System.err.printf(Locale.ROOT,
+        if(a.verdict()!=Verdict.PROGRESS) System.err.printf(Locale.ROOT,
                     "PROFIL24_STAGNATION,profil=%02d_%s,heure=%.3f,classification=%s,objectif=%s,deficits=%d,decisions=%d,raison=%s%n",
                     id,name,s.wall()/3600,a.verdict(),String.valueOf(s.target()).replace(',',';'),
                     s.deficits(),s.decisions(),a.reason());

@@ -1,25 +1,21 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.BigBangCondition;
-import idle.core.bigbang.BigBangMilestones;
+import idle.core.bigbang.*;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
-import idle.core.sky.Body;
-import idle.core.sky.SolarSystem;
+import idle.core.sky.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Les paliers six à huit (version 0.054) : systèmes solaires, places de plus, matières exotiques. */
+/** Les paliers six à huit : systèmes solaires, places de plus, matières exotiques. */
 class SystemesTest {
-
-    private static Game game(int bigBangs) {
-        return Systemes.huitAstres(bigBangs);
-    }
+    private static Game game(int bigBangs) { return Systemes.huitAstres(bigBangs); }
 
     @Test
     void lesPaliersSixAHuit() {
@@ -58,7 +54,7 @@ class SystemesTest {
 
     @Test
     void lesTroisDefisDeBigBangLaissentPlacerChaquePlaneteDansDeuxSystemes() {
-        // Version 0.116 : une planète n'entre que dans un système, deux une fois « Univers vide », « Sans mémoire » et
+        // Une planète n'entre que dans un système, deux une fois « Univers vide », « Sans mémoire » et
         // « À la main » réussis dans un univers formé ; jamais deux fois dans le même système.
         Game game = GameTestSupport.universe(1);
         GameTestSupport.bangs(game, 6);

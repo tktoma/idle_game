@@ -1,6 +1,7 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import java.util.function.Consumer;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Body;
@@ -16,25 +17,20 @@ import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.geometry.*;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
- * La sous-page « Univers » de l'onglet Big Bang : les trois dernières échelles du jeu, formées
- * l'une après l'autre ({@link Cosmos}). La galaxie rassemble tous les astres autour du trou noir
- * supermassif ; l'amas de galaxies, puis l'univers, demandent de la matière rassemblée en bien plus
- * grand nombre.
+ * La sous-page « Univers » de l'onglet Big Bang : les trois dernières échelles du jeu, formées l'une après l'autre
+ * ({@link Cosmos}). La galaxie rassemble tous les astres autour du trou noir supermassif ; l'amas de galaxies, puis
+ * l'univers, demandent de la matière rassemblée en bien plus grand nombre.
  *
- * <p>En haut, une image de la plus grande échelle formée ({@link GalaxyView}). En dessous, une
- * carte par échelle : ce qu'elle donne, et où en est ce qu'elle demande. Une fois la galaxie
- * formée, un bouton mène à l'expansion de la matière, où tout ce que le joueur a créé tourne
- * désormais en bras de spirale.
+ * <p>En haut, une image de la plus grande échelle formée ({@link GalaxyView}). En dessous, une carte par échelle : ce
+ * qu'elle donne, et où en est ce qu'elle demande. Une fois la galaxie formée, un bouton mène à l'expansion de la
+ * matière, où tout ce que le joueur a créé tourne désormais en bras de spirale.
  */
 public final class GalaxyPane extends VBox {
-
     private static final double VIEW_HEIGHT = 230;
 
     private final Game game;
@@ -70,7 +66,7 @@ public final class GalaxyPane extends VBox {
                     game.formCosmos(scale);
                     changed.run();
                 };
-                // Version 0.127 : former l'univers remet tout à zéro ; le guide le dit d'abord, et attend la réponse.
+                // Former l'univers remet tout à zéro ; le guide le dit d'abord, et attend la réponse.
                 if (scale == Cosmos.UNIVERSE && game.canFormCosmos(scale)) confirmUniverse.accept(form);
                 else form.run();
             });
@@ -91,32 +87,24 @@ public final class GalaxyPane extends VBox {
     }
 
     /** Ce qui précède la formation de l'univers : le guide de transition, qui lance l'action si le joueur confirme. */
-    private java.util.function.Consumer<Runnable> confirmUniverse = Runnable::run;
+    private Consumer<Runnable> confirmUniverse = Runnable::run;
 
-    /** Le guide à montrer avant de former l'univers (version 0.127). */
-    public void setUniverseConfirm(java.util.function.Consumer<Runnable> confirm) {
+    /** Le guide à montrer avant de former l'univers. */
+    public void setUniverseConfirm(Consumer<Runnable> confirm) {
         confirmUniverse = confirm == null ? Runnable::run : confirm;
     }
 
     /** L'image de la galaxie : pour les vérifications. */
-    public GalaxyView view() {
-        return view;
-    }
+    public GalaxyView view() { return view; }
 
     /** La carte de la galaxie : pour les vérifications. */
-    public Card card() {
-        return cards.get(Cosmos.GALAXY);
-    }
+    public Card card() { return cards.get(Cosmos.GALAXY); }
 
     /** La carte d'une échelle du cosmos : pour les vérifications. */
-    public Card card(Cosmos scale) {
-        return cards.get(scale);
-    }
+    public Card card(Cosmos scale) { return cards.get(scale); }
 
     /** Fait avancer l'image de la galaxie. */
-    void frame(double elapsed) {
-        view.frame(elapsed);
-    }
+    void frame(double elapsed) { view.frame(elapsed); }
 
     /** Recopie l'état du jeu dans les trois cartes. */
     void refresh() {
@@ -197,7 +185,7 @@ public final class GalaxyPane extends VBox {
         int met = game.cosmosConditionsMet(scale);
         StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire ×" + ElementText.number(scale.factor()));
         lines.append('\n').append(open ? "● " : "○ ").append(scale.previous().label());
-        // Le délai de rassemblement (version 0.073) : l'échelle d'avant doit avoir eu le temps de se rassembler.
+        // Le délai de rassemblement : l'échelle d'avant doit avoir eu le temps de se rassembler.
         double settle = game.cosmosSettleRemaining(scale);
         if (open && !formed) {
             lines.append('\n').append(settle > 0 ? "○ " : "● ").append("Rassemblement : ")

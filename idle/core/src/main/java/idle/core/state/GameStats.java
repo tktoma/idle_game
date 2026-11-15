@@ -1,36 +1,29 @@
-package idle.core;
+package idle.core.state;
 
+import idle.core.*;
 import idle.core.math.BigNum;
 import idle.core.save.SaveData;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Les statistiques de la partie : des compteurs que {@link Game} tient à jour, et que rien
- * dans les règles ne lit. Ils ne servent qu'à être affichés (et sauvegardés avec
- * {@link GameState}, qui les porte).
+ * Les statistiques de la partie : des compteurs que {@link Game} tient à jour, et que rien dans les règles ne lit. Ils
+ * ne servent qu'à être affichés (et sauvegardés avec {@link GameState}, qui les porte).
  *
  * <p>Deux durées de vie :
  * <ul>
- *   <li>la plupart des compteurs courent <b>depuis le début du jeu</b> : ni la fusion, ni
- *       l'explosion, ni le Big Bang ne les remettent à zéro ;</li>
- *   <li>ceux dont le nom commence par {@code run} courent <b>depuis la dernière explosion</b>
- *       (depuis le début tant qu'il n'y en a pas eu) : {@link #endRun()} les remet à zéro.</li>
- *   <li>les dates d'étapes existent en deux exemplaires : la première fois depuis le début du jeu
- *       ({@link #reachedAt(Step)}) et la première fois dans la partie en cours
- *       ({@link #reachedThisUniverseAt(Step)}), qui repart à chaque nouvelle partie des trois actes.</li>
+ * <li>la plupart des compteurs courent <b>depuis le début du jeu</b> : ni la fusion, ni l'explosion, ni le Big Bang ne
+ * les remettent à zéro ;</li>
+ * <li>ceux dont le nom commence par {@code run} courent <b>depuis la dernière explosion</b> (depuis le début tant qu'il
+ * n'y en a pas eu) : {@link #endRun()} les remet à zéro.</li>
+ * <li>les dates d'étapes existent en deux exemplaires : la première fois depuis le début du jeu ({@link
+ * #reachedAt(Step)}) et la première fois dans la partie en cours ({@link #reachedThisUniverseAt(Step)}), qui repart à
+ * chaque nouvelle partie des trois actes.</li>
  * </ul>
  *
  * <p>Seul {@link Game} modifie ces compteurs : les méthodes qui écrivent ne sont pas publiques.
  */
 public final class GameStats {
-
-    // Le bilan de la partie qui a mené à l'univers (version 0.083).
+    // Le bilan de la partie qui a mené à l'univers.
     private long universeBigBangs;
     private long universeMolecules;
     private long universeCollisions;
@@ -87,16 +80,16 @@ public final class GameStats {
     private int biggestCreation = 0;
     private long moleculeElementsSpent = 0;
     private final Map<Step, Double> steps = new EnumMap<>(Step.class);
-    // Les étapes de la partie en cours (version 0.126) : la date des grandes premières recommence à chaque nouvelle
+    // Les étapes de la partie en cours : la date des grandes premières recommence à chaque nouvelle
     // partie qui traverse les trois actes, pour que les délais, les records et la prochaine étape s'y rapportent.
     private final Map<Step, Double> universeSteps = new EnumMap<>(Step.class);
     private double universeStart = 0;
-    // Version 0.168 : chaque univers formé garde ses étapes (sa courbe pour le joueur), et la partie secondaire ses
+    // Chaque univers formé garde ses étapes (sa courbe pour le joueur), et la partie secondaire ses
     // moments : dimension ouverte, premier automatisme, seuil, palier final, paliers de la graine, défi final.
     private final List<UniverseRecord> universeLog = new ArrayList<>();
-    private final Map<String, Double> moments = new java.util.LinkedHashMap<>();
-    // Le temps passé la fenêtre de chaque dimension ouverte, en secondes (version 0.168), par numéro de dimension.
-    private final Map<String, Double> dimensionPlay = new java.util.LinkedHashMap<>();
+    private final Map<String, Double> moments = new LinkedHashMap<>();
+    // Le temps passé la fenêtre de chaque dimension ouverte, en secondes, par numéro de dimension.
+    private final Map<String, Double> dimensionPlay = new LinkedHashMap<>();
     // Vrai pour une sauvegarde d'avant la 0.168 : ce qui est déjà atteint au premier relevé n'a pas de date.
     private boolean momentsUndated = false;
 
@@ -109,21 +102,18 @@ public final class GameStats {
     private static final int MAX_UNIVERSES_LOGGED = 200;
 
     /**
-     * Un univers formé (version 0.168) : son numéro, son début (le lancement de sa partie), puis le temps de jeu de sa
+     * Un univers formé : son numéro, son début (le lancement de sa partie), puis le temps de jeu de sa
      * première explosion, de son premier Big Bang, de sa galaxie, de son amas et de sa formation. {@code NaN} pour une
      * étape qu'il n'a pas notée (une sauvegarde d'avant la version 0.126, ou un univers formé par l'outil d'essai).
      */
     public record UniverseRecord(int number, double start, double firstExplosion, double firstBigBang, double galaxy,
             double cluster, double formed) {
-
         /** Les noms de ses cinq phases, dans l'ordre. */
         public static final List<String> PHASES = List.of("Acte 1, jusqu'à la première explosion", "Acte 2, jusqu'au premier Big Bang",
                 "Big Bangs et astres, jusqu'à la galaxie", "Galaxie, jusqu'à l'amas", "Amas, jusqu'à l'univers");
 
         /** Sa durée en secondes, du lancement à la formation. */
-        public double duration() {
-            return formed - start;
-        }
+        public double duration() { return formed - start; }
 
         /** La durée de chacune de ses cinq phases ({@link #PHASES}), en secondes ; {@code NaN} si une borne manque. */
         public double[] phases() {
@@ -155,14 +145,10 @@ public final class GameStats {
 
         private final String label;
 
-        Step(String label) {
-            this.label = label;
-        }
+        Step(String label) { this.label = label; }
 
         /** Nom affiché. */
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     // ------------------------------------------------------------------
@@ -170,217 +156,139 @@ public final class GameStats {
     // ------------------------------------------------------------------
 
     /** Particules créées par les générateurs depuis le début du jeu. */
-    public BigNum particlesCreated() {
-        return particlesCreated;
-    }
+    public BigNum particlesCreated() { return particlesCreated; }
 
     /** Particules créées depuis la dernière explosion. */
-    public BigNum runParticlesCreated() {
-        return runParticlesCreated;
-    }
+    public BigNum runParticlesCreated() { return runParticlesCreated; }
 
     /** Particules dépensées en améliorations (celles perdues à la fusion ne comptent pas). */
-    public BigNum particlesSpent() {
-        return particlesSpent;
-    }
+    public BigNum particlesSpent() { return particlesSpent; }
 
     /** La plus forte production de particules par seconde jamais atteinte. */
-    public BigNum bestProduction() {
-        return bestProduction;
-    }
+    public BigNum bestProduction() { return bestProduction; }
 
     /** Niveaux d'améliorations payées en particules achetés, à la main ou par un automatisme. */
-    public long particleUpgradesBought() {
-        return particleUpgradesBought;
-    }
+    public long particleUpgradesBought() { return particleUpgradesBought; }
 
     /** Générateurs achetés (le premier de chaque partie, offert, ne compte pas). */
-    public long generatorsBought() {
-        return generatorsBought;
-    }
+    public long generatorsBought() { return generatorsBought; }
 
     /** Fusions faites depuis le début du jeu. */
-    public long fusions() {
-        return fusions;
-    }
+    public long fusions() { return fusions; }
 
     /** Fusions faites depuis la dernière explosion. */
-    public long runFusions() {
-        return runFusions;
-    }
+    public long runFusions() { return runFusions; }
 
     /** Atomes créés depuis le début du jeu, toutes explosions confondues. */
-    public BigNum atomsCreated() {
-        return atomsCreated;
-    }
+    public BigNum atomsCreated() { return atomsCreated; }
 
     /** Atomes dépensés : améliorations, automatismes, cadences, synthèses, arbre. */
-    public BigNum atomsSpent() {
-        return atomsSpent;
-    }
+    public BigNum atomsSpent() { return atomsSpent; }
 
     /** Le plus d'atomes jamais rapportés par une seule fusion. */
-    public BigNum bestAtomsPerFusion() {
-        return bestAtomsPerFusion;
-    }
+    public BigNum bestAtomsPerFusion() { return bestAtomsPerFusion; }
 
     /** Durée de la dernière partie entre deux fusions, en secondes (0 tant qu'il n'y a pas eu de fusion). */
-    public double lastFusionTime() {
-        return lastFusionTime;
-    }
+    public double lastFusionTime() { return lastFusionTime; }
 
     /** Durée de la plus courte partie entre deux fusions, en secondes (0 tant qu'il n'y a pas eu de fusion). */
-    public double fastestFusionTime() {
-        return fastestFusionTime;
-    }
+    public double fastestFusionTime() { return fastestFusionTime; }
 
     /** Niveaux d'améliorations payées en atomes achetés. */
-    public long atomUpgradesBought() {
-        return atomUpgradesBought;
-    }
+    public long atomUpgradesBought() { return atomUpgradesBought; }
 
     /** Actions faites par les automatismes ordinaires : achats, fusions, synthèses. */
-    public long automationActions() {
-        return automationActions;
-    }
+    public long automationActions() { return automationActions; }
 
     /** Actions faites par les automatismes de matière noire. */
-    public long darkAutomationActions() {
-        return darkAutomationActions;
-    }
+    public long darkAutomationActions() { return darkAutomationActions; }
 
     /** Nombre de primes de vitesse touchées : des explosions qui ont battu le record de la marge voulue. */
-    public long speedPrimes() {
-        return speedPrimes;
-    }
+    public long speedPrimes() { return speedPrimes; }
 
     /** Synthèses faites depuis le début du jeu. */
-    public long syntheses() {
-        return syntheses;
-    }
+    public long syntheses() { return syntheses; }
 
     /** Exemplaires d'éléments obtenus depuis le début du jeu. */
-    public long elementsObtained() {
-        return elementsObtained;
-    }
+    public long elementsObtained() { return elementsObtained; }
 
     /** Synthèses qui ont donné un élément de plus grâce à la chance de tirage double. */
-    public long doubleDraws() {
-        return doubleDraws;
-    }
+    public long doubleDraws() { return doubleDraws; }
 
     /** Synthèses payées pour préparer une synthèse ciblée, depuis le début du jeu. */
-    public long targetTries() {
-        return targetTries;
-    }
+    public long targetTries() { return targetTries; }
 
     /** Synthèses ciblées abouties depuis le début du jeu. */
-    public long targetedSyntheses() {
-        return targetedSyntheses;
-    }
+    public long targetedSyntheses() { return targetedSyntheses; }
 
     /** Temps passé à maintenir la matière noire appuyée (ou verrouillée), en secondes. */
-    public double holdTime() {
-        return holdTime;
-    }
+    public double holdTime() { return holdTime; }
 
     /** Temps de jeu depuis la dernière explosion, en secondes. */
-    public double runTime() {
-        return runTime;
-    }
+    public double runTime() { return runTime; }
 
     /** Temps de jeu qu'a demandé la dernière explosion, en secondes (0 tant qu'il n'y en a pas eu). */
-    public double lastExplosionTime() {
-        return lastExplosionTime;
-    }
+    public double lastExplosionTime() { return lastExplosionTime; }
 
     /** Temps de jeu qu'a demandé l'explosion la plus rapide, en secondes (0 tant qu'il n'y en a pas eu). */
-    public double fastestExplosionTime() {
-        return fastestExplosionTime;
-    }
+    public double fastestExplosionTime() { return fastestExplosionTime; }
 
     /**
      * Temps de jeu qu'a demandé chacune des dernières explosions, de la plus ancienne à la plus
      * récente, en secondes ({@link #MAX_EXPLOSION_TIMES} au plus).
      */
-    public List<Double> explosionTimes() {
-        return Collections.unmodifiableList(explosionTimes);
-    }
+    public List<Double> explosionTimes() { return Collections.unmodifiableList(explosionTimes); }
 
     /** Nombre d'explosions dont la durée a été notée : la dernière de {@link #explosionTimes()} porte ce numéro. */
-    public long timedExplosions() {
-        return timedExplosions;
-    }
+    public long timedExplosions() { return timedExplosions; }
 
     // ----- Big Bang -----
 
     /** Temps de jeu depuis le dernier Big Bang, en secondes (depuis le début du jeu tant qu'il n'y en a pas eu). */
-    public double bigBangTime() {
-        return bigBangTime;
-    }
+    public double bigBangTime() { return bigBangTime; }
 
     /** Temps de jeu qu'a demandé le dernier Big Bang, en secondes (0 tant qu'il n'y en a pas eu). */
-    public double lastBigBangTime() {
-        return lastBigBangTime;
-    }
+    public double lastBigBangTime() { return lastBigBangTime; }
 
     /** Temps de jeu qu'a demandé le Big Bang le plus rapide, en secondes (0 tant qu'il n'y en a pas eu). */
-    public double fastestBigBangTime() {
-        return fastestBigBangTime;
-    }
+    public double fastestBigBangTime() { return fastestBigBangTime; }
 
     /**
      * Temps de jeu qu'a demandé chacun des derniers Big Bangs, du plus ancien au plus récent, en
      * secondes ({@link #MAX_BIG_BANG_TIMES} au plus).
      */
-    public List<Double> bigBangTimes() {
-        return Collections.unmodifiableList(bigBangTimes);
-    }
+    public List<Double> bigBangTimes() { return Collections.unmodifiableList(bigBangTimes); }
 
     /** Nombre de Big Bangs dont la durée a été notée : le dernier de {@link #bigBangTimes()} porte ce numéro. */
-    public long timedBigBangs() {
-        return timedBigBangs;
-    }
+    public long timedBigBangs() { return timedBigBangs; }
 
     /** Nombre d'explosions qu'a demandé le dernier Big Bang (0 tant qu'il n'y en a pas eu). */
-    public long lastBigBangExplosions() {
-        return lastBigBangExplosions;
-    }
+    public long lastBigBangExplosions() { return lastBigBangExplosions; }
 
     /** Créations de molécules depuis le début du jeu, à la main ou par l'automatisme : une création peut ajouter plusieurs molécules. */
-    public long moleculeCreations() {
-        return moleculeCreations;
-    }
+    public long moleculeCreations() { return moleculeCreations; }
 
     /** Créations de molécules faites par l'automatisme « Création automatique ». */
-    public long autoMoleculeCreations() {
-        return autoMoleculeCreations;
-    }
+    public long autoMoleculeCreations() { return autoMoleculeCreations; }
 
     /** Molécules qu'ont attirées les amas : tout ce qu'une création a ajouté au-delà de sa première molécule. */
-    public long moleculesAttracted() {
-        return moleculesAttracted;
-    }
+    public long moleculesAttracted() { return moleculesAttracted; }
 
     /** Le plus de molécules jamais ajoutées par une seule création (0 tant qu'il n'y en a pas eu). */
-    public int biggestCreation() {
-        return biggestCreation;
-    }
+    public int biggestCreation() { return biggestCreation; }
 
     /** Exemplaires d'éléments du tableau périodique employés à créer des molécules. */
-    public long moleculeElementsSpent() {
-        return moleculeElementsSpent;
-    }
+    public long moleculeElementsSpent() { return moleculeElementsSpent; }
 
     /**
-     * Le bilan de la partie qui a mené à l'univers (version 0.083), relevé juste avant la remise à
+     * Le bilan de la partie qui a mené à l'univers, relevé juste avant la remise à
      * zéro : Big Bangs, molécules créées, collisions et comètes saisies. Tout à zéro avant l'univers.
      */
     public long[] universeTally() {
         return new long[] {universeBigBangs, universeMolecules, universeCollisions, universeComets};
     }
 
-    void noteUniverseTally(long bigBangs, long molecules, long collisions, long comets) {
+    public void noteUniverseTally(long bigBangs, long molecules, long collisions, long comets) {
         universeBigBangs = bigBangs;
         universeMolecules = molecules;
         universeCollisions = collisions;
@@ -388,78 +296,54 @@ public final class GameStats {
     }
 
     /** Vrai une fois cette première atteinte. */
-    public boolean reached(Step step) {
-        return steps.containsKey(step);
-    }
+    public boolean reached(Step step) { return steps.containsKey(step); }
 
     /** Temps de jeu auquel cette première a été atteinte, en secondes ({@code NaN} tant qu'elle ne l'est pas). */
-    public double reachedAt(Step step) {
-        return steps.getOrDefault(step, Double.NaN);
-    }
+    public double reachedAt(Step step) { return steps.getOrDefault(step, Double.NaN); }
 
     /**
-     * Vrai une fois cette étape atteinte dans la partie en cours (version 0.126). {@link #reached(Step)} dit, lui,
+     * Vrai une fois cette étape atteinte dans la partie en cours. {@link #reached(Step)} dit, lui,
      * si elle l'a été une fois depuis le début du jeu.
      */
-    public boolean reachedThisUniverse(Step step) {
-        return universeSteps.containsKey(step);
-    }
+    public boolean reachedThisUniverse(Step step) { return universeSteps.containsKey(step); }
 
     /** Temps de jeu auquel cette étape a été atteinte dans la partie en cours ({@code NaN} tant qu'elle ne l'est pas). */
-    public double reachedThisUniverseAt(Step step) {
-        return universeSteps.getOrDefault(step, Double.NaN);
-    }
+    public double reachedThisUniverseAt(Step step) { return universeSteps.getOrDefault(step, Double.NaN); }
 
     /**
      * Temps de jeu auquel la partie en cours a commencé : 0 pour la première. {@code NaN} pour une sauvegarde
      * d'avant la version 0.126 déjà au-delà de la première partie : son début n'a pas été noté.
      */
-    public double universeStart() {
-        return universeStart;
-    }
+    public double universeStart() { return universeStart; }
 
-    /** Les univers formés, du plus ancien au plus récent (version 0.168) : le journal commence à la version 0.168. */
-    public List<UniverseRecord> universeLog() {
-        return Collections.unmodifiableList(universeLog);
-    }
+    /** Les univers formés, du plus ancien au plus récent : le journal commence à la version 0.168. */
+    public List<UniverseRecord> universeLog() { return Collections.unmodifiableList(universeLog); }
 
     /**
-     * Le temps de jeu d'un moment de la partie secondaire (version 0.168) : {@code dimension.N.ouverte},
+     * Le temps de jeu d'un moment de la partie secondaire : {@code dimension.N.ouverte},
      * {@code dimension.N.automatisme}, {@code dimension.N.seuil}, {@code dimension.N.final}, {@code graine.N},
      * {@code defiFinal.ouvert}, {@code fin}. {@code NaN} pas encore atteint, ou atteint avant la version 0.168
      * ({@link #momentKnown(String)} les distingue).
      */
-    public double moment(String key) {
-        return moments.getOrDefault(key, Double.NaN);
-    }
+    public double moment(String key) { return moments.getOrDefault(key, Double.NaN); }
 
-    /** Le temps passé la fenêtre de la dimension {@code number} ouverte, en secondes (version 0.168). */
-    public double dimensionPlayTime(int number) {
-        return dimensionPlay.getOrDefault(String.valueOf(number), 0.0);
-    }
+    /** Le temps passé la fenêtre de la dimension {@code number} ouverte, en secondes. */
+    public double dimensionPlayTime(int number) { return dimensionPlay.getOrDefault(String.valueOf(number), 0.0); }
 
     /** Vrai si ce moment est atteint, daté ou non. */
-    public boolean momentKnown(String key) {
-        return moments.containsKey(key);
-    }
+    public boolean momentKnown(String key) { return moments.containsKey(key); }
 
     /** L'historique du jeu entier : ses instants sont comptés en temps de jeu depuis le début. */
-    public StatsHistory history() {
-        return history;
-    }
+    public StatsHistory history() { return history; }
 
     /** L'historique de la partie en cours : ses instants sont comptés depuis la dernière explosion. */
-    public StatsHistory runHistory() {
-        return runHistory;
-    }
+    public StatsHistory runHistory() { return runHistory; }
 
     /**
      * Vrai si ce qui porte cet identifiant (un automatisme) a déjà été débloqué au moins une
      * fois depuis le début du jeu, même s'il est de nouveau verrouillé après une explosion.
      */
-    public boolean wasUnlocked(String id) {
-        return unlockedOnce.contains(id);
-    }
+    public boolean wasUnlocked(String id) { return unlockedOnce.contains(id); }
 
     // ------------------------------------------------------------------
     // Sauvegarde
@@ -525,7 +409,7 @@ public final class GameStats {
         data.putDoubleList(prefix + "universeLog", log);
         data.putDoubles(prefix + "moments", moments);
         data.putDoubles(prefix + "dimensionPlay", dimensionPlay);
-        data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
+        data.putList(prefix + "unlockedOnce", new TreeSet<>(unlockedOnce));
         data.put(prefix + "universeBigBangs", universeBigBangs);
         data.put(prefix + "universeMolecules", universeMolecules);
         data.put(prefix + "universeCollisions", universeCollisions);
@@ -606,18 +490,16 @@ public final class GameStats {
     // Écriture, réservée à Game
     // ------------------------------------------------------------------
 
-    void noteUnlocked(String id) {
-        unlockedOnce.add(id);
-    }
+    public void noteUnlocked(String id) { unlockedOnce.add(id); }
 
-    void addTime(double seconds) {
+    public void addTime(double seconds) {
         runTime += seconds;
         bigBangTime += seconds;
     }
 
     /** Écrit des étapes et leurs instants sous {@code key}, par leur nom. */
     private static void writeSteps(SaveData data, String key, Map<Step, Double> reached) {
-        Map<String, Double> byName = new java.util.LinkedHashMap<>();
+        Map<String, Double> byName = new LinkedHashMap<>();
         reached.forEach((step, time) -> byName.put(step.name(), time));
         data.putDoubles(key, byName);
     }
@@ -636,16 +518,16 @@ public final class GameStats {
      * Une étape vient d'être atteinte, à ce temps de jeu : seule la première fois compte, une fois pour le jeu
      * entier ({@link #reachedAt(Step)}) et une fois pour la partie en cours ({@link #reachedThisUniverseAt(Step)}).
      */
-    void noteStep(Step step, double timePlayed) {
+    public void noteStep(Step step, double timePlayed) {
         steps.putIfAbsent(step, timePlayed);
         universeSteps.putIfAbsent(step, timePlayed);
     }
 
     /**
-     * L'univers {@code number} vient d'être formé (version 0.168) : ses étapes entrent au journal des univers, avant que
+     * L'univers {@code number} vient d'être formé : ses étapes entrent au journal des univers, avant que
      * {@link #startUniverseSteps(double)} les efface. Rien si la partie en cours n'a pas noté sa formation.
      */
-    void archiveUniverse(int number, double timePlayed) {
+    public void archiveUniverse(int number, double timePlayed) {
         if (!universeSteps.containsKey(Step.UNIVERSE)) return;
         universeLog.add(new UniverseRecord(number, universeStart, reachedThisUniverseAt(Step.FIRST_EXPLOSION),
                 reachedThisUniverseAt(Step.FIRST_BIG_BANG), reachedThisUniverseAt(Step.GALAXY), reachedThisUniverseAt(Step.CLUSTER),
@@ -654,25 +536,23 @@ public final class GameStats {
     }
 
     /**
-     * Un moment de la partie secondaire est atteint (version 0.168) : seule la première fois compte. Pour une sauvegarde
+     * Un moment de la partie secondaire est atteint : seule la première fois compte. Pour une sauvegarde
      * d'avant la 0.168, ce qui est atteint au premier relevé ({@link #endMomentsCatchUp()} le clôt) n'a pas de date.
      */
-    void noteMoment(String key, double timePlayed) {
+    public void noteMoment(String key, double timePlayed) {
         moments.putIfAbsent(key, momentsUndated ? Double.NaN : timePlayed);
     }
 
     /** La fenêtre de la dimension {@code number} est restée ouverte {@code seconds} secondes de plus. */
-    void addDimensionPlay(int number, double seconds) {
+    public void addDimensionPlay(int number, double seconds) {
         if (seconds > 0) dimensionPlay.merge(String.valueOf(number), seconds, Double::sum);
     }
 
     /** Le premier relevé des moments est fait : ce qui sera atteint ensuite aura sa date. */
-    void endMomentsCatchUp() {
-        momentsUndated = false;
-    }
+    public void endMomentsCatchUp() { momentsUndated = false; }
 
-    /** Une nouvelle partie commence à ce temps de jeu (version 0.126) : ses étapes repartent de zéro. */
-    void startUniverseSteps(double timePlayed) {
+    /** Une nouvelle partie commence à ce temps de jeu : ses étapes repartent de zéro. */
+    public void startUniverseSteps(double timePlayed) {
         universeSteps.clear();
         universeStart = timePlayed;
     }
@@ -692,7 +572,7 @@ public final class GameStats {
     }
 
     /** Un Big Bang vient d'avoir lieu : note sa durée et le nombre d'explosions qu'il a demandé. */
-    void noteBigBang(long explosions, double timePlayed) {
+    public void noteBigBang(long explosions, double timePlayed) {
         timedBigBangs++;
         lastBigBangTime = bigBangTime;
         if (bigBangTime > 0 && (fastestBigBangTime <= 0 || bigBangTime < fastestBigBangTime)) fastestBigBangTime = bigBangTime;
@@ -710,7 +590,7 @@ public final class GameStats {
      * @param elements  exemplaires d'éléments employés
      * @param automatic vrai si c'est l'automatisme qui l'a faite
      */
-    void noteMoleculeCreation(int created, long elements, boolean automatic) {
+    public void noteMoleculeCreation(int created, long elements, boolean automatic) {
         moleculeCreations++;
         if (automatic) autoMoleculeCreations++;
         moleculesAttracted += Math.max(0, created - 1);
@@ -718,80 +598,64 @@ public final class GameStats {
         moleculeElementsSpent += elements;
     }
 
-    void addParticles(BigNum created) {
+    public void addParticles(BigNum created) {
         particlesCreated = particlesCreated.add(created);
         runParticlesCreated = runParticlesCreated.add(created);
     }
 
-    void noteProduction(BigNum perSecond) {
-        bestProduction = bestProduction.max(perSecond);
-    }
+    public void noteProduction(BigNum perSecond) { bestProduction = bestProduction.max(perSecond); }
 
-    void noteParticleUpgrade(BigNum cost, boolean generator) {
+    public void noteParticleUpgrade(BigNum cost, boolean generator) {
         particlesSpent = particlesSpent.add(cost);
         particleUpgradesBought++;
         if (generator) generatorsBought++;
     }
 
-    void noteAtomUpgrade(BigNum cost) {
+    public void noteAtomUpgrade(BigNum cost) {
         atomsSpent = atomsSpent.add(cost);
         atomUpgradesBought++;
     }
 
-    void addParticlesSpent(BigNum cost) {
-        particlesSpent = particlesSpent.add(cost);
-    }
+    public void addParticlesSpent(BigNum cost) { particlesSpent = particlesSpent.add(cost); }
 
-    void addAtomsSpent(BigNum cost) {
-        atomsSpent = atomsSpent.add(cost);
-    }
+    public void addAtomsSpent(BigNum cost) { atomsSpent = atomsSpent.add(cost); }
 
-    void noteFusion(BigNum atoms, double seconds) {
+    public void noteFusion(BigNum atoms, double seconds) {
         fusions++;
         runFusions++;
         atomsCreated = atomsCreated.add(atoms);
         bestAtomsPerFusion = bestAtomsPerFusion.max(atoms);
         lastFusionTime = seconds;
         // 0 = pas encore de record : une durée nulle (temps non daté) n'en est pas un, et un record à 0 relu d'une
-        // ancienne sauvegarde ne bloque plus les suivants (version 0.065).
+        // ancienne sauvegarde ne bloque plus les suivants.
         if (seconds > 0 && (fastestFusionTime <= 0 || seconds < fastestFusionTime)) fastestFusionTime = seconds;
     }
 
-    void noteAutomationAction() {
-        automationActions++;
-    }
+    public void noteAutomationAction() { automationActions++; }
 
-    void noteDarkAutomationAction() {
-        darkAutomationActions++;
-    }
+    public void noteDarkAutomationAction() { darkAutomationActions++; }
 
-    void noteSpeedPrime() {
-        speedPrimes++;
-    }
+    public void noteSpeedPrime() { speedPrimes++; }
 
-    void noteSynthesis(int elements, boolean doubleDraw) {
+    public void noteSynthesis(int elements, boolean doubleDraw) {
         syntheses++;
         elementsObtained += elements;
         if (doubleDraw) doubleDraws++;
     }
 
     /** Une synthèse payée pour une synthèse ciblée, qui n'a encore rien donné. */
-    void noteSynthesisTry() {
+    public void noteSynthesisTry() {
         syntheses++;
         targetTries++;
     }
 
     /** Une synthèse ciblée vient d'aboutir. */
-    void noteTargetedSynthesis() {
-        targetedSyntheses++;
-    }
+    public void noteTargetedSynthesis() { targetedSyntheses++; }
 
-    void addHoldTime(double seconds) {
-        holdTime += seconds;
-    }
+    public void addHoldTime(double seconds) { holdTime += seconds; }
 
     /** La partie recommence sans explosion (défi commencé ou abandonné) : ses compteurs repartent de zéro. */
-    void restartRun() {
+    public void restartRun() {
         runTime = 0;
         runParticlesCreated = BigNum.ZERO;
         runFusions = 0;
@@ -799,7 +663,7 @@ public final class GameStats {
     }
 
     /** Une explosion vient d'avoir lieu : note sa durée et remet à zéro les compteurs de la partie. */
-    void endRun() {
+    public void endRun() {
         timedExplosions++;
         lastExplosionTime = runTime;
         if (runTime > 0 && (fastestExplosionTime <= 0 || runTime < fastestExplosionTime)) fastestExplosionTime = runTime;

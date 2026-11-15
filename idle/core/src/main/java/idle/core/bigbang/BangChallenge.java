@@ -23,7 +23,7 @@ public enum BangChallenge {
             + "rassemblement et formation automatiques. Les automatismes ordinaires restent.",
             Reward.DARK_MATTER, "Matière noire des explosions ×2"),
     /**
-     * Version 0.117 : rien n'est remis à zéro au départ, la partie continue ; mais le Big Bang suivant demande plus :
+     * Rien n'est remis à zéro au départ, la partie continue ; mais le Big Bang suivant demande plus :
      * les ordres de grandeur de particules ×{@link #RAISED_PARTICLES}, et ×{@link #RAISED_ATOMS} atomes et
      * ×{@link #RAISED_DARK_MATTER} matière noire en réserve.
      */
@@ -31,7 +31,7 @@ public enum BangChallenge {
             + "continue là où elle en est. En échange, le Big Bang suivant demande une fois et demie plus d'ordres de grandeur de "
             + "particules, cent fois plus d'atomes et deux fois plus de matière noire en réserve.",
             Reward.MATURATION, "Maturation des astres ×2"),
-    /** Version 0.117 : rien n'est remis à zéro, mais le troisième acte s'arrête : ni molécule, ni astre jusqu'au Big Bang. */
+    /** Rien n'est remis à zéro, mais le troisième acte s'arrête : ni molécule, ni astre jusqu'au Big Bang. */
     FROZEN("Ciel figé", "Rien n'est remis à zéro, mais le troisième acte s'arrête", "Commencer ne remet rien à zéro. Jusqu'au "
             + "Big Bang suivant, plus aucune molécule ne se crée et plus aucun astre ne se forme : il faut l'atteindre avec ce "
             + "qui existe déjà. Les astres en train de mûrir continuent. Il ne se commence qu'une fois le ciel du Big Bang suivant réuni.",
@@ -40,10 +40,8 @@ public enum BangChallenge {
     /** Ce que la barre haute multiplie : les ordres de grandeur de particules, les atomes et la matière noire du Big Bang. */
     public static final double RAISED_PARTICLES = 1.5, RAISED_ATOMS = 100, RAISED_DARK_MATTER = 2;
 
-    /** Vrai pour les défis qui ne remettent rien à zéro au départ (version 0.117). */
-    public boolean keepsRun() {
-        return this == RAISED || this == FROZEN;
-    }
+    /** Vrai pour les défis qui ne remettent rien à zéro au départ. */
+    public boolean keepsRun() { return this == RAISED || this == FROZEN; }
 
     /** Ce que laisse un défi de Big Bang réussi. */
     public enum Reward { SPACE, ACCRETION, DARK_MATTER, MATURATION, PROBES }
@@ -63,26 +61,16 @@ public enum BangChallenge {
     }
 
     /** Nom affiché. */
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** La contrainte, en quelques mots : la ligne de sa carte. */
-    public String brief() {
-        return brief;
-    }
+    public String brief() { return brief; }
 
     /** La contrainte, en une ou deux phrases. */
-    public String rule() {
-        return rule;
-    }
+    public String rule() { return rule; }
 
-    public Reward reward() {
-        return reward;
-    }
+    public Reward reward() { return reward; }
 
     /** La récompense, en quelques mots : « Espace par seconde ×2 ». */
-    public String rewardText() {
-        return rewardText;
-    }
+    public String rewardText() { return rewardText; }
 }

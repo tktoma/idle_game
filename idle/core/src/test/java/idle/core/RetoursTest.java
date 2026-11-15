@@ -1,32 +1,26 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import org.junit.jupiter.api.*;
 
 /**
  * L'achat groupé en atomes dès les premiers atomes, le prix des gestes de confort, l'automatisme des automatismes
- * pendant un défi, l'impulsion d'expansion (version 0.047), la création au hasard dans un rayon et la liste de courses
+ * pendant un défi, l'impulsion d'expansion, la création au hasard dans un rayon et la liste de courses
  * qui suit les assemblages et les astres formés.
  */
 class RetoursTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     @Nested
     class AchatGroupeEnAtomes {
-
         @Test
         void ilSAcheteEnAtomesDesLesPremiersAtomes() {
             Game game = newGame();
@@ -54,7 +48,6 @@ class RetoursTest {
 
     @Nested
     class GestesMoinsChers {
-
         @Test
         void creationContinueEtGestesGroupesCoutentDixFoisMoins() {
             Game game = newGame();
@@ -69,7 +62,6 @@ class RetoursTest {
 
     @Nested
     class Defis {
-
         @Test
         void lAutomatismeDesAutomatismesAgitPendantUnDefi() {
             Game game = newGame();
@@ -85,7 +77,6 @@ class RetoursTest {
 
     @Nested
     class Impulsion {
-
         private Game afterBigBang() {
             Game game = newGame();
             GameTestSupport.bangs(game, 1);
@@ -144,7 +135,6 @@ class RetoursTest {
 
     @Nested
     class AchatSimple {
-
         private Game afterBigBangs(int bigBangs) {
             Game game = newGame();
             GameTestSupport.bangs(game, bigBangs);
@@ -166,7 +156,7 @@ class RetoursTest {
         void auHasardPrendDAbordCeQueDemandeLeProchainPas() {
             Game game = afterBigBangs(1);
             for (String id : new String[] {"space_states", "space_assemblies"}) game.state().addSpaceUpgrade(id);
-            java.util.Map<Molecule.Kind, Integer> missing = game.missingByKind();
+            Map<Molecule.Kind, Integer> missing = game.missingByKind();
             assertFalse(missing.isEmpty());
             Molecule.Kind kind = missing.keySet().iterator().next();
             for (int i = 0; i < 5; i++) {
@@ -196,7 +186,7 @@ class RetoursTest {
             game.tick(game.moleculeAutomationInterval() + 0.01);              // un passage
             assertTrue(game.stats().autoMoleculeCreations() > 0, "rien n'a été créé");
             assertTrue(game.moleculeCount(wanted.molecule().id()) > wanted.owned(), wanted.molecule().name() + " était demandée");
-            // Version 0.178 : plus de réglage à part ; coupée, elle ne fait plus rien du tout.
+            // Plus de réglage à part ; coupée, elle ne fait plus rien du tout.
             assertTrue(game.setMoleculeAutomationEnabled(false));
             assertFalse(game.isAutoCreatingMolecules());
         }
@@ -204,7 +194,6 @@ class RetoursTest {
 
     @Nested
     class ListeDeCourses {
-
         @Test
         void unAstreFormeChangeLaListeMemeSansToucherAuxMolecules() {
             Game game = newGame();

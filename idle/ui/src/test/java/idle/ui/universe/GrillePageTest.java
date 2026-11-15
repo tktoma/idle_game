@@ -1,6 +1,13 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
+import idle.ui.common.Card;
+import idle.ui.common.Format;
+import java.util.Arrays;
+import java.util.List;
+import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -15,16 +22,11 @@ import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
 import idle.ui.Version;
 import idle.ui.automation.DimensionAutomationPane;
-import idle.ui.common.Card;
 import idle.ui.pages.StatsPage;
-import java.util.List;
 import javafx.scene.Scene;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Version 0.156, refaite en 0.157 : la grille, huitième dimension, et la graine profonde, sous Xvfb. La grande grille
@@ -36,11 +38,8 @@ import org.junit.jupiter.api.Test;
  * sa section dans l'automatisation, ses lignes dans les statistiques.
  */
 class GrillePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au huitième univers : la grille est ouverte. */
     private static Game eighth() {
@@ -66,7 +65,7 @@ class GrillePageTest {
         }
     }
 
-    private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type, double x, double y) {
+    private static MouseEvent mouse(EventType<MouseEvent> type, double x, double y) {
         return new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1, false, false, false, false,
                 type == MouseEvent.MOUSE_PRESSED, false, false, false, false, false, null);
     }
@@ -216,7 +215,7 @@ class GrillePageTest {
             }
             assertNotEquals(view.gridProbeColor(near), view.gridProbeColor(far), "du froid au chaud");
             assertTrue(window.gridButton(Game.GridUpgrade.REVEAL).getText().endsWith("Au maximum"));
-            // Version 0.158 : tant que le point est là, sa case essayée garde sa couleur ; parti, elle s'efface.
+            // Tant que le point est là, sa case essayée garde sa couleur ; parti, elle s'efface.
             assertNotNull(view.gridProbedAt(101, 900, 600));
             run(game, window, Game.GRID_COOLDOWN + 0.1);
             aim(window, 102, 900, 600);
@@ -253,9 +252,9 @@ class GrillePageTest {
             assertTrue(window.gridSizeText().startsWith("Grille de 700 × 700 × 700 cases"), window.gridSizeText());
             assertTrue(window.gridSizeText().endsWith("2 essais par point"), window.gridSizeText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 8);
+            FxTestSupport.openDimensionAutomations(game, 8);
             game.state().setClickerShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.GRID_PROBE);
+            FxTestSupport.buyPlay(game, DimensionAutomation.GRID_PROBE);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.gridHintText().startsWith("Essais automatiques"), window.gridHintText());
@@ -286,7 +285,7 @@ class GrillePageTest {
             assertEquals("Repères de la grille : 0", upgrades.resourceText().getText());
             double full = game.deepSeedFull();
             assertTrue(full >= 4, "√16 au moins : " + full);
-            String next = idle.ui.common.Format.multiplier(1 + (full - 1) / 10);
+            String next = Format.multiplier(1 + (full - 1) / 10);
             assertTrue(upgrades.button(SeedUpgrade.DEEP_SEED).getText().startsWith("Graine profonde (niveau 0) : tout l'arrosage ×1 → " + next),
                     upgrades.button(SeedUpgrade.DEEP_SEED).getText());
             double rate = game.wateringCanRate();
@@ -295,7 +294,7 @@ class GrillePageTest {
             upgrades.button(SeedUpgrade.DEEP_SEED).fire();
             assertEquals(1 + (full - 1) / 10, game.deepSeed(), 1e-9);
             assertEquals(rate * game.deepSeed(), game.wateringCanRate(), 1e-9);
-            assertEquals(1, java.util.Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 8).count());
+            assertEquals(1, Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 8).count());
             assertFalse(page.dimensionsView().isMarked(8));
             game.state().setGridShardsEarned(Game.GRID_THRESHOLD);
             page.refresh();
@@ -309,7 +308,7 @@ class GrillePageTest {
         FxTestSupport.fx(() -> {
             Game game = eighth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 8);
+            FxTestSupport.openDimensionAutomations(game, 8);
             game.state().setClickerShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
@@ -317,17 +316,17 @@ class GrillePageTest {
             assertTrue(pane.sectionShown(8));
             assertEquals("Dimension 8 : La grille", pane.headingText(8));
             assertTrue(pane.balanceText(8).startsWith("Payés en repères"), pane.balanceText(8));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 8);
-            idle.ui.FxTestSupport.fillDimension(game, 8, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 8);
+            FxTestSupport.fillDimension(game, 8, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.GRID_PROBE_5S);
             assertEquals(Card.State.READY, play.state());
             assertTrue(play.text().contains("Essaie une case près d'un point, toutes les 5 s"), play.text());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE_5S));
-            assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count(),
+            assertEquals(11, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count(),
                     "onze automatismes pour la grille");
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

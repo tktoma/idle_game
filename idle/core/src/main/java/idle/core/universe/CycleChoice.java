@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Le petit arbre du deuxième univers (version 0.087) : trois choix qui ne se cumulent pas, un seul
+ * Le petit arbre du deuxième univers : trois choix qui ne se cumulent pas, un seul
  * par cycle, d'un Big Bang au suivant. Le Big Bang le rend, gratuitement : le choix se refait.
  */
 public enum CycleChoice {
@@ -24,12 +24,8 @@ public enum CycleChoice {
         this.effect = effect;
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ce que fait le choix, en une phrase. */
-    public String effect() {
-        return effect;
-    }
+    public String effect() { return effect; }
 }

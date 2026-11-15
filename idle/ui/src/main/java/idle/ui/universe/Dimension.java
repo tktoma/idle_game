@@ -1,16 +1,15 @@
 package idle.ui.universe;
 
 /**
- * Les dix dimensions de la sous-page du même nom (version 0.081) : un nom et une phrase chacune,
- * de la ligne au mélange. Chacune ouvre sa fenêtre ({@link DimensionWindow}), avec sa vue ({@link DimensionView}) ;
- * toutes se jouent depuis la version 0.158 ({@link #PLAYABLE}) : avant, les dernières n'étaient qu'un visuel.
+ * Les dix dimensions de la sous-page du même nom : un nom et une phrase chacune, de la ligne au mélange. Chacune ouvre
+ * sa fenêtre ({@link DimensionWindow}), avec sa vue ({@link DimensionView}) ; toutes se jouent depuis la version 0.158
+ * ({@link #PLAYABLE}) : avant, les dernières n'étaient qu'un visuel.
  *
- * <p>Version 0.153 : la cinquième devient la boucle, que le jeu a créée ; les embranchements, qui n'étaient qu'un
- * visuel, lui laissent la place. Version 0.154 : la sixième devient la brane, à la place de « tous les possibles ».
- * Version 0.155 : la septième devient le clicker, à la place de « tous les débuts ». Version 0.156 : la huitième devient
- * la grille, à la place de « la toile des débuts ». Version 0.157 : la neuvième devient le miroir, à la place de « toutes
- * les lois ». Version 0.158 : la dixième devient le mélange, à la place du « point » ; refait en 0.159, il mêle étape
- * par étape les mécaniques des neuf autres en un seul mini-jeu.
+ * <p>La cinquième devient la boucle, que le jeu a créée ; les embranchements, qui n'étaient qu'un visuel, lui laissent
+ * la place. La sixième devient la brane, à la place de « tous les possibles ». La septième devient le clicker, à la
+ * place de « tous les débuts ». La huitième devient la grille, à la place de « la toile des débuts ». La neuvième
+ * devient le miroir, à la place de « toutes les lois ». La dixième devient le mélange, à la place du « point » ; refait
+ * en 0.159, il mêle étape par étape les mécaniques des neuf autres en un seul mini-jeu.
  */
 public enum Dimension {
     LINE("La ligne", "Un point qui avance : une seule direction, en avant ou en arrière."),
@@ -36,21 +35,13 @@ public enum Dimension {
     }
 
     /** Son numéro, de 1 à 10. */
-    public int number() {
-        return ordinal() + 1;
-    }
+    public int number() { return ordinal() + 1; }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Une phrase qui dit ce qu'on y voit. */
-    public String line() {
-        return line;
-    }
+    public String line() { return line; }
 
     /** La dimension de ce numéro (1 à 10). */
-    public static Dimension of(int number) {
-        return values()[Math.max(1, Math.min(values().length, number)) - 1];
-    }
+    public static Dimension of(int number) { return values()[Math.max(1, Math.min(values().length, number)) - 1]; }
 }

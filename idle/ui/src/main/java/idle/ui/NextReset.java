@@ -1,17 +1,12 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.bigbang.BigBangCondition;
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkUpgrade;
+import idle.core.bigbang.*;
+import idle.core.darkmatter.*;
 import idle.core.math.BigNum;
 import idle.ui.bigbang.BigBangPage;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
-import java.util.ArrayList;
-import java.util.List;
+import idle.ui.common.*;
+import java.util.*;
 
 /**
  * Ce que rapportera la prochaine remise à zéro, pour qu'elle se lise comme une accélération et
@@ -22,7 +17,6 @@ import java.util.List;
  * que {@link Game} expose.
  */
 public final class NextReset {
-
     private NextReset() {
     }
 
@@ -124,7 +118,7 @@ public final class NextReset {
             }
             case ACHIEVEMENTS -> Math.max(1, Game.BIG_BANG_ACHIEVEMENTS - game.achievementCount()) + " succès";
             case CHALLENGES -> {
-                int lacking = Math.max(1, idle.core.darkmatter.Challenges.DEFAULT.size() - game.baseChallengesCompleted());
+                int lacking = Math.max(1, Challenges.DEFAULT.size() - game.baseChallengesCompleted());
                 yield lacking + (lacking > 1 ? " défis" : " défi");
             }
             case SKY -> {

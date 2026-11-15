@@ -4,25 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les neuf skins du Big Bang, sous Xvfb. Chacun, une fois choisi, dessine l'espace créé avec ses
+ * Les neuf skins du Big Bang, sous Xvfb. Chacun, une fois choisi, dessine l'espace créé avec ses
  * molécules et ses amas, vu en entier (tout en gaz) puis de tout près, à deux tailles de vue, sans exception ;
  * et sans skin, la vue redevient classique.
  */
 class SpaceSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

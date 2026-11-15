@@ -2,15 +2,12 @@ package idle.ui.pages;
 
 import idle.core.universe.Skin;
 import javafx.scene.SnapshotParameters;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
+import javafx.scene.canvas.*;
+import javafx.scene.image.*;
 import javafx.scene.paint.Color;
 
 /**
- * Le style des avatars (version 0.198, {@link idle.core.universe.SkinVisual#AVATAR_STYLE}) : l'avatar du jeu est d'abord
+ * Le style des avatars ({@link idle.core.universe.SkinVisual#AVATAR_STYLE}) : l'avatar du jeu est d'abord
  * dessiné tel quel, hors de l'écran, puis son image est retravaillée pixel par pixel, le même traitement pour les vingt
  * avatars. « Trait » ne garde que ses contours, à l'encre sur du papier, les zones sombres hachurées ; « Pixel » le
  * dessine tout petit puis l'agrandit sans lissage ; « Craie » le poudre en pastels grenus sur une ardoise ; « Vitrail »
@@ -18,7 +15,6 @@ import javafx.scene.paint.Color;
  * n'est jamais retouchée.
  */
 final class AvatarSkinArt {
-
     private static final Color PAPER = Color.web("#f4f1e8"), INK = Color.web("#2b2b33");
     private static final Color SLATE = Color.web("#2e3a35");
     private static final Color LEAD = Color.web("#141418");

@@ -7,7 +7,6 @@ package idle.core.darkmatter;
  * record ici et le compilateur signale les {@code switch} à compléter.
  */
 public sealed interface DarkEffect {
-
     // ----- Branche des atomes -----
 
     /** Ajoute {@code perLevel} atomes à ce que rapporte une fusion, avant tous les multiplicateurs. */
@@ -94,9 +93,8 @@ public sealed interface DarkEffect {
     record MultiplyExpansion(double perLevel) implements DarkEffect {}
 
     /**
-     * La matière noire grossit toute seule, sans appui, à une fraction {@code share} de la
-     * vitesse d'appui (0.001 = 0,1 %) au premier niveau, multipliée par {@code growth} à chaque
-     * niveau suivant.
+     * La matière noire grossit toute seule, sans appui, à une fraction {@code share} de la vitesse d'appui (0.001 = 0,1
+     * %) au premier niveau, multipliée par {@code growth} à chaque niveau suivant.
      */
     record AutoExpansion(double share, double growth) implements DarkEffect {}
 
@@ -119,13 +117,13 @@ public sealed interface DarkEffect {
     record OfflineBonus(double points) implements DarkEffect {}
 
     /**
-     * Version 0.071 : pendant le temps d'absence rejoué ({@link idle.core.Absence}), chaque partie qui
+     * Pendant le temps d'absence rejoué ({@link idle.core.Absence}), chaque partie qui
      * commence tente le prochain défi ouvert et pas encore réussi, comme si le joueur l'avait lancé.
      */
     record ChallengesWhileAway() implements DarkEffect {}
 
     /**
-     * Version 0.073 : chaque palier de vitesse multiplie les particules par {@code extra} de plus, par
+     * Chaque palier de vitesse multiplie les particules par {@code extra} de plus, par
      * niveau (×2,5 au lieu de ×2 pour 0,5). C'est ce qui accélère une partie qu'on laisse tourner.
      */
     record StrongerMilestones(double extra) implements DarkEffect {}
@@ -148,10 +146,9 @@ public sealed interface DarkEffect {
     record SynthesisByDarkMatter(double perUnit) implements DarkEffect {}
 
     /**
-     * Chaque partie démarre avec des atomes déjà comptés comme créés : {@code perUnit} par
-     * matière noire gagnée et par niveau, sans dépasser le seuil qui débloque l'automatisation et
-     * le tableau périodique ({@link Game#UNLOCK_TOTAL_ATOMS}). Ce sont des atomes « créés », pas
-     * des atomes à dépenser.
+     * Chaque partie démarre avec des atomes déjà comptés comme créés : {@code perUnit} par matière noire gagnée et par
+     * niveau, sans dépasser le seuil qui débloque l'automatisation et le tableau périodique ({@link
+     * Game#UNLOCK_TOTAL_ATOMS}). Ce sont des atomes « créés », pas des atomes à dépenser.
      */
     record HeadStartByDarkMatter(double perUnit) implements DarkEffect {}
 
@@ -162,9 +159,8 @@ public sealed interface DarkEffect {
     record TargetedSynthesis() implements DarkEffect {}
 
     /**
-     * Ouvre l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à
-     * portée, comme pour celles payées en particules ({@link Game#isBulkAtomBuyUnlocked()}).
-     * L'effet est dans l'interface.
+     * Ouvre l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à portée, comme pour celles
+     * payées en particules ({@link Game#isBulkAtomBuyUnlocked()}). L'effet est dans l'interface.
      */
     record BulkAtomUpgrades() implements DarkEffect {}
 }

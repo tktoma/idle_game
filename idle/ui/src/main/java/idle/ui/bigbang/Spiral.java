@@ -1,18 +1,15 @@
 package idle.ui.bigbang;
 
 /**
- * La forme d'une galaxie spirale, vue de face : où va un point d'un disque quand ce disque
- * s'enroule en bras.
+ * La forme d'une galaxie spirale, vue de face : où va un point d'un disque quand ce disque s'enroule en bras.
  *
- * <p>Un point est repéré par sa distance au centre, en parts du rayon (0 au centre, 1 au bord), et
- * par son angle. La galaxie a {@link #ARMS} bras, qui tournent de {@link #TWIST} du centre au bord.
- * Au centre, dans le bulbe, rien ne bouge ; au-delà, chaque point est tiré vers le bras le plus
- * proche, d'autant plus qu'il en était près : les bras sont denses en leur milieu, et il reste
- * entre eux des couloirs presque vides. Aucun point ne change de distance au centre, et deux
- * points voisins restent dans le même ordre : la galaxie tient dans le disque de départ.
+ * <p>Un point est repéré par sa distance au centre, en parts du rayon (0 au centre, 1 au bord), et par son angle. La
+ * galaxie a {@link #ARMS} bras, qui tournent de {@link #TWIST} du centre au bord. Au centre, dans le bulbe, rien ne
+ * bouge ; au-delà, chaque point est tiré vers le bras le plus proche, d'autant plus qu'il en était près : les bras sont
+ * denses en leur milieu, et il reste entre eux des couloirs presque vides. Aucun point ne change de distance au centre,
+ * et deux points voisins restent dans le même ordre : la galaxie tient dans le disque de départ.
  */
 public final class Spiral {
-
     public static final int ARMS = 2;
     /** L'angle dont un bras tourne du centre au bord, en radians : un peu plus d'un tour. */
     static final double TWIST = 2.2 * Math.PI;
@@ -25,9 +22,7 @@ public final class Spiral {
     private Spiral() {}
 
     /** L'angle du milieu du premier bras à cette distance du centre. Les autres bras suivent, à parts égales du tour. */
-    public static double arm(double share) {
-        return TWIST * share;
-    }
+    public static double arm(double share) { return TWIST * share; }
 
     /** À quel point les bras sont resserrés à cette distance : 1 dans le bulbe, {@link #SQUEEZE} une fois les bras formés. */
     static double squeeze(double share) {

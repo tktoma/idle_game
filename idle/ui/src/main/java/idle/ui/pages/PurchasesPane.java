@@ -8,13 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Vos achats (version 0.165), comme le bot analyste les note : la prochaine étape et le temps qu'elle demande au rythme
+ * Vos achats, comme le bot analyste les note : la prochaine étape et le temps qu'elle demande au rythme
  * des dix dernières minutes, ce qui a fait gagner le plus de temps pendant la session, puis les derniers achats, avec
  * ce qu'ils ont coûté, leur poids sur les grandeurs, le temps gagné et, depuis la version 0.168, leur valeur durable :
  * jusqu'où ils tiennent et ce qu'ils font gagner sur toute leur durée de vie. Seuls les achats du joueur comptent : ceux des
@@ -22,7 +20,6 @@ import javafx.scene.layout.VBox;
  * quand la sous-page est à l'écran.
  */
 final class PurchasesPane extends VBox {
-
     static final double WIDTH = 640;
     /** Les choses les plus utiles montrées, et les derniers achats. */
     static final int BEST = 10, LAST = 40;
@@ -135,7 +132,7 @@ final class PurchasesPane extends VBox {
     }
 
     /**
-     * Version 0.168 : la valeur durable, à côté du gain immédiat. « · Tient jusqu'à la prochaine explosion (25 min la
+     * La valeur durable, à côté du gain immédiat. « · Tient jusqu'à la prochaine explosion (25 min la
      * dernière fois) : 6 min gagnées sur sa durée de vie », ou « · Tient toute la partie ».
      */
     static String durable(PurchaseHistory.Entry e) {
@@ -157,7 +154,5 @@ final class PurchasesPane extends VBox {
     }
 
     /** Les lignes du dernier dessin. */
-    List<String> shown() {
-        return List.copyOf(shown);
-    }
+    List<String> shown() { return List.copyOf(shown); }
 }

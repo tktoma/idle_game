@@ -1,5 +1,10 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.math.BigNum;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,12 +13,11 @@ import idle.core.GameUniverse.TreeBubble;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.169 : une bulle qui garde, achetée entre la formation de l'univers et le lancement du suivant, garde encore
+ * Une bulle qui garde, achetée entre la formation de l'univers et le lancement du suivant, garde encore
  * sa part de l'univers formé ; le vide raccourcit le rassemblement et la maturation de moitié au plus ; le jalon des
  * racines, en gluons, abaisse les paliers du défi final.
  */
 class Reglages169Test {
-
     /** Une partie au premier univers en cours, le collisionneur bien avancé. */
     private static Game avecCollisionneur() {
         Game game = GameTestSupport.realGame();
@@ -83,14 +87,14 @@ class Reglages169Test {
     void leVideRenduAuLancementNeCompteQuUneFoisAuCumul() {
         Game game = GameTestSupport.universe(3);
         game.state().setVoidOpen(true);
-        game.state().setVoidEnergy(idle.core.math.BigNum.of(5_000));
+        game.state().setVoidEnergy(BigNum.of(5_000));
         double before = game.voidAccumulated();
         game.testFormUniverse();
         assertEquals(before + 5_000, game.voidAccumulated(), 1e-6, "la formation compte le stock");
         game.state().setTreeBubbleLevel(TreeBubble.GIANT_LEFT_LOW.ordinal(), 1);
         assertTrue(game.startNextUniverse());
         assertEquals(5_000, game.voidEnergy().toDouble(), 1e-6, "la bulle rend l'énergie de l'univers formé");
-        game.state().setVoidEnergy(idle.core.math.BigNum.of(6_000));
+        game.state().setVoidEnergy(BigNum.of(6_000));
         game.testFormUniverse();
         assertEquals(before + 6_000, game.voidAccumulated(), 1e-6, "seuls les 1 000 gagnés depuis s'ajoutent");
     }
@@ -108,7 +112,7 @@ class Reglages169Test {
     private static Game racines(long protons, boolean bulle) {
         Game game = GameTestSupport.realGame();
         if (bulle) game.state().setTreeBubbleLevel(TreeBubble.ROOTS.ordinal(), 1);
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, protons);
+        game.state().setHadrons(Hadron.PROTON, protons);
         return game;
     }
 
@@ -160,11 +164,11 @@ class Reglages169Test {
         game.state().setStarted(true);
         game.testAddFusions(1);
         assertTrue(Multipliers.impactsOf(game, Multipliers.Aspect.HADRONS).isEmpty(), "sans hadron, rien");
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 99);
-        java.util.List<Multipliers.Impact> impacts = Multipliers.impactsOf(game, Multipliers.Aspect.HADRONS);
+        game.state().setHadrons(Hadron.PROTON, 99);
+        List<Multipliers.Impact> impacts = Multipliers.impactsOf(game, Multipliers.Aspect.HADRONS);
         assertEquals(1, impacts.size(), impacts.toString());
         assertEquals(Multipliers.Quantity.ATOMS, impacts.get(0).quantity());
-        assertEquals(Math.log10(game.hadronBoost(idle.core.collider.Hadron.PROTON)), impacts.get(0).log10(), 1e-9);
+        assertEquals(Math.log10(game.hadronBoost(Hadron.PROTON)), impacts.get(0).log10(), 1e-9);
         assertTrue(impacts.get(0).share() > 0 && impacts.get(0).share() <= 1);
     }
 

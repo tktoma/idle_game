@@ -1,53 +1,44 @@
 package idle.core.sky;
 
 import idle.core.molecules.Molecule;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Un astre : un corps du ciel, de l'amas de roches au trou noir supermassif. C'est l'étage au-dessus des
- * assemblages : un astre se forme en cumulant ce que le joueur a déjà fait de plus petit.
+ * Un astre : un corps du ciel, de l'amas de roches au trou noir supermassif. C'est l'étage au-dessus des assemblages :
+ * un astre se forme en cumulant ce que le joueur a déjà fait de plus petit.
  *
- * <p>Les astres vont par échelles ({@link Tier}), chacune avec plusieurs types : un amas peut être
- * rocheux, glacé, ferreux ou carboné ; une planète, rocheuse, océan, de lave, glacée ou géante.
- * Au-delà des planètes viennent les étoiles, de la naine brune à la géante, puis ce qu'elles
- * laissent en mourant (naine blanche, étoile à neutrons), les trous noirs, et le trou noir
- * supermassif autour duquel tout finira par tourner ({@link Game#formGalaxy()}).
- * Un astre se forme avec {@link Game#formBody(String)}, une seule fois, quand le joueur réunit
- * tout ce qu'il demande :
+ * <p>Les astres vont par échelles ({@link Tier}), chacune avec plusieurs types : un amas peut être rocheux, glacé,
+ * ferreux ou carboné ; une planète, rocheuse, océan, de lave, glacée ou géante. Au-delà des planètes viennent les
+ * étoiles, de la naine brune à la géante, puis ce qu'elles laissent en mourant (naine blanche, étoile à neutrons), les
+ * trous noirs, et le trou noir supermassif autour duquel tout finira par tourner ({@link Game#formGalaxy()}). Un astre
+ * se forme avec {@link Game#formBody(String)}, une seule fois, quand le joueur réunit tout ce qu'il demande :
  * <ul>
- *   <li>des assemblages déjà formés ({@link #assemblies()}) : c'est ce dont l'astre est fait. Ils
- *       entrent dans l'astre, et aucun autre astre ne les utilise : dans le catalogue, chaque
- *       assemblage appartient à un seul astre. Dans l'espace, leurs blocs se regroupent pour
- *       former le corps de l'astre ;</li>
- *   <li>des astres de l'échelle d'en dessous, déjà formés ({@link #bodies()}) : une comète part
- *       d'un amas, une planète de lunes et d'astéroïdes ;</li>
- *   <li>de la matière : un nombre de molécules rassemblées dans un état donné, toutes sortes
- *       confondues ({@link #matter()}) ;</li>
- *   <li>des molécules précises, en nombre ({@link #molecules()}).</li>
- * </ul>
- * Les trois dernières sont des seuils : rien n'y est consommé ni réservé, et ce qui sert à un
- * astre sert aussi aux autres.
+ * <li>des assemblages déjà formés ({@link #assemblies()}) : c'est ce dont l'astre est fait. Ils entrent dans l'astre,
+ * et aucun autre astre ne les utilise : dans le catalogue, chaque assemblage appartient à un seul astre. Dans l'espace,
+ * leurs blocs se regroupent pour former le corps de l'astre ;</li>
+ * <li>des astres de l'échelle d'en dessous, déjà formés ({@link #bodies()}) : une comète part d'un amas, une planète de
+ * lunes et d'astéroïdes ;</li>
+ * <li>de la matière : un nombre de molécules rassemblées dans un état donné, toutes sortes confondues ({@link
+ * #matter()}) ;</li>
+ * <li>des molécules précises, en nombre ({@link #molecules()}).</li>
+ * </ul> Les trois dernières sont des seuils : rien n'y est consommé ni réservé, et ce qui sert à un astre sert aussi
+ * aux autres.
  *
- * @param id         identifiant stable (sert de clé dans la sauvegarde) : « icy_comet »
- * @param name       nom affiché
- * @param tier       son échelle
- * @param look       l'aspect de sa surface, pour son dessin
- * @param tint       sa couleur principale, « #rrggbb »
- * @param accent     la couleur de ses détails, « #rrggbb »
- * @param stat       la grandeur qu'il augmente une fois formé
- * @param bodies     les astres qu'il faut avoir formés
+ * @param id identifiant stable (sert de clé dans la sauvegarde) : « icy_comet »
+ * @param name nom affiché
+ * @param tier son échelle
+ * @param look l'aspect de sa surface, pour son dessin
+ * @param tint sa couleur principale, « #rrggbb »
+ * @param accent la couleur de ses détails, « #rrggbb »
+ * @param stat la grandeur qu'il augmente une fois formé
+ * @param bodies les astres qu'il faut avoir formés
  * @param assemblies les assemblages dont il est fait, qu'il faut avoir formés et qu'il est seul à utiliser
- * @param matter     la matière demandée : état → nombre de molécules rassemblées dans cet état
- * @param molecules  les molécules demandées : identifiant → nombre de molécules créées
+ * @param matter la matière demandée : état → nombre de molécules rassemblées dans cet état
+ * @param molecules les molécules demandées : identifiant → nombre de molécules créées
  */
 public record Body(String id, String name, Tier tier, Look look, String tint, String accent, Molecule.Stat stat,
                    List<String> bodies, List<String> assemblies, Map<Molecule.State, Integer> matter,
                    Map<String, Integer> molecules) {
-
     /** Les échelles d'astres, de la plus petite à la plus grande, avec ce que donne un astre de chacune. */
     public enum Tier {
         RUBBLE("Amas de roches", 2),
@@ -70,14 +61,10 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
         }
 
         /** Nom affiché au joueur. */
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Ce qu'un astre de cette échelle ajoute à sa grandeur (2 = +200 %) : le double à chaque échelle. */
-        public double gain() {
-            return gain;
-        }
+        public double gain() { return gain; }
     }
 
     /** L'aspect de la surface d'un astre : ce qui distingue à l'œil deux types d'une même échelle. */
@@ -158,12 +145,8 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
     }
 
     /** Nombre de conditions à réunir, toutes sortes confondues. */
-    public int conditions() {
-        return bodies.size() + assemblies.size() + matter.size() + molecules.size();
-    }
+    public int conditions() { return bodies.size() + assemblies.size() + matter.size() + molecules.size(); }
 
     /** Ce que donne l'astre une fois formé : sa grandeur, augmentée de ce que vaut son échelle ({@link Tier#gain()}). */
-    public Molecule.Boost boost() {
-        return new Molecule.Boost(stat, tier.gain());
-    }
+    public Molecule.Boost boost() { return new Molecule.Boost(stat, tier.gain()); }
 }

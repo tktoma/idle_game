@@ -1,41 +1,37 @@
 package idle.ui.pages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.*;
+import idle.core.sky.Body;
+import idle.ui.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
+import idle.core.collider.*;
 import idle.core.molecules.Molecule;
 import idle.core.profile.Title;
-import idle.ui.FxTestSupport;
 import idle.ui.automation.AutomationPage;
 import idle.ui.common.Card;
 import java.awt.image.BufferedImage;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.List;
 import javafx.event.ActionEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.147 : l'onglet Profil sous Xvfb (nom, titres, galerie d'avatars, image importée, journal, albums), et les
+ * L'onglet Profil sous Xvfb (nom, titres, galerie d'avatars, image importée, journal, albums), et les
  * automates du collisionneur dans l'onglet Automatisation. Le même scénario tourne sur bouchons dans Smoke80.
  */
 class ProfilePageTest {
-
     @TempDir
     Path data;
     @TempDir
     Path sources;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie commencée, une seconde et demie de jeu : le premier titre est tombé. */
     private static Game started() {
@@ -159,7 +155,7 @@ class ProfilePageTest {
     void leJournalEstDansLeProfilEtPlusDansLesStatistiques() {
         FxTestSupport.fx(() -> {
             Game game = started();
-            idle.ui.EventLog log = idle.ui.EventLog.of(game);
+            EventLog log = EventLog.of(game);
             log.clear();
             ProfilePage page = new ProfilePage(game, () -> data);
             page.openJournal();
@@ -169,7 +165,7 @@ class ProfilePageTest {
             page.refresh();
             assertEquals(2, page.journalRows());
             assertEquals("12:01  ·  1 min 05 s de jeu | annonce deux", page.journalRow(0));
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             assertFalse(stats.openSubPages().contains("Journal"), stats.openSubPages().toString());
             assertFalse(stats.openSubPage("Journal"));
@@ -205,7 +201,7 @@ class ProfilePageTest {
             Molecule sort = game.molecules().stream().filter(Molecule::hasState).findFirst().orElseThrow();
             game.state().noteFound("substances", sort.id(), 10);
             assertTrue(page.albumText(ProfilePage.SUBSTANCES, sort.id()).contains(sort.state().label()));
-            idle.core.sky.Body body = game.bodies().get(0);
+            Body body = game.bodies().get(0);
             game.state().noteFound("bodies", body.id(), 3600);
             assertTrue(page.albumText(ProfilePage.BODIES, body.id()).contains(body.tier().label()));
             assertEquals("1 / " + game.bodies().size(), page.albumCounter(ProfilePage.BODIES));
@@ -250,7 +246,7 @@ class ProfilePageTest {
             assertTrue(game.isColliderAutomationRunning(ColliderUpgrade.AUTO_BEAM));
             game.setAutomationPaused(true);
             page.refresh();
-            // Version 0.167 : la coupure générale arrête aussi les automates ; la carte garde leur réglage.
+            // La coupure générale arrête aussi les automates ; la carte garde leur réglage.
             assertFalse(game.isColliderAutomationRunning(ColliderUpgrade.AUTO_BEAM), "la coupure générale l'arrête");
             assertEquals(Card.State.ON, beam.state());
             assertFalse(page.pauseNoteText().contains("automates du collisionneur"), page.pauseNoteText());

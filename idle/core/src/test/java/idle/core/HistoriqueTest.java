@@ -1,25 +1,25 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+import idle.core.bigbang.BigBangCondition;
+import idle.core.math.BigNum;
+import java.lang.reflect.Method;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.history.Achats;
-import idle.core.history.Noms;
-import idle.core.history.Pace;
-import idle.core.history.Photo;
-import idle.core.history.PurchaseHistory;
+import idle.core.history.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.165 : l'historique des achats du joueur et le compteur de la prochaine étape. Deux photos de la partie sans
+ * L'historique des achats du joueur et le compteur de la prochaine étape. Deux photos de la partie sans
  * temps entre elles disent ce qui a été acheté et ce que cela a coûté ; le rythme de l'avancée dit dans combien de temps
  * vient l'étape suivante.
  */
 class HistoriqueTest {
-
     @Test
     void deuxPhotosDisentCeQuiAEteAcheteEtSonPrix() {
         Game game = GameTestSupport.gameWithParticles(1e6);
@@ -39,10 +39,10 @@ class HistoriqueTest {
 
     @Test
     void lAchatEnLotDUnAutomatismeSeNoteAvecSaMatiereNoire() {
-        // Version 0.167 : le niveau d'achat en lot se paie en matière noire et figure dans l'historique.
+        // Le niveau d'achat en lot se paie en matière noire et figure dans l'historique.
         Game game = GameTestSupport.realGame();
         game.state().setExplosions(1);
-        game.state().setDarkMatter(idle.core.math.BigNum.of(100));
+        game.state().setDarkMatter(BigNum.of(100));
         Photo avant = Photo.of(game.state());
         assertTrue(game.buyAutomationBatch("auto_generator"));
         List<Achats.Achat> achats = Achats.lire(Photo.diff(avant, Photo.of(game.state())));
@@ -137,7 +137,7 @@ class HistoriqueTest {
 
     @Test
     void uneConditionQuiSePerdUnInstantNeFaitPasTaireLeCompteur() {
-        // Version 0.166 : les atomes, dépensés à chaque explosion, faisaient reculer l'avancée du Big Bang ; le compteur
+        // Les atomes, dépensés à chaque explosion, faisaient reculer l'avancée du Big Bang ; le compteur
         // repartait de zéro à chaque recul et ne donnait presque jamais d'estimation.
         Game game = GameTestSupport.newGame();
         Pace pace = new Pace();
@@ -158,13 +158,13 @@ class HistoriqueTest {
     @Test
     void lesParticulesDuBigBangSeComptentCommeLaCondition() throws Exception {
         Game game = GameTestSupport.newGame();
-        java.lang.reflect.Method part = Pace.class.getDeclaredMethod("part", Game.class, idle.core.bigbang.BigBangCondition.class);
+        Method part = Pace.class.getDeclaredMethod("part", Game.class, BigBangCondition.class);
         part.setAccessible(true);
         // La condition lit la branche de matière noire (le plus grand des particules en main et de la production d'une
         // seconde) ; la moitié des ordres de grandeur demandés, c'est la moitié de la condition.
-        game.state().setParticles(idle.core.math.BigNum.pow10(game.bigBangParticles().log10() / 2));
-        assertEquals(0.5, (double) part.invoke(null, game, idle.core.bigbang.BigBangCondition.PARTICLES), 1e-3);
-        assertEquals(0, (double) part.invoke(null, game, idle.core.bigbang.BigBangCondition.ACHIEVEMENTS), 1e-12);
+        game.state().setParticles(BigNum.pow10(game.bigBangParticles().log10() / 2));
+        assertEquals(0.5, (double) part.invoke(null, game, BigBangCondition.PARTICLES), 1e-3);
+        assertEquals(0, (double) part.invoke(null, game, BigBangCondition.ACHIEVEMENTS), 1e-12);
     }
 
     @Test

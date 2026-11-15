@@ -1,28 +1,17 @@
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkUpgrade;
+import idle.core.state.GameState;
+import idle.core.darkmatter.*;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import idle.core.upgrades.*;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 /**
- * À partir de quand une chose ne sert plus (version 0.204) : mesuré, pas estimé. La partie de référence se joue une fois
+ * À partir de quand une chose ne sert plus : mesuré, pas estimé. La partie de référence se joue une fois
  * (Speedrunner, graine 201) et s'arrête un instant à chaque jalon (début, première explosion, Big Bangs 1, 5 et 8, galaxie, amas) :
  * l'état de la partie et la mémoire du bot y sont gardés. Depuis chaque jalon, la suite se rejoue sur une copie, une fois
  * telle quelle (le témoin) et une fois par chose coupée à partir de là : un automatisme interdit d'allumage
@@ -44,7 +33,6 @@ import java.util.function.Consumer;
  * {@code mecaniques}. Résultat dans {@code arrets.txt} (le tableau) et {@code arrets.csv} (chaque mesure).
  */
 final class AnalyseArrets {
-
     private AnalyseArrets() {}
 
     static final long GRAINE = 201;
@@ -58,7 +46,7 @@ final class AnalyseArrets {
 
     /** Un arrêt de la partie de référence : son nom, l'état sauvegardé, le bot figé (sa mémoire), l'heure de jeu. */
     /**
-     * Version 0.207 : la mesure courte ({@code -Didle.arretsCourt=true}). En remontant les jalons, elle s'arrête au premier
+     * La mesure courte ({@code -Didle.arretsCourt=true}). En remontant les jalons, elle s'arrête au premier
      * où la coupe retarde (les deux hasards d'accord, ou le plafond) : elle donne le seuil, pas les jalons d'avant. Pour les
      * univers longs, où rejouer chaque coupe depuis chaque jalon coûte des jours de calcul. Le second hasard n'y est joué que
      * pour un écart qui dépasse la tolérance du jalon (au lieu de 30 s).
@@ -127,15 +115,15 @@ final class AnalyseArrets {
         return list;
     }
 
-    /** Un lot : plusieurs coupures faites ensemble, comptées comme une seule (version 0.207). */
+    /** Un lot : plusieurs coupures faites ensemble, comptées comme une seule. */
     private static Coupure lot(String id, String nom, List<Coupure> membres) {
-        Set<String> sans = new java.util.LinkedHashSet<>();
+        Set<String> sans = new LinkedHashSet<>();
         for (Coupure c : membres) sans.addAll(c.sans());
         return new Coupure(id, nom, "lots", Set.copyOf(sans), bot -> { for (Coupure c : membres) c.regler().accept(bot); });
     }
 
     /**
-     * Version 0.207 : les coupures par lots, pour mesurer tous les univers sans rejouer chaque chose une à une (34 coupures
+     * Les coupures par lots, pour mesurer tous les univers sans rejouer chaque chose une à une (34 coupures
      * par univers, c'est des jours de calcul). Un lot qui ne retarde rien dit que rien de ce qu'il contient ne sert ; un
      * lot qui retarde demande d'être détaillé, chose par chose, sur cet univers-là.
      */
@@ -314,7 +302,7 @@ final class AnalyseArrets {
             long depart = System.currentTimeMillis();
             Game game = args[1].equals("neuf") ? Bots.fresh(GRAINE) : Bots.load(Path.of(args[1]), GRAINE);
             List<Jalon> jalons = new ArrayList<>();
-            // Version 0.207 : un jalon d'UniversParalleles en départ rend aussi la mémoire du bot (le fichier .bot à côté).
+            // Un jalon d'UniversParalleles en départ rend aussi la mémoire du bot (le fichier .bot à côté).
             Map<String, byte[]> memoire = args[1].equals("neuf") ? Map.of() : AnalyseMemoire.relire(Path.of(args[1]));
             double arrivee = reference(game, univers, jalons, journal, memoire);
             journal.printf(Locale.ROOT, "référence : arrivée à %s, %d jalons, %d s de calcul%n", AnalyseJournal.chrono(arrivee), jalons.size(),
@@ -329,11 +317,11 @@ final class AnalyseArrets {
             int n = jalons.size();
             double[] temoin = new double[n], tolerance = new double[n], plafond = new double[n];
             List<Future<Double>> attendus = new ArrayList<>();
-            List<java.util.concurrent.FutureTask<Double>> seconds = new ArrayList<>();
+            List<FutureTask<Double>> seconds = new ArrayList<>();
             for (int j = 0; j < n; j++) {
                 int jj = j;
                 attendus.add(pool.submit(() -> suite(jalons.get(jj), null, graineDuJalon(jj, 0), Double.MAX_VALUE)));
-                seconds.add(new java.util.concurrent.FutureTask<>(() -> suite(jalons.get(jj), null, graineDuJalon(jj, 1), Double.MAX_VALUE)));
+                seconds.add(new FutureTask<>(() -> suite(jalons.get(jj), null, graineDuJalon(jj, 1), Double.MAX_VALUE)));
             }
             for (int j = 0; j < n; j++) {
                 temoin[j] = attendus.get(j).get();
@@ -352,8 +340,8 @@ final class AnalyseArrets {
             for (Coupure c : coupures) {
                 lignes.add(pool.submit(() -> {
                     double[][] ecart = new double[2][n];
-                    java.util.Arrays.fill(ecart[0], Double.NaN);
-                    java.util.Arrays.fill(ecart[1], Double.NaN);
+                    Arrays.fill(ecart[0], Double.NaN);
+                    Arrays.fill(ecart[1], Double.NaN);
                     int auPlafond = 0;
                     boolean sert = false;
                     for (int j = n - 1; j >= 0 && auPlafond < 2 && !(COURT && sert); j--) {

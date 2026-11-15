@@ -5,16 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.bigbang.BangChallenge;
-import idle.core.sky.Bodies;
-import idle.core.sky.Body;
+import idle.core.sky.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.166 : les réglages tirés du bilan des mesures. La maturation du deuxième univers ×5 au lieu de ×128 (×4 depuis la 0.171), les
+ * Les réglages tirés du bilan des mesures. La maturation du deuxième univers ×5 au lieu de ×128 (×4 depuis la 0.171), les
  * bulles qui se rachètent ×2,5 par niveau, et la réserve du tout premier Big Bang.
  */
 class ReglagesTest {
-
     @Test
     void lesTroisDefisEtLaBarreHauteFontMurirQuatreFoisPlusVite() {
         Game game = DeuxiemeUniversTest.second();

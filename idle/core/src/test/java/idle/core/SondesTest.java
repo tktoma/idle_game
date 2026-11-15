@@ -1,26 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.math.BigNum;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeTrip;
-import idle.core.probes.ProbeUpgrade;
+import idle.core.probes.*;
 import idle.core.save.SaveCodec;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Les sondes (version 0.052) : le départ, le retour, le butin réclamé d'un clic, les améliorations. */
+/** Les sondes : le départ, le retour, le butin réclamé d'un clic, les améliorations. */
 class SondesTest {
-
     /** Une partie au troisième Big Bang, l'hydrogène et le fer découverts. */
     private static Game third() {
         Game game = GameTestSupport.realGame();
@@ -111,8 +107,8 @@ class SondesTest {
         ProbeReward quarks = new ProbeReward(ProbeReward.Type.QUARKS, "", 27, ProbeDestination.VOID);
         game.state().setProbeRewards(List.of(quarks));
         assertEquals(quarks, game.claimProbeReward());
-        assertEquals(5, game.quarks(idle.core.collider.Quark.CHARM));
-        assertEquals(2, game.quarks(idle.core.collider.Quark.BOTTOM), "la moitié de cinq, arrondie au-dessous");
+        assertEquals(5, game.quarks(Quark.CHARM));
+        assertEquals(2, game.quarks(Quark.BOTTOM), "la moitié de cinq, arrondie au-dessous");
         // Les échantillons réclamés s'ajoutent à la réserve.
         long samples = game.state().probeSamples();
         game.state().setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.SAMPLES, "", 10, ProbeDestination.VOID)));

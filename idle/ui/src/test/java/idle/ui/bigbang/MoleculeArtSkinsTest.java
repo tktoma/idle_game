@@ -1,6 +1,8 @@
 package idle.ui.bigbang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Arrays;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.molecules.Molecule;
@@ -8,28 +10,22 @@ import idle.core.molecules.Molecules;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import idle.ui.FxTestSupport;
-import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.188 : les quatre skins des molécules dessinent chaque molécule du catalogue à toutes les
+ * Les quatre skins des molécules dessinent chaque molécule du catalogue à toutes les
  * tailles sans exception, ne changent ni l'emprise ni la couleur dominante que lisent les vues, et
  * sans skin ({@code null}) le dessin est, au pixel, celui de l'appel sans argument.
  */
 class MoleculeArtSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Les skins qui habillent les molécules, dans l'ordre de l'énumération. */
     private static List<Skin> moleculeSkins() {
-        return java.util.Arrays.stream(Skin.values()).filter(skin -> skin.visual() == SkinVisual.MOLECULE).toList();
+        return Arrays.stream(Skin.values()).filter(skin -> skin.visual() == SkinVisual.MOLECULE).toList();
     }
 
     @Test

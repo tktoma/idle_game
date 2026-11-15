@@ -1,102 +1,97 @@
 package idle.ui;
 
 import idle.core.Game;
+import idle.core.sky.Cosmos;
+import idle.core.universe.*;
+import idle.ui.hadrons.HadronsPage;
+import idle.ui.universe.UniversePage;
+import idle.ui.vacuum.VoidPage;
 import idle.core.bigbang.BangChallenge;
 import idle.core.darkmatter.Challenge;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 import idle.ui.automation.AutomationPage;
 import idle.ui.collider.ColliderPage;
-import idle.ui.common.Card;
-import idle.ui.common.Detail;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
+import idle.ui.common.*;
 import idle.ui.darkmatter.ChallengesPane;
 import java.util.Locale;
 import javafx.scene.input.KeyCode;
 
 /**
- * La fenêtre du jeu : les générateurs animés, le compteur de particules,
- * la production, et une carte par amélioration.
+ * La fenêtre du jeu : les générateurs animés, le compteur de particules, la production, et une carte par amélioration.
  *
- * <p>Une partie neuve s'ouvre sur un écran de démarrage : un fond de poussières et un
- * bouton qui crée le premier générateur. Quand tous les générateurs sont débloqués,
- * un bouton permet de les fusionner en un atome.
+ * <p>Une partie neuve s'ouvre sur un écran de démarrage : un fond de poussières et un bouton qui crée le premier
+ * générateur. Quand tous les générateurs sont débloqués, un bouton permet de les fusionner en un atome.
  *
- * <p>En haut de la fenêtre, des onglets. Quatre sont là dès le début : « Particules » (les
- * générateurs et leurs améliorations), « Succès » ({@link AchievementsPage}), « Statistiques »
- * ({@link StatsPage}) et « Réglages » ({@link SettingsPage}) ; « Profil » ({@link idle.ui.pages.ProfilePage}, version 0.147)
- * les rejoint au premier générateur. Les autres apparaissent avec la partie : « Atomes » ({@link AtomsPage})
- * au premier atome, « Automatisation » ({@link AutomationPage}) dès qu'un automatisme est
- * débloqué. Le jeu continue de tourner quel que soit l'onglet affiché, sauf en pause.
+ * <p>En haut de la fenêtre, des onglets. Quatre sont là dès le début : « Particules » (les générateurs et leurs
+ * améliorations), « Succès » ({@link AchievementsPage}), « Statistiques » ({@link StatsPage}) et « Réglages » ({@link
+ * SettingsPage}) ; « Profil » ({@link idle.ui.pages.ProfilePage}, version 0.147) les rejoint au premier générateur. Les
+ * autres apparaissent avec la partie : « Atomes » ({@link AtomsPage}) au premier atome, « Automatisation » ({@link
+ * AutomationPage}) dès qu'un automatisme est débloqué. Le jeu continue de tourner quel que soit l'onglet affiché, sauf
+ * en pause.
  *
  * <p>Quand les 118 éléments du tableau périodique sont découverts, un bouton apparaît au-dessus des onglets : il
- * déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet
- * « Matière noire » ({@link DarkMatterPage}). Au bout de son arbre, le Big Bang efface tout de
- * nouveau et fait apparaître l'onglet « Big Bang » ({@link BigBangPage}).
+ * déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet « Matière noire » ({@link
+ * DarkMatterPage}). Au bout de son arbre, le Big Bang efface tout de nouveau et fait apparaître l'onglet « Big Bang »
+ * ({@link BigBangPage}).
  *
- * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en
- * plus une {@link DebugBar} pour accélérer le temps et s'ajouter des ressources.
+ * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en plus une {@link DebugBar}
+ * pour accélérer le temps et s'ajouter des ressources.
  *
- * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum »
- * (réglage sous le compteur), au clic ou au clavier : voir {@link #onKey(KeyCode)}. Chacune est
- * une {@link Card} : son niveau, sa touche, ce qu'elle rapporte en quelques mots, son prix et le
- * temps qu'il reste à attendre.
+ * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum » (réglage sous le compteur), au
+ * clic ou au clavier : voir {@link #onKey(KeyCode)}. Chacune est une {@link Card} : son niveau, sa touche, ce qu'elle
+ * rapporte en quelques mots, son prix et le temps qu'il reste à attendre.
  *
- * <p>Partout dans le jeu, les explications complètes n'apparaissent qu'en mode détails
- * ({@link Detail}) : tant que le joueur tient la touche de détail, réglable ({@link Settings#detailKey()}).
- * Un rappel de cette touche reste affiché sous les onglets.
+ * <p>Partout dans le jeu, les explications complètes n'apparaissent qu'en mode détails ({@link Detail}) : tant que le
+ * joueur tient la touche de détail, réglable ({@link Settings#detailKey()}). Un rappel de cette touche reste affiché
+ * sous les onglets.
  *
- * <p>Sous les onglets, une ligne rappelle l'objectif du moment ({@link Goals}). Par-dessus tout
- * le reste, les notifications ({@link ToastPane}) annoncent ce que {@link Notifier} a repéré :
- * nouvel élément, succès, déblocage. Toute la fenêtre passe par {@link ScaledPane} (la taille de
- * l'interface) et par le filtre du thème choisi ({@link ThemeFilter}). Des thèmes et des notations
- * se débloquent en faisant des choses très précises ({@link Cosmetics}).
+ * <p>Sous les onglets, une ligne rappelle l'objectif du moment ({@link Goals}). Par-dessus tout le reste, les
+ * notifications ({@link ToastPane}) annoncent ce que {@link Notifier} a repéré : nouvel élément, succès, déblocage.
+ * Toute la fenêtre passe par {@link ScaledPane} (la taille de l'interface) et par le filtre du thème choisi ({@link
+ * ThemeFilter}). Des thèmes et des notations se débloquent en faisant des choses très précises ({@link Cosmetics}).
  *
- * <p>La partie est sauvegardée dans un fichier ({@link SaveStore}) : relue au lancement, écrite
- * au rythme choisi dans les réglages (toutes les trente secondes d'origine) et à la fermeture. Au retour du joueur, une part du temps passé jeu
- * fermé est rejouée ({@link Absence}), sous un panneau qui en montre l'avancée puis le bilan
- * ({@link AbsencePane}). La fenêtre retrouve aussi sa place, sa taille et son onglet.
+ * <p>La partie est sauvegardée dans un fichier ({@link SaveStore}) : relue au lancement, écrite au rythme choisi dans
+ * les réglages (toutes les trente secondes d'origine) et à la fermeture. Au retour du joueur, une part du temps passé
+ * jeu fermé est rejouée ({@link Absence}), sous un panneau qui en montre l'avancée puis le bilan ({@link AbsencePane}).
+ * La fenêtre retrouve aussi sa place, sa taille et son onglet.
  *
- * <p>La fenêtre ne contient aucune règle : elle appelle {@code game.tick()},
- * affiche l'état, et transmet les clics à {@code game.buy()}.
+ * <p>La fenêtre ne contient aucune règle : elle appelle {@code game.tick()}, affiche l'état, et transmet les clics à
+ * {@code game.buy()}.
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
- * celle-ci est le bout ; le reste du programme ne voit que {@code GameApp}. De la base au bout :
- * {@link GameAppBase}, {@link GameAppWindow}, {@link GameAppTabs}. Quand une partie a besoin d'une méthode
- * définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les
- * parties suivantes ».
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont celle-ci est le bout ; le
+ * reste du programme ne voit que {@code GameApp}. De la base au bout : {@link GameAppBase}, {@link GameAppWindow},
+ * {@link GameAppTabs}. Quand une partie a besoin d'une méthode définie plus loin dans la chaîne, elle la déclare
+ * abstraite en tête, sous « Ce que fournissent les parties suivantes ».
  */
 public final class GameApp extends GameAppTabs {
-
     /**
-     * Version 0.199 : les skins de la fenêtre autour du jeu. Les notifications prennent leur skin à l'affichage et le jeu
+     * Les skins de la fenêtre autour du jeu. Les notifications prennent leur skin à l'affichage et le jeu
      * apprend combien ont été affichées ; les panneaux (aide, absence) suivent le visuel des panneaux, l'écran de fin et
      * la fin de partie celui de l'écran de fin s'il est choisi, sinon celui des panneaux ; le guide de transition le sien ;
      * le curseur se pose sur toute la fenêtre, l'arrosoir et la loupe seulement sur leur onglet.
      */
-    /** Les skins de son vus à l'image d'avant (version 0.203) : un changement, sur la page des skins, se fait entendre. */
+    /** Les skins de son vus à l'image d'avant : un changement, sur la page des skins, se fait entendre. */
     private boolean soundSkinsSeen;
-    private idle.core.universe.Skin bankSeen, bangSoundSeen, tickSeen;
+    private Skin bankSeen, bangSoundSeen, tickSeen;
 
     private void refreshWindowSkins() {
-        toasts.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOAST));
+        toasts.setSkin(game.chosenSkin(SkinVisual.TOAST));
         game.noteNotificationsShown(toasts.shown());
-        idle.core.universe.Skin panel = game.chosenSkin(idle.core.universe.SkinVisual.PANEL);
-        idle.core.universe.Skin ending = game.chosenSkin(idle.core.universe.SkinVisual.ENDING);
+        Skin panel = game.chosenSkin(SkinVisual.PANEL);
+        Skin ending = game.chosenSkin(SkinVisual.ENDING);
         helpPane.setSkin(panel);
         absencePane.setSkin(panel);
         endPane.setSkin(ending != null ? ending : panel);
         finalePane.setSkin(ending != null ? ending : panel);
-        transitionPane.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION));
-        // Version 0.200 : les sons prennent la banque, le son du Big Bang et le tic du métronome choisis.
-        idle.core.universe.Skin bank = game.chosenSkin(idle.core.universe.SkinVisual.SOUND_BANK);
-        idle.core.universe.Skin bangSound = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG_SOUND);
-        idle.core.universe.Skin tick = game.chosenSkin(idle.core.universe.SkinVisual.METRONOME);
+        transitionPane.setSkin(game.chosenSkin(SkinVisual.TRANSITION));
+        // Les sons prennent la banque, le son du Big Bang et le tic du métronome choisis.
+        Skin bank = game.chosenSkin(SkinVisual.SOUND_BANK);
+        Skin bangSound = game.chosenSkin(SkinVisual.BIG_BANG_SOUND);
+        Skin tick = game.chosenSkin(SkinVisual.METRONOME);
         sound.setSkins(bank, bangSound, tick);
-        // Version 0.203 : un skin de son choisi sur la page des skins se fait entendre tout de suite. Avant, rien ne se
+        // Un skin de son choisi sur la page des skins se fait entendre tout de suite. Avant, rien ne se
         // passait : le tic du métronome ne s'entend que dans la boucle, métronome allumé (il est éteint au départ), et l'on
         // croyait le skin sans effet. Choisir un tic allume donc aussi le métronome de la boucle.
         if (soundSkinsSeen && selectedTab == Tab.SKINS) {
@@ -112,11 +107,11 @@ public final class GameApp extends GameAppTabs {
         bankSeen = bank;
         bangSoundSeen = bangSound;
         tickSeen = tick;
-        idle.core.universe.Skin cursor = CursorSkinArt.shownOn(game.chosenSkin(idle.core.universe.SkinVisual.CURSOR), selectedTab);
+        Skin cursor = CursorSkinArt.shownOn(game.chosenSkin(SkinVisual.CURSOR), selectedTab);
         if (cursor != cursorSkin) {
             cursorSkin = cursor;
             if (windowPane != null) windowPane.setCursor(CursorSkinArt.cursor(cursor));
-            cursorTrail.setActive(cursor == idle.core.universe.Skin.CURSOR_SHOOTING_STAR);
+            cursorTrail.setActive(cursor == Skin.CURSOR_SHOOTING_STAR);
         }
     }
 
@@ -131,26 +126,26 @@ public final class GameApp extends GameAppTabs {
             narrow = nowNarrow;
             styleTabs();
         }
-        // Le chrome (version 0.190) : les skins du fond, des onglets et des cartes, appliqués quand le choix change.
-        idle.core.universe.Skin ambient = game.chosenSkin(idle.core.universe.SkinVisual.AMBIENT);
+        // Le chrome : les skins du fond, des onglets et des cartes, appliqués quand le choix change.
+        Skin ambient = game.chosenSkin(SkinVisual.AMBIENT);
         if (ambient != chrome.skin()) {
             chrome.setSkin(ambient);
             root.setStyle(Chrome.rootStyle(ambient));
             root.setPadding(Chrome.rootPadding(ambient));
         }
-        idle.core.universe.Skin tabs = game.chosenSkin(idle.core.universe.SkinVisual.TABS);
+        Skin tabs = game.chosenSkin(SkinVisual.TABS);
         if (tabs != tabSkin) {
             tabSkin = tabs;
             styleTabs();
         }
-        Card.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.CARD));
-        // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules et leur fusion.
-        idle.ui.common.TabIcon.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TAB_ICONS));
-        Card.setSignSkin(game.chosenSkin(idle.core.universe.SkinVisual.CARD_SIGNS));
-        idle.ui.common.MatterText.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.MATTER_SIGNS));
-        idle.ui.common.Breakdown.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOOLTIP));
-        generators.setDustSkin(game.chosenSkin(idle.core.universe.SkinVisual.AMBIENT_DUST));
-        generators.setFusionSkin(game.chosenSkin(idle.core.universe.SkinVisual.GENERATOR_FUSION));
+        Card.setSkin(game.chosenSkin(SkinVisual.CARD));
+        // Les icônes d'onglet, les signes, les info-bulles, le fond des particules et leur fusion.
+        TabIcon.setSkin(game.chosenSkin(SkinVisual.TAB_ICONS));
+        Card.setSignSkin(game.chosenSkin(SkinVisual.CARD_SIGNS));
+        MatterText.setSkin(game.chosenSkin(SkinVisual.MATTER_SIGNS));
+        Breakdown.setSkin(game.chosenSkin(SkinVisual.TOOLTIP));
+        generators.setDustSkin(game.chosenSkin(SkinVisual.AMBIENT_DUST));
+        generators.setFusionSkin(game.chosenSkin(SkinVisual.GENERATOR_FUSION));
         refreshWindowSkins();
         if (debugBar != null) debugBar.refresh();
 
@@ -159,11 +154,10 @@ public final class GameApp extends GameAppTabs {
             BigNum particles = game.state().particles();
             particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
-            // Version 0.214 : la production se calcule une fois pour les trois textes (toute la formule à chaque appel).
+            // La production se calcule une fois pour les trois textes (toute la formule à chaque appel).
             BigNum production = game.productionPerSecond();
             double rate = Math.min(production.toDouble(), 1e9);
-            String perSecond = rate <= 0 ? "Aucun générateur"
-                    : rate < 1
+            String perSecond = rate <= 0 ? "Aucun générateur" : rate < 1
                     ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
                     : "+" + Format.big(production) + " particules par seconde";
             int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
@@ -184,8 +178,7 @@ public final class GameApp extends GameAppTabs {
             boolean capped = game.isAtomCapReached();
             boolean table = game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete();
             BigNum gain = game.atomsPerFusion();
-            fuseCard.show(capped ? Card.State.WAITING : Card.State.READY,
-                    String.valueOf(game.generatorCount()),
+            fuseCard.show(capped ? Card.State.WAITING : Card.State.READY, String.valueOf(game.generatorCount()),
                     settings.shortcuts() && settings.key(Shortcuts.Action.FUSE) != null ? Shortcuts.name(settings.key(Shortcuts.Action.FUSE)) : "",
                     game.generatorCount() > game.generatorsPerAtom()
                             ? "Fusionner " + game.generatorCount() + " générateurs"
@@ -206,14 +199,12 @@ public final class GameApp extends GameAppTabs {
 
         // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
         double totalAtoms = game.state().totalAtoms().toDouble();
-        if (lastTotalAtoms >= 0 && totalAtoms > lastTotalAtoms) {
-            celebrateNewAtom();
-        }
+        if (lastTotalAtoms >= 0 && totalAtoms > lastTotalAtoms) celebrateNewAtom();
         lastTotalAtoms = totalAtoms;
 
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
-        // La partie secondaire (version 0.081) : une fois l'univers formé, tous les anciens onglets disparaissent,
+        // La partie secondaire : une fois l'univers formé, tous les anciens onglets disparaissent,
         // particules et collisionneur compris ; restent l'univers et les pages pour s'y retrouver.
         boolean phase = universePhase();
         particlesTab.setVisible(!phase);
@@ -227,7 +218,7 @@ public final class GameApp extends GameAppTabs {
         atomsPage.refresh(selectedTab == Tab.ATOMS);
 
         // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire. Dans la
-        // partie secondaire, il ne revient qu'avec l'automatisation des dimensions (version 0.150), seule montrée alors.
+        // partie secondaire, il ne revient qu'avec l'automatisation des dimensions, seule montrée alors.
         boolean automation = phase ? game.isDimensionAutomationUnlocked() : AutomationPage.hasContent(game);
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
@@ -256,19 +247,19 @@ public final class GameApp extends GameAppTabs {
         bigBangTab.setText((narrow ? "Big Bang" : "Big Bang (" + game.bigBangs() + ")") + Readiness.dot(readiness.bigBang()));
         if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) {
             selectTab(Tab.BIG_BANG);
-            // Le skin du Big Bang (version 0.089) : son animation plein écran.
-            idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+            // Le skin du Big Bang : son animation plein écran.
+            Skin bang = game.chosenSkin(SkinVisual.BIG_BANG);
             if (bang != null && settings.effect(Settings.Effect.FLASH)) burst.play(bang, 3.5);
         }
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
-        // Le chrono hors de la Graine (version 0.182) : partout sauf sur la sous-page Graine, où il est déjà. Version 0.203 :
+        // Le chrono hors de la Graine : partout sauf sur la sous-page Graine, où il est déjà. Version 0.203 :
         // une ligne sous l'objectif, et la même dans l'en-tête de la fenêtre d'une dimension quand elle est ouverte.
-        chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == idle.ui.universe.UniversePage.SEED);
+        chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == UniversePage.SEED);
         dimensionChrono.refresh(!dimensionWindow.isVisible());
 
-        // La fuite (version 0.115) : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
+        // La fuite : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
         // le temps de son arrivée.
         if (game.isLeakChallengeShown() && darkMatter && game.state().addSeenPopup("reveal:challenge_leak")) {
             selectTab(Tab.DARK_MATTER);
@@ -279,34 +270,34 @@ public final class GameApp extends GameAppTabs {
             darkMatterPage.showChallenges();
         }
 
-        // L'onglet « Univers » (version 0.080) s'ouvre quand l'univers est formé. S'il vient de se former,
+        // L'onglet « Univers » s'ouvre quand l'univers est formé. S'il vient de se former,
         // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
-        boolean universe = game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
-        // Pendant la partie de l'univers suivant (version 0.087), l'onglet reste : les univers déjà formés sont là.
+        boolean universe = game.hasCosmos(Cosmos.UNIVERSE);
+        // Pendant la partie de l'univers suivant, l'onglet reste : les univers déjà formés sont là.
         universeTab.setVisible(game.universes() > 0);
         universeTab.setManaged(game.universes() > 0);
         if (universe && hadUniverse == 0) {
-            // Former l'univers a tout remis à zéro (version 0.083) : les anciens onglets, cachés, repartent de rien.
+            // Former l'univers a tout remis à zéro : les anciens onglets, cachés, repartent de rien.
             forgetOldPages();
             selectTab(Tab.UNIVERSE);
             universePage.playBirth();
         }
         hadUniverse = universe ? 1 : 0;
 
-        // Le vide (version 0.099) : le deuxième acte de la partie secondaire. Depuis la 0.129, il se propose dans le
+        // Le vide : le deuxième acte de la partie secondaire. Depuis la 0.129, il se propose dans le
         // collisionneur au premier Big Bang du troisième univers, et son onglet s'ouvre une fois qu'il est acheté.
         boolean vacuum = game.isVoidUnlocked() && !phase;
         voidTab.setVisible(vacuum);
         voidTab.setManaged(vacuum);
-        voidTab.setText("Le vide" + Readiness.dot(Readiness.Kind.VOID, idle.ui.vacuum.VoidPage.ready(game)));
+        voidTab.setText("Le vide" + Readiness.dot(Readiness.Kind.VOID, VoidPage.ready(game)));
         if (selectedTab == Tab.VOID) voidPage.refresh();
 
-        // Les hadrons (version 0.149) : ils se proposent dans le collisionneur avec la bulle de l'arbuste, au milieu, et
+        // Les hadrons : ils se proposent dans le collisionneur avec la bulle de l'arbuste, au milieu, et
         // leur onglet s'ouvre une fois payé, ou dès le début de l'univers avec la bulle du jeune arbre, à gauche.
         boolean hadrons = game.isHadronsUnlocked() && !phase;
         hadronsTab.setVisible(hadrons);
         hadronsTab.setManaged(hadrons);
-        hadronsTab.setText("Hadrons" + Readiness.dot(Readiness.Kind.HADRONS, idle.ui.hadrons.HadronsPage.ready(game)));
+        hadronsTab.setText("Hadrons" + Readiness.dot(Readiness.Kind.HADRONS, HadronsPage.ready(game)));
         if (selectedTab == Tab.HADRONS) hadronsPage.refresh();
 
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
@@ -316,14 +307,14 @@ public final class GameApp extends GameAppTabs {
         achievementsTab.setManaged(achievements);
         if (selectedTab == Tab.ACHIEVEMENTS) achievementsPage.refresh();
         if (selectedTab == Tab.STATS) statsPage.refresh();
-        // Le profil (version 0.147) : dès le premier générateur ; sa pastille dit qu'un titre attend d'être vu.
+        // Le profil : dès le premier générateur ; sa pastille dit qu'un titre attend d'être vu.
         boolean profile = game.isStarted();
         profileTab.setVisible(profile);
         profileTab.setManaged(profile);
         profileTab.setText("Profil" + Readiness.dot(selectedTab != Tab.PROFILE && profilePage.hasNews()));
         if (selectedTab == Tab.PROFILE) profilePage.refresh();
         settingsTab.setText(!settings.paused() ? "Réglages" : narrow ? "En pause" : "Réglages (pause)");
-        // Les skins (version 0.087) : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
+        // Les skins : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
         boolean skins = game.isSkinsUnlocked();
         skinsTab.setVisible(skins);
         skinsTab.setManaged(skins);
@@ -503,8 +494,6 @@ public final class GameApp extends GameAppTabs {
                 + "Les touches des cartes achètent la quantité choisie, depuis n'importe quel onglet.";
     }
 
-    /** La ligne d'objectif, morceau par morceau (version 0.146) : ceux que les réglages montrent. */
-    String goalLine() {
-        return Goals.line(game, settings::goalPart, pace);
-    }
+    /** La ligne d'objectif, morceau par morceau : ceux que les réglages montrent. */
+    String goalLine() { return Goals.line(game, settings::goalPart, pace); }
 }

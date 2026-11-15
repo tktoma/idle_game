@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.math.BigNum;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,13 +12,12 @@ import idle.core.upgrades.Automation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.204 : le blocage de mesure ({@link GameStateBase#testBlock}). L'outil des bots qui cherche à partir de quand
+ * Le blocage de mesure ({@link GameStateBase#testBlock}). L'outil des bots qui cherche à partir de quand
  * un automatisme ne sert plus l'interdit d'allumage sur une copie de la partie : ni le joueur, ni le jeu lui-même (un
  * automatisme offert ou racheté s'allume seul) ne peuvent le rallumer. Rien n'est bloqué dans une partie ordinaire, et le
  * blocage ne se sauvegarde pas.
  */
 class BlocageDeMesureTest {
-
     @Test
     void rienNEstBloqueDansUnePartieOrdinaire() {
         GameState state = new GameState();
@@ -48,8 +50,8 @@ class BlocageDeMesureTest {
         Automation fusion = null;
         for (Automation a : game.automations()) if (a.kind() == Automation.Kind.FUSION) fusion = a;
         game.state().testBlock(fusion.id());
-        game.state().setTotalAtoms(idle.core.math.BigNum.of(1000));
-        game.state().setAtoms(idle.core.math.BigNum.of(1000));
+        game.state().setTotalAtoms(BigNum.of(1000));
+        game.state().setAtoms(BigNum.of(1000));
         if (game.buyAutomation(fusion.id())) {
             assertTrue(game.state().ownsAutomation(fusion.id()), "il s'achète");
             assertFalse(game.isAutomationEnabled(fusion.id()), "mais ne s'allume pas");

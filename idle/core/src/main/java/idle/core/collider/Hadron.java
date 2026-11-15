@@ -1,17 +1,14 @@
 package idle.core.collider;
 
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Les hadrons (version 0.149) : des quarks liés par les gluons. D'abord les deux nucléons, le proton (u u d) et le
- * neutron (u d d) ; puis, avec la bulle du cœur de l'arbre-monde, les particules exotiques : mésons (un quark et un
- * antiquark) et baryons étranges. Un antiquark coûte un quark de sa saveur : le collisionneur ne fait pas la différence.
+ * Les hadrons : des quarks liés par les gluons. D'abord les deux nucléons, le proton (u u d) et le neutron (u d d) ;
+ * puis, avec la bulle du cœur de l'arbre-monde, les particules exotiques : mésons (un quark et un antiquark) et baryons
+ * étranges. Un antiquark coûte un quark de sa saveur : le collisionneur ne fait pas la différence.
  *
- * <p>Version 0.151 : chaque sorte renforce une grandeur, ou fait baisser un prix, d'autant plus qu'on en a
- * ({@link #bonus()}, ×(1 + 0,25 × log₁₀(1 + n))) ; et chaque quark lié compte un gluon, pour les paliers de gluons
- * ({@link GluonMilestone}).
+ * <p>Chaque sorte renforce une grandeur, ou fait baisser un prix, d'autant plus qu'on en a ({@link #bonus()}, ×(1 +
+ * 0,25 × log₁₀(1 + n))) ; et chaque quark lié compte un gluon, pour les paliers de gluons ({@link GluonMilestone}).
  */
 public enum Hadron {
     PROTON("Proton", "u u d", false, "Le noyau de l'hydrogène : deux quarks haut, un quark bas.", 2, 1, 0, 0, 0),
@@ -45,26 +42,18 @@ public enum Hadron {
         this.recipe = Collections.unmodifiableMap(quarks);
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ses quarks, comme on les écrit : « u u d », « c c̄ » (la barre : un antiquark). */
-    public String formula() {
-        return formula;
-    }
+    public String formula() { return formula; }
 
     /** Vrai pour les particules exotiques, que la bulle du cœur de l'arbre-monde ouvre. */
-    public boolean isExotic() {
-        return exotic;
-    }
+    public boolean isExotic() { return exotic; }
 
     /** Une phrase sur lui. */
-    public String detail() {
-        return detail;
-    }
+    public String detail() { return detail; }
 
-    /** Ce qu'il renforce (version 0.151) : « atomes par fusion », « prix des améliorations du collisionneur »… */
+    /** Ce qu'il renforce : « atomes par fusion », « prix des améliorations du collisionneur »… */
     public String bonus() {
         return switch (this) {
             case PROTON -> "atomes par fusion";
@@ -81,9 +70,7 @@ public enum Hadron {
     }
 
     /** Vrai pour ceux qui font baisser un prix au lieu de multiplier une grandeur. */
-    public boolean lowersCost() {
-        return this == J_PSI || this == B_MESON || this == UPSILON;
-    }
+    public boolean lowersCost() { return this == J_PSI || this == B_MESON || this == UPSILON; }
 
     /** Les quarks liés dans un hadron : autant de gluons. */
     public int quarkCount() {
@@ -93,7 +80,5 @@ public enum Hadron {
     }
 
     /** Les quarks qu'il consomme, par saveur ; un antiquark compte pour un quark de sa saveur. */
-    public Map<Quark, Integer> recipe() {
-        return recipe;
-    }
+    public Map<Quark, Integer> recipe() { return recipe; }
 }

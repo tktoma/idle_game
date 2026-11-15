@@ -1,23 +1,18 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import java.util.function.ToDoubleFunction;
+
 import idle.core.achievements.Achievement;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
+import idle.core.darkmatter.*;
 import idle.core.math.BigNum;
-import idle.core.sky.Body;
-import idle.core.sky.SolarSystem;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les plans de l'arbre de matière noire et des systèmes solaires.
- */
+/** Les plans de l'arbre de matière noire et des systèmes solaires. */
 public abstract class GamePlans extends GameCollider {
-
     GamePlans(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -26,9 +21,8 @@ public abstract class GamePlans extends GameCollider {
     abstract boolean ruled(Challenge.Rule rule);
     public abstract BigNum productionPerSecond();
 
-
     // ------------------------------------------------------------------
-    // Les plans de l'arbre et des systèmes solaires (version 0.084)
+    // Les plans de l'arbre et des systèmes solaires
     // ------------------------------------------------------------------
 
     /** Le début d'un code de l'arbre. */
@@ -43,9 +37,7 @@ public abstract class GamePlans extends GameCollider {
     /** Ce qu'un code a donné : les identifiants reconnus, et ceux que le jeu ne connaît pas (écartés). */
     public record PlanLoad(int known, int unknown) {
         /** Vrai si le code ne contenait rien d'utilisable. */
-        public boolean empty() {
-            return known == 0;
-        }
+        public boolean empty() { return known == 0; }
     }
 
     /** L'état d'une case du plan de l'arbre. */
@@ -80,7 +72,7 @@ public abstract class GamePlans extends GameCollider {
         if (code == null) return new PlanLoad(0, 0);
         String text = code.trim();
         if (text.startsWith(TREE_CODE_PREFIX)) text = text.substring(TREE_CODE_PREFIX.length());
-        java.util.Set<String> wanted = new java.util.LinkedHashSet<>();
+        Set<String> wanted = new LinkedHashSet<>();
         int unknown = 0;
         for (String id : text.split("[,;\\s]+")) {
             if (id.isBlank()) continue;
@@ -114,29 +106,19 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Oublie le plan de l'arbre : rien de pris n'est rendu. */
-    public void forgetDarkPlan() {
-        state.setDarkPlan(List.of());
-    }
+    public void forgetDarkPlan() { state.setDarkPlan(List.of()); }
 
     /** Garde le code de l'arbre actuel dans le premier emplacement. */
-    public void saveDarkPlan() {
-        saveDarkPlan(0);
-    }
+    public void saveDarkPlan() { saveDarkPlan(0); }
 
-    /** Garde le code de l'arbre actuel dans cet emplacement (version 0.086), pour le recharger plus tard. */
-    public void saveDarkPlan(int slot) {
-        state.setSavedDarkPlan(slot, darkTreeCode());
-    }
+    /** Garde le code de l'arbre actuel dans cet emplacement, pour le recharger plus tard. */
+    public void saveDarkPlan(int slot) { state.setSavedDarkPlan(slot, darkTreeCode()); }
 
     /** Recharge le code du premier emplacement. */
-    public PlanLoad loadSavedDarkPlan() {
-        return loadSavedDarkPlan(0);
-    }
+    public PlanLoad loadSavedDarkPlan() { return loadSavedDarkPlan(0); }
 
     /** Recharge le code gardé dans cet emplacement. */
-    public PlanLoad loadSavedDarkPlan(int slot) {
-        return loadDarkPlan(state.savedDarkPlan(slot));
-    }
+    public PlanLoad loadSavedDarkPlan(int slot) { return loadDarkPlan(state.savedDarkPlan(slot)); }
 
     /** Ce que contient un code de l'arbre : {voies, liaisons et accords}, d'après le catalogue. */
     public int[] describeTreeCode(String code) {
@@ -188,9 +170,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Arme ou désarme la réouverture des bifurcations à la prochaine explosion. */
-    public void setForkResetArmed(boolean armed) {
-        state.setForkResetArmed(armed && (canArmForkReset() || !armed));
-    }
+    public void setForkResetArmed(boolean armed) { state.setForkResetArmed(armed && (canArmForkReset() || !armed)); }
 
     /**
      * Le code de la disposition des systèmes solaires : « systemes: » puis un système par morceau,
@@ -212,7 +192,7 @@ public abstract class GamePlans extends GameCollider {
         String text = code.trim();
         if (text.startsWith(SYSTEMS_CODE_PREFIX)) text = text.substring(SYSTEMS_CODE_PREFIX.length());
         List<SolarSystem> plan = new ArrayList<>();
-        java.util.Set<String> used = new java.util.HashSet<>();
+        Set<String> used = new HashSet<>();
         int known = 0, unknown = 0;
         for (String line : text.split("[;\\n]+")) {
             if (line.isBlank()) continue;
@@ -249,9 +229,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Le plan des systèmes solaires ; vide sans plan. */
-    public List<SolarSystem> systemPlan() {
-        return state.systemPlan();
-    }
+    public List<SolarSystem> systemPlan() { return state.systemPlan(); }
 
     /** Astres du plan des systèmes déjà à leur place, et astres qu'il compte en tout (étoiles comprises). */
     public int[] systemPlanProgress() {
@@ -269,29 +247,19 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Oublie le plan des systèmes : rien de placé ne bouge. */
-    public void forgetSystemPlan() {
-        state.setSystemPlan(List.of());
-    }
+    public void forgetSystemPlan() { state.setSystemPlan(List.of()); }
 
     /** Garde la disposition actuelle des systèmes dans le premier emplacement. */
-    public void saveSystemPlan() {
-        saveSystemPlan(0);
-    }
+    public void saveSystemPlan() { saveSystemPlan(0); }
 
-    /** Garde la disposition actuelle des systèmes dans cet emplacement (version 0.086). */
-    public void saveSystemPlan(int slot) {
-        state.setSavedSystemPlan(slot, systemsCode());
-    }
+    /** Garde la disposition actuelle des systèmes dans cet emplacement. */
+    public void saveSystemPlan(int slot) { state.setSavedSystemPlan(slot, systemsCode()); }
 
     /** Recharge la disposition du premier emplacement. */
-    public PlanLoad loadSavedSystemPlan() {
-        return loadSavedSystemPlan(0);
-    }
+    public PlanLoad loadSavedSystemPlan() { return loadSavedSystemPlan(0); }
 
     /** Recharge la disposition gardée dans cet emplacement. */
-    public PlanLoad loadSavedSystemPlan(int slot) {
-        return loadSystemPlan(state.savedSystemPlan(slot));
-    }
+    public PlanLoad loadSavedSystemPlan(int slot) { return loadSystemPlan(state.savedSystemPlan(slot)); }
 
     /** La place du système de cette étoile, ou −1. */
     public int systemIndexOf(String starId) {
@@ -338,9 +306,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Les voies d'une bifurcation, dans l'ordre du catalogue. */
-    public List<DarkUpgrade> darkForkOptions(String fork) {
-        return darkForks.getOrDefault(fork, List.of());
-    }
+    public List<DarkUpgrade> darkForkOptions(String fork) { return darkForks.getOrDefault(fork, List.of()); }
 
     /** Prix du prochain niveau, dans l'unité de sa branche (particules, atomes, ou mètres à atteindre). */
     public BigNum darkCostOf(String darkUpgradeId) {
@@ -371,9 +337,8 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Achète un niveau d'une amélioration de matière noire. Les particules, les atomes et la
-     * matière noire sont dépensés ; une taille à atteindre ne coûte rien, la matière noire ne
-     * rétrécit pas.
+     * Achète un niveau d'une amélioration de matière noire. Les particules, les atomes et la matière noire sont
+     * dépensés ; une taille à atteindre ne coûte rien, la matière noire ne rétrécit pas.
      *
      * @return {@code true} si l'achat a eu lieu
      */
@@ -403,7 +368,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Le niveau qui agit (version 0.070) : celui que possède le joueur, éteint par certains défis
+     * Le niveau qui agit : celui que possède le joueur, éteint par certains défis
      * (« Présence », « Absence », « Branche coupée », « Tronc nu ») et doublé par certaines récompenses.
      * Tous les effets de l'arbre passent par lui ; les prix et l'accès suivent le niveau possédé.
      */
@@ -426,7 +391,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Les deux styles de l'arbre (version 0.070). Dans chaque bifurcation, la voie de gauche est celle
+     * Les deux styles de l'arbre. Dans chaque bifurcation, la voie de gauche est celle
      * de la présence : la plus forte tant que le joueur est là. Celle de droite est celle de l'absence :
      * un peu moins forte, mais chacune rend {@link #ABSENCE_PATH_BONUS} de plus du temps passé jeu
      * fermé ({@link #offlineRate()}). Un accord a le style de ses voies.
@@ -478,7 +443,7 @@ public abstract class GamePlans extends GameCollider {
      * Somme, sur les améliorations d'un type, de {@code par unité × niveau × matière noire gagnée} :
      * la forme commune des effets payés en matière noire.
      */
-    private double darkMatterScaling(String key, java.util.function.ToDoubleFunction<DarkEffect> perUnit) {
+    private double darkMatterScaling(String key, ToDoubleFunction<DarkEffect> perUnit) {
         double total = this.<Double>darkMemo(key, () -> {
             double sum = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {

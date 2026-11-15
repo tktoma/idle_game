@@ -8,16 +8,13 @@ import idle.core.GameUniverse.PlaneUpgrade;
 import org.junit.jupiter.api.Test;
 
 /**
- * Le plan, deuxième dimension (version 0.104, ouverte avec le deuxième univers) : un point qu'on dirige au clavier
+ * Le plan, deuxième dimension (ouverte avec le deuxième univers) : un point qu'on dirige au clavier
  * sur un carré, des éclats posés qu'on ramasse en passant dessus, chacun donnant des facettes ; cinq améliorations
- * (valeur, apparition, nombre, vitesse, taille) avec leurs prix ; le seuil des 3 500 facettes gagnées (version 0.136).
+ * (valeur, apparition, nombre, vitesse, taille) avec leurs prix ; le seuil des 3 500 facettes gagnées.
  */
 class PlanTest {
-
     /** Une partie au deuxième univers formé : le plan est ouvert. */
-    private static Game plane() {
-        return GameTestSupport.universe(2);
-    }
+    private static Game plane() { return GameTestSupport.universe(2); }
 
     @Test
     void lePlanSeJoueAuClavierEtRamasseSesEclats() {

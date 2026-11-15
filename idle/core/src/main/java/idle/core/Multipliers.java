@@ -1,25 +1,17 @@
 package idle.core;
 
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangAchievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.collider.ColliderAchievement;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
+import idle.core.bigbang.*;
+import idle.core.collider.*;
 import idle.core.elements.ElementEffect;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.universe.CycleChoice;
-import idle.core.universe.Trial;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.universe.*;
+import idle.core.upgrades.*;
+import java.util.*;
 
 /**
- * D'où vient chaque grandeur (version 0.123) : ses facteurs, un par ligne, chacun en ordres de grandeur, et
+ * D'où vient chaque grandeur : ses facteurs, un par ligne, chacun en ordres de grandeur, et
  * rangés par aspect du jeu. La somme des ordres de grandeur d'une grandeur redonne la grandeur elle-même :
  * {@code Σ log10(facteur) = log10(grandeur)}. C'est ce que montre l'onglet Statistiques, comme le détail des
  * multiplicateurs d'Antimatter Dimensions, et ce qu'un robot regarde pour savoir ce qui pèse le plus.
@@ -28,7 +20,6 @@ import java.util.Map;
  * formules du jeu. Un facteur qui vaut 1 n'est pas listé.
  */
 public final class Multipliers {
-
     private Multipliers() {}
 
     /** Les grandeurs décomposées. */
@@ -45,13 +36,9 @@ public final class Multipliers {
 
         private final String label;
 
-        Quantity(String label) {
-            this.label = label;
-        }
+        Quantity(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     /** Les aspects du jeu auxquels revient chaque facteur. */
@@ -79,22 +66,16 @@ public final class Multipliers {
             this.color = color;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Sa couleur dans l'onglet Statistiques. */
-        public String color() {
-            return color;
-        }
+        public String color() { return color; }
     }
 
     /** Un facteur : l'aspect auquel il revient, son nom, et ce qu'il vaut en ordres de grandeur (négatif : il divise). */
     public record Factor(Aspect aspect, String label, double log10) {
         /** Ce par quoi il multiplie, quand cela s'écrit encore en double ; l'infini au-delà. */
-        public double value() {
-            return log10 > 300 ? Double.POSITIVE_INFINITY : Math.pow(10, log10);
-        }
+        public double value() { return log10 > 300 ? Double.POSITIVE_INFINITY : Math.pow(10, log10); }
     }
 
     /** Un aspect et ses facteurs, avec ce qu'il pèse en tout. */
@@ -168,13 +149,13 @@ public final class Multipliers {
     }
 
     /**
-     * Ce qu'un aspect fait à une grandeur (version 0.169) : ses ordres de grandeur (négatifs : il divise) et sa part de
+     * Ce qu'un aspect fait à une grandeur : ses ordres de grandeur (négatifs : il divise) et sa part de
      * tout ce qui multiplie la grandeur.
      */
     public record Impact(Quantity quantity, double log10, double share) {}
 
     /**
-     * Ce qu'un aspect fait aux grandeurs de la partie (version 0.169), sauf aux siennes ({@code own}) : pour dire, dans les
+     * Ce qu'un aspect fait aux grandeurs de la partie, sauf aux siennes ({@code own}) : pour dire, dans les
      * statistiques, ce que le collisionneur et les hadrons apportent au reste du jeu. Les grandeurs où il ne compte pas
      * n'y sont pas.
      */
@@ -204,8 +185,8 @@ public final class Multipliers {
     // Les grandeurs, facteur par facteur
     // ------------------------------------------------------------------
 
-    /** Le bonus d'une sorte de hadrons (version 0.151) : « Hadrons, proton : 1234 ». */
-    private static void hadron(Game game, List<Factor> factors, idle.core.collider.Hadron hadron) {
+    /** Le bonus d'une sorte de hadrons : « Hadrons, proton : 1234 ». */
+    private static void hadron(Game game, List<Factor> factors, Hadron hadron) {
         add(factors, Aspect.HADRONS, "Hadrons, " + hadron.label() + " : " + game.hadrons(hadron), log(game.hadronBoost(hadron)));
     }
 
@@ -218,13 +199,9 @@ public final class Multipliers {
         if (value.sign() > 0) add(factors, aspect, label, value.log10());
     }
 
-    private static String exponent(double power) {
-        return String.format(java.util.Locale.FRANCE, "%.3f", power);
-    }
+    private static String exponent(double power) { return String.format(Locale.FRANCE, "%.3f", power); }
 
-    private static double log(double value) {
-        return value > 0 ? Math.log10(value) : 0;
-    }
+    private static double log(double value) { return value > 0 ? Math.log10(value) : 0; }
 
     /** Ce que la matière apporte à une grandeur, en ses quatre parts : {@link Game#moleculeBoost(Molecule.Stat)}. */
     private static void matter(Game game, List<Factor> factors, Molecule.Stat stat) {
@@ -259,7 +236,7 @@ public final class Multipliers {
         add(factors, Aspect.MILESTONES, "Paliers de vitesse (" + game.speedMilestones() + ")", game.speedMilestoneMultiplier());
         add(factors, Aspect.COLLIDER, "Collisionneur", log(game.colliderParticlesMultiplier()));
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.PARTICLES)));
-        hadron(game, factors, idle.core.collider.Hadron.LAMBDA);
+        hadron(game, factors, Hadron.LAMBDA);
         add(factors, Aspect.UNIVERSE, "Cycle parfait", log(game.perfectCycleMultiplier()));
         add(factors, Aspect.BIG_BANG, "Vent de particules", log(game.windMultiplier()));
         add(factors, Aspect.UNIVERSE, "Défis de Big Bang", log(game.universeBangFactor(Game.BANG_UNIVERSE_PARTICLES)));
@@ -269,7 +246,7 @@ public final class Multipliers {
             add(factors, Aspect.UPGRADES, upgrade.name() + (upgrade.hasLimit() && upgrade.maxLevel() == 1 ? "" : " : " + level + " niveaux"),
                     game.particlesMultiplier(upgrade.id(), level));
         }
-        // Les puissances des grands systèmes (version 0.124) : chacune élève la base à sa part.
+        // Les puissances des grands systèmes : chacune élève la base à sa part.
         double base = game.powerBase();
         add(factors, Aspect.ELEMENTS, "Puissance du tableau périodique (+" + exponent(game.tablePower()) + ")", game.tablePower() * base);
         add(factors, Aspect.MATTER, "Puissance du ciel (+" + exponent(game.skyPower()) + ")", game.skyPower() * base);
@@ -299,7 +276,7 @@ public final class Multipliers {
         add(factors, Aspect.GENERATORS, game.fusionGroups() + " groupes de générateurs", log(game.fusionGroups() * game.fusionGroupBonus()));
         add(factors, Aspect.UNIVERSE, "Choix de cycle : fusion", log(game.cycleChoice() == CycleChoice.FUSION ? 1 + CycleChoice.FUSION_GAIN : 1));
         add(factors, Aspect.UNIVERSE, "Contraction douce", log(game.contractionAtomsMultiplier()));
-        hadron(game, factors, idle.core.collider.Hadron.PROTON);
+        hadron(game, factors, Hadron.PROTON);
     }
 
     private static void darkMatter(Game game, List<Factor> factors) {
@@ -308,7 +285,7 @@ public final class Multipliers {
         double challenges = game.bangReward(BangChallenge.Reward.DARK_MATTER);
         double reserve = game.cycleChoice() == CycleChoice.RESERVE ? 1 + CycleChoice.RESERVE_GAIN : 1;
         double universes = game.universeDarkMatterFactor();
-        double neutrons = game.hadronBoost(idle.core.collider.Hadron.NEUTRON);
+        double neutrons = game.hadronBoost(Hadron.NEUTRON);
         double base = game.darkMatterPerExplosion().log10() - log(first * milestones * challenges * reserve * universes * neutrons);
         add(factors, Aspect.DARK_MATTER, "Base et arbre", base);
         add(factors, Aspect.BRAKE, "Premier cycle", log(first));
@@ -316,7 +293,7 @@ public final class Multipliers {
         add(factors, Aspect.BIG_BANG, "Défis de Big Bang", log(challenges));
         add(factors, Aspect.UNIVERSE, "Choix de cycle : réserve", log(reserve));
         add(factors, Aspect.UNIVERSE, "Univers formés", log(universes));
-        hadron(game, factors, idle.core.collider.Hadron.NEUTRON);
+        hadron(game, factors, Hadron.NEUTRON);
     }
 
     private static void darkGrowth(Game game, List<Factor> factors) {
@@ -343,14 +320,14 @@ public final class Multipliers {
         add(factors, Aspect.BIG_BANG, "Sursaut des sondes", log(game.probeBoostMultiplier()));
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.SPACE)));
         add(factors, Aspect.BIG_BANG, "Sillage de comète", log(game.cometBoost()));
-        hadron(game, factors, idle.core.collider.Hadron.KAON);
-        // Version 0.167 : l'amorti au-delà de 10 000 par seconde, un frein.
+        hadron(game, factors, Hadron.KAON);
+        // L'amorti au-delà de 10 000 par seconde, un frein.
         double raw = game.rawSpacePerSecond();
         add(factors, Aspect.BRAKE, "Amorti au-delà de 10 000 par seconde",
                 raw > 0 ? log(Game.dampedSpace(raw)) - log(raw) : 0);
     }
 
-    /** L'énergie du collisionneur (version 0.144) : {@link Game#colliderEnergyPerSecond()}, facteur par facteur. */
+    /** L'énergie du collisionneur : {@link Game#colliderEnergyPerSecond()}, facteur par facteur. */
     private static void colliderEnergy(Game game, List<Factor> factors) {
         ColliderGenerator beam = ColliderGenerator.BEAM;
         add(factors, Aspect.BASE, "Un faisceau croisé", log(beam.power()));
@@ -364,13 +341,13 @@ public final class Multipliers {
         add(factors, Aspect.ACHIEVEMENTS, "Succès « " + output.title() + " »", log(game.hasColliderAchievement(output) ? 2 : 1));
         add(factors, Aspect.ACHIEVEMENTS, "Succès « " + ColliderAchievement.QUARTER_THOUSAND.title() + " »",
                 log(game.hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND) ? 1.5 : 1));
-        // Version 0.175 : le gain de la traversée ; version 0.176, avec la bulle de l'arbuste, à gauche.
+        // Le gain de la traversée ; version 0.176, avec la bulle de l'arbuste, à gauche.
         add(factors, Aspect.UNIVERSE, "Arbuste, à gauche : " + game.crossingUniverses() + " univers comptés", log(game.crossingGain()));
-        hadron(game, factors, idle.core.collider.Hadron.PION);
+        hadron(game, factors, Hadron.PION);
     }
 
     /**
-     * L'énergie du vide (version 0.144) : {@link Game#voidGainPerSecond()}. Le rythme des paires est le rythme de base
+     * L'énergie du vide : {@link Game#voidGainPerSecond()}. Le rythme des paires est le rythme de base
      * borné par la part d'énergie du collisionneur et la part d'espace libre que le joueur laisse au vide ; ce que la
      * borne retire est un frein, nommé d'après ce qui borne ({@link Game#voidLimit()}).
      */
@@ -382,18 +359,18 @@ public final class Multipliers {
                 log(game.voidRate()) - log(game.voidBaseRate()));
         int gain = game.voidLevel(Game.VoidUpgrade.GAIN);
         add(factors, Aspect.UPGRADES, "Gain par paire : " + gain + " niveaux", log(1 + gain));
-        // Version 0.148 : la bulle du bonsaï, à gauche.
+        // La bulle du bonsaï, à gauche.
         int bubble = game.treeBubbleLevel(Game.TreeBubble.LEAVES_LEFT);
         add(factors, Aspect.UNIVERSE, "Bulle du bonsaï, à gauche : " + bubble + " niveau" + (bubble > 1 ? "x" : ""), log(game.voidBubbleFactor()));
-        hadron(game, factors, idle.core.collider.Hadron.D_MESON);
+        hadron(game, factors, Hadron.D_MESON);
     }
 
-    /** Les segments de la ligne (version 0.144) : {@link Game#lineShardsPerSecond()}, facteur par facteur. */
+    /** Les segments de la ligne : {@link Game#lineShardsPerSecond()}, facteur par facteur. */
     private static void lineShards(Game game, List<Factor> factors) {
-        add(factors, Aspect.BASE, "Un dixième d'éclat par trait, un aller en " + String.format(java.util.Locale.FRANCE, "%.1f", Game.LINE_HALF_TRIP) + " s", log(Game.LINE_SHARD / Game.LINE_HALF_TRIP));
+        add(factors, Aspect.BASE, "Un dixième d'éclat par trait, un aller en " + String.format(Locale.FRANCE, "%.1f", Game.LINE_HALF_TRIP) + " s", log(Game.LINE_SHARD / Game.LINE_HALF_TRIP));
         add(factors, Aspect.UPGRADES, game.lineTicks() - 1 + " traits touchés par aller", log(game.lineTicks() - 1));
         add(factors, Aspect.UPGRADES, "Éclats par trait : " + game.state().lineYieldLevel() + " niveaux", log(1 + game.state().lineYieldLevel()));
-        hadron(game, factors, idle.core.collider.Hadron.OMEGA);
+        hadron(game, factors, Hadron.OMEGA);
         add(factors, Aspect.UPGRADES, game.lineBalls() + " boules par ligne", log(game.lineBalls()));
         add(factors, Aspect.UPGRADES, game.lineCount() + " lignes", log(game.lineCount()));
         add(factors, Aspect.UPGRADES, "Vitesse des boules : " + game.state().lineSpeedLevel() + " niveaux", log(game.lineSpeed()));

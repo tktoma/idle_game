@@ -11,22 +11,15 @@ import javafx.scene.input.KeyCode;
  * <p>C'est un état de l'interface, commun à toutes les pages, comme la notation des nombres.
  */
 public final class Detail {
-
     private static boolean shown = false;
 
     /** Vrai tant que les détails sont demandés : touche de détail enfoncée, ou bascule activée. */
-    public static boolean shown() {
-        return shown;
-    }
+    public static boolean shown() { return shown; }
 
-    public static void set(boolean detail) {
-        shown = detail;
-    }
+    public static void set(boolean detail) { shown = detail; }
 
     /** Le texte long si les détails sont demandés, sinon rien : pour les explications qu'on peut taire. */
-    public static String only(String text) {
-        return shown ? text : "";
-    }
+    public static String only(String text) { return shown ? text : ""; }
 
     /** Nom d'une touche tel qu'on le lit sur un clavier français : « Maj », « Ctrl », « Espace »… */
     public static String keyName(KeyCode key) {

@@ -20,19 +20,13 @@ public enum CollisionTier {
         this.flavor = flavor;
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** La saveur la plus lourde qu'ouvre cette énergie ; la basse énergie donne les quarks haut et bas. */
-    public Quark flavor() {
-        return flavor;
-    }
+    public Quark flavor() { return flavor; }
 
     /** L'amélioration qui ouvre cette énergie. */
-    public ColliderUpgrade upgrade() {
-        return ColliderUpgrade.flavorOf(flavor);
-    }
+    public ColliderUpgrade upgrade() { return ColliderUpgrade.flavorOf(flavor); }
 
     /** L'énergie qui ouvre cette saveur. */
     public static CollisionTier of(Quark quark) {

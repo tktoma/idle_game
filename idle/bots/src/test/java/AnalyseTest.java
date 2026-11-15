@@ -1,23 +1,26 @@
-import idle.core.history.Achats;
-import idle.core.history.Photo;
-import idle.core.history.Noms;
+import idle.core.history.*;
+import idle.core.*;
+import idle.core.achievements.Achievement;
+import idle.core.bigbang.BangChallenge;
+import idle.core.darkmatter.*;
+import idle.core.math.BigNum;
+import idle.core.save.SaveCodec;
+import idle.core.state.GameState;
+import idle.core.upgrades.*;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
+import java.nio.file.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.161 : le bot analyste. Ses photos de la partie voient ce qu'un achat a fait et ce qu'il a coûté ; il nomme
+ * Le bot analyste. Ses photos de la partie voient ce qu'un achat a fait et ce qu'il a coûté ; il nomme
  * les choses en français ; il range les paliers dans l'ordre ; il écrit son journal, ses tableaux et sa page.
  */
 class AnalyseTest {
-
     @Test
     void lesNombresSeLisentEtSeComparentMemeTresGrands() {
         Photo.Nombre huge = Photo.Nombre.parse("4.18e27316531");
@@ -35,7 +38,7 @@ class AnalyseTest {
         Game game = Bots.fresh(7);
         for (int i = 0; i < 600; i++) game.tick(1);
         Photo avant = Photo.of(game.state());
-        String id = game.upgrades(idle.core.Resource.PARTICLES).get(0).id();
+        String id = game.upgrades(Resource.PARTICLES).get(0).id();
         double particles = game.state().particles().toDouble();
         assertTrue(game.buy(id), "assez de particules pour la première amélioration");
         List<Photo.Changement> diff = Photo.diff(avant, Photo.of(game.state()));
@@ -44,7 +47,7 @@ class AnalyseTest {
         assertTrue(paid.baisse());
         assertEquals(particles - game.state().particles().toDouble(), paid.avant().minus(paid.apres()).toDouble(), particles * 1e-9);
         assertEquals("particles", Achats.monnaie("upgradeLevels", id));
-        for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
+        for (var d : DarkUpgrades.DEFAULT) {
             String expected = switch (d.branch()) {
                 case PARTICLES -> "particles";
                 case ATOMS -> "atoms";
@@ -53,7 +56,7 @@ class AnalyseTest {
             };
             assertEquals(expected, Achats.monnaie("darkUpgradeLevels", d.id()), "l'arbre se paie selon sa branche : " + d.id());
         }
-        assertEquals("atoms", Achats.monnaie("ownedAutomations", idle.core.upgrades.Automations.DEFAULT.get(0).id()), "les automatismes se paient en atomes");
+        assertEquals("atoms", Achats.monnaie("ownedAutomations", Automations.DEFAULT.get(0).id()), "les automatismes se paient en atomes");
     }
 
     @Test
@@ -98,8 +101,8 @@ class AnalyseTest {
         String page = Files.readString(dir.resolve("rapport.html"));
         assertTrue(page.contains("Rapport du bot analyste") && page.contains("<svg"));
         assertTrue(Files.readString(dir.resolve("journal.txt")).contains("[00:00:"));
-        // Version 0.162 : les achats ont un coût en temps de production, et le classement les range.
-        // Version 0.167 : la touche M tenue achète entre deux décisions, quand les particules montent encore ; ces achats-là
+        // Les achats ont un coût en temps de production, et le classement les range.
+        // La touche M tenue achète entre deux décisions, quand les particules montent encore ; ces achats-là
         // n'ont pas de prix lisible, et dans la première heure ce sont les seuls. Un coût connu reste positif.
         assertTrue(bot.journal.achats.stream().allMatch(a -> !Double.isFinite(a.coutSecondes()) || a.coutSecondes() > 0), "un coût en production positif");
         assertTrue(bot.revenuLog.containsKey("particles"), "ce que rapportent les particules est mesuré");
@@ -148,20 +151,20 @@ class AnalyseTest {
 
     @Test
     void lesDefisLesSuccesEtLesAutomatismesDisentPourquoi() {
-        for (idle.core.darkmatter.Challenge c : idle.core.darkmatter.Challenges.ALL) {
+        for (Challenge c : Challenges.ALL) {
             assertFalse(AnalysePourquoi.contrainte(c).isBlank(), c.id());
             assertFalse(AnalysePourquoi.recompense(c).isBlank(), c.id());
             assertEquals(c, AnalysePourquoi.defi(c.id()));
         }
         Game game = Bots.fresh(7);
-        String first = idle.core.darkmatter.Challenges.DEFAULT.get(0).id();
+        String first = Challenges.DEFAULT.get(0).id();
         assertTrue(AnalysePourquoi.lancement(game, first).stream().anyMatch(l -> l.startsWith("Récompense")));
-        assertTrue(AnalysePourquoi.lancement(game, "VOID").stream().anyMatch(l -> l.contains(idle.core.bigbang.BangChallenge.VOID.rewardText())));
-        idle.core.achievements.Achievement feat = game.achievements().stream().filter(a -> a.hasBonus()).findFirst().orElseThrow();
+        assertTrue(AnalysePourquoi.lancement(game, "VOID").stream().anyMatch(l -> l.contains(BangChallenge.VOID.rewardText())));
+        Achievement feat = game.achievements().stream().filter(a -> a.hasBonus()).findFirst().orElseThrow();
         List<String> why = AnalysePourquoi.succes(game, feat.id());
         assertTrue(why.get(0).contains(feat.description()), why.toString());
         assertTrue(why.stream().anyMatch(l -> l.startsWith("Bonus propre")));
-        String auto = idle.core.upgrades.Automations.DEFAULT.get(0).id();
+        String auto = Automations.DEFAULT.get(0).id();
         assertFalse(AnalysePourquoi.role(auto).isBlank());
         assertTrue(AnalysePourquoi.role("PLANE_AIM").startsWith("joue la dimension 2"));
         assertEquals("", AnalysePourquoi.role("inconnu"));
@@ -237,9 +240,9 @@ class AnalyseTest {
 
     @Test
     void uneAmeliorationSeRetireDuJeu() {
-        assertEquals(java.util.Set.of("atom_keep"), BotAnalyste.sans("atom_keep"));
+        assertEquals(Set.of("atom_keep"), BotAnalyste.sans("atom_keep"));
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.sans("n_existe_pas"));
-        Game game = Bots.game(new idle.core.GameState(), 7, java.util.Set.of("atom_keep"));
+        Game game = Bots.game(new GameState(), 7, Set.of("atom_keep"));
         game.start();
         assertTrue(game.costOf("atom_keep").log10() > 1e14, "Persistance garde son nom, à un prix impossible");
         for (int i = 0; i < 600; i++) game.tick(1);
@@ -248,7 +251,7 @@ class AnalyseTest {
 
     @Test
     void lesProfilsDuBotAnalysteSeChoisissentParLeurNom() {
-        // Version 0.166 : le Speedrunner par défaut, le Régulier des profils, et le joueur absent.
+        // Le Speedrunner par défaut, le Régulier des profils, et le joueur absent.
         assertTrue(BotAnalyste.profil("") == BotAnalyste.ANALYSTE);
         assertEquals("Regular", BotAnalyste.profil("regulier").name());
         assertEquals(3600, BotAnalyste.profil("absent").cycleSeconds());
@@ -273,16 +276,16 @@ class AnalyseTest {
         AnalyseSuivi suivi = new AnalyseSuivi();
         AnalyseJournal journal = new AnalyseJournal();
         // Dix millions de matière noire pour un Big Bang qui en demande 120 000 : plus de dix fois, pendant 1 h 10.
-        game.state().setDarkMatter(idle.core.math.BigNum.of(1e7));
+        game.state().setDarkMatter(BigNum.of(1e7));
         for (double t = 0; t <= 4200; t += 60) suivi.observe(game, t, 1, journal);
         assertTrue(suivi.reserves.isEmpty(), "encore en cours");
-        game.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        game.state().setDarkMatter(BigNum.of(10));
         suivi.observe(game, 4260, 1, journal);
         assertEquals(1, suivi.reserves.size());
         assertEquals("Matière noire", suivi.reserves.get(0).quoi());
         assertEquals(4260, suivi.reserves.get(0).duree(), 1e-9);
         // Moins d'une heure : rien.
-        game.state().setDarkMatter(idle.core.math.BigNum.of(1e7));
+        game.state().setDarkMatter(BigNum.of(1e7));
         for (double t = 4320; t <= 6000; t += 60) suivi.observe(game, t, 1, journal);
         suivi.fin(6000);
         assertEquals(1, suivi.reserves.size());
@@ -312,7 +315,7 @@ class AnalyseTest {
     @Test
     void lesDurablesSontLesAmeliorationsPayeesEnAtomes() {
         for (String id : AnalyseDurables.DURABLES) {
-            assertTrue(idle.core.upgrades.Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id) && u.resource() == idle.core.Resource.ATOMS), id);
+            assertTrue(Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id) && u.resource() == Resource.ATOMS), id);
         }
         assertEquals(9, AnalyseDurables.DURABLES.size());
         assertEquals(4, AnalyseDurables.PALIERS.size());
@@ -320,25 +323,25 @@ class AnalyseTest {
 
     @Test
     void laMemoireDuBotSeRelitEtLaPartieContinueALIdentique(@TempDir Path dir) throws Exception {
-        // Version 0.168 : la mémoire du bot et le hasard de la partie s'écrivent à côté de la sauvegarde ; un bot neuf qui
+        // La mémoire du bot et le hasard de la partie s'écrivent à côté de la sauvegarde ; un bot neuf qui
         // les relit joue la même suite que l'original.
         BotAnalyste bot = new BotAnalyste(Bots.fresh(201), 201, 5, dir.resolve("a"), 30);
         bot.targetUniverses = 1;
         bot.etsi = false;
         bot.joue(0.3);
         Path save = dir.resolve("partie.save");
-        Files.writeString(save, idle.core.save.SaveCodec.write(bot.g.state(), 0));
+        Files.writeString(save, SaveCodec.write(bot.g.state(), 0));
         AnalyseMemoire.ecrire(bot, save);
         assertTrue(Files.exists(dir.resolve("partie.bot")));
-        java.util.Map<String, byte[]> memoire = AnalyseMemoire.relire(save);
+        Map<String, byte[]> memoire = AnalyseMemoire.relire(save);
         assertTrue(memoire.containsKey(AnalyseMemoire.HASARD_DU_JEU), "le hasard de la partie est écrit");
         assertTrue(memoire.size() > 20, "les champs du bot et de ses politiques : " + memoire.size());
         BotAnalyste suite = new BotAnalyste(Bots.load(save, 201), 201, 5, dir.resolve("b"), 30);
         int remis = AnalyseMemoire.remettre(suite, memoire);
         assertTrue(remis >= memoire.size() * 9 / 10, remis + " champs remis sur " + memoire.size());
-        java.util.Map<String, byte[]> relue = AnalyseMemoire.lire(suite);
+        Map<String, byte[]> relue = AnalyseMemoire.lire(suite);
         for (var e : memoire.entrySet()) {
-            assertTrue(java.util.Arrays.equals(e.getValue(), relue.get(e.getKey())), "le champ " + e.getKey());
+            assertTrue(Arrays.equals(e.getValue(), relue.get(e.getKey())), "le champ " + e.getKey());
         }
         assertEquals(AnalyseMemoire.fichier(Path.of("x/12-00-00_Univers_2.save")), Path.of("x/12-00-00_Univers_2.bot"));
         assertTrue(AnalyseMemoire.relire(dir.resolve("absente.save")).isEmpty(), "sans fichier : une mémoire vide");
@@ -346,8 +349,8 @@ class AnalyseTest {
 
     @Test
     void sansRetireAussiDesBullesEtOrdreImposeLeurOrdre() {
-        java.util.Set<String> sans = BotAnalyste.sans("atom_keep,bulle:LEAVES_LEFT");
-        assertEquals(java.util.Set.of(Game.TreeBubble.LEAVES_LEFT), BotAnalyste.bullesSans(sans));
+        Set<String> sans = BotAnalyste.sans("atom_keep,bulle:LEAVES_LEFT");
+        assertEquals(Set.of(Game.TreeBubble.LEAVES_LEFT), BotAnalyste.bullesSans(sans));
         assertEquals(Game.TreeBubble.LEAVES_LEFT.label(), BotAnalyste.nomSans("bulle:LEAVES_LEFT"));
         assertEquals("Persistance", BotAnalyste.nomSans("atom_keep"));
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.sans("bulle:INCONNUE"));
@@ -357,14 +360,14 @@ class AnalyseTest {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.ordre("au hasard"));
         Game game = Bots.fresh(201);
         try {
-            UniverseTreePolicy.withoutBubbles = java.util.Set.of(Game.TreeBubble.LEAVES_LEFT);
+            UniverseTreePolicy.withoutBubbles = Set.of(Game.TreeBubble.LEAVES_LEFT);
             assertTrue(UniverseTreePolicy.skipped(game, Game.TreeBubble.LEAVES_LEFT));
             assertFalse(UniverseTreePolicy.skipped(game, Game.TreeBubble.SEED));
         } finally {
-            UniverseTreePolicy.withoutBubbles = java.util.Set.of();
+            UniverseTreePolicy.withoutBubbles = Set.of();
         }
         assertEquals(List.of("Univers 4 formé (acte 3)", "Univers 5 formé (acte 3)"), AnalyseDurables.universFormes(3, 5));
         assertEquals(8, AnalyseDurables.ARBRE.size());
-        assertEquals(java.util.Set.copyOf(AnalyseDurables.BULLES), BotAnalyste.sans(String.join(",", AnalyseDurables.BULLES)));
+        assertEquals(Set.copyOf(AnalyseDurables.BULLES), BotAnalyste.sans(String.join(",", AnalyseDurables.BULLES)));
     }
 }

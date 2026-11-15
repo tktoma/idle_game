@@ -5,20 +5,16 @@ import idle.core.universe.UniverseTransition;
 import idle.ui.common.Labels;
 import java.util.List;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Le guide de transition entre univers (version 0.127), par-dessus la fenêtre : avant de former l'univers ou de
+ * Le guide de transition entre univers, par-dessus la fenêtre : avant de former l'univers ou de
  * lancer l'univers suivant, ce qui repart de zéro, ce qui reste, et ce que la transition apporte. Le moteur dresse
  * la liste ({@link Game#universeTransition(boolean)}) ; ici, on la montre, puis on attend la réponse du joueur.
  * « Plus tard » ne change rien.
  */
 final class TransitionPane extends Overlay {
-
     private static final String CARD_STYLE = cardStyle("#c8a2ff", true, "22 28");
     private static final String GO_STYLE = buttonStyle("8 20", "#c8a2ff");
     private static final String LATER_STYLE = "-fx-font-size: 13px; -fx-padding: 8 20; -fx-cursor: hand; -fx-background-radius: 6;"
@@ -33,7 +29,7 @@ final class TransitionPane extends Overlay {
     private final Button go = new Button();
     private final Button later = new Button("Plus tard");
     private Runnable onGo = () -> { };
-    /** Le rideau à jouer quand le joueur confirme (version 0.199), avec le skin du guide ; rien par défaut. */
+    /** Le rideau à jouer quand le joueur confirme, avec le skin du guide ; rien par défaut. */
     private java.util.function.Consumer<idle.core.universe.Skin> onConfirmed = skin -> { };
 
     TransitionPane(Game game) {
@@ -70,9 +66,7 @@ final class TransitionPane extends Overlay {
     }
 
     /** Vrai tant que le guide est affiché. */
-    boolean isOpen() {
-        return isVisible();
-    }
+    boolean isOpen() { return isVisible(); }
 
     /**
      * Ouvre le guide pour cette transition ; {@code action} n'a lieu que si le joueur confirme.
@@ -94,7 +88,7 @@ final class TransitionPane extends Overlay {
         reveal();
     }
 
-    /** Ce qui joue le rideau de la transition (version 0.199) une fois la transition confirmée, avec le skin du guide. */
+    /** Ce qui joue le rideau de la transition une fois la transition confirmée, avec le skin du guide. */
     void setOnConfirmed(java.util.function.Consumer<idle.core.universe.Skin> curtain) {
         onConfirmed = curtain == null ? skin -> { } : curtain;
     }

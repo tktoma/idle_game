@@ -8,31 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.molecules.Molecule;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.192 : les skins des briques communes. Les signes d'état des cartes changent de famille sans perdre un état
+ * Les skins des briques communes. Les signes d'état des cartes changent de famille sans perdre un état
  * (huit signes, tous différents du classique sauf où la famille les confond) ; les signes des états de la matière de
  * même, dans tous les textes qui les portent ; les info-bulles des compteurs prennent leur style au rafraîchissement,
  * et le rendent, au caractère près, sans skin.
  */
 class SignesEtBullesSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
     void classic() {

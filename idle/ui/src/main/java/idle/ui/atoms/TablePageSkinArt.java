@@ -1,11 +1,10 @@
 package idle.ui.atoms;
 
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 
 /**
- * Les dessins des trois skins de la page du tableau périodique hors cases (version 0.192), à côté de
+ * Les dessins des trois skins de la page du tableau périodique hors cases, à côté de
  * {@link PeriodicTablePage} pour la garder lisible :
  * <ul>
  * <li>« Médailles » : chaque tuile d'ensemble porte une médaille à ruban, de bronze dès le premier élément, d'argent à
@@ -17,7 +16,6 @@ import javafx.scene.paint.Color;
  * </ul>
  */
 final class TablePageSkinArt {
-
     /** Le côté de la médaille d'une tuile, en pixels. */
     static final double MEDAL_SIZE = 22;
     /** La taille du creuset sur la carte de synthèse, en pixels. */

@@ -1,27 +1,24 @@
 package idle.ui.bigbang;
 
 import idle.core.elements.Element;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import java.util.Map;
 import javafx.scene.paint.Color;
 
 /**
- * Les palettes des molécules (version 0.194, {@link SkinVisual#MOLECULE_PALETTE}) : la couleur de
- * chaque atome, à la place des couleurs CPK du Classique, quelle que soit la forme choisie pour les
- * molécules ({@link SkinVisual#MOLECULE}). Trois skins libres, des réglages d'accessibilité :
+ * Les palettes des molécules ({@link SkinVisual#MOLECULE_PALETTE}) : la couleur de chaque atome, à la place des
+ * couleurs CPK du Classique, quelle que soit la forme choisie pour les molécules ({@link SkinVisual#MOLECULE}). Trois
+ * skins libres, des réglages d'accessibilité :
  * <ul>
- *   <li>« Pastel » ({@link Skin#PALETTE_PASTEL}) : les couleurs CPK, moins saturées et tirées vers le blanc ;</li>
- *   <li>« Daltonien sûr » ({@link Skin#PALETTE_SAFE}) : la palette d'Okabe et Ito, huit couleurs que distinguent les
- *       trois formes courantes de daltonisme, une par élément courant et une par famille pour les autres ;
- *       l'hydrogène reste blanc, le carbone prend le gris ;</li>
- *   <li>« Monochrome par rayon » ({@link Skin#PALETTE_MONO}) : des gris, d'autant plus clairs que l'atome est
- *       gros, l'hydrogène le plus sombre.</li>
- * </ul>
- * Le dominant d'une molécule, que lisent la vue de l'espace et la galaxie, suit la palette.
+ * <li>« Pastel » ({@link Skin#PALETTE_PASTEL}) : les couleurs CPK, moins saturées et tirées vers le blanc ;</li>
+ * <li>« Daltonien sûr » ({@link Skin#PALETTE_SAFE}) : la palette d'Okabe et Ito, huit couleurs que distinguent les
+ * trois formes courantes de daltonisme, une par élément courant et une par famille pour les autres ; l'hydrogène reste
+ * blanc, le carbone prend le gris ;</li>
+ * <li>« Monochrome par rayon » ({@link Skin#PALETTE_MONO}) : des gris, d'autant plus clairs que l'atome est gros,
+ * l'hydrogène le plus sombre.</li>
+ * </ul> Le dominant d'une molécule, que lisent la vue de l'espace et la galaxie, suit la palette.
  */
 final class MoleculePaletteArt {
-
     /** Les huit couleurs d'Okabe et Ito, plus le gris : orange, bleu ciel, vert bleuté, jaune, bleu, vermillon, pourpre, gris. */
     private static final Color ORANGE = Color.web("#e69f00");
     private static final Color SKY_BLUE = Color.web("#56b4e9");
@@ -41,9 +38,7 @@ final class MoleculePaletteArt {
     private MoleculePaletteArt() {}
 
     /** Vrai si ce skin est une palette des molécules : {@code null} ou un skin d'un autre visuel, c'est le Classique. */
-    static boolean draws(Skin palette) {
-        return palette != null && palette.visual() == SkinVisual.MOLECULE_PALETTE;
-    }
+    static boolean draws(Skin palette) { return palette != null && palette.visual() == SkinVisual.MOLECULE_PALETTE; }
 
     /** La couleur de cet élément dans cette palette, {@code classic} étant sa couleur CPK ou de famille. */
     static Color color(Skin palette, Element element, Color classic) {

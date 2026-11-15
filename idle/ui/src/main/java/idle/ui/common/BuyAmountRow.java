@@ -4,8 +4,7 @@ import idle.ui.Settings;
 import java.util.EnumMap;
 import java.util.Map;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
 /**
@@ -13,7 +12,6 @@ import javafx.scene.layout.HBox;
  * chacun la leur, qui règlent le même choix ({@link Settings#buyAmount()}) ; seule la couleur du bouton éclairé change.
  */
 public final class BuyAmountRow extends HBox {
-
     /** Style des trois boutons de quantité ; celui qui est choisi est éclairé. */
     private static final String STYLE = "-fx-font-size: 12px; -fx-padding: 3 12; -fx-cursor: hand;"
             + " -fx-background-radius: 6; -fx-border-radius: 6;";
@@ -43,9 +41,7 @@ public final class BuyAmountRow extends HBox {
     }
 
     /** Les trois boutons, par quantité. */
-    public Map<Settings.BuyAmount, Button> buttons() {
-        return buttons;
-    }
+    public Map<Settings.BuyAmount, Button> buttons() { return buttons; }
 
     /** Éclaire de cette couleur le bouton de la quantité choisie, les autres restent sombres. */
     public void paint(Settings.BuyAmount chosen, String color) {

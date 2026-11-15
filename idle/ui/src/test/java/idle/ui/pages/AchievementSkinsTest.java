@@ -8,29 +8,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.achievements.Achievement;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.198 : les skins des tuiles de succès ({@link SkinVisual#ACHIEVEMENT_TILE}) et des succès non obtenus
+ * Les skins des tuiles de succès ({@link SkinVisual#ACHIEVEMENT_TILE}) et des succès non obtenus
  * ({@link SkinVisual#ACHIEVEMENT_LOCKED}), sous Xvfb. Chaque insigne se dessine, aux trois paliers, et deux insignes
  * différents ne se ressemblent pas ; la page des succès met l'insigne du bon skin selon que le succès est obtenu ou
  * non, le refait quand le skin ou l'état change, et n'en a aucun dans le Classique.
  */
 class AchievementSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -38,9 +32,7 @@ class AchievementSkinsTest {
         return skins;
     }
 
-    private static WritableImage image(Node node) {
-        return ((Canvas) node).snapshot(null, null);
-    }
+    private static WritableImage image(Node node) { return ((Canvas) node).snapshot(null, null); }
 
     private static boolean same(WritableImage a, WritableImage b) {
         for (int y = 0; y < (int) a.getHeight(); y++) {

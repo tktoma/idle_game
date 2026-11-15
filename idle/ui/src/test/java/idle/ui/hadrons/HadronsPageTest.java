@@ -6,26 +6,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.ui.FxTestSupport;
 import idle.ui.collider.ColliderPage;
 import idle.ui.common.Card;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.149 : les hadrons dans l'interface, sous Xvfb. L'offre dans le collisionneur et son bouton, la page des
+ * Les hadrons dans l'interface, sous Xvfb. L'offre dans le collisionneur et son bouton, la page des
  * gluons (quarks en main, cartes, boutons « Lier 1 » et « Lier tout »), les exotiques fermées puis ouvertes par la bulle
  * du cœur de l'arbre-monde.
  */
 class HadronsPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Un univers lancé après le premier, le collisionneur ouvert dès le début, avec ces bulles. */
     private static Game with(TreeBubble... bubbles) {
@@ -48,9 +43,7 @@ class HadronsPageTest {
     }
 
     /** Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée. */
-    private static long withGain(Game game, long made) {
-        return (long) Math.floor(made * game.crossingGain() + 1e-9);
-    }
+    private static long withGain(Game game, long made) { return (long) Math.floor(made * game.crossingGain() + 1e-9); }
 
     private static HadronsPage page(Game game) {
         HadronsPage page = new HadronsPage(game);

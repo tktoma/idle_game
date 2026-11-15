@@ -5,7 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * L'arbre au-delà de ses essences (version 0.197) : trois visuels qui se combinent avec l'essence ({@link SeedTree}).
+ * L'arbre au-delà de ses essences : trois visuels qui se combinent avec l'essence ({@link SeedTree}).
  *
  * <ul>
  *   <li>La saison figée ({@link idle.core.universe.SkinVisual#TREE_SEASON}) : l'arbre reste en automne (feuillage roux,
@@ -24,7 +24,6 @@ import javafx.scene.paint.Color;
  * Sans skin ({@link Look#CLASSIC}), rien ne change : SeedTree dessine comme avant.
  */
 final class TreeSkinArt {
-
     private TreeSkinArt() {
     }
 
@@ -35,9 +34,7 @@ final class TreeSkinArt {
         /** Les teintes du feuillage de la saison ; {@code null} garde celles de l'arbre (l'hiver n'en a pas : il est nu). */
         final Color[] tones;
 
-        Season(Color[] tones) {
-            this.tones = tones;
-        }
+        Season(Color[] tones) { this.tones = tones; }
     }
 
     /** L'arbre de fantaisie. */
@@ -70,7 +67,6 @@ final class TreeSkinArt {
 
     /** Les trois skins de l'arbre, lus en une fois ; {@link #CLASSIC} sans aucun. */
     record Look(Season season, Fantasy fantasy, Ground ground) {
-
         static final Look CLASSIC = new Look(Season.NONE, Fantasy.NONE, Ground.NONE);
 
         /** Les skins choisis pour la saison, la fantaisie et le sol ({@code null} ou un autre visuel : rien). */
@@ -110,14 +106,10 @@ final class TreeSkinArt {
         }
 
         /** Vrai quand l'arbre est nu : l'hiver figé, sans fantaisie qui garde son feuillage. */
-        boolean bare() {
-            return season == Season.WINTER && fantasy == Fantasy.NONE;
-        }
+        boolean bare() { return season == Season.WINTER && fantasy == Fantasy.NONE; }
 
         /** Vrai quand chaque bout fleurit : le printemps figé, sans fantaisie. */
-        boolean blossoms() {
-            return season == Season.SPRING && fantasy == Fantasy.NONE;
-        }
+        boolean blossoms() { return season == Season.SPRING && fantasy == Fantasy.NONE; }
 
         /** Le bois de la fantaisie à la place de celui de l'essence : {@code wood} est sa face ou sa face éclairée. */
         Color wood(Color wood, Color essenceBark) {
@@ -125,9 +117,7 @@ final class TreeSkinArt {
             return wood == essenceBark ? fantasy.bark : fantasy.barkLight;
         }
 
-        Color barkDark(Color essenceDark) {
-            return fantasy.barkDark == null ? essenceDark : fantasy.barkDark;
-        }
+        Color barkDark(Color essenceDark) { return fantasy.barkDark == null ? essenceDark : fantasy.barkDark; }
     }
 
     private static Color[] tones(String shade, String mid, String light) {

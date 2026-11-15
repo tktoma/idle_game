@@ -4,19 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.175 : le collisionneur gagne 20 % d'énergie et de hadrons de plus par univers formé. Version 0.176 : avec la
+ * Le collisionneur gagne 20 % d'énergie et de hadrons de plus par univers formé. Avec la
  * bulle de l'arbuste, à gauche (qui l'ouvre dès le début de l'univers), et non plus celle de l'arbre mûr. Chaque univers
  * remplit plus vite l'énergie du trou noir supermassif.
  */
 class TraverseeTest {
-
     /** Le troisième univers, le collisionneur en marche, les hadrons ouverts et des quarks pour les assembler. */
     private static Game avecHadrons() {
         Game game = VideTest.third();
@@ -47,7 +44,7 @@ class TraverseeTest {
         acheteLaBulle(game);
         int universes = game.universes();
         assertTrue(universes >= 2, "au moins deux univers formés : " + universes);
-        // Version 0.177 : le premier univers formé ne compte pas.
+        // Le premier univers formé ne compte pas.
         int counted = universes - 1;
         assertEquals(counted, game.crossingUniverses());
         assertEquals(1 + 0.2 * counted, game.crossingGain(), 1e-12);

@@ -1,10 +1,10 @@
 package idle.ui.common;
 
 import idle.core.universe.Skin;
+import javafx.scene.shape.ArcType;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
  * Les animations plein écran des skins de la version 0.191, dessinées à côté de {@link BurstView} pour
@@ -22,10 +22,9 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  */
 final class BurstSkinArt {
-
     private static final Color[] GLASS = {Color.web("#d62839"), Color.web("#f4a259"), Color.web("#f7d354"),
         Color.web("#4fa36b"), Color.web("#2f6fb5"), Color.web("#7a3fa0")};
-    // Version 0.203 : les mêmes teintes nuit que la vue de l'espace (SpaceSkinArt).
+    // Les mêmes teintes nuit que la vue de l'espace (SpaceSkinArt).
     private static final Color INK = Color.web("#e9e6dd");
     private static final Color PAPER = Color.web("#111215");
     private static final Color PARCHMENT = Color.web("#191510");
@@ -226,7 +225,7 @@ final class BurstSkinArt {
         BurstView.glow(g, cx, cy, dome * 1.8, Color.web("#8a6bff"), 0.5 * on);
         g.setGlobalAlpha(0.55 * on);
         g.setFill(Color.web("#b08aff"));
-        g.fillArc(cx - dome, cy - dome * 0.8, 2 * dome, 1.6 * dome, 0, 180, javafx.scene.shape.ArcType.ROUND);
+        g.fillArc(cx - dome, cy - dome * 0.8, 2 * dome, 1.6 * dome, 0, 180, ArcType.ROUND);
         g.setStroke(Color.web("#dcd0ff"));
         g.setLineWidth(Math.max(1.5, dome * 0.03));
         g.setGlobalAlpha(0.7 * on);
@@ -358,7 +357,7 @@ final class BurstSkinArt {
         g.setLineWidth(Math.max(2, small * 0.006));
         g.strokeRoundRect(cx - radius * 1.3, cy - radius * 0.5, radius * 2.6, radius, radius * 0.25, radius * 0.25);
         g.setFill(Color.web("#fff6fb"));
-        g.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, radius * 0.45));
+        g.setFont(Font.font("Arial", FontWeight.BOLD, radius * 0.45));
         g.setTextAlign(TextAlignment.CENTER);
         g.fillText("BIG BANG", cx, cy + radius * 0.16);
         g.setTextAlign(TextAlignment.LEFT);

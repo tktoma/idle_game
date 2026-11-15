@@ -1,6 +1,7 @@
 package idle.ui.collider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.collider.ColliderUpgrade;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,23 +11,18 @@ import idle.core.universe.SkinVisual;
 import idle.ui.FxTestSupport;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.195 : le détecteur, les éclairs, les étincelles et les quarks qui s'envolent, sous Xvfb. Chaque skin dessine la
+ * Le détecteur, les éclairs, les étincelles et les quarks qui s'envolent, sous Xvfb. Chaque skin dessine la
  * vue à deux tailles, loin du croisement puis au croisement capté, sans exception ; l'appareil photo flashe au croisement
  * et pas avant ; les éclairs d'un skin comptent autant d'arcs que les classiques ; les étincelles et les quarks d'un skin
  * jaillissent comme les classiques.
  */
 class DetectorSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -40,7 +36,7 @@ class DetectorSkinsTest {
         game.state().setExplosions(1);
         game.state().setColliderEnergy(1e6);
         // « Collisions » prise : un croisement capté assure un quark, qui s'envole.
-        game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.COLLISIONS, 1);
+        game.state().setColliderUpgradeLevel(ColliderUpgrade.COLLISIONS, 1);
         game.testAllSkins(true);
         assertTrue(game.isColliderUnlocked());
         assertTrue(game.isCollisionsUnlocked());

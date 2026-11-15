@@ -1,8 +1,7 @@
 package idle.ui;
 
 import java.util.Objects;
-import java.util.function.BooleanSupplier;
-import java.util.function.DoubleConsumer;
+import java.util.function.*;
 
 /**
  * Moteur d'avancement des bots indépendant de JavaFX : le contrôleur JavaFX lui donne
@@ -47,9 +46,7 @@ public final class BotFastForwardJob {
         return status;
     }
 
-    public void cancel() {
-        if (status == End.RUNNING) status = End.CANCELLED;
-    }
+    public void cancel() { if (status == End.RUNNING) status = End.CANCELLED; }
 
     public End status() { return status; }
     public double advancedSeconds() { return advanced; }

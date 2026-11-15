@@ -8,19 +8,15 @@ import idle.core.Game;
 import idle.core.universe.Skin;
 import idle.ui.common.ElementText;
 import idle.ui.pages.SkinsPage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.209 : l'onglet Skins n'écrit plus le bonus sur chaque carte ; une carte en tête donne le nombre de skins
+ * L'onglet Skins n'écrit plus le bonus sur chaque carte ; une carte en tête donne le nombre de skins
  * débloqués, puis le bonus cumulé, sans plafond.
  */
 class CollectionDesSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @Test
     void laCarteDeLaCollectionDitLeNombrePuisLeBonusCumule() {

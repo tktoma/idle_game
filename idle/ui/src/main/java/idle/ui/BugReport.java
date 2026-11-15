@@ -1,26 +1,24 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.GameStats;
+import java.util.regex.Pattern;
+import idle.core.state.GameStats;
 import idle.core.bigbang.BigBangMilestone;
 import idle.ui.common.Format;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Le rapport de bug : tout ce qu'il faut pour reproduire un problème, en un seul texte à coller.
  *
- * <p>Depuis la version 0.127, il dit aussi la session (graine du hasard, onglet affiché, profil de test), où en est
- * la partie (acte, dernière étape atteinte et prochaine, univers, graine d'univers, paliers de Big Bang payés et
- * en attente, défi ou épreuve en cours), et garde une trace courte de la première erreur. Il ne contient rien de
- * personnel au-delà du nécessaire : ni chemin de fichier, ni nom de compte (le dossier personnel est remplacé par
- * « ~ » partout), seulement le système et la version de Java.
+ * <p>Depuis la version 0.127, il dit aussi la session (graine du hasard, onglet affiché, profil de test), où en est la
+ * partie (acte, dernière étape atteinte et prochaine, univers, graine d'univers, paliers de Big Bang payés et en
+ * attente, défi ou épreuve en cours), et garde une trace courte de la première erreur. Il ne contient rien de personnel
+ * au-delà du nécessaire : ni chemin de fichier, ni nom de compte (le dossier personnel est remplacé par « ~ » partout),
+ * seulement le système et la version de Java.
  *
- * <p>Rien n'est envoyé nulle part : le texte va dans le presse-papiers, et c'est le joueur qui
- * décide à qui le donner.
+ * <p>Rien n'est envoyé nulle part : le texte va dans le presse-papiers, et c'est le joueur qui décide à qui le donner.
  */
 final class BugReport {
-
     /** Nombre de lignes de la trace d'erreur gardées dans le rapport : le haut de la pile suffit. */
     static final int TRACE_LINES = 12;
 
@@ -57,7 +55,7 @@ final class BugReport {
         if (game.universes() > 0) {
             text.append("Graine d'univers : palier ").append(game.seedStage()).append(" · ")
                     .append(Format.count(game.state().universeSeeds())).append(" graine(s) d'univers").append('\n');
-            // Le chrono (version 0.139) fait passer tout le jeu plus vite : le rapport dit son réglage.
+            // Le chrono fait passer tout le jeu plus vite : le rapport dit son réglage.
             if (game.isChronoUnlocked()) {
                 text.append("Chrono : ×").append(game.chronoSpeed()).append(" · gardé ")
                         .append(Format.duration(game.chronoStored())).append(" sur ")
@@ -138,8 +136,7 @@ final class BugReport {
         String result = text;
         if (!home.equals("?") && home.length() > 2) result = result.replace(home, "~");
         if (!name.equals("?") && name.length() > 2) {
-            result = result.replaceAll("(?<![\\p{L}\\p{N}])" + java.util.regex.Pattern.quote(name) + "(?![\\p{L}\\p{N}])",
-                    "<compte>");
+            result = result.replaceAll("(?<![\\p{L}\\p{N}])" + Pattern.quote(name) + "(?![\\p{L}\\p{N}])", "<compte>");
         }
         return result;
     }

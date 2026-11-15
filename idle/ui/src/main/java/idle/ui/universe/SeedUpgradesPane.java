@@ -1,41 +1,36 @@
 package idle.ui.universe;
 
 import idle.core.Game;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.core.GameUniverse.SeedUpgrade;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 
 /**
- * Les améliorations de la graine (version 0.139), à gauche de sa vue : une branche par dimension, payée avec sa
- * ressource (les segments de la ligne, les facettes du plan, les sphères du volume, les instants de la durée, les nœuds
- * de la boucle, les ondes de la brane, les étincelles du clicker, les repères de la grille, les reflets du miroir, les
- * fragments du mélange). Les quatre premières branches ont une amélioration de l'arrosage ou de l'étagère, et une du
- * chrono ; celle de la boucle (version 0.153), deux du rond de croissance : sa durée et sa force ;
- * celle de la brane (version 0.154), la lumière astrale, qui multiplie l'arrosage par seconde de l'arrosoir et du tuyau ;
- * celle du clicker (version 0.155), trois de la météo : un beau temps plus long, des orages plus courts, un soleil plus
- * fort ; celle de la grille (version 0.156), la graine profonde, qui multiplie tout l'arrosage selon l'énergie du vide
- * récupérée ; celle du miroir (version 0.157), les saisons, qui font remplir le chrono à chaque arrosage (elles attendent
- * son étage) ; celle du mélange (version 0.158), la bulle des racines, qui ouvre la bulle sous la graine. Une branche se
+ * Les améliorations de la graine, à gauche de sa vue : une branche par dimension, payée avec sa ressource (les segments
+ * de la ligne, les facettes du plan, les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes
+ * de la brane, les étincelles du clicker, les repères de la grille, les reflets du miroir, les fragments du mélange).
+ * Les quatre premières branches ont une amélioration de l'arrosage ou de l'étagère, et une du chrono ; celle de la
+ * boucle, deux du rond de croissance : sa durée et sa force ; celle de la brane, la lumière astrale, qui multiplie
+ * l'arrosage par seconde de l'arrosoir et du tuyau ; celle du clicker, trois de la météo : un beau temps plus long, des
+ * orages plus courts, un soleil plus fort ; celle de la grille, la graine profonde, qui multiplie tout l'arrosage selon
+ * l'énergie du vide récupérée ; celle du miroir, les saisons, qui font remplir le chrono à chaque arrosage (elles
+ * attendent son étage) ; celle du mélange, la bulle des racines, qui ouvre la bulle sous la graine. Une branche se
  * montre fermée, ses cartes verrouillées, tant que sa dimension ne l'est pas.
  *
- * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération. Depuis la
- * version 0.182, l'étage est sur la branche Plan (Durée avant), le tuyau sur Volume et la terre fertile sur Durée ; et le chrono
- * se règle aussi depuis un coin de la fenêtre ({@link ChronoCorner}).
+ * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération.
+ * Depuis la version 0.182, l'étage est sur la branche Plan (Durée avant), le tuyau sur Volume et la terre fertile sur
+ * Durée ; et le chrono se règle aussi depuis un coin de la fenêtre ({@link ChronoCorner}).
  */
 public final class SeedUpgradesPane extends VBox {
-
     /** Les branches : une par dimension, de la ligne à la dixième. */
     public static final int BRANCHES = Game.MAX_DIMENSIONS;
     private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle", "Brane", "Clicker", "Grille", "Miroir", "Mélange"};
@@ -77,9 +72,7 @@ public final class SeedUpgradesPane extends VBox {
         resource.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #f0e6b8;");
         for (SeedUpgrade upgrade : SeedUpgrade.values()) {
             Button button = card();
-            button.setOnAction(event -> {
-                if (game.buySeedUpgrade(upgrade)) refresh();
-            });
+            button.setOnAction(event -> { if (game.buySeedUpgrade(upgrade)) refresh(); });
             buttons.put(upgrade, button);
         }
         chronoLine.setWrapText(true);
@@ -87,7 +80,7 @@ public final class SeedUpgradesPane extends VBox {
         chronoSpeedLine.setWrapText(true);
         chronoSpeedLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8c8d8;");
         chronoSpeed.setBlockIncrement(0.25);
-        // Le réglage va par quarts, et le curseur aussi (version 0.141) : il ne saute plus d'un cran pendant qu'on le glisse.
+        // Le réglage va par quarts, et le curseur aussi : il ne saute plus d'un cran pendant qu'on le glisse.
         chronoSpeed.setMajorTickUnit(0.25);
         chronoSpeed.setMinorTickCount(0);
         chronoSpeed.setSnapToTicks(true);
@@ -119,10 +112,10 @@ public final class SeedUpgradesPane extends VBox {
         what.setWrappingWidth(CARD_TEXT_WIDTH);
         cost.setWrappingWidth(CARD_TEXT_WIDTH);
         VBox lines = new VBox(3, what, cost);
-        lines.setMaxHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        lines.setMaxHeight(Region.USE_PREF_SIZE);
         button.setGraphic(lines);
-        button.setMaxHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        button.setContentDisplay(javafx.scene.control.ContentDisplay.GRAPHIC_ONLY);
+        button.setMaxHeight(Region.USE_PREF_SIZE);
+        button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         button.setMaxWidth(Double.MAX_VALUE);
         button.setAlignment(Pos.CENTER_LEFT);
         button.setFocusTraversable(false);
@@ -200,9 +193,7 @@ public final class SeedUpgradesPane extends VBox {
     }
 
     /** Vrai si la branche s'ouvre : sa dimension est ouverte. */
-    public boolean isBranchOpen(int dimension) {
-        return game.dimensionsUnlocked() >= dimension;
-    }
+    public boolean isBranchOpen(int dimension) { return game.dimensionsUnlocked() >= dimension; }
 
     /** Montre la branche de cette dimension. */
     public void select(int dimension) {
@@ -210,9 +201,7 @@ public final class SeedUpgradesPane extends VBox {
         refresh();
     }
 
-    public int branch() {
-        return branch;
-    }
+    public int branch() { return branch; }
 
     private static String percent(double share) {
         return String.format(Locale.ROOT, "%.0f %%", share * 100).replace('.', ',');
@@ -256,9 +245,9 @@ public final class SeedUpgradesPane extends VBox {
                     + Format.multiplier(deepSeedAt(level + 1)) + " ; " + Format.multiplier(game.deepSeedFull())
                     + " au niveau " + upgrade.max() + ", la racine de la puissance de dix de l'énergie du vide récupérée";
             case SEASONS -> "Saisons (niveau " + level + ") : chaque arrosage remplit le chrono de "
-                    + idle.ui.common.ElementText.number(Game.SEASON_FILL * level) + " → "
-                    + idle.ui.common.ElementText.number(Game.SEASON_FILL * (level + 1)) + " s, selon la saison (×"
-                    + idle.ui.common.ElementText.number(game.season().fill()) + " " + seasonIn(game.season()) + ")";
+                    + ElementText.number(Game.SEASON_FILL * level) + " → "
+                    + ElementText.number(Game.SEASON_FILL * (level + 1)) + " s, selon la saison (×"
+                    + ElementText.number(game.season().fill()) + " " + seasonIn(game.season()) + ")";
             case ROOT_BUBBLE -> level > 0 ? "Bulle des racines : ouverte, sous la graine"
                     : "Bulle des racines : ouvre la bulle des racines, sous la graine, et avec elle le défi final";
         };
@@ -305,14 +294,14 @@ public final class SeedUpgradesPane extends VBox {
         for (int d = 1; d <= BRANCHES; d++) {
             Button tab = tabs.get(d - 1);
             boolean open = isBranchOpen(d), chosen = d == branch;
-            // Version 0.140 : une pastille sur l'onglet d'une branche où quelque chose s'achète.
+            // Une pastille sur l'onglet d'une branche où quelque chose s'achète.
             tab.setText(branchName(d) + (open && hasPurchase(d) ? " ●" : ""));
             tab.setStyle("-fx-font-size: 12px; -fx-padding: 4 8; -fx-background-radius: 5; -fx-border-radius: 5;"
                     + (chosen ? " -fx-background-color: " + COLOR + "; -fx-text-fill: #10151f; -fx-font-weight: bold;"
                     : open ? " -fx-background-color: #2e2c20; -fx-text-fill: " + COLOR + "; -fx-border-color: #6b6248;"
                     : " -fx-background-color: #1a1a1f; -fx-text-fill: #6c6a60;"));
         }
-        // Version 0.141 : les cartes restent en place, seul leur contenu change. Avant, chaque rafraîchissement (quatre
+        // Les cartes restent en place, seul leur contenu change. Avant, chaque rafraîchissement (quatre
         // par seconde) les retirait puis les remettait : un clic dont l'appui et le relâché tombaient de part et d'autre
         // était perdu, et beaucoup de cartes semblaient ne pas s'acheter.
         List<Button> shown = new ArrayList<>();
@@ -369,19 +358,11 @@ public final class SeedUpgradesPane extends VBox {
     }
 
     /** Pour les vérifications. */
-    public Button button(SeedUpgrade upgrade) {
-        return buttons.get(upgrade);
-    }
+    public Button button(SeedUpgrade upgrade) { return buttons.get(upgrade); }
 
-    public Slider chronoSlider() {
-        return chronoSpeed;
-    }
+    public Slider chronoSlider() { return chronoSpeed; }
 
-    public Label chronoText() {
-        return chronoLine;
-    }
+    public Label chronoText() { return chronoLine; }
 
-    public Label resourceText() {
-        return resource;
-    }
+    public Label resourceText() { return resource; }
 }

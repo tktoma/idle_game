@@ -3,18 +3,16 @@ package idle.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.ElementBonuses;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.202 : la synthèse lit la chance des familles rares et le double tirage sans recalculer tous les bonus des
+ * La synthèse lit la chance des familles rares et le double tirage sans recalculer tous les bonus des
  * éléments (ils prenaient jusqu'à 42 % du calcul d'une partie tardive). Ce sont les mêmes nombres, au bit près.
  */
 class ChanceDesElementsTest {
-
     @Test
     void laChanceEtLeDoubleTirageSontLesMemesQueDansTousLesBonus() {
         Random random = new Random(202);

@@ -1,23 +1,21 @@
 package idle.ui.common;
 
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
+import idle.core.universe.Skin;
+import javafx.scene.shape.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.StrokeLineCap;
 
 /**
- * La petite icône animée d'un onglet (version 0.059), dans la couleur de l'onglet : des particules
- * qui tournent, un engrenage, une spirale de matière noire, deux faisceaux qui se croisent, un
- * éclair de Big Bang, trois quarks liés qui tournent, un buste et l'étoile de son titre, une étoile qui scintille, des barres qui
- * montent, des curseurs qui glissent.
- * Elle ne bouge que si les effets sont permis ; immobile, elle reste lisible.
+ * La petite icône animée d'un onglet, dans la couleur de l'onglet : des particules qui tournent, un engrenage, une
+ * spirale de matière noire, deux faisceaux qui se croisent, un éclair de Big Bang, trois quarks liés qui tournent, un
+ * buste et l'étoile de son titre, une étoile qui scintille, des barres qui montent, des curseurs qui glissent. Elle ne
+ * bouge que si les effets sont permis ; immobile, elle reste lisible.
  *
- * <p>Version 0.192 : les icônes ont un skin, commun à toutes ({@link #setSkin}) et à l'atome de l'onglet Atomes :
- * trait de craie, pixel art, constellation, emoji, dessinés dans {@link TabIconSkinArt} ; « Figées » garde le dessin
- * classique et arrête le temps, comme le réglage des icônes animées, qui garde la main quand il est coupé.
+ * <p>Les icônes ont un skin, commun à toutes ({@link #setSkin}) et à l'atome de l'onglet Atomes : trait de craie, pixel
+ * art, constellation, emoji, dessinés dans {@link TabIconSkinArt} ; « Figées » garde le dessin classique et arrête le
+ * temps, comme le réglage des icônes animées, qui garde la main quand il est coupé.
  */
 public final class TabIcon extends Canvas {
-
     /** Ce que montre l'icône : un dessin par onglet. */
     public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, HADRONS, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
@@ -25,29 +23,21 @@ public final class TabIcon extends Canvas {
     private final Color color;
     private double time;
     private boolean bright;
-    /** La vitesse de l'animation : 1 d'habitude, plus quand ce que montre l'onglet s'accélère (version 0.061). */
+    /** La vitesse de l'animation : 1 d'habitude, plus quand ce que montre l'onglet s'accélère. */
     private double speed = 1;
-    /** Le skin des icônes (version 0.192), commun à toutes, ou {@code null} pour le Classique ; lu à chaque image. */
-    private static volatile idle.core.universe.Skin skin = null;
+    /** Le skin des icônes, commun à toutes, ou {@code null} pour le Classique ; lu à chaque image. */
+    private static volatile Skin skin = null;
 
     /** Change le skin de toutes les icônes d'onglet, et de l'atome de l'onglet Atomes ; chacune le prend à sa prochaine image. */
-    public static void setSkin(idle.core.universe.Skin chosen) {
-        skin = chosen;
-    }
+    public static void setSkin(Skin chosen) { skin = chosen; }
 
     /** Le skin des icônes, ou {@code null} pour le Classique. */
-    public static idle.core.universe.Skin skin() {
-        return skin;
-    }
+    public static Skin skin() { return skin; }
 
-    /** Vrai si les icônes sont figées par leur skin (version 0.192) : « Figées » arrête le temps, le réglage coupé aussi. */
-    public static boolean frozen() {
-        return skin == idle.core.universe.Skin.ICONS_STILL;
-    }
+    /** Vrai si les icônes sont figées par leur skin : « Figées » arrête le temps, le réglage coupé aussi. */
+    public static boolean frozen() { return skin == Skin.ICONS_STILL; }
 
-    public void setSpeed(double speed) {
-        this.speed = Double.isFinite(speed) ? Math.max(0.2, Math.min(speed, 8)) : 1;
-    }
+    public void setSpeed(double speed) { this.speed = Double.isFinite(speed) ? Math.max(0.2, Math.min(speed, 8)) : 1; }
 
     public TabIcon(Kind kind, String color, double size) {
         super(size, size);
@@ -57,14 +47,10 @@ public final class TabIcon extends Canvas {
         draw();
     }
 
-    public Kind kind() {
-        return kind;
-    }
+    public Kind kind() { return kind; }
 
     /** Le temps de l'animation : pour les vérifications. */
-    public double time() {
-        return time;
-    }
+    public double time() { return time; }
 
     /** L'onglet affiché a son icône pleinement éclairée ; les autres la gardent plus sourde. */
     public void setBright(boolean bright) {
@@ -83,10 +69,10 @@ public final class TabIcon extends Canvas {
         double s = getWidth();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, s, s);
-        idle.core.universe.Skin look = skin;
+        Skin look = skin;
         if (TabIconSkinArt.draws(look)) {
             // Le pixel art n'a que deux images : le temps du modèle alterne entre deux instants.
-            double shown = look == idle.core.universe.Skin.ICONS_PIXEL
+            double shown = look == Skin.ICONS_PIXEL
                     ? TabIconSkinArt.PIXEL_STEP * (Math.floor(time / TabIconSkinArt.PIXEL_STEP) % 2) : time;
             TabIconSkinArt.draw(look, g, TabIconSkinArt.model(kind, shown), s, color, bright ? 1 : 0.7, time);
             return;
@@ -172,7 +158,7 @@ public final class TabIcon extends Canvas {
                 g.fillOval(c - 2.5, c - 2.5, 5, 5);
             }
             case VOID -> {
-                // Le vide (version 0.099) : une paire qui s'écarte, se rejoint et s'annule dans un éclair.
+                // Le vide : une paire qui s'écarte, se rejoint et s'annule dans un éclair.
                 double cycle = (time * 0.7) % 1;
                 double open = Math.sin(Math.PI * Math.min(1, cycle / 0.85));
                 double a = 0.6 + Math.floor(time * 0.7) * 1.9;
@@ -192,7 +178,7 @@ public final class TabIcon extends Canvas {
                 }
             }
             case HADRONS -> {
-                // Les hadrons (version 0.149) : trois quarks reliés par leurs gluons, qui tournent ensemble ; leurs
+                // Les hadrons : trois quarks reliés par leurs gluons, qui tournent ensemble ; leurs
                 // couleurs, rouge, vert et bleu, passent de l'un à l'autre.
                 double[] xs = new double[3], ys = new double[3];
                 for (int k = 0; k < 3; k++) {
@@ -212,9 +198,9 @@ public final class TabIcon extends Canvas {
                 }
             }
             case PROFILE -> {
-                // Le profil (version 0.147) : un buste, la tête et les épaules, et l'étoile du titre qui en fait le tour.
+                // Le profil : un buste, la tête et les épaules, et l'étoile du titre qui en fait le tour.
                 g.fillOval(c - s * 0.16, s * 0.14, s * 0.32, s * 0.32);
-                g.fillArc(c - s * 0.32, s * 0.54, s * 0.64, s * 0.62, 0, 180, javafx.scene.shape.ArcType.ROUND);
+                g.fillArc(c - s * 0.32, s * 0.54, s * 0.64, s * 0.62, 0, 180, ArcType.ROUND);
                 double a = time * 1.3;
                 g.setFill(Color.WHITE);
                 g.setGlobalAlpha((bright ? 1 : 0.7) * 0.9);
@@ -253,7 +239,7 @@ public final class TabIcon extends Canvas {
                 }
             }
             case SKINS -> {
-                // Une palette (version 0.087) : trois pastilles qui changent de teinte tour à tour.
+                // Une palette : trois pastilles qui changent de teinte tour à tour.
                 g.fillOval(s * 0.1, s * 0.18, s * 0.8, s * 0.64);
                 g.setFill(Color.web("#0e131b"));
                 g.fillOval(s * 0.58, s * 0.52, s * 0.16, s * 0.16);

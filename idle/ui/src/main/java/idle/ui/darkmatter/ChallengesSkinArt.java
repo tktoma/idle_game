@@ -1,16 +1,14 @@
 package idle.ui.darkmatter;
 
 import idle.core.darkmatter.Challenge;
+import javafx.scene.shape.ArcType;
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * Les skins des défis (version 0.193), dessinés à côté de {@link ChallengesPane} pour la garder lisible : une
+ * Les skins des défis, dessinés à côté de {@link ChallengesPane} pour la garder lisible : une
  * vignette par carte de défi, posée en haut (tarot, affiche) ou dans l'en-tête (sceau).
  * <ul>
  * <li>« Tarot » : chaque défi est une lame, bordure dorée sur fond crème, son numéro en chiffres romains et un
@@ -22,7 +20,6 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  */
 final class ChallengesSkinArt {
-
     /** Les dimensions des vignettes : la lame et l'affiche en haut de la carte, le sceau dans l'en-tête. */
     static final double TAROT_WIDTH = 40, TAROT_HEIGHT = 60;
     static final double WANTED_WIDTH = 64, WANTED_HEIGHT = 52;
@@ -53,9 +50,7 @@ final class ChallengesSkinArt {
     }
 
     /** Vrai si la vignette de ce skin se pose dans l'en-tête de la carte plutôt qu'en haut. */
-    static boolean inline(Skin skin) {
-        return skin == Skin.CHALLENGES_SEALS;
-    }
+    static boolean inline(Skin skin) { return skin == Skin.CHALLENGES_SEALS; }
 
     /** Une vignette vide aux dimensions de ce skin. */
     static Canvas canvas(Skin skin) {
@@ -207,7 +202,7 @@ final class ChallengesSkinArt {
             case HEAVY_FUSION -> {
                 // Un poids.
                 g.fillRect(x - r * 0.8, y - r * 0.3, r * 1.6, r * 1.1);
-                g.strokeArc(x - r * 0.35, y - r * 0.9, r * 0.7, r * 0.8, 0, 180, javafx.scene.shape.ArcType.OPEN);
+                g.strokeArc(x - r * 0.35, y - r * 0.9, r * 0.7, r * 0.8, 0, 180, ArcType.OPEN);
             }
             case VOLATILE_PARTICLES -> {
                 // Des bulles qui s'échappent.
@@ -229,7 +224,7 @@ final class ChallengesSkinArt {
                 // Un trèfle de radioactivité.
                 for (int k = 0; k < 3; k++) {
                     double a = -90 + k * 120;
-                    g.fillArc(x - r, y - r, 2 * r, 2 * r, a - 30, 60, javafx.scene.shape.ArcType.ROUND);
+                    g.fillArc(x - r, y - r, 2 * r, 2 * r, a - 30, 60, ArcType.ROUND);
                 }
             }
             case PRESENCE_ONLY -> {

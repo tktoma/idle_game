@@ -8,22 +8,20 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import javafx.animation.Animation;
-import javafx.animation.FadeTransition;
-import javafx.animation.ScaleTransition;
+import java.util.Set;
+import javafx.animation.*;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Screen;
 import javafx.util.Duration;
 
-/**
- * L'application : la fenêtre et sa taille, la sauvegarde, la remise à zéro, le clavier et le jeu en tâche de fond.
- */
+/** L'application : la fenêtre et sa taille, la sauvegarde, la remise à zéro, le clavier et le jeu en tâche de fond. */
 public abstract class GameAppWindow extends GameAppBase {
-
     /** Seul {@link GameApp} prolonge la chaîne. */
     GameAppWindow() {
     }
@@ -31,15 +29,12 @@ public abstract class GameAppWindow extends GameAppBase {
     // Ce que fournissent les parties suivantes.
     abstract void stepSubTab(int direction);
 
-    /** Le skin du bouton de démarrage choisi dans la partie effacée par « Recommencer » (version 0.199), ou {@code null}. */
+    /** Le skin du bouton de démarrage choisi dans la partie effacée par « Recommencer », ou {@code null}. */
     private idle.core.universe.Skin startSkinMemory;
-
 
     /** Le jeu se ferme : la partie et la place de la fenêtre sont écrites une dernière fois. */
     @Override
-    public void stop() {
-        closing();
-    }
+    public void stop() { closing(); }
 
     void closing() {
         if (closed) return;
@@ -49,15 +44,12 @@ public abstract class GameAppWindow extends GameAppBase {
         if (stage == null) return;
         // Agrandie au maximum, la fenêtre garde en mémoire la place qu'elle avait avant.
         double[] before = settings.window();
-        if (stage.isMaximized() && before != null) {
-            settings.setWindow(before[0], before[1], before[2], before[3], true);
-        } else {
-            settings.setWindow(stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight(), stage.isMaximized());
-        }
+        if (stage.isMaximized() && before != null) settings.setWindow(before[0], before[1], before[2], before[3], true);
+        else settings.setWindow(stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight(), stage.isMaximized());
     }
 
     /**
-     * La plus petite fenêtre (version 0.092) : en dessous, plus rien ne tient. Elle suit la taille de
+     * La plus petite fenêtre : en dessous, plus rien ne tient. Elle suit la taille de
      * l'interface, sans dépasser l'écran ; une fenêtre déjà plus petite est agrandie jusqu'à elle.
      */
     void applyMinWindow() {
@@ -105,7 +97,7 @@ public abstract class GameAppWindow extends GameAppBase {
         return null;
     }
 
-    /** Donne à la fenêtre un format prédéfini, recentrée sur son écran (version 0.092, plein écrans en 0.093). */
+    /** Donne à la fenêtre un format prédéfini, recentrée sur son écran (plein écrans en 0.093). */
     void applyWindowSize(Settings.WindowSize size) {
         if (stage == null) return;
         if (size == Settings.WindowSize.FULL) {
@@ -136,7 +128,7 @@ public abstract class GameAppWindow extends GameAppBase {
     /** Remet la fenêtre où elle était à la dernière fermeture, si cet endroit est encore sur un écran. */
     void placeWindow() {
         double[] place = settings.window();
-        // Première ouverture (version 0.094) : le format Petit, recentré et ramené à l'écran s'il est plus petit.
+        // Première ouverture : le format Petit, recentré et ramené à l'écran s'il est plus petit.
         if (place == null) {
             applyWindowSize(Settings.WindowSize.SMALL);
             return;
@@ -164,9 +156,8 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     /**
-     * Une image du rattrapage d'une absence : le jeu rejoue autant de temps qu'il peut sans figer
-     * la fenêtre. Ce qui se passe pendant ce temps n'est pas annoncé message par message : le
-     * panneau en fait le bilan à la fin.
+     * Une image du rattrapage d'une absence : le jeu rejoue autant de temps qu'il peut sans figer la fenêtre. Ce qui se
+     * passe pendant ce temps n'est pas annoncé message par message : le panneau en fait le bilan à la fin.
      */
     void catchUp() {
         absencePane.absence().advanceFor(CATCH_UP_NANOS);
@@ -228,7 +219,7 @@ public abstract class GameAppWindow extends GameAppBase {
         button.setStyle("-fx-font-size: 16px; -fx-padding: 12 28; -fx-text-fill: #e8f4ff;"
                 + " -fx-background-color: #16202e; -fx-background-radius: 8;"
                 + " -fx-border-color: #9fd0ff; -fx-border-radius: 8; -fx-cursor: hand;");
-        // Version 0.199 : le skin du bouton, celui de la partie chargée ou celui que la partie effacée avait choisi.
+        // Le skin du bouton, celui de la partie chargée ou celui que la partie effacée avait choisi.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.START_BUTTON);
         StartButtonArt.dress(button, look != null ? look : startSkinMemory);
 
@@ -267,8 +258,7 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     /**
-     * Le joueur a confirmé qu'il recommence de zéro : le jeu efface tout, et la fenêtre revient à
-     * l'écran de démarrage.
+     * Le joueur a confirmé qu'il recommence de zéro : le jeu efface tout, et la fenêtre revient à l'écran de démarrage.
      */
     void resetGame() {
         if (debugBar != null) debugBar.cancelFastForward();
@@ -299,7 +289,7 @@ public abstract class GameAppWindow extends GameAppBase {
 
     /**
      * Les anciens onglets oublient ce qu'ils montraient : la partie vient de repartir de zéro, par
-     * « Recommencer » ou par la formation de l'univers (version 0.083).
+     * « Recommencer » ou par la formation de l'univers.
      */
     void forgetOldPages() {
         exploding = false;
@@ -391,9 +381,8 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     /**
-     * Une touche vient d'être enfoncée. Dans l'ordre : la page des réglages l'attend peut-être
-     * pour en faire la touche de détail ; sinon c'est la touche de détail elle-même ; sinon un
-     * raccourci.
+     * Une touche vient d'être enfoncée. Dans l'ordre : la page des réglages l'attend peut-être pour en faire la touche
+     * de détail ; sinon c'est la touche de détail elle-même ; sinon un raccourci.
      *
      * @return vrai si la touche a servi à l'interface et ne doit pas aller plus loin
      */
@@ -411,7 +400,7 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     boolean keyPressed(KeyCode code) {
-        // Le plan (version 0.104) : Z Q S D et les flèches déplacent son point, avant tout raccourci.
+        // Le plan : Z Q S D et les flèches déplacent son point, avant tout raccourci.
         if (dimensionWindow.key(code, true)) return true;
         if (settingsPage.isCapturing()) {
             settingsPage.capture(code);
@@ -425,7 +414,7 @@ public abstract class GameAppWindow extends GameAppBase {
             }
             return true;
         }
-        // Le guide de transition (version 0.127) prend le clavier : Échap le ferme sans rien changer, le reste attend.
+        // Le guide de transition prend le clavier : Échap le ferme sans rien changer, le reste attend.
         if (transitionPane.isOpen()) {
             if (code == KeyCode.ESCAPE) transitionPane.close();
             // Entrée confirme, comme le bouton mis en avant : le guide se lit et se valide au clavier.
@@ -495,9 +484,8 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     /**
-     * Les raccourcis clavier ({@link Shortcuts}), actifs depuis n'importe quel onglet, avec les
-     * touches que le joueur leur a données ({@link Settings#key}). Un raccourci dont l'action
-     * n'est pas possible en ce moment ne fait rien.
+     * Les raccourcis clavier ({@link Shortcuts}), actifs depuis n'importe quel onglet, avec les touches que le joueur
+     * leur a données ({@link Settings#key}). Un raccourci dont l'action n'est pas possible en ce moment ne fait rien.
      *
      * @return vrai si la touche portait un raccourci : elle ne va alors pas plus loin
      */
@@ -535,9 +523,7 @@ public abstract class GameAppWindow extends GameAppBase {
                 if (lootPane.isOpen()) lootPane.next();
                 else if (!lootPane.openFirst()) game.claimProbeReward();
             }
-            case EXPLODE -> {
-                if (game.canExplode()) requestExplosion();
-            }
+            case EXPLODE -> { if (game.canExplode()) requestExplosion(); }
             case BIG_BANG -> {
                 // Le Big Bang se déclenche sur sa case, au bout de l'arbre : le raccourci y mène et la presse.
                 if (game.canBigBang()) {

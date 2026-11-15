@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -12,13 +14,12 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.150 : l'automatisation des dimensions. Dans chaque dimension, les automatismes s'achètent l'un après l'autre.
- * Version 0.163 : le plan automatique ramasse ses éclats aussi par grands pas (une absence rejouée par pas de 10 s), les
- * dimensions étant découpées en pas d'au plus 0,05 s. Version 0.209 : payés avec la ressource de leur dimension ; ceux
+ * L'automatisation des dimensions. Dans chaque dimension, les automatismes s'achètent l'un après l'autre.
+ * Le plan automatique ramasse ses éclats aussi par grands pas (une absence rejouée par pas de 10 s), les
+ * dimensions étant découpées en pas d'au plus 0,05 s. Payés avec la ressource de leur dimension ; ceux
  * qui achètent d'abord, puis ceux qui jouent, en cinq paliers de cadence.
  */
 class AutomatisationDimensionsTest {
-
     /** Quatre dimensions ouvertes aux automatismes (cinq univers, l'arbre-monde ; version 0.182), et de quoi payer. */
     private static Game four() {
         Game game = GameTestSupport.universe(4);
@@ -37,7 +38,7 @@ class AutomatisationDimensionsTest {
         }
     }
 
-    /** Achète, dans l'ordre, les automatismes de sa dimension jusqu'à celui-ci compris (version 0.209). */
+    /** Achète, dans l'ordre, les automatismes de sa dimension jusqu'à celui-ci compris. */
     static void buyUpTo(Game game, DimensionAutomation last) {
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.dimension() != last.dimension()) continue;
@@ -61,7 +62,7 @@ class AutomatisationDimensionsTest {
         assertEquals(10, counts[9], "le miroir (version 0.157) : ses cinq améliorations, puis le jeu");
         assertEquals(16, counts[10], "le mélange (refait à la 0.159) : ses onze améliorations, puis le mélange automatique");
         assertEquals(105, DimensionAutomation.values().length);
-        // Version 0.209 : ceux qui jouent en dernier, du plus lent au plus rapide ; l'ancien nom garde le dernier.
+        // Ceux qui jouent en dernier, du plus lent au plus rapide ; l'ancien nom garde le dernier.
         assertNull(DimensionAutomation.PLANE_VALUE.previous(), "les améliorations d'abord");
         assertEquals(DimensionAutomation.PLANE_SIZE, DimensionAutomation.PLANE_AIM_5S.previous());
         assertEquals(DimensionAutomation.PLANE_AIM_05S, DimensionAutomation.PLANE_AIM.previous());
@@ -120,7 +121,7 @@ class AutomatisationDimensionsTest {
         assertTrue(two.testAddUniverse());
         assertTrue(two.isDimensionAutomationAvailable(DimensionAutomation.PLANE_VALUE));
         assertFalse(two.isDimensionAutomationAvailable(DimensionAutomation.VOLUME_TIME), "trois univers : pas le volume");
-        // La bulle du sommet fait moitié prix (version 0.182).
+        // La bulle du sommet fait moitié prix.
         assertEquals(DimensionAutomation.PLANE_VALUE.cost(), two.dimensionAutomationCost(DimensionAutomation.PLANE_VALUE), 1e-9);
         two.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
         assertEquals(DimensionAutomation.PLANE_VALUE.cost() / 2, two.dimensionAutomationCost(DimensionAutomation.PLANE_VALUE), 1e-9);
@@ -224,7 +225,7 @@ class AutomatisationDimensionsTest {
     @Test
     void tousLesAutomatismesSAchetentAvecLaBonneRessource() {
         Game game = GameTestSupport.universe(10);
-        GameTestSupport.openDimensionAutomations(game, 10);   // onze univers et l'arbre-monde (version 0.182)
+        GameTestSupport.openDimensionAutomations(game, 10);   // onze univers et l'arbre-monde
         game.state().setUniverseSeeds(BigNum.of(1_000));
         game.state().setDimensionShards(1e30);
         game.state().setPlaneShards(1e30);
@@ -269,7 +270,7 @@ class AutomatisationDimensionsTest {
         assertFalse(back.dimensionAutomations().contains(DimensionAutomation.PLANE_VALUE.name()), "les achats, eux, restent à acheter");
     }
 
-    /** Version 0.209 : le plus rapide des paliers en marche joue ; la cadence d'un palier lent se voit dans ce qu'il ramasse. */
+    /** Le plus rapide des paliers en marche joue ; la cadence d'un palier lent se voit dans ce qu'il ramasse. */
     @Test
     void lePlusRapideDesPaliersJoueEtLesLentsRamassentMoins() {
         Game slow = four(), fast = four();

@@ -12,20 +12,16 @@ class ProfileProgressGuardFailureTest {
     @Test void stagnationDiagnostiqueePuisBlocageConfirme() {
         var g=new ProfileProgressGuard(1,"Temoin",4*3600,12*3600,4*3600,20);
         g.observe(sample(0,0,0,0,true));
-        assertEquals(ProfileProgressGuard.Verdict.STAGNATION,
-                g.assess(sample(5,5,5,30,true)).verdict());
-        assertThrows(IllegalStateException.class,
-                ()->g.observe(sample(13,13,13,100,true)));
+        assertEquals(ProfileProgressGuard.Verdict.STAGNATION, g.assess(sample(5,5,5,30,true)).verdict());
+        assertThrows(IllegalStateException.class, ()->g.observe(sample(13,13,13,100,true)));
         assertEquals(ProfileProgressGuard.Verdict.BLOCKED,g.latest().verdict());
     }
     @Test void horlogeFigeeEtValeurInvalideFontEchouer() {
         var g=new ProfileProgressGuard(1,"Temoin",4*3600,12*3600,4*3600,20);
         g.observe(sample(0,0,0,0,true));
-        assertThrows(IllegalStateException.class,
-                ()->g.observe(sample(1,0,1,3,true)));
+        assertThrows(IllegalStateException.class, ()->g.observe(sample(1,0,1,3,true)));
         var bad=new ProfileProgressGuard(2,"Invalide",4*3600,12*3600,4*3600,20);
-        assertThrows(IllegalStateException.class,
-                ()->bad.observe(sample(1,Double.NaN,1,1,true)));
+        assertThrows(IllegalStateException.class, ()->bad.observe(sample(1,Double.NaN,1,1,true)));
         assertEquals(ProfileProgressGuard.Verdict.INVALID,bad.latest().verdict());
     }
 }

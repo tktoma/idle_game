@@ -1,20 +1,20 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.collider.*;
+import idle.core.math.BigNum;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.ColliderUpgrade;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
+import idle.core.upgrades.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.167 : Persistance en cinq niveaux, l'amorti de l'espace au-delà de 10 000 par seconde, la matière noire des
+ * Persistance en cinq niveaux, l'amorti de l'espace au-delà de 10 000 par seconde, la matière noire des
  * univers en +1 par univers, et la coupure générale qui arrête aussi les automates du collisionneur.
  */
 class Reglages167Test {
-
     private static Upgrade persistence() {
         return Upgrades.DEFAULT.stream().filter(u -> u.id().equals("atom_keep")).findFirst().orElseThrow();
     }
@@ -26,7 +26,7 @@ class Reglages167Test {
         double[] costs = {8, 16, 31, 61, 118};
         for (int level = 0; level < 5; level++) assertEquals(costs[level], keep.costAt(level).toDouble(), 0, "niveau " + (level + 1));
         assertTrue(keep.costAt(4).lte(Game.MAX_ATOMS), "le dernier tient sous le plafond d'avant la première explosion");
-        assertEquals(java.util.List.of(0.10, 0.25, 0.50, 0.75, 1.0), Upgrades.PERSISTENCE_SHARES);
+        assertEquals(List.of(0.10, 0.25, 0.50, 0.75, 1.0), Upgrades.PERSISTENCE_SHARES);
     }
 
     @Test
@@ -53,7 +53,7 @@ class Reglages167Test {
         Game game = GameTestSupport.realGame();
         assertFalse(game.isAutomationBatchAvailable("auto_generator"), "pas avant la matière noire");
         game.state().setExplosions(1);
-        game.state().setDarkMatter(idle.core.math.BigNum.of(10_000));
+        game.state().setDarkMatter(BigNum.of(10_000));
         assertTrue(game.isAutomationBatchAvailable("auto_generator"));
         assertTrue(game.isAutomationBatchAvailable("auto_speed"));
         assertFalse(game.isAutomationBatchAvailable("auto_fusion"), "la fusion n'achète rien");
@@ -79,10 +79,10 @@ class Reglages167Test {
         Game game = GameTestSupport.realGame();
         game.state().setExplosions(1);
         game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
-        game.state().setAtoms(idle.core.math.BigNum.of(100));
+        game.state().setAtoms(BigNum.of(100));
         assertTrue(game.buyAutomation("auto_generator"));
         game.state().setAutomationBatchLevel("auto_generator", 2);
-        game.state().setParticles(idle.core.math.BigNum.of(1e30));
+        game.state().setParticles(BigNum.of(1e30));
         int before = game.levelOf("generator");
         game.tick(game.automationInterval("auto_generator") + 0.01);
         assertEquals(before + 4, game.levelOf("generator"), "par 4");
@@ -112,7 +112,7 @@ class Reglages167Test {
     @Test
     void laCoupureGeneraleArreteLesAutomatesDuCollisionneur() {
         Game game = GameTestSupport.realGame();
-        ColliderUpgrade auto = ColliderUpgrade.automationOf(idle.core.collider.ColliderGenerator.BEAM);
+        ColliderUpgrade auto = ColliderUpgrade.automationOf(ColliderGenerator.BEAM);
         game.state().setColliderUpgradeLevel(auto, 1);
         assertTrue(game.isColliderAutomationRunning(auto));
         game.setAutomationPaused(true);

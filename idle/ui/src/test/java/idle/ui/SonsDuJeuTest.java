@@ -7,19 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.210 : les sons des grands moments qui n'en avaient pas, les sons d'interface (achat, interrupteur) et les
+ * Les sons des grands moments qui n'en avaient pas, les sons d'interface (achat, interrupteur) et les
  * gestes dans les dimensions. Sans affichage ni carte son : les sons partent dans un relevé.
  */
 class SonsDuJeuTest {
-
     @Test
     void chaqueGrandMomentASonSon() {
         Map<String, Cue> expected = Map.ofEntries(

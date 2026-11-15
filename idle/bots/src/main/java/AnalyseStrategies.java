@@ -2,18 +2,16 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 /**
- * Les façons de jouer que le bot analyste compare (version 0.162). Chacune reprend les choix d'un des 24 profils (son
+ * Les façons de jouer que le bot analyste compare. Chacune reprend les choix d'un des 24 profils (son
  * penchant, son ordre d'achat, ses choix du deuxième univers, du vide et de l'arbre), mais joués sans faute : à vitesse
  * humaine (une décision toutes les 5 s), avec toute son attention, sans oubli ni hésitation. Seuls les choix diffèrent ;
  * comparer leurs parties d'essai dit lequel mène le plus vite au palier suivant.
  */
 final class AnalyseStrategies {
-
     private AnalyseStrategies() {}
 
     /** Une façon de jouer : son nom, ce qu'elle privilégie, et le profil dont elle prend les choix. */
     record Strategie(String nom, String idee, int profil) {
-
         /** Le profil sans faute : les choix de ce profil, au rythme et avec l'attention de l'analyste. */
         IdleProfiles24.Profile profile() {
             IdleProfiles24.Profile base = IdleProfiles24.PROFILES[profil - 1];

@@ -1,32 +1,28 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrade;
+import idle.core.darkmatter.*;
 import idle.core.sky.Cosmos;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 /**
- * Ce qui est prêt quelque part dans le jeu, pour la pastille des onglets et des sous-onglets : une
- * case de l'arbre payable, un défi ouvert et jamais réussi, le Big Bang possible, une sorte à
- * rassembler, un assemblage, un astre ou une échelle du cosmos à former.
+ * Ce qui est prêt quelque part dans le jeu, pour la pastille des onglets et des sous-onglets : une case de l'arbre
+ * payable, un défi ouvert et jamais réussi, le Big Bang possible, une sorte à rassembler, un assemblage, un astre ou
+ * une échelle du cosmos à former.
  *
- * <p>Ce ne sont que des choses que le joueur fait une fois et qui l'attendent ailleurs que là où
- * il regarde : ce qui est prêt en permanence (une amélioration à acheter, une molécule à créer)
- * n'a pas de pastille, elle serait toujours allumée.
+ * <p>Ce ne sont que des choses que le joueur fait une fois et qui l'attendent ailleurs que là où il regarde : ce qui
+ * est prêt en permanence (une amélioration à acheter, une molécule à créer) n'a pas de pastille, elle serait toujours
+ * allumée.
  *
- * <p>Le calcul parcourt des catalogues entiers : il n'est refait que deux fois par seconde, ou
- * dès que les molécules, les amas ou les astres ont changé, et toutes les pages lisent le même
- * résultat ({@link #of(Game)}).
+ * <p>Le calcul parcourt des catalogues entiers : il n'est refait que deux fois par seconde, ou dès que les molécules,
+ * les amas ou les astres ont changé, et toutes les pages lisent le même résultat ({@link #of(Game)}).
  */
 public final class Readiness {
-
     /** Le signe ajouté au nom d'un onglet où quelque chose est prêt. */
     static final String DOT = " ●";
 
     /**
-     * Les sortes de pastilles (version 0.146), que les réglages montrent ou cachent une par une. Une pastille cachée ne
+     * Les sortes de pastilles, que les réglages montrent ou cachent une par une. Une pastille cachée ne
      * s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.
      */
     public enum Kind {
@@ -49,20 +45,16 @@ public final class Readiness {
             this.detail = detail;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        public String detail() {
-            return detail;
-        }
+        public String detail() { return detail; }
     }
 
     /** Les pastilles cachées dans les réglages : un réglage commun à toutes les pages, comme les signes des cartes. */
-    private static final java.util.EnumSet<Kind> HIDDEN = java.util.EnumSet.noneOf(Kind.class);
+    private static final EnumSet<Kind> HIDDEN = EnumSet.noneOf(Kind.class);
 
     /** Recopie les pastilles cachées des réglages. */
-    public static void setHidden(java.util.Set<Kind> hidden) {
+    public static void setHidden(Set<Kind> hidden) {
         synchronized (HIDDEN) {
             HIDDEN.clear();
             HIDDEN.addAll(hidden);
@@ -78,9 +70,7 @@ public final class Readiness {
     }
 
     /** {@link #DOT} si quelque chose de cette sorte est prêt et que sa pastille n'est pas cachée, rien sinon. */
-    public static String dot(Kind kind, boolean ready) {
-        return dot(shown(kind, ready));
-    }
+    public static String dot(Kind kind, boolean ready) { return dot(shown(kind, ready)); }
     private static final long EVERY_NANOS = 500_000_000L;
     private static final Map<Game, Readiness> SHARED = new WeakHashMap<>();
 
@@ -114,9 +104,7 @@ public final class Readiness {
     }
 
     /** {@link #DOT} si quelque chose est prêt, rien sinon. */
-    public static String dot(boolean ready) {
-        return ready ? DOT : "";
-    }
+    public static String dot(boolean ready) { return ready ? DOT : ""; }
 
     /** À appeler à chaque image : le calcul n'est refait que deux fois par seconde. */
     void frame() {
@@ -160,47 +148,29 @@ public final class Readiness {
     }
 
     /** Une case de l'arbre de matière noire est payable, ou le Big Bang est possible. */
-    public boolean tree() {
-        return tree || bang;
-    }
+    public boolean tree() { return tree || bang; }
 
     /** Un défi est ouvert, jamais réussi, et aucun n'est en cours. */
-    public boolean challenges() {
-        return challenges;
-    }
+    public boolean challenges() { return challenges; }
 
     /** Quelque chose est prêt dans l'onglet Matière noire, et sa pastille n'est pas cachée. */
-    boolean darkMatter() {
-        return shown(Kind.TREE, tree || bang) || shown(Kind.CHALLENGES, challenges);
-    }
+    boolean darkMatter() { return shown(Kind.TREE, tree || bang) || shown(Kind.CHALLENGES, challenges); }
 
     /** Une sorte de molécules peut être rassemblée. */
-    public boolean states() {
-        return states;
-    }
+    public boolean states() { return states; }
 
     /** Un assemblage peut être formé. */
-    public boolean assemblies() {
-        return assemblies;
-    }
+    public boolean assemblies() { return assemblies; }
 
     /** Un astre peut être formé. */
-    public boolean bodies() {
-        return bodies;
-    }
+    public boolean bodies() { return bodies; }
 
     /** La prochaine échelle du cosmos peut être formée. */
-    public boolean cosmos() {
-        return cosmos;
-    }
+    public boolean cosmos() { return cosmos; }
 
     /** Une comète traverse l'expansion : elle ne reste que quelques secondes, c'est la seule pastille qui s'éteint seule. */
-    public boolean comet() {
-        return comet;
-    }
+    public boolean comet() { return comet; }
 
     /** Quelque chose est prêt dans l'onglet Big Bang, et sa pastille n'est pas cachée. */
-    boolean bigBang() {
-        return shown(Kind.SKY, states || assemblies || bodies || cosmos) || shown(Kind.COMET, comet);
-    }
+    boolean bigBang() { return shown(Kind.SKY, states || assemblies || bodies || cosmos) || shown(Kind.COMET, comet); }
 }

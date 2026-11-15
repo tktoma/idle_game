@@ -1,18 +1,12 @@
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.bigbang.BigBangCondition;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
+import idle.core.darkmatter.*;
 import idle.core.sky.Cosmos;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Ce que le bot analyste suit en continu (version 0.166), une fois par minute de jeu :
+ * Ce que le bot analyste suit en continu, une fois par minute de jeu :
  * <ul>
  *   <li>les réserves qui dorment : une ressource plus de {@value #RESERVE_FACTEUR} fois au-dessus de ce qu'elle peut
  *       payer, pendant plus d'une heure (la matière noire, l'énergie du vide gardée pour les bulles) ;</li>
@@ -25,7 +19,6 @@ import java.util.Map;
  * </ul>
  */
 final class AnalyseSuivi {
-
     /** Une réserve dort quand elle dépasse ce multiple de ce qu'elle peut payer. */
     static final double RESERVE_FACTEUR = 10;
     /** Pendant au moins ce temps de jeu, pour être signalée ; de même pour un palier bloqué par une seule condition. */
@@ -37,9 +30,7 @@ final class AnalyseSuivi {
 
     /** Un temps passé dans un état (une réserve qui dort, une seule condition qui manque) : de quand à quand, et pourquoi. */
     record Episode(int univers, String quoi, double debut, double fin, String detail) {
-        double duree() {
-            return fin - debut;
-        }
+        double duree() { return fin - debut; }
     }
 
     /** Un achat de dimension ou de graine qui attend son rythme d'après. */
@@ -49,7 +40,7 @@ final class AnalyseSuivi {
     final List<Episode> reserves = new ArrayList<>();
     final List<Episode> uneCondition = new ArrayList<>();
 
-    private final Map<String, double[]> enCours = new java.util.LinkedHashMap<>();
+    private final Map<String, double[]> enCours = new LinkedHashMap<>();
     private final Map<BigBangCondition, Double> rempliesDepuis = new EnumMap<>(BigBangCondition.class);
     /** Les relevés : temps, ressource gagnée de chaque dimension (1 à 10), arrosages de la graine. */
     private final ArrayDeque<double[]> releves = new ArrayDeque<>();
@@ -166,7 +157,7 @@ final class AnalyseSuivi {
             int n = g.cosmosConditions(scale), met = g.cosmosConditionsMet(scale);
             if (n > 1 && met == n - 1) {
                 bloque = scale.label();
-                // Version 0.168 : laquelle (quel astre, quelle matière), sans les nombres qui bougent à chaque pas.
+                // Laquelle (quel astre, quelle matière), sans les nombres qui bougent à chaque pas.
                 List<String> manque = g.cosmosMissing(scale);
                 detail = "il ne manque qu'une condition sur " + n
                         + (manque.size() == 1 ? " : " + manque.get(0).replaceAll(" \\([^)]*\\)$", "") : "");
@@ -212,9 +203,7 @@ final class AnalyseSuivi {
             "braneShards", "clickerShards", "gridShards", "mirrorShards", "mixShards");
 
     /** La dimension (1 à 10) qu'une ressource paie, 0 si ce n'en est pas une. */
-    static int dimension(String monnaie) {
-        return monnaie == null ? 0 : RESSOURCES.indexOf(monnaie) + 1;
-    }
+    static int dimension(String monnaie) { return monnaie == null ? 0 : RESSOURCES.indexOf(monnaie) + 1; }
 
     /**
      * Ce que vise un achat de dimension ou de graine : « graine », ou le numéro de la dimension ; null pour les autres

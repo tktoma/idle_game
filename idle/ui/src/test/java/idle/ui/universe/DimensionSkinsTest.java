@@ -7,22 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Les skins des dix mini-jeux (version 0.187), sous Xvfb : pour chaque dimension, avec son skin choisi, la vue se dessine
+ * Les skins des dix mini-jeux, sous Xvfb : pour chaque dimension, avec son skin choisi, la vue se dessine
  * sans exception à plusieurs instants, et les positions de ce qu'on clique sont les mêmes avec et sans skin.
  */
 class DimensionSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie où la dimension est ouverte : autant d'univers ajoutés qu'il en faut après le premier formé. */
     private static Game opened(Dimension dimension) {

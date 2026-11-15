@@ -5,20 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.concurrent.CountDownLatch;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Les univers en parallèle (version 0.170) : une tranche reprise d'un jalon continue exactement la partie jouée d'un
+ * Les univers en parallèle : une tranche reprise d'un jalon continue exactement la partie jouée d'un
  * trait, la comparaison des jalons dit ce qui diffère, et des tranches jouées en même temps n'écrivent pas l'une chez
  * l'autre. L'enchaînement complet des univers est l'affaire de l'outil lui-même (il vérifie sa chaîne) et de la campagne
  * longue : il ne tient pas dans un test.
  */
 class UniversParallelesTest {
-
     @Test
     void uneTrancheRepriseDUnJalonContinueLaMemePartie(@TempDir Path dir) throws Exception {
         // Une heure et demie d'un trait, contre une heure puis une demi-heure reprise du jalon : même sauvegarde, même mémoire.

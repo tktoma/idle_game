@@ -1,35 +1,30 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import java.util.ArrayList;
+import java.util.List;
 import idle.core.sky.Body;
 import idle.ui.GameApp;
-import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
- * L'image de la sous-page « Univers » : ce que devient tout ce que le joueur a créé, à la plus
- * grande échelle qu'il a formée ({@link Game#cosmosFormed()}). D'abord sa galaxie ; puis l'amas de
- * galaxies, la sienne au milieu des autres ; enfin l'univers, une toile de filaments où son amas
- * n'est plus qu'un nœud.
+ * L'image de la sous-page « Univers » : ce que devient tout ce que le joueur a créé, à la plus grande échelle qu'il a
+ * formée ({@link Game#cosmosFormed()}). D'abord sa galaxie ; puis l'amas de galaxies, la sienne au milieu des autres ;
+ * enfin l'univers, une toile de filaments où son amas n'est plus qu'un nœud.
  *
- * <p>C'est une galaxie spirale vue de face ({@link Spiral}), faite de points qui prennent la
- * couleur des molécules du joueur, prises à intervalles réguliers dans l'ordre où il les a créées.
- * Tant que la galaxie n'est pas formée, elle est pâle : un aperçu. Formée, elle brille, et le trou
- * noir supermassif est en son centre. La vraie, avec chaque molécule et chaque astre, est dans
- * l'expansion de la matière.
+ * <p>C'est une galaxie spirale vue de face ({@link Spiral}), faite de points qui prennent la couleur des molécules du
+ * joueur, prises à intervalles réguliers dans l'ordre où il les a créées. Tant que la galaxie n'est pas formée, elle
+ * est pâle : un aperçu. Formée, elle brille, et le trou noir supermassif est en son centre. La vraie, avec chaque
+ * molécule et chaque astre, est dans l'expansion de la matière.
  *
- * <p>Version 0.194 : les skins de la galaxie, de l'amas et de la toile ({@link GalaxySkinArt}) redessinent
- * les mêmes points, les mêmes membres de l'amas et les mêmes nœuds et filaments autrement.
+ * <p>Les skins de la galaxie, de l'amas et de la toile ({@link GalaxySkinArt}) redessinent les mêmes points, les mêmes
+ * membres de l'amas et les mêmes nœuds et filaments autrement.
  */
 public final class GalaxyView extends Canvas {
-
     /** Nombre de points d'une galaxie : autant de couleurs à fournir à {@link #cluster}. */
     static final int DOTS = 1600;
     private static final int STARS = 60;
@@ -60,8 +55,8 @@ public final class GalaxyView extends Canvas {
     private final Game game;
     private final Color[] colors = new Color[DOTS];
     private int colored = -1;
-    /** La palette des molécules des couleurs en place (version 0.194) : en changer les reprend. */
-    private idle.core.universe.Skin coloredPalette;
+    /** La palette des molécules des couleurs en place : en changer les reprend. */
+    private Skin coloredPalette;
     private double time = 0;
     /** Comme les autres vues qui bougent lentement : une image sur deux tant que rien ne change. */
     private int beat = 0;
@@ -69,11 +64,11 @@ public final class GalaxyView extends Canvas {
     private double drawnHeight = -1;
     private int drawnLevel = -1;
     /** Le skin des astres du dernier dessin : en changer redessine le trou noir supermassif. */
-    private idle.core.universe.Skin drawnSkin;
-    /** Les skins du cosmos du dernier dessin (version 0.194) : en changer redessine sans attendre. */
-    private idle.core.universe.Skin drawnGalaxySkin;
-    private idle.core.universe.Skin drawnClusterSkin;
-    private idle.core.universe.Skin drawnWebSkin;
+    private Skin drawnSkin;
+    /** Les skins du cosmos du dernier dessin : en changer redessine sans attendre. */
+    private Skin drawnGalaxySkin;
+    private Skin drawnClusterSkin;
+    private Skin drawnWebSkin;
 
     /** Les autres galaxies de l'amas : huit, plus petites, chacune avec sa place, sa taille et son inclinaison. */
     private static final int NEIGHBOURS = 8;
@@ -81,7 +76,7 @@ public final class GalaxyView extends Canvas {
     private static final int WEB_COLUMNS = 7, WEB_ROWS = 3, WEB_PER_THREAD = 120, WEB_PER_NODE = 44;
     private static final double[] WEB_X, WEB_Y, WEB_SIZE;
     private static final int[] WEB_TINT;
-    /** Les nœuds de la toile, en parts de l'image, et ses filaments par paires de nœuds : ce que redessinent les skins (version 0.194). */
+    /** Les nœuds de la toile, en parts de l'image, et ses filaments par paires de nœuds : ce que redessinent les skins. */
     private static final double[] WEB_NODE_X, WEB_NODE_Y;
     private static final int[] WEB_EDGES;
     private static final Color[] WEB_COLORS = {Color.web("#c9d6ea"), Color.web("#8fa8ff"), Color.web("#b48cf2"), Color.web("#ffe2a8")};
@@ -89,7 +84,7 @@ public final class GalaxyView extends Canvas {
     private static final int HOME = WEB_COLUMNS * (WEB_ROWS / 2) + WEB_COLUMNS / 2;
 
     static {
-        java.util.List<double[]> points = new java.util.ArrayList<>();
+        List<double[]> points = new ArrayList<>();
         double[] nodeX = new double[WEB_COLUMNS * WEB_ROWS], nodeY = new double[WEB_COLUMNS * WEB_ROWS];
         for (int node = 0; node < nodeX.length; node++) {
             int column = node % WEB_COLUMNS, row = node / WEB_COLUMNS;
@@ -97,7 +92,7 @@ public final class GalaxyView extends Canvas {
             nodeY[node] = (row + 0.1 + 0.8 * fraction(node * 78.233 + 7)) / WEB_ROWS;
         }
         int seed = 0;
-        java.util.List<Integer> edges = new java.util.ArrayList<>();
+        List<Integer> edges = new ArrayList<>();
         for (int node = 0; node < nodeX.length; node++) {
             int column = node % WEB_COLUMNS, row = node / WEB_COLUMNS;
             // Un amas dense à chaque nœud.
@@ -151,10 +146,10 @@ public final class GalaxyView extends Canvas {
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.cosmosFormed() != drawnLevel
                 || colored != game.state().moleculesVersion() || coloredPalette != MoleculeArt.palette()
-                || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.BODY)
-                || drawnGalaxySkin != game.chosenSkin(idle.core.universe.SkinVisual.GALAXY)
-                || drawnClusterSkin != game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER)
-                || drawnWebSkin != game.chosenSkin(idle.core.universe.SkinVisual.COSMIC_WEB);
+                || drawnSkin != game.chosenSkin(SkinVisual.BODY)
+                || drawnGalaxySkin != game.chosenSkin(SkinVisual.GALAXY)
+                || drawnClusterSkin != game.chosenSkin(SkinVisual.GALAXY_CLUSTER)
+                || drawnWebSkin != game.chosenSkin(SkinVisual.COSMIC_WEB);
         // La toile de l'univers ne bouge pas : inutile de la redessiner tant que rien ne change.
         if (!changed && (beat % 2 != 0 || drawnLevel >= 3)) return;
         redraw();
@@ -169,10 +164,10 @@ public final class GalaxyView extends Canvas {
         drawnHeight = h;
         boolean formed = game.hasGalaxy();
         drawnLevel = game.cosmosFormed();
-        drawnSkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
-        drawnGalaxySkin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY);
-        drawnClusterSkin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER);
-        drawnWebSkin = game.chosenSkin(idle.core.universe.SkinVisual.COSMIC_WEB);
+        drawnSkin = game.chosenSkin(SkinVisual.BODY);
+        drawnGalaxySkin = game.chosenSkin(SkinVisual.GALAXY);
+        drawnClusterSkin = game.chosenSkin(SkinVisual.GALAXY_CLUSTER);
+        drawnWebSkin = game.chosenSkin(SkinVisual.COSMIC_WEB);
         color();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
@@ -198,7 +193,7 @@ public final class GalaxyView extends Canvas {
         // Pâle tant qu'elle n'est qu'un aperçu.
         double strength = formed ? 1 : 0.4;
         if (GalaxySkinArt.draws(drawnGalaxySkin)) {
-            // Le skin de la galaxie (version 0.194) : les mêmes points, autrement.
+            // Le skin de la galaxie : les mêmes points, autrement.
             GalaxySkinArt.galaxy(g, drawnGalaxySkin, cx, cy, radius, -time * SPIN, colors, AWAY, COS, SIN, strength);
         } else {
             g.setGlobalAlpha(strength);
@@ -241,7 +236,7 @@ public final class GalaxyView extends Canvas {
      */
     static void cluster(GraphicsContext g, double w, double h, double time, Color[] colors, Game game) {
         double cx = w / 2, cy = h / 2, unit = Math.min(w, h);
-        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+        Skin skin = game.chosenSkin(SkinVisual.GALAXY_CLUSTER);
         boolean skinned = GalaxySkinArt.draws(skin);
         if (!skinned) {
             // Le halo de l'amas : le gaz chaud qui baigne ses galaxies.
@@ -265,7 +260,7 @@ public final class GalaxyView extends Canvas {
             ys[other + 1] = cy + (fraction(other * 9.1 + 2) - 0.5) * 0.72 * h;
             radii[other + 1] = radius;
         }
-        if (skin == idle.core.universe.Skin.CLUSTER_GRAPES) GalaxySkinArt.bunch(xs, ys, radii, w, h);
+        if (skin == Skin.CLUSTER_GRAPES) GalaxySkinArt.bunch(xs, ys, radii, w, h);
         if (skinned) GalaxySkinArt.clusterBackdrop(g, skin, w, h, xs, ys, radii, time);
         for (int other = 0; other < NEIGHBOURS; other++) {
             double turn = (other % 3 == 0 ? 1 : -1) * time * SPIN * (0.6 + 0.8 * fraction(other * 2.9));
@@ -276,10 +271,10 @@ public final class GalaxyView extends Canvas {
                         Math.PI * fraction(other * 4.3 + 5), 7, 0.75);
             }
         }
-        // Version 0.203 : sans skin d'amas, la galaxie du joueur garde son skin à elle au milieu de l'amas. Avant, elle
+        // Sans skin d'amas, la galaxie du joueur garde son skin à elle au milieu de l'amas. Avant, elle
         // redevenait la spirale classique dès l'amas formé : le skin de la galaxie semblait ne plus rien faire.
-        idle.core.universe.Skin own = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY);
-        // La grappe (version 0.203) déplace la galaxie du joueur : elle et son cœur se dessinent à sa place rangée.
+        Skin own = game.chosenSkin(SkinVisual.GALAXY);
+        // La grappe déplace la galaxie du joueur : elle et son cœur se dessinent à sa place rangée.
         cx = xs[0];
         cy = ys[0];
         if (skinned) GalaxySkinArt.clusterMember(g, skin, cx, cy, radii[0], true, 0, time);
@@ -287,7 +282,7 @@ public final class GalaxyView extends Canvas {
         else spiral(g, colors, cx, cy, radii[0], -time * SPIN, 1, 0, 2, 1);
         g.setGlobalAlpha(1);
         for (Body body : game.bodies()) {
-            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.012 * unit + 2, game.chosenSkin(idle.core.universe.SkinVisual.BODY));
+            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.012 * unit + 2, game.chosenSkin(SkinVisual.BODY));
         }
     }
 
@@ -315,12 +310,12 @@ public final class GalaxyView extends Canvas {
     /**
      * L'univers : une toile de filaments, des amas à leurs croisements, et du vide entre eux. Celui
      * du joueur est entouré, au milieu : à cette échelle une galaxie n'est plus qu'un point. La vue de
-     * l'expansion de la matière s'en sert aussi ({@link SpaceView}). {@code skin} est celui de la toile (version 0.194).
+     * l'expansion de la matière s'en sert aussi ({@link SpaceView}). {@code skin} est celui de la toile.
      */
-    static void universe(GraphicsContext g, double w, double h, idle.core.universe.Skin skin) {
+    static void universe(GraphicsContext g, double w, double h, Skin skin) {
         double left = 0.02 * w, top = 0.04 * h, wide = 0.96 * w, high = 0.92 * h;
         if (GalaxySkinArt.draws(skin)) {
-            // Le skin de la toile (version 0.194) : les nœuds et les filaments, autrement.
+            // Le skin de la toile : les nœuds et les filaments, autrement.
             GalaxySkinArt.web(g, skin, left, top, wide, high, WEB_NODE_X, WEB_NODE_Y, WEB_EDGES, HOME);
         } else {
             for (int i = 0; i < WEB_X.length; i++) {

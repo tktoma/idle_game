@@ -1,6 +1,7 @@
 package idle.ui.automation;
 
 import idle.core.Game;
+import idle.core.molecules.Molecule;
 import idle.core.collider.ColliderUpgrade;
 import idle.core.darkmatter.DarkAutomation;
 import idle.core.math.BigNum;
@@ -13,75 +14,69 @@ import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
+import idle.ui.common.MatterText;
 import idle.ui.common.OrderPane;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Automatisation » : tous les automatismes du jeu au même endroit, chacun
- * n'apparaissant qu'une fois débloqué pour la première fois. Ensuite il reste affiché : si une
- * explosion le reverrouille, sa carte dit ce qu'il faut pour le débloquer de nouveau.
+ * Contenu de l'onglet « Automatisation » : tous les automatismes du jeu au même endroit, chacun n'apparaissant qu'une
+ * fois débloqué pour la première fois. Ensuite il reste affiché : si une explosion le reverrouille, sa carte dit ce
+ * qu'il faut pour le débloquer de nouveau.
  *
- * <p>D'abord les automatismes ordinaires, une ligne chacun, faite de deux {@link Card}. À gauche,
- * l'automatisme : tant qu'il n'est pas acheté, la carte affiche son prix en atomes et sert à
- * l'acheter ; ensuite elle devient un interrupteur pour le mettre en marche ou le couper. À
- * droite, sa cadence : le délai entre deux actions, et le prix pour le réduire en atomes. La cadence achetée en atomes a un
- * maximum ; au-delà, seuls les éléments du tableau périodique réduisent encore le délai. Ils
- * apparaissent une fois assez d'atomes créés ({@link Game#UNLOCK_TOTAL_ATOMS}) ; la synthèse
- * automatique, elle, attend le premier élément unique du tableau périodique.
+ * <p>D'abord les automatismes ordinaires, une ligne chacun, faite de deux {@link Card}. À gauche, l'automatisme : tant
+ * qu'il n'est pas acheté, la carte affiche son prix en atomes et sert à l'acheter ; ensuite elle devient un
+ * interrupteur pour le mettre en marche ou le couper. À droite, sa cadence : le délai entre deux actions, et le prix
+ * pour le réduire en atomes. La cadence achetée en atomes a un maximum ; au-delà, seuls les éléments du tableau
+ * périodique réduisent encore le délai. Ils apparaissent une fois assez d'atomes créés ({@link
+ * Game#UNLOCK_TOTAL_ATOMS}) ; la synthèse automatique, elle, attend le premier élément unique du tableau périodique.
  *
- * <p>Ensuite les automatismes de matière noire, qui font ce que les ordinaires laissent au
- * joueur : chacun apparaît quand le joueur a gagné assez de matière noire, puis se met en marche
- * ou se coupe d'un clic. Ils ne coûtent rien, et aucun ne refait le travail d'un automatisme
- * ordinaire : le premier se contente de les offrir au début de chaque partie.
+ * <p>Ensuite les automatismes de matière noire, qui font ce que les ordinaires laissent au joueur : chacun apparaît
+ * quand le joueur a gagné assez de matière noire, puis se met en marche ou se coupe d'un clic. Ils ne coûtent rien, et
+ * aucun ne refait le travail d'un automatisme ordinaire : le premier se contente de les offrir au début de chaque
+ * partie.
  *
- * <p>Puis ceux du Big Bang (l'appui, la création, le rassemblement et la formation automatiques), avec leurs
- * réglages : réserve d'espace, liste de courses, besoins de matière, plafonds par état.
+ * <p>Puis ceux du Big Bang (l'appui, la création, le rassemblement et la formation automatiques), avec leurs réglages :
+ * réserve d'espace, liste de courses, besoins de matière, plafonds par état.
  *
  * <p>Depuis la version 0.147, tout ce qui agit seul s'y retrouve. Les huit automates du collisionneur, une carte
  * chacun, dès que ses améliorations s'ouvrent : pas encore acheté, la carte dit son prix et l'achète si le
  * collisionneur le propose déjà, sinon elle renvoie au collisionneur ; acheté, elle le met en pause ou le relance.
- * Depuis la version 0.167, un bouton coupe ou relance tous les automates d'un geste, et « Couper tous les automatismes »
- * les arrête aussi. Une ligne dit où en est le déclencheur automatique (un croisement sur cinq, sur trois, puis tous),
- * une autre ce que verse le tuyau d'arrosage de la graine. Ces deux-là ne relèvent pas de la coupure générale : le
- * moteur ne les arrête pas quand « Couper tous les automatismes » est actif, et la note de la coupure le dit.
+ * Depuis la version 0.167, un bouton coupe ou relance tous les automates d'un geste, et « Couper tous les automatismes
+ * » les arrête aussi. Une ligne dit où en est le déclencheur automatique (un croisement sur cinq, sur trois, puis
+ * tous), une autre ce que verse le tuyau d'arrosage de la graine. Ces deux-là ne relèvent pas de la coupure générale :
+ * le moteur ne les arrête pas quand « Couper tous les automatismes » est actif, et la note de la coupure le dit.
  *
- * <p>Sous chaque groupe, une ligne dit ce qui reste à découvrir, pour que le joueur sache qu'il
- * y a une suite. Chaque section n'apparaît qu'une fois son système ouvert.
+ * <p>Sous chaque groupe, une ligne dit ce qui reste à découvrir, pour que le joueur sache qu'il y a une suite. Chaque
+ * section n'apparaît qu'une fois son système ouvert.
  *
- * <p>L'onglet apparaît dès qu'un automatisme est débloqué, et reste là pour de bon une fois la
- * première matière noire obtenue.
+ * <p>L'onglet apparaît dès qu'un automatisme est débloqué, et reste là pour de bon une fois la première matière noire
+ * obtenue.
  *
  * <p>Depuis la version 0.150, tout cela forme le sous-onglet « Automatismes » ; la bulle du sommet de l'arbre-monde
  * ouvre le second, « Dimensions » ({@link DimensionAutomationPane}), où s'achètent et se coupent les automatismes qui
  * jouent les dimensions et achètent leurs améliorations. Dans la partie secondaire, où les anciens onglets se cachent,
  * l'onglet ne revient qu'avec eux, et ne montre qu'eux.
  *
- * <p>Les cartes s'en tiennent à quelques mots ; les explications, sur les cartes comme entre
- * elles, n'apparaissent qu'en mode détails ({@link Detail}).
+ * <p>Les cartes s'en tiennent à quelques mots ; les explications, sur les cartes comme entre elles, n'apparaissent
+ * qu'en mode détails ({@link Detail}).
  */
 public final class AutomationPage extends VBox {
-
     private static final String HINT_STYLE = "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;";
 
     private final Game game;
-    /** Les sous-onglets (version 0.150) : les automatismes de toujours, et ceux des dimensions. */
+    /** Les sous-onglets : les automatismes de toujours, et ceux des dimensions. */
     public static final int ORDINARY = 0, DIMENSIONS = 1;
     private final Button ordinaryTab = new Button("Automatismes");
     private final Button dimensionsTab = new Button("Dimensions");
@@ -107,7 +102,7 @@ public final class AutomationPage extends VBox {
     private final Label ordinaryHint = new Label();
     private final Map<Automation, Card> cards = new LinkedHashMap<>();
     private final Map<Automation, Card> cadences = new LinkedHashMap<>();
-    /** L'achat en lot de chaque automatisme qui achète (version 0.167), payé en matière noire. */
+    /** L'achat en lot de chaque automatisme qui achète, payé en matière noire. */
     private final Map<Automation, Card> batches = new LinkedHashMap<>();
     private final Map<Automation, HBox> rows = new LinkedHashMap<>();
     /** Ce qui reste à débloquer parmi les automatismes ordinaires. */
@@ -133,12 +128,12 @@ public final class AutomationPage extends VBox {
     private static final String UNCUT_NOTE = " Attention : la coupure n'arrête ni le déclencheur automatique du "
             + "collisionneur, ni le tuyau d'arrosage de la graine.";
 
-    // Les automates du collisionneur (version 0.147), son déclencheur automatique, et le tuyau d'arrosage de la graine.
+    // Les automates du collisionneur, son déclencheur automatique, et le tuyau d'arrosage de la graine.
     private final Label colliderTitle = new Label("Automates du collisionneur");
     private final Label colliderHint = new Label();
     private final Map<ColliderUpgrade, Card> colliderCards = new EnumMap<>(ColliderUpgrade.class);
     private final TileGrid colliderGrid = new TileGrid(230, 4, 8);
-    /** Coupe ou relance d'un geste tous les automates du collisionneur achetés (version 0.167). */
+    /** Coupe ou relance d'un geste tous les automates du collisionneur achetés. */
     private final Button colliderPauseButton = new Button();
     private final Label catchLine = new Label();
     private final Label hoseLine = new Label();
@@ -158,9 +153,9 @@ public final class AutomationPage extends VBox {
     private final HBox spaceReserveRow = new HBox(8, lessSpace, spaceReserveLabel, moreSpace);
     /** Les parts d'espace proposées à la réserve de la création automatique. */
     private static final double[] SPACE_RESERVES = {0, 0.10, 0.25, 0.50, 0.75, 0.90};
-    /** Les amas confiés à la création automatique (version 0.178) : une ligne qui les nomme, et une pastille par amas qui le retire. */
+    /** Les amas confiés à la création automatique : une ligne qui les nomme, et une pastille par amas qui le retire. */
     private final Label entrustedTitle = new Label();
-    private final javafx.scene.layout.FlowPane entrustedRow = new javafx.scene.layout.FlowPane(6, 6);
+    private final FlowPane entrustedRow = new FlowPane(6, 6);
     private final VBox entrustedBox = new VBox(6, entrustedTitle, entrustedRow);
     private final Map<String, Button> entrustedChips = new LinkedHashMap<>();
     // L'ordre d'achat des deux automatismes de matière noire qui achètent : le moins cher d'abord, ou celui du joueur.
@@ -365,14 +360,14 @@ public final class AutomationPage extends VBox {
             refresh();
         });
         ordinary.getChildren().add(spaceReserveRow);
-        // Les plafonds par état (version 0.085) : une liste par état de la matière, trois depuis la 0.178.
+        // Les plafonds par état : une liste par état de la matière, trois depuis la 0.178.
         capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         capsTitle.setWrapText(true);
         capsTitle.setMaxWidth(760);
         capsRow.setAlignment(Pos.CENTER);
         capsRow.setMaxWidth(780);
-        for (idle.core.molecules.Molecule.State matter : idle.core.molecules.Molecule.State.values()) {
-            javafx.scene.control.ComboBox<String> choice = new javafx.scene.control.ComboBox<>();
+        for (Molecule.State matter : Molecule.State.values()) {
+            ComboBox<String> choice = new ComboBox<>();
             choice.getItems().setAll(CAP_CHOICES);
             choice.setVisibleRowCount(CAP_CHOICES.size());
             choice.setFocusTraversable(false);
@@ -444,9 +439,7 @@ public final class AutomationPage extends VBox {
     }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     /** Choisit un sous-onglet : les automatismes de toujours, ou ceux des dimensions. */
     public void select(int index) {
@@ -457,9 +450,7 @@ public final class AutomationPage extends VBox {
         dimensionsTab.setStyle(SubTabs.style(selected == DIMENSIONS, GameApp.AUTOMATION_COLOR));
     }
 
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Les sous-onglets qui se montrent : « Automatismes » hors de la partie secondaire, « Dimensions » avec la bulle. */
     private List<Integer> shownTabs() {
@@ -482,33 +473,25 @@ public final class AutomationPage extends VBox {
      * Dit si la partie secondaire cache les anciens onglets : la page ne montre alors que les automatismes des
      * dimensions, qui servent dans l'onglet Univers.
      */
-    public void setOldTabsHidden(boolean hidden) {
-        oldTabsHidden = hidden;
-    }
+    public void setOldTabsHidden(boolean hidden) { oldTabsHidden = hidden; }
 
     /** La sous-page des automatismes des dimensions : pour les vérifications. */
-    public DimensionAutomationPane dimensionsPane() {
-        return dimensions;
-    }
+    public DimensionAutomationPane dimensionsPane() { return dimensions; }
 
-    public Button ordinaryTab() {
-        return ordinaryTab;
-    }
+    public Button ordinaryTab() { return ordinaryTab; }
 
-    public Button dimensionsTab() {
-        return dimensionsTab;
-    }
+    public Button dimensionsTab() { return dimensionsTab; }
 
     /**
      * Vrai s'il y a quelque chose que « Couper tous les automatismes » arrête : un automatisme ordinaire, de matière
-     * noire ou du Big Bang, ou un automatisme des dimensions acheté (version 0.150).
+     * noire ou du Big Bang, ou un automatisme des dimensions acheté.
      */
     public static boolean anyToPause(Game game) {
         return game.hasAnyAutomation() || game.dimensionAutomationsOwned() > 0;
     }
 
     /** Les choix d'un plafond : sans plafond, puis de 90 % à 5 %. */
-    static final java.util.List<String> CAP_CHOICES = java.util.List.of("sans plafond", "90 %", "80 %", "70 %", "60 %", "50 %",
+    static final List<String> CAP_CHOICES = List.of("sans plafond", "90 %", "80 %", "70 %", "60 %", "50 %",
             "40 %", "30 %", "20 %", "10 %", "5 %");
 
     /** Le plafond d'un choix de la liste : 1 sans plafond. */
@@ -526,52 +509,25 @@ public final class AutomationPage extends VBox {
     }
 
     private final Label capsTitle = new Label();
-    private final javafx.scene.layout.FlowPane capsRow = new javafx.scene.layout.FlowPane(14, 6);
-    private final java.util.Map<idle.core.molecules.Molecule.State, javafx.scene.control.ComboBox<String>> capChoices =
-            new java.util.EnumMap<>(idle.core.molecules.Molecule.State.class);
-    private final java.util.Map<idle.core.molecules.Molecule.State, Label> capNames =
-            new java.util.EnumMap<>(idle.core.molecules.Molecule.State.class);
+    private final FlowPane capsRow = new FlowPane(14, 6);
+    private final Map<Molecule.State, ComboBox<String>> capChoices = new EnumMap<>(Molecule.State.class);
+    private final Map<Molecule.State, Label> capNames = new EnumMap<>(Molecule.State.class);
     private VBox capsBox;
 
-    /** La liste du plafond d'un état : pour les vérifications. */
-    public javafx.scene.control.ComboBox<String> capChoice(idle.core.molecules.Molecule.State matter) {
-        return capChoices.get(matter);
-    }
-
     /** Les pastilles des amas confiés, par identifiant de molécule : pour les vérifications. */
-    public Map<String, Button> entrustedChips() {
-        return java.util.Collections.unmodifiableMap(entrustedChips);
-    }
+    public Map<String, Button> entrustedChips() { return Collections.unmodifiableMap(entrustedChips); }
 
     /** La carte du rassemblement automatique : pour les vérifications. */
-    public Card gatherCard() {
-        return gatherCard;
-    }
+    public Card gatherCard() { return gatherCard; }
 
     /** La carte de la formation automatique : pour les vérifications. */
-    public Card formCard() {
-        return formCard;
-    }
+    public Card formCard() { return formCard; }
 
     /** L'ordre d'achat des améliorations en atomes : pour les vérifications. */
-    public OrderPane upgradeOrder() {
-        return upgradeOrder;
-    }
+    public OrderPane upgradeOrder() { return upgradeOrder; }
 
     /** L'ordre d'achat des automatismes : pour les vérifications. */
-    public OrderPane automationOrder() {
-        return automationOrder;
-    }
-
-    /** Le texte de la réserve d'espace de la création automatique : pour les vérifications. */
-    public String spaceReserveText() {
-        return spaceReserveRow.isVisible() ? spaceReserveLabel.getText() : "";
-    }
-
-    /** Clique le − ou le + de la réserve d'espace : pour les vérifications. */
-    public void clickSpaceReserve(boolean more) {
-        (more ? moreSpace : lessSpace).fire();
-    }
+    public OrderPane automationOrder() { return automationOrder; }
 
     /** La part d'espace suivante ou précédente parmi celles que la réserve propose. */
     static double spaceReserveStep(double share, boolean up) {
@@ -607,14 +563,10 @@ public final class AutomationPage extends VBox {
     }
 
     /** La carte de l'appui automatique : pour les vérifications. */
-    public Card holdCard() {
-        return holdCard;
-    }
+    public Card holdCard() { return holdCard; }
 
     /** La carte de la création automatique des molécules : pour les vérifications. */
-    public Card moleculesCard() {
-        return moleculesCard;
-    }
+    public Card moleculesCard() { return moleculesCard; }
 
     /**
      * La réserve suivante ou précédente : 0, 5, 10… 100 atomes, puis le double à chaque pas, ce qui
@@ -827,11 +779,11 @@ public final class AutomationPage extends VBox {
             capsTitle.setText("Plafond par état : la création automatique ne donne pas plus de cette part de l'espace créé "
                     + "aux molécules d'un état." + Detail.only(" La création à la main n'en tient pas compte. Entre parenthèses, "
                     + "la part qu'elles occupent maintenant."));
-            for (idle.core.molecules.Molecule.State matter : idle.core.molecules.Molecule.State.values()) {
-                javafx.scene.control.ComboBox<String> choice = capChoices.get(matter);
+            for (Molecule.State matter : Molecule.State.values()) {
+                ComboBox<String> choice = capChoices.get(matter);
                 String wanted = choiceOf(game.stateCap(matter));
                 if (!wanted.equals(choice.getValue())) choice.setValue(wanted);
-                capNames.get(matter).setText(idle.ui.common.MatterText.plural(matter) + " ("
+                capNames.get(matter).setText(MatterText.plural(matter) + " ("
                         + ElementText.percent(game.stateShare(matter)) + ")");
             }
         }
@@ -840,8 +792,7 @@ public final class AutomationPage extends VBox {
         if (creation && game.isStatesUnlocked()) refreshEntrusted();
         if (creation) {
             double share = game.autoMoleculeReserve();
-            spaceReserveLabel.setText(share <= 0
-                    ? "Réserve d'espace de la création automatique : aucune"
+            spaceReserveLabel.setText(share <= 0 ? "Réserve d'espace de la création automatique : aucune"
                             + Detail.only(". Elle prend tout l'espace libre dès qu'elle le peut.")
                     : "Réserve d'espace de la création automatique : " + ElementText.percent(share)
                             + Detail.only(". Elle ne crée que si " + ElementText.percent(share) + " de tout l'espace créé reste "
@@ -914,18 +865,18 @@ public final class AutomationPage extends VBox {
     }
 
     /**
-     * Les amas confiés à la création automatique (version 0.178) : une pastille par amas, dans l'ordre où ils ont été
+     * Les amas confiés à la création automatique : une pastille par amas, dans l'ordre où ils ont été
      * confiés, qui le retire d'un clic. Les pastilles d'amas retirés disparaissent ; celles des autres restent en place.
      */
     private void refreshEntrusted() {
-        java.util.List<String> chosen = game.state().automatedMolecules();
+        List<String> chosen = game.state().automatedMolecules();
         entrustedTitle.setText(chosen.isEmpty()
                 ? "Aucun amas confié : un clic sur un amas, dans les États de la matière du Big Bang, le confie à la création automatique."
                 : "Amas confiés (" + chosen.size() + ") : un clic sur l'un d'eux le retire à la création automatique."
                         + Detail.only(" La liste de courses, la matière et la variété qui manquent passent avant eux."));
         for (String id : chosen) {
             if (entrustedChips.containsKey(id) || !known(id)) continue;      // une sorte d'une autre version : ignorée
-            idle.core.molecules.Molecule molecule = game.molecule(id);
+            Molecule molecule = game.molecule(id);
             Button chip = new Button(molecule.name() + " " + molecule.formula() + "  ×");
             chip.setFocusTraversable(false);
             chip.setStyle("-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand; -fx-background-radius: 12; -fx-border-radius: 12;"
@@ -943,7 +894,7 @@ public final class AutomationPage extends VBox {
 
     /** Vrai si le catalogue connaît cette sorte de molécule. */
     private boolean known(String moleculeId) {
-        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+        for (Molecule molecule : game.molecules()) {
             if (molecule.id().equals(moleculeId)) return true;
         }
         return false;
@@ -1028,34 +979,19 @@ public final class AutomationPage extends VBox {
     }
 
     /** Une quantité d'énergie du collisionneur, comme dans son onglet. */
-    private static String energy(double value) {
-        return Format.big(BigNum.of(value));
-    }
-
-    /** La carte de l'achat en lot d'un automatisme (version 0.167), {@code null} pour ceux qui n'achètent pas : pour les vérifications. */
-    public Card batchCard(Automation automation) {
-        return batches.get(automation);
-    }
+    private static String energy(double value) { return Format.big(BigNum.of(value)); }
 
     /** La carte d'un automate du collisionneur : pour les vérifications. */
-    public Card colliderCard(ColliderUpgrade upgrade) {
-        return colliderCards.get(upgrade);
-    }
+    public Card colliderCard(ColliderUpgrade upgrade) { return colliderCards.get(upgrade); }
 
     /** La ligne du déclencheur automatique, vide si elle est cachée : pour les vérifications. */
-    public String catchText() {
-        return catchLine.isVisible() ? catchLine.getText() : "";
-    }
+    public String catchText() { return catchLine.isVisible() ? catchLine.getText() : ""; }
 
     /** La ligne du tuyau d'arrosage, vide si elle est cachée : pour les vérifications. */
-    public String hoseText() {
-        return hoseLine.isVisible() ? hoseLine.getText() : "";
-    }
+    public String hoseText() { return hoseLine.isVisible() ? hoseLine.getText() : ""; }
 
     /** La note de la coupure, vide si elle est cachée : pour les vérifications. */
-    public String pauseNoteText() {
-        return pauseNote.isVisible() ? pauseNote.getText() : "";
-    }
+    public String pauseNoteText() { return pauseNote.isVisible() ? pauseNote.getText() : ""; }
 
     /** Ce que fait un automatisme ordinaire, en quelques mots : la ligne de sa carte. */
     private String brief(Automation automation) {
@@ -1093,7 +1029,7 @@ public final class AutomationPage extends VBox {
     }
 
     /**
-     * L'achat en lot (version 0.167) : caché avant la matière noire ; puis le lot actuel, et le prix du suivant en matière
+     * L'achat en lot : caché avant la matière noire ; puis le lot actuel, et le prix du suivant en matière
      * noire, jusqu'à 64.
      */
     private void refreshBatch(Automation automation) {
@@ -1163,7 +1099,7 @@ public final class AutomationPage extends VBox {
         String id = automation.id();
         int speedLevel = game.automationSpeedLevel(id);
         String level = speedLevel + "/" + automation.maxSpeedLevel();
-        // La bulle du bonsaï, à droite (version 0.148) : plus de délai du tout.
+        // La bulle du bonsaï, à droite : plus de délai du tout.
         String delay = game.isAutomationInstant() ? "Sans délai (bulle du bonsaï)" : "Toutes les " + seconds(game.automationInterval(id));
         if (!game.ownsAutomation(id)) {
             // Pas encore acheté : sa cadence se lit, mais ne s'achète pas.
@@ -1223,7 +1159,5 @@ public final class AutomationPage extends VBox {
     }
 
     /** 4.0 → « 4 s », 0.5 → « 0.5 s », 1.333 → « 1.33 s ». */
-    public static String seconds(double value) {
-        return ElementText.number(value) + " s";
-    }
+    public static String seconds(double value) { return ElementText.number(value) + " s"; }
 }

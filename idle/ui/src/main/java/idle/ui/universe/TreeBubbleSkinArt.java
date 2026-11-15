@@ -1,12 +1,13 @@
 package idle.ui.universe;
 
 import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.paint.*;
 import idle.ui.universe.SeedView.BubbleState;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
 
 /**
- * Les bulles de l'arbre et leurs liens sous un skin (version 0.197, {@link idle.core.universe.SkinVisual#TREE_BUBBLES} et
+ * Les bulles de l'arbre et leurs liens sous un skin ({@link idle.core.universe.SkinVisual#TREE_BUBBLES} et
  * {@link idle.core.universe.SkinVisual#TREE_BUBBLE_LINKS}). Les bulles deviennent des fruits (achetée : mûre et rouge ;
  * achetable ou trop chère : verte ; fermée : un bourgeon), des lanternes de papier (allumées une fois achetées), des
  * gouttes de rosée, des pierres précieuses taillées (brutes et grises tant qu'elles sont fermées) ou des graines (germées
@@ -14,7 +15,6 @@ import javafx.scene.paint.Color;
  * (des éclats y courent) ou des racines (de la sève y monte). Sans skin, {@link SeedView} dessine comme avant.
  */
 final class TreeBubbleSkinArt {
-
     private TreeBubbleSkinArt() {
     }
 
@@ -27,13 +27,9 @@ final class TreeBubbleSkinArt {
     private static final Color BRANCH = Color.web("#6e5236"), BRANCH_DARK = Color.web("#3e2c1c"), LIGHT = Color.web("#fff1c9"), SAP = Color.web("#9fffe0");
 
     /** Vrai pour un skin de ce visuel : les bulles se dessinent ici, le fond sombre et l'aura des racines restent à la vue. */
-    static boolean bubbles(Skin skin) {
-        return skin != null && skin.visual() == idle.core.universe.SkinVisual.TREE_BUBBLES;
-    }
+    static boolean bubbles(Skin skin) { return skin != null && skin.visual() == SkinVisual.TREE_BUBBLES; }
 
-    static boolean links(Skin skin) {
-        return skin != null && skin.visual() == idle.core.universe.SkinVisual.TREE_BUBBLE_LINKS;
-    }
+    static boolean links(Skin skin) { return skin != null && skin.visual() == SkinVisual.TREE_BUBBLE_LINKS; }
 
     /** Une bulle de rayon {@code r} en {@code x, y}, dans l'état {@code state} ; {@code pulse} bat de 0 à 1 pour celles qui s'achètent. */
     static void bubble(GraphicsContext g, double x, double y, double r, BubbleState state, double pulse, double time, int index, Skin skin) {
@@ -93,8 +89,8 @@ final class TreeBubbleSkinArt {
                 if (bought) UniverseView.glow(g, x, y, r * 2.2, DEW, 0.5);
                 else if (buy) UniverseView.glow(g, x, y, r * (1.7 + 0.5 * pulse), DEW, 0.2 + 0.25 * pulse);
                 g.setGlobalAlpha(bought ? 0.85 : buy ? 0.5 + 0.3 * pulse : closed ? 0.3 : 0.45);
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x - rr * 0.3, y, rr * 1.2, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, Color.web("#f0fdff")), new javafx.scene.paint.Stop(0.6, body), new javafx.scene.paint.Stop(1, DEW_DEEP)));
+                g.setFill(new RadialGradient(0, 0, x - rr * 0.3, y, rr * 1.2, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.web("#f0fdff")), new Stop(0.6, body), new Stop(1, DEW_DEEP)));
                 // La goutte : une pointe en haut, un rond en bas.
                 g.fillOval(x - rr, y - rr * 0.6, 2 * rr, 2 * rr * 0.8);
                 g.fillPolygon(new double[] {x - rr * 0.8, x, x + rr * 0.8}, new double[] {y - rr * 0.2, y - rr * 1.3, y - rr * 0.2}, 3);

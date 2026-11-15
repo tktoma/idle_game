@@ -13,23 +13,18 @@ import idle.ui.automation.DimensionAutomationPane;
 import idle.ui.common.Card;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.153 : la boucle, cinquième dimension, et le rond de croissance de la graine, sous Xvfb. Les cercles se
- * jouent à la souris ou à leurs touches ; un clic juste donne des nœuds, un clic à côté rien, et le cercle attend après
- * chaque clic ; le métronome bat sur le centre des zones du premier cercle ; les améliorations s'achètent dans la
- * fenêtre ; le rythme automatique joue seul, clic par clic depuis la version 0.154. Le rond de croissance pousse dans
- * la vue de la graine, se cueille d'un clic et accélère l'arrosage ; ses deux améliorations sont dans la branche
- * « Boucle ».
+ * La boucle, cinquième dimension, et le rond de croissance de la graine, sous Xvfb. Les cercles se jouent à la souris
+ * ou à leurs touches ; un clic juste donne des nœuds, un clic à côté rien, et le cercle attend après chaque clic ; le
+ * métronome bat sur le centre des zones du premier cercle ; les améliorations s'achètent dans la fenêtre ; le rythme
+ * automatique joue seul, clic par clic depuis la version 0.154. Le rond de croissance pousse dans la vue de la graine,
+ * se cueille d'un clic et accélère l'arrosage ; ses deux améliorations sont dans la branche « Boucle ».
  */
 class BouclePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au cinquième univers : la boucle est ouverte. */
     private static Game fifth() {
@@ -48,24 +43,16 @@ class BouclePageTest {
         int beats;
 
         @Override
-        public KeyCode loopKey(int ring) {
-            return keys[ring];
-        }
+        public KeyCode loopKey(int ring) { return keys[ring]; }
 
         @Override
-        public boolean metronome() {
-            return metronome;
-        }
+        public boolean metronome() { return metronome; }
 
         @Override
-        public void setMetronome(boolean on) {
-            metronome = on;
-        }
+        public void setMetronome(boolean on) { metronome = on; }
 
         @Override
-        public void beat() {
-            beats++;
-        }
+        public void beat() { beats++; }
     }
 
     private static DimensionWindow window(Game game, Counted settings) {
@@ -204,9 +191,9 @@ class BouclePageTest {
             assertTrue(window.loopHintText().contains("(S, D, F, Espace, J, K, L)"), window.loopHintText());
             assertTrue(window.autoBadgeText().isEmpty());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 5);
+            FxTestSupport.openDimensionAutomations(game, 5);
             game.state().setDurationShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.LOOP_PLAY);
+            FxTestSupport.buyPlay(game, DimensionAutomation.LOOP_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.loopHintText().startsWith("Rythme automatique"), window.loopHintText());
@@ -218,7 +205,7 @@ class BouclePageTest {
                 rose = window.view().loopMarksShown() > 0;
             }
             assertTrue(rose && game.loopHits() > hits, "ses clics font monter leurs nœuds");
-            // Version 0.154 : il joue clic par clic ; chacun éclaire son cercle et fait monter son mot du point.
+            // Il joue clic par clic ; chacun éclaire son cercle et fait monter son mot du point.
             assertTrue(game.loopAutoClicks() > 0 && window.view().loopAutoFlashes() > 0, "ses clics se voient sur leur cercle");
             String word = window.view().lastLoopMark();
             assertTrue(word.equals("Bien") || word.equals("Excellent"), word);
@@ -317,15 +304,15 @@ class BouclePageTest {
         FxTestSupport.fx(() -> {
             Game game = fifth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 5);
+            FxTestSupport.openDimensionAutomations(game, 5);
             game.state().setDurationShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
             pane.refresh();
             assertTrue(pane.sectionShown(5));
             assertEquals("Dimension 5 : La boucle", pane.headingText(5));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 5);
-            idle.ui.FxTestSupport.fillDimension(game, 5, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 5);
+            FxTestSupport.fillDimension(game, 5, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.LOOP_PLAY_5S);
             assertEquals(Card.State.READY, play.state());

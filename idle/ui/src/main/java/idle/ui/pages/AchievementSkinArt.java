@@ -4,23 +4,19 @@ import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * Les insignes des tuiles de succès (version 0.198) : un petit dessin en tête de la tuile, à gauche de son numéro. Un
+ * Les insignes des tuiles de succès : un petit dessin en tête de la tuile, à gauche de son numéro. Un
  * succès obtenu prend celui du skin des tuiles ({@link SkinVisual#ACHIEVEMENT_TILE}) : une médaille de bronze, d'argent
  * ou d'or selon son palier, un badge de scout brodé au point de croix, une étoile, un trophée, un timbre ; un succès pas
  * encore obtenu celui du skin des succès non obtenus ({@link SkinVisual#ACHIEVEMENT_LOCKED}) : une silhouette grise de
  * médaille, un point d'interrogation dans son rond, une pièce de puzzle qui manque, en pointillé.
  */
 final class AchievementSkinArt {
-
     /** Le côté de l'insigne, en pixels : la hauteur d'une ligne d'en-tête. */
     static final double SIDE = 20;
     private static final Color[] METALS = {Color.web("#cd7f32"), Color.web("#c8ccd4"), Color.web("#ffd700")};

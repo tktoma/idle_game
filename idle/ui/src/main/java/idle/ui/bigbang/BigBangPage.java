@@ -1,81 +1,59 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.sky.*;
+import java.util.function.BooleanSupplier;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assembly;
-import idle.core.sky.Cosmos;
+import idle.core.molecules.*;
 import idle.ui.GameApp;
-import idle.ui.common.Card;
-import idle.ui.common.Detail;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
-import idle.ui.common.MatterText;
-import idle.ui.common.TileGrid;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import idle.ui.common.*;
+import java.util.*;
 import javafx.scene.control.Button;
 
 /**
  * L'onglet « Big Bang » : l'acte qui s'ouvre au premier Big Bang ({@link Game#bigBang()}).
  *
- * <p>En haut, le nombre de Big Bangs déclenchés. En dessous, dix sous-pages ; à partir des états,
- * chacune n'apparaît qu'une fois ouverte par une amélioration ou un Big Bang :
+ * <p>En haut, le nombre de Big Bangs déclenchés. En dessous, dix sous-pages ; à partir des états, chacune n'apparaît
+ * qu'une fois ouverte par une amélioration ou un Big Bang :
  * <ul>
- *   <li>« Molécules » : le catalogue ({@link Game#molecules()}, 73 molécules), un rayon à la fois
- *       ({@link Molecule.Kind}, quatre rayons). Seuls les rayons ouverts sont proposés : les petites molécules
- *       d'abord, puis un rayon de plus à chaque amélioration d'espace. Chaque molécule est une {@link Card}
- *       basse (version 0.178) : son petit dessin ({@link MoleculeArt}), sa formule, son nom et combien ont
- *       été créées sur la première ligne, son bonus et ce que demande la suivante ensuite, et une ligne de
- *       plus seulement si le prochain pas la demande ; l'espace occupé, le rendement et la formule détaillée
- *       sont dans l'info-bulle. Un clic la crée, avec des exemplaires du tableau périodique. Une
- *       fois la création continue acquise, tenir le clic répète la création. Son étoile l'épingle
- *       parmi les favorites, qui ont leur pastille devant les rayons. Deux filtres, avec la recherche :
- *       par état, et par usage (créable maintenant, utile au prochain pas) ;</li>
- *   <li>« Expansion de la matière » : l'espace créé, ce qu'il gagne par seconde, ce que les
- *       molécules en occupent, et une vue de cet espace ({@link SpaceView}) où l'on peut
- *       s'approcher des molécules ou reculer jusqu'à tout voir ;</li>
- *   <li>« Améliorations » : ce que l'espace gagné ouvre ({@link Game#spaceUpgrades()}) : les
- *       rayons de molécules, un à un, le rassemblement, les gestes de confort. Rien ne s'y dépense
- *       ni ne s'y clique : chacune est acquise d'elle-même quand son seuil est atteint. Une
- *       amélioration n'est montrée que lorsque celle dont elle dépend est acquise ;</li>
- *   <li>« États de la matière » : le rassemblement des molécules en gaz, liquides et cristaux
- *       ({@link Game#formSubstance(String)}), un achat unique par sorte de molécule. La sous-page
- *       a un lieu par état, où se rangent les cartes de ses molécules ; une molécule n'y apparaît
- *       que lorsque le joueur en a créé au moins une ;</li>
- *   <li>« Assemblages » : les roches, minerais, pierres précieuses, eaux, gaz et hydrocarbures faits de
- *       plusieurs sortes de molécules ({@link Game#formAssembly(String)}, un par astre : trente), une section
- *       par famille. Un assemblage n'y apparaît que lorsque le joueur a créé au moins un de ses ingrédients ;</li>
- *   <li>« Astres » : le ciel et les corps qu'on y forme, de l'amas de roches à la planète
- *       ({@link BodiesPane}) ;</li>
- *   <li>« Univers » : la galaxie, l'amas de galaxies et l'univers ({@link GalaxyPane}) ;</li>
- *   <li>« Paliers » : les paliers de Big Bang et, au cinquième, les défis de Big Bang
- *       ({@link BangChallengesPane}) ;</li>
- *   <li>« Sondes » : les voyages et leur butin ({@link idle.ui.probes.ProbesPane}) ;</li>
- *   <li>« Systèmes solaires » : les planètes et lunes rangées autour des étoiles ({@link SystemsPane}).</li>
- * </ul>
- * Une fois les gestes groupés acquis, un bouton en haut des états, des assemblages et des astres
- * fait d'un coup tout ce qui est possible. Un sous-onglet où quelque chose est prêt porte une
- * pastille ({@link Readiness}).
+ * <li>« Molécules » : le catalogue ({@link Game#molecules()}, 73 molécules), un rayon à la fois ({@link Molecule.Kind},
+ * quatre rayons). Seuls les rayons ouverts sont proposés : les petites molécules d'abord, puis un rayon de plus à
+ * chaque amélioration d'espace. Chaque molécule est une {@link Card} basse : son petit dessin ({@link MoleculeArt}), sa
+ * formule, son nom et combien ont été créées sur la première ligne, son bonus et ce que demande la suivante ensuite, et
+ * une ligne de plus seulement si le prochain pas la demande ; l'espace occupé, le rendement et la formule détaillée
+ * sont dans l'info-bulle. Un clic la crée, avec des exemplaires du tableau périodique. Une fois la création continue
+ * acquise, tenir le clic répète la création. Son étoile l'épingle parmi les favorites, qui ont leur pastille devant les
+ * rayons. Deux filtres, avec la recherche : par état, et par usage (créable maintenant, utile au prochain pas) ;</li>
+ * <li>« Expansion de la matière » : l'espace créé, ce qu'il gagne par seconde, ce que les molécules en occupent, et une
+ * vue de cet espace ({@link SpaceView}) où l'on peut s'approcher des molécules ou reculer jusqu'à tout voir ;</li>
+ * <li>« Améliorations » : ce que l'espace gagné ouvre ({@link Game#spaceUpgrades()}) : les rayons de molécules, un à
+ * un, le rassemblement, les gestes de confort. Rien ne s'y dépense ni ne s'y clique : chacune est acquise d'elle-même
+ * quand son seuil est atteint. Une amélioration n'est montrée que lorsque celle dont elle dépend est acquise ;</li>
+ * <li>« États de la matière » : le rassemblement des molécules en gaz, liquides et cristaux ({@link
+ * Game#formSubstance(String)}), un achat unique par sorte de molécule. La sous-page a un lieu par état, où se rangent
+ * les cartes de ses molécules ; une molécule n'y apparaît que lorsque le joueur en a créé au moins une ;</li>
+ * <li>« Assemblages » : les roches, minerais, pierres précieuses, eaux, gaz et hydrocarbures faits de plusieurs sortes
+ * de molécules ({@link Game#formAssembly(String)}, un par astre : trente), une section par famille. Un assemblage n'y
+ * apparaît que lorsque le joueur a créé au moins un de ses ingrédients ;</li>
+ * <li>« Astres » : le ciel et les corps qu'on y forme, de l'amas de roches à la planète ({@link BodiesPane}) ;</li>
+ * <li>« Univers » : la galaxie, l'amas de galaxies et l'univers ({@link GalaxyPane}) ;</li>
+ * <li>« Paliers » : les paliers de Big Bang et, au cinquième, les défis de Big Bang ({@link BangChallengesPane}) ;</li>
+ * <li>« Sondes » : les voyages et leur butin ({@link idle.ui.probes.ProbesPane}) ;</li>
+ * <li>« Systèmes solaires » : les planètes et lunes rangées autour des étoiles ({@link SystemsPane}).</li>
+ * </ul> Une fois les gestes groupés acquis, un bouton en haut des états, des assemblages et des astres fait d'un coup
+ * tout ce qui est possible. Un sous-onglet où quelque chose est prêt porte une pastille ({@link Readiness}).
  *
  * <p>Les cartes d'un rayon ne sont construites que la première fois qu'on l'ouvre.
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
- * celle-ci est le bout ; le reste du programme ne voit que {@code BigBangPage}. De la base au bout :
- * {@link BigBangPageBase}, {@link BigBangPageControls}, {@link BigBangPageRefresh}. Quand une partie a
- * besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que
- * fournissent les parties suivantes ».
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont celle-ci est le bout ; le
+ * reste du programme ne voit que {@code BigBangPage}. De la base au bout : {@link BigBangPageBase}, {@link
+ * BigBangPageControls}, {@link BigBangPageRefresh}. Quand une partie a besoin d'une méthode définie plus loin dans la
+ * chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les parties suivantes ».
  */
 public final class BigBangPage extends BigBangPageRefresh {
-
-    public BigBangPage(Game game) {
-        super(game);
-    }
+    public BigBangPage(Game game) { super(game); }
 
     void refreshMolecules() {
         refreshPulse();
@@ -158,7 +136,7 @@ public final class BigBangPage extends BigBangPageRefresh {
             createShownButton.setText(possible ? "Créer le maximum de celles-ci" : "Rien à créer pour l'instant");
         }
         // Ce que le prochain pas demande de chaque sorte : la troisième ligne des cartes concernées.
-        Map<String, ShoppingList.Item> wanted = new java.util.HashMap<>();
+        Map<String, ShoppingList.Item> wanted = new HashMap<>();
         for (ShoppingList.Item item : shopping.items()) wanted.put(item.molecule().id(), item);
         if (favoritesShown) {
             // Les favorites : une carte par molécule épinglée, dans l'ordre où elles l'ont été ; les autres se retirent.
@@ -248,7 +226,7 @@ public final class BigBangPage extends BigBangPageRefresh {
     static final int MAX_BATCH_CREATIONS = 5_000;
 
     /**
-     * Remplit la carte d'une molécule (version 0.178, allégée) : en tête son dessin, sa formule et son
+     * Remplit la carte d'une molécule (allégée) : en tête son dessin, sa formule et son
      * compte ; son nom ; son bonus, et dessous ce que demande la prochaine création ou pourquoi elle
      * attend ; une ligne de plus seulement si le prochain pas la demande ({@code wanted}). L'espace
      * qu'elle occupe, son rendement et sa formule détaillée sont dans l'info-bulle.
@@ -279,7 +257,7 @@ public final class BigBangPage extends BigBangPageRefresh {
                 + (wanted.gather() && wanted.missing() == 0 ? ", à rassembler" : "");
         card.setHint(molecule.name() + " " + molecule.formula() + " : " + molecule.atoms() + (molecule.atoms() > 1 ? " atomes, " : " atome, ")
                 + molecule.protons() + " protons (" + recipe(molecule.recipe(), false) + "). Occupe " + Format.count(volume) + " d'espace"
-                + (molecule.hasState() ? ", " + MatterText.plural(molecule.state()).toLowerCase(java.util.Locale.ROOT) : "") + "."
+                + (molecule.hasState() ? ", " + MatterText.plural(molecule.state()).toLowerCase(Locale.ROOT) : "") + "."
                 + (gain > 0 ? " Rapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) + " d'espace." : "")
                 + (drawn > 1 ? " Rassemblée : une création en ajoute " + drawn + " d'un coup, pour le prix d'une seule"
                         + (next < drawn ? " (" + next + " seulement, faute de place)." : ".") : ""));
@@ -340,13 +318,11 @@ public final class BigBangPage extends BigBangPageRefresh {
         }
     }
 
-    /** Montre ou masque les anomalies du ciel selon ce réglage (version 0.127). */
-    public void showSkyEvents(java.util.function.BooleanSupplier shown) {
-        skyEventsShown = shown;
-    }
+    /** Montre ou masque les anomalies du ciel selon ce réglage. */
+    public void showSkyEvents(BooleanSupplier shown) { skyEventsShown = shown; }
 
     /** Ce que dit le bouton d'une anomalie du ciel : ce qu'elle est, et ce qu'elle donne. */
-    static String skyEventText(idle.core.sky.SkyEvent event) {
+    static String skyEventText(SkyEvent event) {
         return switch (event) {
             case PARTICLE_WIND -> "Un vent de particules souffle : le capter (particules ×" + ElementText.number(Game.WIND_FACTOR)
                     + " pendant " + Format.wait(Game.WIND_SECONDS) + ")";
@@ -366,8 +342,8 @@ public final class BigBangPage extends BigBangPageRefresh {
         if (comet) {
             cometButton.setText("Une comète traverse l'expansion : la saisir (" + (int) Math.ceil(game.cometVisibleFor()) + " s)");
         }
-        // Les anomalies du ciel (version 0.127) : facultatives, et masquées si le joueur l'a choisi.
-        idle.core.sky.SkyEvent sky = skyEventsShown.getAsBoolean() ? game.skyEvent() : null;
+        // Les anomalies du ciel : facultatives, et masquées si le joueur l'a choisi.
+        SkyEvent sky = skyEventsShown.getAsBoolean() ? game.skyEvent() : null;
         skyEventButton.setVisible(sky != null);
         skyEventButton.setManaged(sky != null);
         if (sky != null) skyEventButton.setText(skyEventText(sky) + " (" + Format.wait(game.skyEventVisibleFor()) + ")");

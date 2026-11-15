@@ -11,7 +11,6 @@ package idle.core.probes;
  * @param probe       le numéro de la sonde qui la rapporte ({@link Probe#id()}), -1 si elle n'en a pas
  */
 public record ProbeReward(Type type, String target, double value, ProbeDestination destination, long probe) {
-
     /** Une récompense sans sonde, comme dans les sauvegardes d'avant la version 0.056. */
     public ProbeReward(Type type, String target, double value, ProbeDestination destination) {
         this(type, target, value, destination, -1);

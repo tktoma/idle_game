@@ -1,25 +1,24 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.profile.Title;
 import idle.core.save.SaveCodec;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.149 : l'onglet des hadrons. Les gluons lient les quarks du collisionneur en protons (u u d) et en neutrons
+ * L'onglet des hadrons. Les gluons lient les quarks du collisionneur en protons (u u d) et en neutrons
  * (u d d), puis, avec la bulle du cœur de l'arbre-monde, en particules exotiques. L'onglet se propose dans le
  * collisionneur avec la bulle de l'arbuste du milieu, et s'y paie comme le vide. Pas encore d'effet.
  */
 class HadronsTest {
-
     /** Un univers lancé après le premier, le collisionneur ouvert, avec ces bulles et des quarks. */
     private static Game with(TreeBubble... bubbles) {
         Game game = GameTestSupport.realGame();
@@ -33,9 +32,7 @@ class HadronsTest {
     }
 
     /** Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée. */
-    private static long withGain(Game game, long made) {
-        return (long) Math.floor(made * game.crossingGain() + 1e-9);
-    }
+    private static long withGain(Game game, long made) { return (long) Math.floor(made * game.crossingGain() + 1e-9); }
 
     @Test
     void lesRecettesSuiventLesQuarks() {

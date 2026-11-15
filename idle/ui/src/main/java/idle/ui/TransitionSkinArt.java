@@ -1,13 +1,13 @@
 package idle.ui;
 
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import idle.core.universe.SkinVisual;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.FillRule;
 
 /**
- * Le rideau de la transition entre univers (version 0.199), à côté de {@link TransitionPane} : un calque sur toute la
+ * Le rideau de la transition entre univers, à côté de {@link TransitionPane} : un calque sur toute la
  * fenêtre, qui ne prend aucun clic, et qui joue l'effet du skin choisi quand le joueur confirme la transition, pendant
  * que la partie suivante se met en place dessous. Sans skin, rien n'est dessiné : le classique n'a pas de rideau.
  * <ul>
@@ -18,7 +18,6 @@ import javafx.scene.shape.FillRule;
  * </ul>
  */
 final class TransitionSkinArt extends Canvas {
-
     /** La durée de l'effet, en secondes. */
     static final double SECONDS = 1.4;
     private static final Color PAPER = Color.web("#f6efdc");
@@ -28,13 +27,11 @@ final class TransitionSkinArt extends Canvas {
     /** Le temps écoulé depuis le début de l'effet, ou {@code -1} au repos. */
     private double time = -1;
 
-    TransitionSkinArt() {
-        setMouseTransparent(true);
-    }
+    TransitionSkinArt() { setMouseTransparent(true); }
 
     /** Lance l'effet de ce skin ; {@code null} (le classique) n'en a pas. */
     void play(Skin skin) {
-        if (skin == null || skin.visual() != idle.core.universe.SkinVisual.TRANSITION) return;
+        if (skin == null || skin.visual() != SkinVisual.TRANSITION) return;
         this.skin = skin;
         time = 0;
         setVisible(true);
@@ -42,9 +39,7 @@ final class TransitionSkinArt extends Canvas {
     }
 
     /** Vrai tant que l'effet joue. */
-    boolean isPlaying() {
-        return time >= 0;
-    }
+    boolean isPlaying() { return time >= 0; }
 
     /** Fait avancer l'effet ; au bout, le calque s'efface. */
     void frame(double dt) {

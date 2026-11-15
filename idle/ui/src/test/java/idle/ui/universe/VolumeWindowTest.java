@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.input.KeyCode;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,19 +9,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.ui.FxTestSupport;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.128 : la fenêtre du volume, sous Xvfb. Un clic sur le cube fait plonger la vue, la plongée commence au
+ * La fenêtre du volume, sous Xvfb. Un clic sur le cube fait plonger la vue, la plongée commence au
  * centre, le clic droit cueille, le clic gauche tenu fait tourner le regard, et le cube rejette le joueur à la fin.
  */
 class VolumeWindowTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au troisième univers. */
     private static Game third() {
@@ -286,10 +283,10 @@ class VolumeWindowTest {
             window.open(Dimension.VOLUME);
             window.frame(0.05, true);
             DimensionView view = window.view();
-            assertFalse(window.key(javafx.scene.input.KeyCode.ESCAPE, true), "dehors, Échap n'est pas pris");
+            assertFalse(window.key(KeyCode.ESCAPE, true), "dehors, Échap n'est pas pris");
             enter(window);
             assertTrue(view.mouseHeld(), "dans le cube, la caméra libre retient la souris");
-            assertTrue(window.key(javafx.scene.input.KeyCode.ESCAPE, true));
+            assertTrue(window.key(KeyCode.ESCAPE, true));
             assertFalse(view.mouseHeld(), "Échap rend la souris");
             assertTrue(game.isInVolume(), "la plongée continue");
             window.frame(0.05, true);

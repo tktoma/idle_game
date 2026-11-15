@@ -1,32 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.ElementSet;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : les effets des éléments, le rendement et la synthèse automatique.
- */
+/** Les règles du jeu : les effets des éléments, le rendement et la synthèse automatique. */
 class JeuElementsTest extends GameTestSupport {
-
-
     @Nested
     class EffetsDesElements {
-
         /** Partie avec trois générateurs et rien d'autre : ni particule, ni amélioration de vitesse. */
         private Game threeGenerators() {
             Game game = gameWithParticles(1e9);
@@ -50,9 +40,7 @@ class JeuElementsTest extends GameTestSupport {
         @Test
         void sansElementAucunBonus() {
             Game game = threeGenerators();
-            for (ElementEffect.Stat stat : ElementEffect.Stat.values()) {
-                assertEquals(1, game.elementMultiplier(stat));
-            }
+            for (ElementEffect.Stat stat : ElementEffect.Stat.values()) assertEquals(1, game.elementMultiplier(stat));
             for (ElementEffect.CostTarget target : ElementEffect.CostTarget.values()) {
                 assertEquals(1, game.elementCostDivisor(target));
             }
@@ -236,9 +224,7 @@ class JeuElementsTest extends GameTestSupport {
         void cesiumEtFranciumAccelerentTousLesAutomatismes() {
             Game game = cadenceGame();
             game.state().setElementCount(55, 1);              // césium : tous, +6 %
-            for (String id : List.of("s", "g", "f", "y")) {
-                assertEquals(4 / 1.06, game.automationInterval(id), 1e-12);
-            }
+            for (String id : List.of("s", "g", "f", "y")) assertEquals(4 / 1.06, game.automationInterval(id), 1e-12);
             game.state().setElementCount(3, 1);               // lithium en plus : les bonus s'additionnent
             assertEquals(4 / 1.15, game.automationInterval("s"), 1e-12);
             assertEquals(4 / 1.06, game.automationInterval("g"), 1e-12);
@@ -396,7 +382,6 @@ class JeuElementsTest extends GameTestSupport {
 
     @Nested
     class Rendement {
-
         /** Production d'un générateur à la vitesse de départ, particules doublées : l'unité de ces essais. */
         private static final double UNIT = 2 * BASE;
         /** +50 % d'atomes par fusion pour chaque ×10 de production au-delà de 200 fois cette unité. */
@@ -418,9 +403,7 @@ class JeuElementsTest extends GameTestSupport {
         }
 
         /** Porte la production à la fusion à {@code 10^levels} générateurs de départ ; le seuil du rendement est à 100 avec les particules doublées. */
-        private void setSpeedLevels(Game game, int levels) {
-            game.state().setLevel("tenfold", levels);
-        }
+        private void setSpeedLevels(Game game, int levels) { game.state().setLevel("tenfold", levels); }
 
         @Test
         void sansLAmeliorationLaProductionNeChangeRienAuxAtomes() {
@@ -530,7 +513,6 @@ class JeuElementsTest extends GameTestSupport {
 
     @Nested
     class SyntheseAutomatique {
-
         /** Partie où le tableau est débloqué, avec {@code atoms} atomes et aucun automatisme en marche. */
         private Game unlockedGame(int atoms) {
             Game game = newGame();

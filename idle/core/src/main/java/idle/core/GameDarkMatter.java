@@ -1,40 +1,27 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.BangAchievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.Challenges;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.SizeScale;
+import idle.core.state.*;
+import idle.core.collider.*;
+import idle.core.universe.*;
+
+import idle.core.achievements.*;
+import idle.core.bigbang.*;
+import idle.core.darkmatter.*;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * La matière noire : l'explosion, ses défis, les paliers de taille et les automatismes de matière noire.
- */
+/** La matière noire : l'explosion, ses défis, les paliers de taille et les automatismes de matière noire. */
 public abstract class GameDarkMatter extends GameParticles {
-
     GameDarkMatter(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
 
     // Ce que fournissent les parties suivantes.
     abstract BigNum reopenForks();
-
 
     // ------------------------------------------------------------------
     // L'explosion
@@ -46,7 +33,7 @@ public abstract class GameDarkMatter extends GameParticles {
      */
     public boolean canExplode() {
         return state.started() && state.elements().size() == PeriodicTable.ELEMENTS.size()
-                // La fuite (version 0.115) dure au moins deux minutes.
+                // La fuite dure au moins deux minutes.
                 && !(ruled(Challenge.Rule.LEAK) && state.stats().runTime() < LEAK_MIN_SECONDS);
     }
 
@@ -63,13 +50,13 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /**
-     * Vrai quand la fuite apparaît parmi les défis (version 0.115) : dans le deuxième univers, une fois les dix
+     * Vrai quand la fuite apparaît parmi les défis : dans le deuxième univers, une fois les dix
      * autres réussis. Une fois réussie, elle reste affichée tant que sa réussite compte.
      */
     public boolean isLeakChallengeShown() {
         if (!state.universeFormed() || !isDarkMatterUnlocked()) return false;
-        // Version 0.174 : elle s'ouvre par son succès, les dix défis réussis dans un nouvel univers.
-        if (!universeStep(idle.core.achievements.Achievements.UNIVERSE_LEAK)
+        // Elle s'ouvre par son succès, les dix défis réussis dans un nouvel univers.
+        if (!universeStep(Achievements.UNIVERSE_LEAK)
                 && !state.completedChallenges().contains(Challenges.LEAK.id())) return false;
         return baseChallengesDone() || state.completedChallenges().contains(Challenges.LEAK.id())
                 || Challenges.LEAK.id().equals(state.activeChallenge());
@@ -91,11 +78,10 @@ public abstract class GameDarkMatter extends GameParticles {
     /**
      * Fait exploser le tableau périodique, une fois tous ses éléments découverts.
      *
-     * <p>Tout ce qui est fait de matière disparaît : particules, atomes, améliorations (même
-     * celles payées en atomes), automatismes et éléments. La partie repart d'un seul générateur,
-     * comme au tout début, sauf ce que l'arbre de matière noire permet de garder. En échange, le
-     * joueur gagne {@link #darkMatterPerExplosion()} de matière noire, qu'aucune explosion ne lui
-     * reprendra.
+     * <p>Tout ce qui est fait de matière disparaît : particules, atomes, améliorations (même celles payées en atomes),
+     * automatismes et éléments. La partie repart d'un seul générateur, comme au tout début, sauf ce que l'arbre de
+     * matière noire permet de garder. En échange, le joueur gagne {@link #darkMatterPerExplosion()} de matière noire,
+     * qu'aucune explosion ne lui reprendra.
      *
      * @return {@code true} si l'explosion a eu lieu
      */
@@ -136,9 +122,9 @@ public abstract class GameDarkMatter extends GameParticles {
         clearRun();
         state.stats().endRun();
         if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
-        // La contraction douce (version 0.088) : l'explosion la réussit.
-        if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) completeTrial();
-        // Demandé par le joueur (version 0.084) : les bifurcations se rouvrent avec cette explosion. Depuis la
+        // La contraction douce : l'explosion la réussit.
+        if (inTrial(Trial.SOFT_CONTRACTION)) completeTrial();
+        // Demandé par le joueur : les bifurcations se rouvrent avec cette explosion. Depuis la
         // version 0.126, la matière noire payée pour les liaisons revient en réserve : dépenser ne fait rien perdre.
         if (state.forkResetArmed()) {
             if (!hasSuperposition()) {
@@ -159,14 +145,14 @@ public abstract class GameDarkMatter extends GameParticles {
      */
     private void clearRun() {
         // Ce que la matière noire permet de garder, mis de côté avant de tout effacer.
-        // Version 0.151 : les paliers de gluons gardent aussi, comme l'arbre.
-        Map<String, Integer> keptLevels = hasDark(DarkEffect.KeepUpgradesOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.UPGRADES)
+        // Les paliers de gluons gardent aussi, comme l'arbre.
+        Map<String, Integer> keptLevels = hasDark(DarkEffect.KeepUpgradesOnExplosion.class) || isGluonMilestoneReached(GluonMilestone.UPGRADES)
                 ? state.upgradeLevels() : Map.of();
-        boolean keepAutomations = hasDark(DarkEffect.KeepAutomationsOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.AUTOMATIONS);
-        java.util.Set<String> owned = keepAutomations ? state.ownedAutomations() : java.util.Set.of();
-        java.util.Set<String> enabled = keepAutomations ? state.enabledAutomations() : java.util.Set.of();
+        boolean keepAutomations = hasDark(DarkEffect.KeepAutomationsOnExplosion.class) || isGluonMilestoneReached(GluonMilestone.AUTOMATIONS);
+        Set<String> owned = keepAutomations ? state.ownedAutomations() : Set.of();
+        Set<String> enabled = keepAutomations ? state.enabledAutomations() : Set.of();
         List<Integer> keptElements = new ArrayList<>();
-        if (hasDark(DarkEffect.KeepUniqueElementsOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.ELEMENTS)) {
+        if (hasDark(DarkEffect.KeepUniqueElementsOnExplosion.class) || isGluonMilestoneReached(GluonMilestone.ELEMENTS)) {
             for (int number : state.elements().keySet()) {
                 if (PeriodicTable.element(number).category().unique()) keptElements.add(number);
             }
@@ -196,9 +182,7 @@ public abstract class GameDarkMatter extends GameParticles {
     // ------------------------------------------------------------------
 
     /** Tous les défis, dans l'ordre du catalogue. */
-    public List<Challenge> challenges() {
-        return isLeakChallengeShown() ? Challenges.ALL : Challenges.DEFAULT;
-    }
+    public List<Challenge> challenges() { return isLeakChallengeShown() ? Challenges.ALL : Challenges.DEFAULT; }
 
     private Challenge challenge(String challengeId) {
         for (Challenge challenge : Challenges.ALL) {
@@ -275,9 +259,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Vrai pendant un défi, quel qu'il soit. */
-    public boolean inChallenge() {
-        return state.activeChallenge() != null;
-    }
+    public boolean inChallenge() { return state.activeChallenge() != null; }
 
     /** Vrai si le défi en cours impose cette contrainte. */
     boolean ruled(Challenge.Rule rule) {
@@ -298,13 +280,12 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Les récompenses des défis réussis, recalculées seulement quand la liste des défis change. */
-    private final java.util.EnumSet<Challenge.Reward> rewards = java.util.EnumSet.noneOf(Challenge.Reward.class);
+    private final EnumSet<Challenge.Reward> rewards = EnumSet.noneOf(Challenge.Reward.class);
     private int rewardsVersion = -1;
 
     /**
-     * La désintégration du défi du même nom : chaque exemplaire possédé a {@link #DECAY_RATE}
-     * chance de disparaître par seconde. Les fractions s'accumulent : avec 50 exemplaires, il en
-     * disparaît un par seconde.
+     * La désintégration du défi du même nom : chaque exemplaire possédé a {@link #DECAY_RATE} chance de disparaître par
+     * seconde. Les fractions s'accumulent : avec 50 exemplaires, il en disparaît un par seconde.
      */
     void decay(double dt) {
         if (!ruled(Challenge.Rule.DECAY) || dt <= 0) return;
@@ -356,9 +337,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Ce que les paliers de taille multiplient dans les atomes de chaque fusion. */
-    public double landmarkAtomsMultiplier() {
-        return 1 + LANDMARK_ATOMS * landmarksReached(SizeScale.Bonus.ATOMS);
-    }
+    public double landmarkAtomsMultiplier() { return 1 + LANDMARK_ATOMS * landmarksReached(SizeScale.Bonus.ATOMS); }
 
     /** Ce que les paliers de taille multiplient dans la croissance de la matière noire. */
     public double landmarkExpansionMultiplier() {
@@ -366,13 +345,10 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /**
-     * Vrai si l'appui sur la matière noire est verrouillé : elle grossit toute seule à chaque
-     * {@link #tick(double)}, quel que soit l'onglet que regarde le joueur. Il faut la case
-     * « Verrou » de l'arbre.
+     * Vrai si l'appui sur la matière noire est verrouillé : elle grossit toute seule à chaque {@link #tick(double)},
+     * quel que soit l'onglet que regarde le joueur. Il faut la case « Verrou » de l'arbre.
      */
-    public boolean isHoldLocked() {
-        return state.holdLocked() && isHoldLockUnlocked();
-    }
+    public boolean isHoldLocked() { return state.holdLocked() && isHoldLockUnlocked(); }
 
     /**
      * Verrouille ou libère l'appui. C'est un réglage : ni l'explosion ni le Big Bang ne le changent,
@@ -400,9 +376,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Vrai si l'appui automatique est en marche (il ne sert qu'une fois acquis). */
-    public boolean isAutoHoldEnabled() {
-        return state.autoHold();
-    }
+    public boolean isAutoHoldEnabled() { return state.autoHold(); }
 
     /**
      * Met en marche ou coupe l'appui automatique.
@@ -455,14 +429,10 @@ public abstract class GameDarkMatter extends GameParticles {
      * record ({@link #explosionRecord()}). 0 tant qu'aucune explosion n'a eu lieu depuis le dernier
      * Big Bang : la première pose le record, sans prime.
      */
-    public double speedPrimeTime() {
-        return state.explosionRecord() * SPEED_PRIME_MARGIN;
-    }
+    public double speedPrimeTime() { return state.explosionRecord() * SPEED_PRIME_MARGIN; }
 
     /** Durée de l'explosion qui sert de record depuis le dernier Big Bang, en secondes ; 0 s'il n'y en a pas encore. */
-    public double explosionRecord() {
-        return state.explosionRecord();
-    }
+    public double explosionRecord() { return state.explosionRecord(); }
 
     /** Vrai si une explosion déclenchée maintenant toucherait la prime de vitesse : le record est battu de la marge voulue, hors défi rejoué. */
     public boolean earnsSpeedPrime() {
@@ -486,7 +456,7 @@ public abstract class GameDarkMatter extends GameParticles {
     public static final double UNIVERSE_DARK_MATTER_STEP = 1;
 
     /**
-     * Le bonus permanent des univers formés (version 0.112) : 1 + {@link #UNIVERSE_DARK_MATTER_STEP} par univers, additif
+     * Le bonus permanent des univers formés : 1 + {@link #UNIVERSE_DARK_MATTER_STEP} par univers, additif
      * depuis la version 0.167 (×2 dans la partie de l'univers 2, ×3 dans celle du troisième, ×11 dans celle du douzième ;
      * avant, ×2 par univers, multiplicatif : ×2 048 au douzième). Il multiplie la matière noire que laisse une explosion,
      * sa prime de vitesse, et l'élan de sa croissance. Rien ne l'efface.
@@ -496,7 +466,7 @@ public abstract class GameDarkMatter extends GameParticles {
         return 1 + UNIVERSE_DARK_MATTER_STEP * formed;
     }
 
-    /** La matière noire rendue par les bifurcations rouvertes, pas encore annoncée (version 0.126). Non sauvegardée. */
+    /** La matière noire rendue par les bifurcations rouvertes, pas encore annoncée. Non sauvegardée. */
     BigNum forkRefund = BigNum.ZERO;
 
     /**
@@ -529,8 +499,8 @@ public abstract class GameDarkMatter extends GameParticles {
         }
         if (rewarded(Challenge.Reward.EXTRA_DARK_MATTER)) amount = amount.add(BigNum.ONE);
         double factor = (state.bigBangs() == 0 && firstRunPace > 1 ? FIRST_CYCLE_DARK_MATTER : 1) * bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER)
-                * (cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1)
-                * universeDarkMatterFactor() * hadronBoost(idle.core.collider.Hadron.NEUTRON);
+                * (cycleChoice() == CycleChoice.RESERVE ? 1 + CycleChoice.RESERVE_GAIN : 1)
+                * universeDarkMatterFactor() * hadronBoost(Hadron.NEUTRON);
         return factor == 1 ? amount : amount.multiply(factor);
     }
 
@@ -539,25 +509,20 @@ public abstract class GameDarkMatter extends GameParticles {
      * début d'une partie quand l'arbre a traversé le Big Bang ({@link #bigBangKeepsDarkTree()}).
      */
     public boolean isDarkMatterUnlocked() {
-        // Version 0.148 : la bulle du géant, tout à droite, en donne sans explosion.
+        // La bulle du géant, tout à droite, en donne sans explosion.
         return state.explosions() > 0 || state.darkMatterSpent().sign() > 0
                 || (hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_HIGH) && state.darkMatter().sign() > 0);
     }
 
     /**
-     * Matière noire gagnée depuis le début du jeu : celle qui reste, plus celle dépensée en
-     * améliorations. C'est elle, et non ce qui reste, qui ouvre les cases de l'arbre et les
-     * automatismes, qui donne son élan à la croissance et dont dépendent les effets « par matière
-     * noire » : dépenser de la matière noire ne fait donc rien perdre.
+     * Matière noire gagnée depuis le début du jeu : celle qui reste, plus celle dépensée en améliorations. C'est elle,
+     * et non ce qui reste, qui ouvre les cases de l'arbre et les automatismes, qui donne son élan à la croissance et
+     * dont dépendent les effets « par matière noire » : dépenser de la matière noire ne fait donc rien perdre.
      */
-    public BigNum darkMatterEarned() {
-        return state.darkMatter().add(state.darkMatterSpent());
-    }
+    public BigNum darkMatterEarned() { return state.darkMatter().add(state.darkMatterSpent()); }
 
     /** La matière noire gagnée, bornée pour rester calculable, bien au-delà de ce qu'un joueur peut avoir. */
-    double darkMatterUnits() {
-        return darkMatterEarned().min(BigNum.of(1, 15)).toDouble();
-    }
+    double darkMatterUnits() { return darkMatterEarned().min(BigNum.of(1, 15)).toDouble(); }
 
     /**
      * Ce que l'avancement de la partie en cours apporte à la croissance de la matière noire :
@@ -577,10 +542,9 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /**
-     * Élan de la croissance de la matière noire :
-     * {@code DARK_MATTER_GROWTH_PER_UNIT × matière noire gagnée × facteur d'avancement ×
-     * multiplicateur de l'arbre}. C'est son taux de croissance par seconde d'appui quand elle a
-     * la taille d'un proton ; ensuite sa résistance le divise.
+     * Élan de la croissance de la matière noire : {@code DARK_MATTER_GROWTH_PER_UNIT × matière noire gagnée × facteur
+     * d'avancement × multiplicateur de l'arbre}. C'est son taux de croissance par seconde d'appui quand elle a la
+     * taille d'un proton ; ensuite sa résistance le divise.
      */
     public double darkMatterMomentum() {
         return DARK_MATTER_GROWTH_PER_UNIT * darkMatterUnits() * darkMatterProgressFactor()
@@ -602,9 +566,8 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /**
-     * Ce par quoi la taille de la matière noire est multipliée, en ce moment, à chaque seconde
-     * d'appui : l'élan divisé par la résistance donne son taux de croissance. Plus elle est
-     * grande, plus ce nombre se rapproche de 1.
+     * Ce par quoi la taille de la matière noire est multipliée, en ce moment, à chaque seconde d'appui : l'élan divisé
+     * par la résistance donne son taux de croissance. Plus elle est grande, plus ce nombre se rapproche de 1.
      */
     public BigNum darkMatterGrowthPerSecond() {
         if (darkMatterEarned().isZero()) return BigNum.ONE;
@@ -613,9 +576,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Taille de la matière noire en années-lumière : la distance qu'elle a « parcourue » en grossissant. */
-    public BigNum darkMatterLightYears() {
-        return state.darkMatterSize().divide(SizeScale.LIGHT_YEAR);
-    }
+    public BigNum darkMatterLightYears() { return state.darkMatterSize().divide(SizeScale.LIGHT_YEAR); }
 
     /**
      * Fait grossir la matière noire comme si le joueur la maintenait appuyée pendant {@code seconds}
@@ -654,9 +615,7 @@ public abstract class GameDarkMatter extends GameParticles {
     // ------------------------------------------------------------------
 
     /** Tous les automatismes de matière noire, dans l'ordre du catalogue. */
-    public Collection<DarkAutomation> darkAutomations() {
-        return darkAutomations.values();
-    }
+    public Collection<DarkAutomation> darkAutomations() { return darkAutomations.values(); }
 
     /** Vrai quand le joueur a gagné assez de matière noire pour cet automatisme. Rien n'est dépensé. */
     public boolean isDarkAutomationUnlocked(String darkAutomationId) {
@@ -674,9 +633,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Vrai si le défi de Big Bang en cours interdit les automatismes de matière noire et du troisième acte : leurs réglages restent, ils ne font rien. */
-    public boolean isHandOnly() {
-        return bangRuled(BangChallenge.BY_HAND);
-    }
+    public boolean isHandOnly() { return bangRuled(BangChallenge.BY_HAND); }
 
     /**
      * Met en marche ou coupe un automatisme de matière noire débloqué.
@@ -702,7 +659,7 @@ public abstract class GameDarkMatter extends GameParticles {
             double waited = state.darkAutomationTimer(automation.id()) + dt;
             double interval = darkAutomationInterval(automation.id());
             if (isAutomationInstant()) {
-                // La bulle du bonsaï, à droite (version 0.148) : sans délai ; ceux qui achètent prennent tout ce qu'ils
+                // La bulle du bonsaï, à droite : sans délai ; ceux qui achètent prennent tout ce qu'ils
                 // peuvent, l'explosion se fait une fois.
                 int most = automation.kind() == DarkAutomation.Kind.EXPLOSION ? 1 : MAX_AUTO_ACTIONS_PER_STEP;
                 for (int actions = 0; actions < most && act(automation); actions++) state.stats().noteDarkAutomationAction();
@@ -741,20 +698,19 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /**
-     * Achète, dans l'ordre du catalogue, la première chose payable parmi : les cases de l'arbre de
-     * matière noire et les améliorations payées en matière noire dont le nombre de niveaux est limité.
-     * Une case sans dernier niveau est prise d'abord à son premier niveau, celui qui ouvre la case du
-     * dessous ; ses niveaux suivants ne le sont que lorsqu'ils coûtent au plus 1 % de la branche
-     * ({@link #TREE_REPEAT_SHARE}), pour ne pas avaler ce qu'il faut réunir pour le Big Bang. Les
-     * améliorations de la boutique sans limite restent entièrement au joueur.
+     * Achète, dans l'ordre du catalogue, la première chose payable parmi : les cases de l'arbre de matière noire et les
+     * améliorations payées en matière noire dont le nombre de niveaux est limité. Une case sans dernier niveau est
+     * prise d'abord à son premier niveau, celui qui ouvre la case du dessous ; ses niveaux suivants ne le sont que
+     * lorsqu'ils coûtent au plus 1 % de la branche ({@link #TREE_REPEAT_SHARE}), pour ne pas avaler ce qu'il faut
+     * réunir pour le Big Bang. Les améliorations de la boutique sans limite restent entièrement au joueur.
      */
     private boolean buyCheapestDarkUpgrade() {
         if (inChallenge()) return false;
         for (DarkUpgrade upgrade : darkUpgrades.values()) {
-            // Version 0.209 : le premier niveau de Noyaux sombres, que tous les autres achats en matière noire attendent.
+            // Le premier niveau de Noyaux sombres, que tous les autres achats en matière noire attendent.
             boolean key = upgrade.id().equals(KEY_DARK_UPGRADE) && state.darkLevelOf(upgrade.id()) == 0;
             if (!key && !upgrade.hasLimit() && (!upgrade.inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
-            // Les bifurcations restent au joueur : c'est lui qui choisit sa voie (version 0.069).
+            // Les bifurcations restent au joueur : c'est lui qui choisit sa voie.
             if (upgrade.isFork()) continue;
             if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;
         }
@@ -774,16 +730,15 @@ public abstract class GameDarkMatter extends GameParticles {
     public static final double TREE_REPEAT_SHARE = 0.01;
 
     /**
-     * Offre au joueur un automatisme ordinaire qu'il ne possède pas encore, mis en marche
-     * aussitôt : un par action, dans l'ordre du catalogue. Ceux qui achètent et fusionnent sont
-     * offerts tout de suite. La synthèse automatique ne l'est qu'une fois le tableau périodique
-     * ouvert et les autres à leur cadence maximale : avant, les atomes servent mieux ailleurs, et
-     * elle ne doit pas les dépenser dans le dos du joueur. Elle n'attend pas d'élément unique.
+     * Offre au joueur un automatisme ordinaire qu'il ne possède pas encore, mis en marche aussitôt : un par action,
+     * dans l'ordre du catalogue. Ceux qui achètent et fusionnent sont offerts tout de suite. La synthèse automatique ne
+     * l'est qu'une fois le tableau périodique ouvert et les autres à leur cadence maximale : avant, les atomes servent
+     * mieux ailleurs, et elle ne doit pas les dépenser dans le dos du joueur. Elle n'attend pas d'élément unique.
      *
      * @return {@code true} si un automatisme a été offert
      */
     private boolean grantAutomation() {
-        // Les défis gardent cet automatisme (version 0.047) : sans lui, chaque défi obligeait à racheter
+        // Les défis gardent cet automatisme : sans lui, chaque défi obligeait à racheter
         // les automatismes à la main. Les autres mémoires de la matière noire restent sans effet en défi.
         for (Automation automation : automations.values()) {
             if (state.ownsAutomation(automation.id())) continue;
@@ -822,13 +777,9 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Vrai si l'automatisme « Améliorations en atomes » suit l'ordre du joueur plutôt que « la moins chère d'abord ». */
-    public boolean isAtomUpgradeOrdered() {
-        return state.atomUpgradeOrdered();
-    }
+    public boolean isAtomUpgradeOrdered() { return state.atomUpgradeOrdered(); }
 
-    public void setAtomUpgradeOrdered(boolean ordered) {
-        state.setAtomUpgradeOrdered(ordered);
-    }
+    public void setAtomUpgradeOrdered(boolean ordered) { state.setAtomUpgradeOrdered(ordered); }
 
     /**
      * Fait monter ou descendre une amélioration d'un rang dans l'ordre d'achat.
@@ -848,7 +799,7 @@ public abstract class GameDarkMatter extends GameParticles {
         int at = ids.indexOf(id);
         int to = at + Integer.signum(direction);
         if (at < 0 || to < 0 || to >= ids.size() || to == at) return false;
-        java.util.Collections.swap(ids, at, to);
+        Collections.swap(ids, at, to);
         return true;
     }
 
@@ -894,13 +845,9 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     /** Vrai si l'automatisme « Achat des automatismes » suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
-    public boolean isAutomationOrdered() {
-        return state.automationOrdered();
-    }
+    public boolean isAutomationOrdered() { return state.automationOrdered(); }
 
-    public void setAutomationOrdered(boolean ordered) {
-        state.setAutomationOrdered(ordered);
-    }
+    public void setAutomationOrdered(boolean ordered) { state.setAutomationOrdered(ordered); }
 
     /**
      * Fait monter ou descendre un automatisme d'un rang dans l'ordre d'achat.

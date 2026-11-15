@@ -1,23 +1,22 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.GameStats;
+import idle.core.sky.Cosmos;
+import idle.core.state.GameStats;
 import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'écran de fin (version 0.068), par-dessus la fenêtre, une seule fois par partie : l'univers est
+ * L'écran de fin, par-dessus la fenêtre, une seule fois par partie : l'univers est
  * formé. Il dit le temps de jeu, la durée de chaque acte et ce que valent les records, quelques
  * chiffres de la partie, puis laisse continuer. Le jeu continue de tourner derrière.
  */
 final class EndPane extends Overlay {
-
     private static final String CARD_STYLE = cardStyle("#ffd27f", false, "24 30");
     private static final String BUTTON_STYLE = buttonStyle("8 18", "#ffd27f");
 
@@ -50,22 +49,18 @@ final class EndPane extends Overlay {
     }
 
     /** Vrai tant que l'écran est affiché. */
-    boolean isOpen() {
-        return isVisible();
-    }
+    boolean isOpen() { return isVisible(); }
 
     /** Ouvre l'écran si l'univers vient d'être formé et qu'il n'a pas encore été vu dans cette partie. */
     boolean check() {
-        if (isVisible() || game.state().endSeen() || !game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE)) return false;
+        if (isVisible() || game.state().endSeen() || !game.hasCosmos(Cosmos.UNIVERSE)) return false;
         game.state().setEndSeen(true);
         fill();
         reveal();
         return true;
     }
 
-    void close() {
-        setVisible(false);
-    }
+    void close() { setVisible(false); }
 
     /** Les textes : le temps total, chaque acte, et quelques chiffres. */
     void fill() {
@@ -75,7 +70,7 @@ final class EndPane extends Overlay {
         summary.setText("Tout ce que vous avez créé tient maintenant dans un univers. Temps de jeu : " + Format.duration(end)
                 + record(GameStats.Step.UNIVERSE, end) + ".");
         acts.setText(String.join("\n", actLines(stats, end)));
-        // Le bilan d'avant la remise à zéro de l'univers (version 0.083).
+        // Le bilan d'avant la remise à zéro de l'univers.
         long[] tally = stats.universeTally();
         numbers.setText(Format.whole(stats.fusions()) + " fusions, " + Format.whole(stats.timedExplosions()) + " explosions, "
                 + Format.whole(tally[0]) + " Big Bangs, " + Format.whole(tally[1]) + " molécules, "

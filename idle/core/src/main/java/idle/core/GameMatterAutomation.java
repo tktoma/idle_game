@@ -1,38 +1,26 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.GluonMilestone;
+
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.SpaceUpgrade;
+import idle.core.bigbang.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * La matière en automatique : création, planification, rassemblement, favorites et liste de courses.
- */
+/** La matière en automatique : création, planification, rassemblement, favorites et liste de courses. */
 public abstract class GameMatterAutomation extends GameMolecules {
-
     GameMatterAutomation(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
 
     // Ce que fournissent les parties suivantes.
     public abstract double bangReward(BangChallenge.Reward reward);
-
 
     // ------------------------------------------------------------------
     // La création automatique des molécules
@@ -52,29 +40,24 @@ public abstract class GameMatterAutomation extends GameMolecules {
      * le palier qui le donne est atteint, ou ce Big Bang l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsChallenges() {
-        // Version 0.151 : ou le palier de gluons « Défis liés ».
-        return !nextBigBangEffects(BigBangMilestone.KeepChallenges.class).isEmpty() || isGluonMilestoneReached(idle.core.collider.GluonMilestone.CHALLENGES);
+        // Ou le palier de gluons « Défis liés ».
+        return !nextBigBangEffects(BigBangMilestone.KeepChallenges.class).isEmpty() || isGluonMilestoneReached(GluonMilestone.CHALLENGES);
     }
 
     /**
-     * Vrai si le prochain Big Bang laissera l'arbre de matière noire en place
-     * ({@link BigBangMilestone.KeepDarkTree}) : le palier qui le donne est atteint, ou ce Big Bang
-     * l'atteindra. Ce Big Bang-là en profite donc déjà.
+     * Vrai si le prochain Big Bang laissera l'arbre de matière noire en place ({@link BigBangMilestone.KeepDarkTree}) :
+     * le palier qui le donne est atteint, ou ce Big Bang l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsDarkTree() {
-        // Version 0.151 : ou le palier de gluons « Arbre lié ».
-        return !nextBigBangEffects(BigBangMilestone.KeepDarkTree.class).isEmpty() || isGluonMilestoneReached(idle.core.collider.GluonMilestone.DARK_TREE);
+        // Ou le palier de gluons « Arbre lié ».
+        return !nextBigBangEffects(BigBangMilestone.KeepDarkTree.class).isEmpty() || isGluonMilestoneReached(GluonMilestone.DARK_TREE);
     }
 
     /** Vrai une fois atteint le palier de Big Bang qui donne la création automatique ({@link BigBangMilestone.AutoMolecules}). */
-    public boolean isMoleculeAutomationUnlocked() {
-        return milestoneGives(BigBangMilestone.AutoMolecules.class);
-    }
+    public boolean isMoleculeAutomationUnlocked() { return milestoneGives(BigBangMilestone.AutoMolecules.class); }
 
     /** Vrai si la création automatique est réglée sur « en marche » ; elle l'est par défaut dès qu'elle est acquise. */
-    public boolean isMoleculeAutomationEnabled() {
-        return state.autoMolecules();
-    }
+    public boolean isMoleculeAutomationEnabled() { return state.autoMolecules(); }
 
     /**
      * Met en marche ou coupe la création automatique.
@@ -107,9 +90,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /** Nombre d'amas confiés à la création automatique. */
-    public int automatedMolecules() {
-        return state.automatedMolecules().size();
-    }
+    public int automatedMolecules() { return state.automatedMolecules().size(); }
 
     /**
      * Vrai si la création automatique agit en ce moment : acquise, en marche, et ni en pause ni interdite par un
@@ -138,11 +119,10 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Pour chaque état dont le prochain pas (l'amas de galaxies, l'univers) demande plus de sortes
-     * rassemblées, la sorte pas encore rassemblée la moins encombrante de cet état, parmi les rayons
-     * ouverts : la création automatique la crée jusqu'à ce qu'elle puisse se rassembler (version 0.178). Une sorte
-     * qui a déjà ses {@link #SUBSTANCE_MOLECULES} molécules n'attend plus que son rassemblement : c'est la suivante
-     * qui est proposée.
+     * Pour chaque état dont le prochain pas (l'amas de galaxies, l'univers) demande plus de sortes rassemblées, la
+     * sorte pas encore rassemblée la moins encombrante de cet état, parmi les rayons ouverts : la création automatique
+     * la crée jusqu'à ce qu'elle puisse se rassembler. Une sorte qui a déjà ses {@link #SUBSTANCE_MOLECULES} molécules
+     * n'attend plus que son rassemblement : c'est la suivante qui est proposée.
      */
     public List<String> autoSortTargets() {
         if (!isStatesUnlocked() || !isMoleculeAutomationUnlocked()) return List.of();
@@ -173,12 +153,11 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Fait passer le temps de la création automatique : toutes les {@link #MOLECULE_AUTOMATION_SECONDS}
-     * secondes, au même prix qu'à la main ({@link #createMolecule(String)}), dans l'ordre : une création
-     * par sorte que la liste de courses demande encore, puis une par état qui manque de matière
-     * ({@link #autoMatterTargets()}) ou de variété ({@link #autoSortTargets()}), puis une dans chaque amas
-     * confié. Quand l'espace manque pour tous, le premier amas servi change à chaque passage : aucun
-     * n'est oublié.
+     * Fait passer le temps de la création automatique : toutes les {@link #MOLECULE_AUTOMATION_SECONDS} secondes, au
+     * même prix qu'à la main ({@link #createMolecule(String)}), dans l'ordre : une création par sorte que la liste de
+     * courses demande encore, puis une par état qui manque de matière ({@link #autoMatterTargets()}) ou de variété
+     * ({@link #autoSortTargets()}), puis une dans chaque amas confié. Quand l'espace manque pour tous, le premier amas
+     * servi change à chaque passage : aucun n'est oublié.
      */
     void runMoleculeAutomation(double dt) {
         if (dt <= 0 || !state.started() || !isAutoCreatingMolecules()) {
@@ -229,7 +208,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     // ------------------------------------------------------------------
-    // Planifier la matière (version 0.085)
+    // Planifier la matière
     // ------------------------------------------------------------------
 
     /** Astres formés qu'il faut pour planifier plusieurs astres à la fois. */
@@ -238,9 +217,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     public static final int MAX_PLANNED_BODIES = 3;
 
     /** Vrai une fois {@link #BODY_PLANNING_BODIES} astres formés : la planification de plusieurs astres s'ouvre. */
-    public boolean isBodyPlanningUnlocked() {
-        return isBodiesUnlocked() && bodiesFormed() >= BODY_PLANNING_BODIES;
-    }
+    public boolean isBodyPlanningUnlocked() { return isBodiesUnlocked() && bodiesFormed() >= BODY_PLANNING_BODIES; }
 
     /** Les astres planifiés qui ne sont pas encore formés, dans l'ordre du choix. */
     public List<Body> plannedBodies() {
@@ -277,7 +254,6 @@ public abstract class GameMatterAutomation extends GameMolecules {
 
     /** Ce que demande le plan de plusieurs astres, une ligne par exigence. */
     public record PlanNeed(Kind kind, String id, long needed, long have, boolean gather, boolean gathered, List<String> bodies) {
-
         /** Ce qu'est l'exigence. */
         public enum Kind {
             /** Un astre plus petit, à avoir formé et mûri. */
@@ -295,33 +271,26 @@ public abstract class GameMatterAutomation extends GameMolecules {
         }
 
         /** Vrai si c'est déjà réuni. */
-        public boolean satisfied() {
-            return have >= needed && (!gather || gathered);
-        }
+        public boolean satisfied() { return have >= needed && (!gather || gathered); }
 
         /** Vrai si plusieurs astres du plan la demandent en même temps : elle ne se compte qu'une fois, ou s'ajoute (assemblages). */
-        public boolean shared() {
-            return bodies.size() > 1;
-        }
+        public boolean shared() { return bodies.size() > 1; }
 
         /** Ce qu'il manque, en nombre. */
-        public long missing() {
-            return Math.max(0, needed - have);
-        }
+        public long missing() { return Math.max(0, needed - have); }
     }
 
     /**
-     * Les besoins réunis des astres planifiés ({@link #plannedBodies()}) : les astres plus petits, les
-     * assemblages, les molécules et la matière. Les seuils (molécules d'un astre, matière) servent à
-     * tous les astres à la fois : le plus haut compte. Les ingrédients des assemblages s'ajoutent,
-     * puisque deux assemblages ne se partagent pas leurs molécules. Les exigences déjà réunies
-     * viennent après les autres.
+     * Les besoins réunis des astres planifiés ({@link #plannedBodies()}) : les astres plus petits, les assemblages, les
+     * molécules et la matière. Les seuils (molécules d'un astre, matière) servent à tous les astres à la fois : le plus
+     * haut compte. Les ingrédients des assemblages s'ajoutent, puisque deux assemblages ne se partagent pas leurs
+     * molécules. Les exigences déjà réunies viennent après les autres.
      */
     public List<PlanNeed> plannedNeeds() {
         Map<String, Long> smaller = new LinkedHashMap<>(), assembled = new LinkedHashMap<>();
         Map<String, long[]> wanted = new LinkedHashMap<>();       // sorte → {ingrédients des assemblages, seuil de l'astre, à rassembler}
-        Map<Molecule.State, Long> matter = new java.util.EnumMap<>(Molecule.State.class);
-        Map<String, List<String>> askers = new java.util.HashMap<>();
+        Map<Molecule.State, Long> matter = new EnumMap<>(Molecule.State.class);
+        Map<String, List<String>> askers = new HashMap<>();
         for (Body body : plannedBodies()) {
             for (String id : body.bodies()) {
                 smaller.put(id, 1L);
@@ -377,21 +346,17 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /** Vrai une fois les plafonds par état ouverts : la création automatique et les états de la matière sont acquis. */
-    public boolean isStateCapUnlocked() {
-        return isMoleculeAutomationUnlocked() && isStatesUnlocked();
-    }
+    public boolean isStateCapUnlocked() { return isMoleculeAutomationUnlocked() && isStatesUnlocked(); }
 
     /** La part de l'espace que la création automatique laisse aux molécules de cet état, de 0,05 à 1 (sans plafond). */
-    public double stateCap(Molecule.State matter) {
-        return state.stateCap(matter.name());
-    }
+    public double stateCap(Molecule.State matter) { return state.stateCap(matter.name()); }
 
     /** Règle le plafond d'un état, ramené entre 0,05 et 1 ; 1 l'efface. */
     public void setStateCap(Molecule.State matter, double cap) {
         state.setStateCap(matter.name(), Double.isNaN(cap) ? 1 : Math.max(0.05, Math.min(1, cap)));
     }
 
-    private final Map<Molecule.State, Double> spaceByState = new java.util.EnumMap<>(Molecule.State.class);
+    private final Map<Molecule.State, Double> spaceByState = new EnumMap<>(Molecule.State.class);
     long spaceByStateVersion = -1;
 
     /** L'espace qu'occupent les molécules de cet état, rassemblées ou non. */
@@ -453,29 +418,15 @@ public abstract class GameMatterAutomation extends GameMolecules {
         return null;
     }
 
-    /**
-     * Molécules de cette sorte qu'il faut encore créer pour le prochain assemblage ; −1 si elle n'en
-     * est pas un ingrédient. Celles des assemblages déjà formés n'y comptent pas.
-     */
-    public int recipeRemaining(String moleculeId) {
-        Assembly next = nextAssembly();
-        if (next == null) return -1;
-        Integer count = next.ingredients().get(moleculeId);
-        if (count == null) return -1;
-        return Math.max(0, assembledMolecules(moleculeId) + count - state.moleculeCount(moleculeId));
-    }
-
     /** Vrai une fois le premier Big Bang fait : le filtre « utiles au prochain astre » du tableau s'ouvre. */
-    public boolean isNextBodyFilterUnlocked() {
-        return state.bigBangs() > 0;
-    }
+    public boolean isNextBodyFilterUnlocked() { return state.bigBangs() > 0; }
 
     /**
      * Les éléments qu'il faut aux recettes des molécules utiles au prochain pas
      * ({@link ShoppingList#wants(Molecule)}), parmi celles que le jeu offre déjà : leurs numéros atomiques.
      */
-    public java.util.Set<Integer> elementsForNextStep() {
-        java.util.Set<Integer> numbers = new java.util.TreeSet<>();
+    public Set<Integer> elementsForNextStep() {
+        Set<Integer> numbers = new TreeSet<>();
         ShoppingList list = shoppingList();
         if (list.kind() == ShoppingList.Kind.NONE) return numbers;
         for (Molecule molecule : moleculeList) {
@@ -496,9 +447,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Délai entre deux passages de la création automatique, en secondes :
-     * {@link #MOLECULE_AUTOMATION_SECONDS}, ou moins une fois acquise une amélioration d'espace qui
-     * le raccourcit ({@link SpaceUpgrade.CreationPace}).
+     * Délai entre deux passages de la création automatique, en secondes : {@link #MOLECULE_AUTOMATION_SECONDS}, ou
+     * moins une fois acquise une amélioration d'espace qui le raccourcit ({@link SpaceUpgrade.CreationPace}).
      */
     public double moleculeAutomationInterval() {
         double interval = MOLECULE_AUTOMATION_SECONDS;
@@ -511,9 +461,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /** Part de l'espace créé que la création automatique laisse toujours libre, de 0 à 1 : la création à la main n'en tient pas compte. */
-    public double autoMoleculeReserve() {
-        return state.autoMoleculeReserve();
-    }
+    public double autoMoleculeReserve() { return state.autoMoleculeReserve(); }
 
     /** Règle la part d'espace que la création automatique laisse libre ; ramenée entre 0 et 0,95. */
     public void setAutoMoleculeReserve(double share) {
@@ -547,14 +495,10 @@ public abstract class GameMatterAutomation extends GameMolecules {
     final List<String> autoFormed = new ArrayList<>();
 
     /** Vrai une fois acquise l'amélioration d'espace « Rassemblement automatique » ({@link SpaceUpgrade.AutoGather}). */
-    public boolean isAutoGatherUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.AutoGather.class);
-    }
+    public boolean isAutoGatherUnlocked() { return ownsSpaceEffect(SpaceUpgrade.AutoGather.class); }
 
     /** Vrai si le rassemblement automatique est en marche (il ne sert qu'une fois acquis). */
-    public boolean isAutoGatherEnabled() {
-        return state.autoGather();
-    }
+    public boolean isAutoGatherEnabled() { return state.autoGather(); }
 
     /** Met en marche ou coupe le rassemblement automatique ; faux s'il n'est pas acquis. */
     public boolean setAutoGatherEnabled(boolean enabled) {
@@ -569,14 +513,10 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /** Vrai une fois acquise l'amélioration d'espace « Formation automatique » ({@link SpaceUpgrade.AutoForm}). */
-    public boolean isAutoFormUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.AutoForm.class);
-    }
+    public boolean isAutoFormUnlocked() { return ownsSpaceEffect(SpaceUpgrade.AutoForm.class); }
 
     /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). */
-    public boolean isAutoFormEnabled() {
-        return state.autoForm();
-    }
+    public boolean isAutoFormEnabled() { return state.autoForm(); }
 
     /** Met en marche ou coupe la formation automatique ; faux si elle n'est pas acquise. */
     public boolean setAutoFormEnabled(boolean enabled) {
@@ -661,23 +601,17 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /** Vrai une fois le premier Big Bang déclenché : l'acte suivant existe. */
-    public boolean isBigBangUnlocked() {
-        return state.bigBangs() > 0;
-    }
+    public boolean isBigBangUnlocked() { return state.bigBangs() > 0; }
 
     /** Nombre de Big Bangs déclenchés depuis le début du jeu. */
-    public int bigBangs() {
-        return state.bigBangs();
-    }
+    public int bigBangs() { return state.bigBangs(); }
 
     // ------------------------------------------------------------------
     // Les molécules favorites et la liste de courses
     // ------------------------------------------------------------------
 
     /** Vrai si le joueur a épinglé cette molécule. */
-    public boolean isMoleculeFavorite(String moleculeId) {
-        return state.isMoleculeFavorite(molecule(moleculeId).id());
-    }
+    public boolean isMoleculeFavorite(String moleculeId) { return state.isMoleculeFavorite(molecule(moleculeId).id()); }
 
     /** Épingle une molécule du catalogue, ou la retire des favorites. */
     public void setMoleculeFavorite(String moleculeId, boolean favorite) {
@@ -712,10 +646,9 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Ce dont dépend la liste de courses. Les molécules ne suffisaient pas : un assemblage ou un astre
-     * formé, un rassemblement, une explosion qui vide le tableau, une amélioration d'espace ou un Big
-     * Bang la changent aussi. Avant la 0.047, elle pouvait rester sur un astre déjà formé et ne plus
-     * rien montrer.
+     * Ce dont dépend la liste de courses. Les molécules ne suffisaient pas : un assemblage ou un astre formé, un
+     * rassemblement, une explosion qui vide le tableau, une amélioration d'espace ou un Big Bang la changent aussi.
+     * Avant la 0.047, elle pouvait rester sur un astre déjà formé et ne plus rien montrer.
      */
     private long shoppingKey() {
         long key = state.moleculesVersion();
@@ -750,7 +683,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
             }
             if (best != null) {
                 Map<String, int[]> wanted = new LinkedHashMap<>();
-                Map<String, String> purposes = new java.util.HashMap<>();
+                Map<String, String> purposes = new HashMap<>();
                 wantAssembly(best, wanted, purposes);
                 return new ShoppingList(ShoppingList.Kind.ASSEMBLY, best.name(), canFormAssembly(best.id()),
                         shoppingItems(wanted, purposes), Map.of(), canFormAssembly(best.id()) ? List.of(best) : List.of());
@@ -758,12 +691,12 @@ public abstract class GameMatterAutomation extends GameMolecules {
         }
         Cosmos next = nextCosmos();
         if (next == null || !isCosmosUnlocked(next)) return ShoppingList.NONE;
-        Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> matter = new EnumMap<>(Molecule.State.class);
         for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(next).entrySet()) {
             int missing = (int) Math.max(0, need.getValue() - gatheredInState(need.getKey()));
             if (missing > 0) matter.put(need.getKey(), missing);
         }
-        Map<Molecule.State, Integer> sorts = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> sorts = new EnumMap<>(Molecule.State.class);
         for (Map.Entry<Molecule.State, Integer> need : next.sorts().entrySet()) {
             int missing = need.getValue() - sortsInState(need.getKey());
             if (missing > 0) sorts.put(need.getKey(), missing);
@@ -782,7 +715,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
         int bestMissing = Integer.MAX_VALUE;
         for (Body body : bodies.values()) {
             if (state.hasBody(body.id())) continue;
-            // Version 0.138 : une matière exotique n'est pas à portée avant son palier (huitième Big Bang). Sans cela,
+            // Une matière exotique n'est pas à portée avant son palier (huitième Big Bang). Sans cela,
             // une nébuleuse planétaire dont la matière était déjà réunie (zéro condition manquante) devenait la cible,
             // jamais formable : la liste de courses restait vide et le 28e astre qu'attend le huitième Big Bang
             // n'était plus visé (le Thésauriseur bloquait à 27 astres pendant 24 h).
@@ -800,11 +733,10 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Espace que demande encore la liste de courses ({@link #shoppingList()}) : le volume des
-     * molécules qui manquent, celui des lieux de rassemblement à ouvrir, et, pour la matière qui
-     * manque dans un état, le volume de la plus petite molécule de cet état que le joueur peut
-     * créer. C'est une estimation par le bas : elle ne compte ni les exemplaires d'éléments à
-     * regarnir, ni les molécules plus grosses que le joueur choisirait.
+     * Espace que demande encore la liste de courses ({@link #shoppingList()}) : le volume des molécules qui manquent,
+     * celui des lieux de rassemblement à ouvrir, et, pour la matière qui manque dans un état, le volume de la plus
+     * petite molécule de cet état que le joueur peut créer. C'est une estimation par le bas : elle ne compte ni les
+     * exemplaires d'éléments à regarnir, ni les molécules plus grosses que le joueur choisirait.
      */
     public BigNum shoppingSpace() {
         // Le calcul parcourt le catalogue : il n'est refait que lorsque les molécules ou les rayons ouverts ont changé.
@@ -821,7 +753,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     private BigNum computeShoppingSpace() {
         ShoppingList list = shoppingList();
         double space = 0;
-        Map<Molecule.State, Integer> covered = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> covered = new EnumMap<>(Molecule.State.class);
         for (ShoppingList.Item item : list.items()) {
             Molecule molecule = item.molecule();
             double volume = volumeOf(molecule);
@@ -857,9 +789,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     /**
-     * Secondes d'expansion avant que l'espace libre suffise à la liste de courses
-     * ({@link #shoppingSpace()}) : 0 s'il suffit déjà ou s'il n'y a rien à viser, l'infini si
-     * l'espace ne grandit pas.
+     * Secondes d'expansion avant que l'espace libre suffise à la liste de courses ({@link #shoppingSpace()}) : 0 s'il
+     * suffit déjà ou s'il n'y a rien à viser, l'infini si l'espace ne grandit pas.
      */
     public double secondsUntilShopping() {
         BigNum needed = shoppingSpace();

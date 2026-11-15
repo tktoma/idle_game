@@ -1,19 +1,17 @@
 package idle.ui.bigbang;
 
 import idle.core.molecules.Molecule;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
+import idle.core.sky.*;
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Les dessins du catalogue pour les albums du profil (version 0.198) : une molécule ({@link MoleculeArt}), un astre
+ * Les dessins du catalogue pour les albums du profil : une molécule ({@link MoleculeArt}), un astre
  * ({@link BodyArt}) ou un assemblage (son bloc, dans le skin des blocs), chacun centré dans un cadre donné et dans les
  * skins que le joueur a choisis pour le Big Bang. C'est la seule porte de ce paquet vers les albums.
  */
 public final class CatalogArt {
-
     /** Le rayon d'une molécule, en pixels par pas d'emprise, comme sur les cartes du Big Bang. */
     private static final double PER_EXTENT = 24;
     /** Le plus grand rayon d'un astre, comme sur les cartes des astres. */

@@ -1,6 +1,13 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
+import idle.ui.common.Card;
+import idle.ui.common.Format;
+import java.util.Arrays;
+import java.util.List;
+import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,28 +19,21 @@ import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
 import idle.ui.Version;
 import idle.ui.automation.DimensionAutomationPane;
-import idle.ui.common.Card;
 import idle.ui.pages.StatsPage;
-import java.util.List;
 import javafx.scene.Scene;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.155 : le clicker, septième dimension, et la météo de la graine, sous Xvfb. La surface se clique à la souris ;
+ * Le clicker, septième dimension, et la météo de la graine, sous Xvfb. La surface se clique à la souris ;
  * la cadence multiplie chaque clic ; les zones ×2, une fois débloquées, se superposent et se colorent selon leur nombre,
  * le multiplicateur s'écrit sous la souris ; les améliorations s'achètent dans la fenêtre ; les clics automatiques
  * jouent seuls. La météo se voit dans la vue de la graine et change l'arrosage ; ses trois améliorations sont dans la
  * branche « Clicker » ; le clicker a sa section dans l'automatisation, ses lignes dans les statistiques et son rond vert.
  */
 class ClickerPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au septième univers : le clicker est ouvert. */
     private static Game seventh() {
@@ -59,7 +59,7 @@ class ClickerPageTest {
         }
     }
 
-    private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type, double x, double y) {
+    private static MouseEvent mouse(EventType<MouseEvent> type, double x, double y) {
         return new MouseEvent(type, x, y, x, y, type == MouseEvent.MOUSE_MOVED ? MouseButton.NONE : MouseButton.PRIMARY, 1,
                 false, false, false, false, type == MouseEvent.MOUSE_PRESSED, false, false, false, false, false, null);
     }
@@ -89,7 +89,7 @@ class ClickerPageTest {
             assertEquals(5, game.clickerRate(), 1e-9, "dix clics en deux secondes");
             window.frame(0.016, true);
             assertTrue(window.clickerHintText().contains("5 clics par seconde, ×1.25"), window.clickerHintText());
-            assertTrue(window.clickerHintText().endsWith("Dernier clic : +" + idle.ui.common.Format.darkMatter(game.clickerLastGain()) + "."),
+            assertTrue(window.clickerHintText().endsWith("Dernier clic : +" + Format.darkMatter(game.clickerLastGain()) + "."),
                     window.clickerHintText());
             double[] outside = {view.getWidth() - 2, 2};
             assertFalse(view.press(outside[0], outside[1], false), "hors de la surface : rien");
@@ -155,9 +155,9 @@ class ClickerPageTest {
             assertTrue(window.clickerButton(Game.ClickerUpgrade.STACK).getText().startsWith("Zones superposées : chaque zone de plus ×1.75 → ×2"),
                     window.clickerButton(Game.ClickerUpgrade.STACK).getText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 7);
+            FxTestSupport.openDimensionAutomations(game, 7);
             game.state().setBraneShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.CLICKER_PLAY);
+            FxTestSupport.buyPlay(game, DimensionAutomation.CLICKER_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.clickerHintText().startsWith("Clics automatiques"), window.clickerHintText());
@@ -210,7 +210,7 @@ class ClickerPageTest {
             upgrades.button(SeedUpgrade.WEATHER_POWER).fire();
             assertEquals(50, game.weatherSunSeconds(), 1e-9);
             assertEquals(0.4, game.weatherSunGain(), 1e-9);
-            assertEquals(3, java.util.Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 7).count(),
+            assertEquals(3, Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 7).count(),
                     "trois améliorations de la graine pour le clicker");
             assertFalse(page.dimensionsView().isMarked(7));
             game.state().setClickerShardsEarned(Game.CLICKER_THRESHOLD);
@@ -225,7 +225,7 @@ class ClickerPageTest {
         FxTestSupport.fx(() -> {
             Game game = seventh();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 7);
+            FxTestSupport.openDimensionAutomations(game, 7);
             game.state().setBraneShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
@@ -233,17 +233,17 @@ class ClickerPageTest {
             assertTrue(pane.sectionShown(7));
             assertEquals("Dimension 7 : Le clicker", pane.headingText(7));
             assertTrue(pane.balanceText(7).startsWith("Payés en étincelles"), pane.balanceText(7));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 7);
-            idle.ui.FxTestSupport.fillDimension(game, 7, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 7);
+            FxTestSupport.fillDimension(game, 7, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.CLICKER_PLAY_5S);
             assertEquals(Card.State.READY, play.state());
             assertTrue(play.text().contains("Clique au meilleur endroit, toutes les 5 s"), play.text());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY_5S));
-            assertEquals(13, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
+            assertEquals(13, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
                     "treize automatismes pour le clicker");
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

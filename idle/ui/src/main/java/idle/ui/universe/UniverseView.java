@@ -4,31 +4,23 @@ import idle.core.universe.Skin;
 import idle.ui.common.CanvasPane;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
- * Les univers de l'onglet du même nom. Version 0.080 : une toile d'amas ; version 0.081 : chaque
- * univers est une bulle ronde, un nuage coloré qui dérive à l'intérieur, une poussière d'étoiles et
- * un anneau incliné qui dit sous quel angle on la voit.
+ * Les univers de l'onglet du même nom. Une toile d'amas ; version 0.081 : chaque univers est une bulle ronde, un nuage
+ * coloré qui dérive à l'intérieur, une poussière d'étoiles et un anneau incliné qui dit sous quel angle on la voit.
  *
- * <p>Comme les copies de l'atome : le premier univers est au centre, en grand ; les suivants
- * viennent autour, plus petits (jamais plus grands que lui), de tailles variées, jusqu'à
- * {@link #MAX_BUBBLES}, où la vue est bien chargée. Dès qu'il y en a plusieurs, des lignes
- * semi-transparentes les relient, chacun à ses voisins.
+ * <p>Comme les copies de l'atome : le premier univers est au centre, en grand ; les suivants viennent autour, plus
+ * petits (jamais plus grands que lui), de tailles variées, jusqu'à {@link #MAX_BUBBLES}, où la vue est bien chargée.
+ * Dès qu'il y en a plusieurs, des lignes semi-transparentes les relient, chacun à ses voisins.
  *
- * <p>La naissance ({@link #playBirth()}) se joue à chaque nouvel univers : un point de lumière qui
- * grossit jusqu'à l'éclair blanc, une onde et des traînées qui partent du centre, les bulles qui
- * s'allument à mesure que l'expansion les atteint, puis les mots.
+ * <p>La naissance ({@link #playBirth()}) se joue à chaque nouvel univers : un point de lumière qui grossit jusqu'à
+ * l'éclair blanc, une onde et des traînées qui partent du centre, les bulles qui s'allument à mesure que l'expansion
+ * les atteint, puis les mots.
  */
 public final class UniverseView extends Canvas {
-
     /** Durée de la naissance, en secondes. */
     public static final double BIRTH_SECONDS = 8;
 
@@ -67,14 +59,12 @@ public final class UniverseView extends Canvas {
     private double layoutHeight = -1;
     private List<int[]> links = List.of();
 
-    /** Les skins choisis (version 0.196) pour les bulles, la naissance et les liens ; {@code null} pour le Classique. */
+    /** Les skins choisis pour les bulles, la naissance et les liens ; {@code null} pour le Classique. */
     private Skin bubbleSkin, birthSkin, linksSkin;
 
-    public UniverseView() {
-        super(800, 440);
-    }
+    public UniverseView() { super(800, 440); }
 
-    /** Les skins des bulles, de la naissance et des liens (version 0.196), {@code null} chacun pour le Classique ; {@link UniverseSkinArt} les dessine. */
+    /** Les skins des bulles, de la naissance et des liens, {@code null} chacun pour le Classique ; {@link UniverseSkinArt} les dessine. */
     public void setSkins(Skin bubble, Skin birth, Skin links) {
         bubbleSkin = bubble;
         birthSkin = birth;
@@ -82,9 +72,7 @@ public final class UniverseView extends Canvas {
     }
 
     /** Le nombre d'univers à montrer (au moins un). */
-    public void setUniverses(int count) {
-        universes = Math.max(1, count);
-    }
+    public void setUniverses(int count) { universes = Math.max(1, count); }
 
     /** Lance la naissance, depuis le début : celle du dernier univers créé. */
     public void playBirth() {
@@ -93,19 +81,13 @@ public final class UniverseView extends Canvas {
     }
 
     /** Vrai tant que la naissance se joue. */
-    public boolean isBirthPlaying() {
-        return birth < BIRTH_SECONDS;
-    }
+    public boolean isBirthPlaying() { return birth < BIRTH_SECONDS; }
 
     /** Où en est la naissance, de 0 à 1 : pour les vérifications. */
-    public double birthProgress() {
-        return Math.min(1, birth / BIRTH_SECONDS);
-    }
+    public double birthProgress() { return Math.min(1, birth / BIRTH_SECONDS); }
 
     /** Nombre de bulles dessinées : une par univers, {@link #MAX_BUBBLES} au plus. */
-    public int bubbles() {
-        return Math.min(MAX_BUBBLES, universes);
-    }
+    public int bubbles() { return Math.min(MAX_BUBBLES, universes); }
 
     /** Nombre de lignes entre les bulles dessinées : pour les vérifications. */
     public int shownLinks() {
@@ -120,11 +102,6 @@ public final class UniverseView extends Canvas {
         int lit = 0;
         for (int k = 0; k < bubbles(); k++) if (reveal(all.get(k)) > 0) lit++;
         return lit;
-    }
-
-    /** Les bulles dessinées : pour les vérifications. */
-    List<Bubble> shownBubbles() {
-        return layout(getWidth(), getHeight()).subList(0, bubbles());
     }
 
     /**
@@ -144,10 +121,9 @@ public final class UniverseView extends Canvas {
     }
 
     /**
-     * Place les bulles une fois pour toutes pour cette taille : la première au centre, les autres
-     * tirées au hasard (toujours le même) autour, en évitant la première et en se serrant peu à peu
-     * contre les autres. Les premières sont les plus grandes ; ajouter un univers ne déplace jamais
-     * les précédents.
+     * Place les bulles une fois pour toutes pour cette taille : la première au centre, les autres tirées au hasard
+     * (toujours le même) autour, en évitant la première et en se serrant peu à peu contre les autres. Les premières
+     * sont les plus grandes ; ajouter un univers ne déplace jamais les précédents.
      */
     private List<Bubble> layout(double width, double height) {
         if (width == layoutWidth && height == layoutHeight) return layout;

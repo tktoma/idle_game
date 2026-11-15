@@ -1,14 +1,13 @@
 package idle.core.collider;
 
 /**
- * Les améliorations du collisionneur (version 0.059, refaites en 0.060), payées en énergie. Elles
- * s'ouvrent quand les huit générateurs sont là ; au début, seule la première s'offre, « Collisions »,
- * qui donne aux croisements leur chance de collision. Chacune en ouvre d'autres, rangées en quatre
- * familles ({@link Section}) : les collisions et leurs saveurs, une à une ; les faisceaux ; les
- * générateurs et leurs automates ; et la chaîne qui fait passer l'énergie dans le reste du jeu,
- * des particules au dédoublement des molécules, rangée depuis la version 0.061 dans son propre
- * sous-onglet, et payée aussi en quarks depuis la 0.062. Comme tout le collisionneur, elles traversent
- * l'explosion et le Big Bang ; seule la remise à zéro les reprend.
+ * Les améliorations du collisionneur (refaites en 0.060), payées en énergie. Elles s'ouvrent quand les huit générateurs
+ * sont là ; au début, seule la première s'offre, « Collisions », qui donne aux croisements leur chance de collision.
+ * Chacune en ouvre d'autres, rangées en quatre familles ({@link Section}) : les collisions et leurs saveurs, une à une
+ * ; les faisceaux ; les générateurs et leurs automates ; et la chaîne qui fait passer l'énergie dans le reste du jeu,
+ * des particules au dédoublement des molécules, rangée depuis la version 0.061 dans son propre sous-onglet, et payée
+ * aussi en quarks depuis la 0.062. Comme tout le collisionneur, elles traversent l'explosion et le Big Bang ; seule la
+ * remise à zéro les reprend.
  */
 public enum ColliderUpgrade {
     // Les collisions : la chance, puis les saveurs une à une.
@@ -28,8 +27,8 @@ public enum ColliderUpgrade {
             5, 3e11, 8, FLAVOR_STRANGE, 1, null),
     TOP_LIFE(Section.COLLISIONS, "Top stable", "Le quark top attend deux fois plus longtemps, la surchauffe dure 50 % de plus, par niveau",
             3, 1e16, 20, FLAVOR_TOP, 1, null),
-    // Version 0.070 : la condition qui ouvre toutes les bifurcations de l'arbre de matière noire. Elle attend
-    // aussi le cinquième Big Bang (version 0.073, {@link idle.core.Game#isColliderUpgradeOpen}).
+    // La condition qui ouvre toutes les bifurcations de l'arbre de matière noire. Elle attend
+    // aussi le cinquième Big Bang ({@link idle.core.Game#isColliderUpgradeOpen}).
     SUPERPOSITION(Section.COLLISIONS, "Superposition", "À partir du cinquième Big Bang : les bifurcations de l'arbre de matière noire s'ouvrent des deux côtés : "
             + "les deux voies se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre",
             1, 1e24, 1, FLAVOR_TOP, 1, null),
@@ -69,13 +68,9 @@ public enum ColliderUpgrade {
 
         private final String label;
 
-        Section(String label) {
-            this.label = label;
-        }
+        Section(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     private final Section section;
@@ -88,7 +83,7 @@ public enum ColliderUpgrade {
     private final int requiredLevel;
     private final ColliderGenerator generator;
     private final Quark flavor;
-    /** La chaîne se paie aussi en quarks (version 0.062) : leur saveur, et le prix du premier niveau, qui double ensuite. */
+    /** La chaîne se paie aussi en quarks : leur saveur, et le prix du premier niveau, qui double ensuite. */
     private final Quark quark;
     private final int quarkBase;
 
@@ -129,25 +124,17 @@ public enum ColliderUpgrade {
         this.quarkBase = 0;
     }
 
-    private static String lowerFirst(String text) {
-        return Character.toLowerCase(text.charAt(0)) + text.substring(1);
-    }
+    private static String lowerFirst(String text) { return Character.toLowerCase(text.charAt(0)) + text.substring(1); }
 
-    public Section section() {
-        return section;
-    }
+    public Section section() { return section; }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ce qu'elle fait, en une phrase. */
-    public String effect() {
-        return effect;
-    }
+    public String effect() { return effect; }
 
     /**
-     * Ce que fait l'amélioration, en quelques mots, pour la carte (version 0.064) ; l'explication
+     * Ce que fait l'amélioration, en quelques mots, pour la carte ; l'explication
      * complète ({@link #effect()}) n'apparaît qu'en mode détails.
      */
     public String brief() {
@@ -176,19 +163,13 @@ public enum ColliderUpgrade {
         };
     }
 
-    public int maxLevel() {
-        return maxLevel;
-    }
+    public int maxLevel() { return maxLevel; }
 
     /** Prix du niveau suivant, quand {@code level} niveaux sont déjà pris. */
-    public double cost(int level) {
-        return baseCost * Math.pow(growth, level);
-    }
+    public double cost(int level) { return baseCost * Math.pow(growth, level); }
 
     /** La saveur de quarks qu'elle coûte en plus de l'énergie, ou {@code null}. */
-    public Quark quark() {
-        return quark;
-    }
+    public Quark quark() { return quark; }
 
     /** Les quarks que coûte le niveau suivant, quand {@code level} niveaux sont déjà pris : le double à chaque niveau. */
     public int quarkCost(int level) {
@@ -196,29 +177,19 @@ public enum ColliderUpgrade {
     }
 
     /** L'amélioration qui l'ouvre, ou {@code null} pour la première. */
-    public ColliderUpgrade requires() {
-        return requires;
-    }
+    public ColliderUpgrade requires() { return requires; }
 
     /** Le niveau qu'il faut à {@link #requires()} pour l'ouvrir. */
-    public int requiredLevel() {
-        return requiredLevel;
-    }
+    public int requiredLevel() { return requiredLevel; }
 
     /** Le générateur qu'achète cet automate, ou {@code null} si ce n'en est pas un. */
-    public ColliderGenerator generator() {
-        return generator;
-    }
+    public ColliderGenerator generator() { return generator; }
 
     /** La saveur qu'ouvre cette amélioration (le quark bas pour « Collisions », qui ouvre aussi le haut), ou {@code null}. */
-    public Quark flavor() {
-        return flavor;
-    }
+    public Quark flavor() { return flavor; }
 
     /** Vrai pour ce qui se met en pause d'un clic une fois acheté : les automates. */
-    public boolean isPausable() {
-        return generator != null;
-    }
+    public boolean isPausable() { return generator != null; }
 
     /** L'automate de ce générateur. */
     public static ColliderUpgrade automationOf(ColliderGenerator generator) {

@@ -1,5 +1,7 @@
 package idle.core.probes;
 
+import java.util.List;
+
 /**
  * La durée d'un voyage de sonde. Plus il est long, plus le butin est riche par heure : c'est la
  * boucle « je pars, je reviens » ; revenir en retard ne fait rien perdre, le butin attend.
@@ -10,7 +12,7 @@ public enum ProbeTrip {
     LONG("Long voyage", 4 * 60 * 60, 24, 4),
     NIGHT("Expédition", 8 * 60 * 60, 56, 5),
     /**
-     * L'onde d'urgence chimique (version 0.086) : 20 minutes, un seul petit lot de l'élément déjà
+     * L'onde d'urgence chimique : 20 minutes, un seul petit lot de l'élément déjà
      * découvert que l'astre visé demande le plus ; jamais un élément inconnu. Elle s'ouvre au troisième Big Bang.
      */
     URGENT("Onde d'urgence chimique", 20 * 60, 2, 1);
@@ -28,31 +30,19 @@ public enum ProbeTrip {
     }
 
     /** Vrai pour l'onde d'urgence chimique, qui ne part vers aucune destination et rapporte un seul lot. */
-    public boolean isUrgent() {
-        return this == URGENT;
-    }
+    public boolean isUrgent() { return this == URGENT; }
 
     /** Les voyages ordinaires, vers une destination, du plus court au plus long. */
-    public static java.util.List<ProbeTrip> ordinary() {
-        return java.util.List.of(SHORT, HOUR, LONG, NIGHT);
-    }
+    public static List<ProbeTrip> ordinary() { return List.of(SHORT, HOUR, LONG, NIGHT); }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Durée du voyage, avant les moteurs. */
-    public double seconds() {
-        return seconds;
-    }
+    public double seconds() { return seconds; }
 
     /** Ce que vaut chaque récompense rapportée, à multiplier par les instruments : 1 pour un saut court. */
-    public double value() {
-        return value;
-    }
+    public double value() { return value; }
 
     /** Nombre de récompenses rapportées, avant la soute. */
-    public int rewards() {
-        return rewards;
-    }
+    public int rewards() { return rewards; }
 }

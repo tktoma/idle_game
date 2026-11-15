@@ -1,24 +1,23 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.save.SaveData;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
-import java.util.ArrayList;
-import java.util.List;
+import idle.core.universe.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.203 : six skins retirés du jeu (l'œuf, la pluie et le feu d'artifice de la matière noire ; le ballon noué, la
+ * Six skins retirés du jeu (l'œuf, la pluie et le feu d'artifice de la matière noire ; le ballon noué, la
  * planète-fruit et l'œuf des bulles des univers). Une sauvegarde d'avant, qui les nomme encore parmi les skins débloqués ou
  * choisis, se relit sans eux et sans erreur ; les bulles qui restent viennent aux univers 1, 2 et 3.
  */
 class SkinsRetiresTest {
-
     private static final List<String> RETIRES = List.of("dark_egg", "dark_rain", "dark_fireworks", "bubble_balloon", "bubble_fruit", "bubble_egg");
 
     @Test
@@ -64,7 +63,7 @@ class SkinsRetiresTest {
 
     @Test
     void lesBullesQuiRestentViennentAuxTroisPremiersUnivers() {
-        // Version 0.206 : chaque skin attend aussi son univers (Skin.minUniverses()) ; la bulle vient au plus tard des deux.
+        // Chaque skin attend aussi son univers (Skin.minUniverses()) ; la bulle vient au plus tard des deux.
         Game game = GameTestSupport.universe(1);
         game.state().setSkinsOpen(true);
         game.tick(1);

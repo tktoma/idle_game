@@ -1,22 +1,18 @@
 package idle.ui.universe;
 
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
+import idle.core.universe.SkinVisual;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
 
 /**
- * Le cadre des mini-jeux (version 0.197, {@link idle.core.universe.SkinVisual#DIMENSION_FRAME}) : un calque transparent
+ * Le cadre des mini-jeux ({@link idle.core.universe.SkinVisual#DIMENSION_FRAME}) : un calque transparent
  * posé sur l'arène de {@link DimensionWindow}, qui en dessine la bordure sur {@link #THICKNESS} pixels. Un hublot (un
  * anneau de métal rivé, aux coins arrondis), un cadre doré (deux filets d'or et des volutes aux coins), un écran cathodique
  * (un boîtier gris, une lueur dans les coins, de fines lignes de balayage sur l'image et une diode qui veille) ou un livre
  * ouvert (deux pages de papier, leur tranche et la couture au milieu, en haut et en bas). Sans skin, le calque reste vide.
  */
 final class DimensionFrameArt {
-
     private DimensionFrameArt() {
     }
 
@@ -29,9 +25,7 @@ final class DimensionFrameArt {
     private static final Color PAPER = Color.web("#f1e6cf"), PAPER_EDGE = Color.web("#c9b892"), THREAD = Color.web("#8a6a3e"), COVER = Color.web("#5a2e1e");
 
     /** Vrai pour un skin de ce visuel. */
-    static boolean frames(Skin skin) {
-        return skin != null && skin.visual() == idle.core.universe.SkinVisual.DIMENSION_FRAME;
-    }
+    static boolean frames(Skin skin) { return skin != null && skin.visual() == SkinVisual.DIMENSION_FRAME; }
 
     /** Dessine le cadre du skin sur le calque, ou l'efface sans skin. */
     static void draw(Canvas canvas, Skin skin, double time) {

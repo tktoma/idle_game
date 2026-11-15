@@ -5,9 +5,9 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Les sept skins du fond animé des particules (version 0.192), dessinés à côté de {@link AmbientView} pour le
- * garder lisible. Les quatre-vingt-dix poussières gardent leur place, leur taille et leur phase ; chaque skin
- * leur donne un autre mouvement et une autre forme, et toutes filent plus vite avec la production :
+ * Les sept skins du fond animé des particules, dessinés à côté de {@link AmbientView} pour le garder lisible. Les
+ * quatre-vingt-dix poussières gardent leur place, leur taille et leur phase ; chaque skin leur donne un autre mouvement
+ * et une autre forme, et toutes filent plus vite avec la production :
  * <ul>
  * <li>« Neige » : des flocons blancs qui tombent en se balançant, les gros en étoiles à six branches ;</li>
  * <li>« Pluie » : des traits bleutés qui tombent droit et vite ;</li>
@@ -16,11 +16,9 @@ import javafx.scene.paint.Color;
  * <li>« Bulles » : des ronds translucides qui montent, un reflet blanc en haut à gauche ;</li>
  * <li>« Poussière d'or » : des paillettes dorées qui scintillent, les plus vives en éclats à quatre rayons ;</li>
  * <li>« Cendres » : des flocons gris qui montent en se balançant, un sur cinq encore rougeoyant.</li>
- * </ul>
- * « Silence » n'est pas dessiné ici : le fond reste vide, dans {@link AmbientView}.
+ * </ul> « Silence » n'est pas dessiné ici : le fond reste vide, dans {@link AmbientView}.
  */
 final class AmbientSkinArt {
-
     private static final Color SNOW = Color.web("#f4f8ff");
     private static final Color RAIN = Color.web("#9fd0ff");
     private static final Color POLLEN = Color.web("#ffe08a");
@@ -170,7 +168,5 @@ final class AmbientSkinArt {
     }
 
     /** Une poussière qui sort d'un côté rentre par l'autre. */
-    private static double wrap(double value) {
-        return value - Math.floor(value);
-    }
+    private static double wrap(double value) { return value - Math.floor(value); }
 }

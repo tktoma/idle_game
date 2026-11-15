@@ -1,7 +1,7 @@
 package idle.core.collider;
 
 /**
- * Les huit générateurs du collisionneur (version 0.057, moins chers en 0.060 : les huit en trois heures environ). Le premier fait se croiser les faisceaux,
+ * Les huit générateurs du collisionneur (moins chers en 0.060 : les huit en trois heures environ). Le premier fait se croiser les faisceaux,
  * et chaque croisement donne de l'énergie ; chacun des suivants produit, peu à peu, des exemplaires
  * du précédent. Ils s'achètent avec l'énergie, et rien ne s'y perd ni à l'explosion ni au Big Bang.
  */
@@ -27,22 +27,14 @@ public enum ColliderGenerator {
         this.power = power;
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Prix du suivant, quand {@code bought} sont déjà achetés. */
-    public double cost(int bought) {
-        return baseCost * Math.pow(growth, bought);
-    }
+    public double cost(int bought) { return baseCost * Math.pow(growth, bought); }
 
     /** Ce qu'un exemplaire produit par seconde : de l'énergie pour le premier, des exemplaires du précédent pour les autres. */
-    public double power() {
-        return power;
-    }
+    public double power() { return power; }
 
     /** Le générateur que celui-ci produit, ou {@code null} pour le premier. */
-    public ColliderGenerator previous() {
-        return ordinal() == 0 ? null : values()[ordinal() - 1];
-    }
+    public ColliderGenerator previous() { return ordinal() == 0 ? null : values()[ordinal() - 1]; }
 }

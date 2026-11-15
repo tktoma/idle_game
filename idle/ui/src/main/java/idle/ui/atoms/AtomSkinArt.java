@@ -2,31 +2,26 @@ package idle.ui.atoms;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les cinq skins de l'atome de la version 0.191, dessinés à côté de {@link AtomModelView} pour le
- * garder lisible. Même géométrie que le classique (un noyau, les couches 2, 8, 18, 32, 32, 18, 8 qui
- * tournent chacune à sa vitesse, un atome vu de biais pour les copies), autres formes :
+ * Les cinq skins de l'atome de la version 0.191, dessinés à côté de {@link AtomModelView} pour le garder lisible. Même
+ * géométrie que le classique (un noyau, les couches 2, 8, 18, 32, 32, 18, 8 qui tournent chacune à sa vitesse, un atome
+ * vu de biais pour les copies), autres formes :
  * <ul>
- * <li>« Modèle de Bohr au tableau noir » : une ardoise vert sombre, des cercles et des ronds de craie
- * blanche un peu tremblés, des « + » dans le noyau et des « − » dans les électrons ;</li>
- * <li>« Nuage de probabilité » : pas d'orbites, chaque électron est un nuage de points flous qui
- * respire ;</li>
- * <li>« Système à anneaux » : un noyau en planète à bandes, des anneaux inclinés où roulent les
- * électrons comme des cailloux de glace ;</li>
- * <li>« Horlogerie » : les protons et les neutrons en roues dentées de laiton qui s'engrènent et
- * tournent, les électrons en billes d'acier sur des roues ;</li>
- * <li>« Vitrail » : des secteurs de verre coloré cernés de plomb noir, les électrons en perles de
- * verre, un noyau en rosace.</li>
+ * <li>« Modèle de Bohr au tableau noir » : une ardoise vert sombre, des cercles et des ronds de craie blanche un peu
+ * tremblés, des « + » dans le noyau et des « − » dans les électrons ;</li>
+ * <li>« Nuage de probabilité » : pas d'orbites, chaque électron est un nuage de points flous qui respire ;</li>
+ * <li>« Système à anneaux » : un noyau en planète à bandes, des anneaux inclinés où roulent les électrons comme des
+ * cailloux de glace ;</li>
+ * <li>« Horlogerie » : les protons et les neutrons en roues dentées de laiton qui s'engrènent et tournent, les
+ * électrons en billes d'acier sur des roues ;</li>
+ * <li>« Vitrail » : des secteurs de verre coloré cernés de plomb noir, les électrons en perles de verre, un noyau en
+ * rosace.</li>
  * </ul>
  */
 final class AtomSkinArt {
-
     private static final Color CHALK = Color.web("#f4f1e6");
     private static final Color SLATE = Color.web("#1d2a24");
     private static final Color CLOUD = Color.web("#ffe9c2");
@@ -68,13 +63,9 @@ final class AtomSkinArt {
             return new Frame(cx, cy, cos * cos + tilt * sin * sin, cos * sin * (1 - tilt), sin * sin + tilt * cos * cos);
         }
 
-        double x(double ux, double uy) {
-            return cx + a * ux + b * uy;
-        }
+        double x(double ux, double uy) { return cx + a * ux + b * uy; }
 
-        double y(double ux, double uy) {
-            return cy + b * ux + d * uy;
-        }
+        double y(double ux, double uy) { return cy + b * ux + d * uy; }
 
         /** Le cercle de rayon {@code r} du plan de l'atome, en {@code points} points, fermé. */
         double[][] circle(double r, int points, double jitter, int seed) {

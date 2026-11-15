@@ -1,23 +1,23 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.upgrades.*;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
+import idle.core.achievements.*;
 import idle.core.bigbang.BangChallenge;
 import idle.core.universe.Trial;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.174 : les nouveautés du deuxième univers s'ouvrent par leurs succès, dans l'ordre des actes, et une vingtaine
+ * Les nouveautés du deuxième univers s'ouvrent par leurs succès, dans l'ordre des actes, et une vingtaine
  * de succès jalonnent la suite jusqu'à la fin de la partie.
  */
 class SuccesUniversTest {
-
     /** Tous les succès du deuxième univers : aucun ne peut tomber dans le premier. */
     private static final List<String> UNIVERSE_STEPS = List.of(Achievements.UNIVERSE_SKINS, Achievements.UNIVERSE_REGIME,
             Achievements.UNIVERSE_SYNERGY, Achievements.UNIVERSE_PERFECT, Achievements.UNIVERSE_FREE, Achievements.UNIVERSE_TRIALS,
@@ -137,9 +137,9 @@ class SuccesUniversTest {
         game.state().setRegimeOpen(true);
         game.state().setSynergyOpen(true);
         assertTrue(game.isSkinsUnlocked() && game.isRegimeUnlocked() && game.isSynergyUnlocked());
-        Game reread = new Game(GameTestSupport.reread(game.state()), idle.core.upgrades.Upgrades.DEFAULT,
-                idle.core.upgrades.Automations.DEFAULT, idle.core.darkmatter.DarkUpgrades.DEFAULT, Achievements.DEFAULT,
-                new java.util.Random(42L));
+        Game reread = new Game(GameTestSupport.reread(game.state()), Upgrades.DEFAULT,
+                Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT,
+                new Random(42L));
         assertFalse(reread.hasAchievement(Achievements.UNIVERSE_SKINS), "une sauvegarde d'avant la 0.174");
         reread.tick(1.1);
         assertTrue(reread.isSkinsUnlocked() && reread.isRegimeUnlocked() && reread.isSynergyUnlocked());

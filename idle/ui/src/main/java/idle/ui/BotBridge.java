@@ -1,12 +1,11 @@
 package idle.ui;
 
 import idle.core.Game;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.List;
 
 /**
- * Les bots dans le profil de test (version 0.084) : le bot V2 du module {@code bots}
+ * Les bots dans le profil de test : le bot V2 du module {@code bots}
  * ({@code AdvancedLab}) joue la partie en cours, en direct ou en avance rapide.
  *
  * <p>Les bots ne font pas partie du jeu : ils vivent dans leur module, sans paquet Java, et
@@ -14,7 +13,6 @@ import java.util.List;
  * ajoute avec {@code runtimeOnly(project(":bots"))}) ; sinon les outils le disent et ne font rien.
  */
 final class BotBridge {
-
     /** Le nom de la classe du bot V2. */
     static final String BOT_CLASS = "AdvancedLab";
     /** Les politiques du bot V2, si le bot n'est pas là pour les donner. */
@@ -35,9 +33,7 @@ final class BotBridge {
     }
 
     /** La classe du bot, ou {@code null} si le module des bots n'est pas là. */
-    private static Class<?> botClass() {
-        return botClass(BOT_CLASS);
-    }
+    private static Class<?> botClass() { return botClass(BOT_CLASS); }
 
     /** Cette classe des bots, cherchée d'abord par le chargeur du fil, ou {@code null} si le module n'est pas là. */
     static Class<?> botClass(String name) {
@@ -53,16 +49,14 @@ final class BotBridge {
     }
 
     /** Vrai si les bots sont là. */
-    static boolean available() {
-        return botClass() != null;
-    }
+    static boolean available() { return botClass() != null; }
 
     /** Les politiques que le bot connaît, dans son ordre. */
     static List<String> modes() {
         Class<?> type = botClass();
         if (type == null) return FALLBACK_MODES;
         try {
-            java.lang.reflect.Field field = type.getDeclaredField("MODES");
+            Field field = type.getDeclaredField("MODES");
             field.setAccessible(true);
             return List.of((String[]) field.get(null));
         } catch (ReflectiveOperationException | RuntimeException unexpected) {
@@ -85,9 +79,7 @@ final class BotBridge {
         }
     }
 
-    String mode() {
-        return mode;
-    }
+    String mode() { return mode; }
 
     /** Une décision du bot. Faux si elle a échoué (le bot ne suit plus le jeu). */
     boolean act() {

@@ -1,33 +1,31 @@
 package idle.ui.bigbang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.math.BigNum;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.image.WritableImage;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.sky.Bodies;
 import idle.core.sky.Body;
-import idle.core.universe.Skin;
 import idle.ui.FxTestSupport;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.canvas.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.183 : les couches de détail des astres ({@link BodyArt#DETAIL_FROM}) n'agrandissent
+ * Les couches de détail des astres ({@link BodyArt#DETAIL_FROM}) n'agrandissent
  * pas leur emprise, chaque astre du catalogue se dessine à toutes les tailles, et l'espace vu de
  * très loin, quand tout est devenu du gaz, se dessine avec ses marques nettes par-dessus.
  *
- * <p>Version 0.186 : les trois skins des astres ({@link Skin#BODIES}) dessinent chaque astre à toutes
+ * <p>Les trois skins des astres ({@link Skin#BODIES}) dessinent chaque astre à toutes
  * les tailles sans exception, ne changent pas l'emprise (qui ne dépend que de l'astre), et sans skin
  * ({@code null}) le dessin passe par le même chemin que sans argument.
  */
 class BodyArtTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** L'emprise attendue d'un astre, en rayons : celle d'avant les couches de détail, qui ne doit pas bouger. */
     private static double[] expected(Body body) {
@@ -44,8 +42,7 @@ class BodyArtTest {
                 case MOLTEN -> new double[] {1.06, 1, 1, 1, 1};
                 default -> new double[] {1, 1, 1, 1, 1};
             };
-            case STAR, REMNANT -> body.look() == Body.Look.BEAMING
-                    ? new double[] {2.8, 2.4517, 2.4517, 1.5, 1.5}
+            case STAR, REMNANT -> body.look() == Body.Look.BEAMING ? new double[] {2.8, 2.4517, 2.4517, 1.5, 1.5}
                     : new double[] {1.45, 1.45, 1.45, 1.45, 1.45};
             case BLACK_HOLE -> new double[] {2.35, 1.32, 1.32, 2.35, 2.35};
             case CORE -> new double[] {2.35, 2.3, 2.3, 2.35, 2.35};
@@ -99,7 +96,7 @@ class BodyArtTest {
             GraphicsContext g = canvas.getGraphicsContext2D();
             assertEquals(3, Skin.BODIES.length);
             for (Skin skin : Skin.BODIES) {
-                assertEquals(idle.core.universe.SkinVisual.BODY, skin.visual(), skin.name());
+                assertEquals(SkinVisual.BODY, skin.visual(), skin.name());
                 for (Body body : Bodies.DEFAULT) {
                     // Minuscule, sous et sur le seuil du nom de la Cartographie, et grand : aucun ne doit lever d'exception.
                     for (double r : new double[] {2, BodySkinArt.NAME_FROM - 1, BodySkinArt.NAME_FROM, 40}) {
@@ -137,8 +134,8 @@ class BodyArtTest {
                 nulled.getGraphicsContext2D().clearRect(0, 0, 120, 120);
                 BodyArt.draw(plain.getGraphicsContext2D(), body, 60, 60, 16);
                 BodyArt.draw(nulled.getGraphicsContext2D(), body, 60, 60, 16, null);
-                javafx.scene.image.WritableImage a = plain.snapshot(null, null);
-                javafx.scene.image.WritableImage b = nulled.snapshot(null, null);
+                WritableImage a = plain.snapshot(null, null);
+                WritableImage b = nulled.snapshot(null, null);
                 for (int px = 0; px < 120; px += 3) {
                     for (int py = 0; py < 120; py += 3) {
                         assertEquals(a.getPixelReader().getArgb(px, py), b.getPixelReader().getArgb(px, py), body.id() + " en " + px + "," + py);
@@ -151,9 +148,7 @@ class BodyArtTest {
 
     @Test
     void leCielDonneAuxAstresDesRayonsOrdonnes() {
-        for (Body body : Bodies.DEFAULT) {
-            assertTrue(SkyView.radius(body) >= 9, body.id());
-        }
+        for (Body body : Bodies.DEFAULT) assertTrue(SkyView.radius(body) >= 9, body.id());
         Game game = new Game();
         game.start();
         assertTrue(SkyView.radius(game.body("stony_asteroid")) >= BodyArt.DETAIL_FROM, "un astéroïde a ses détails à l'échelle 1");
@@ -171,7 +166,7 @@ class BodyArtTest {
         game.state().addSubstance("H2O");
         game.state().addSubstance("CO2");
         game.state().addSubstance("NaCl");
-        game.state().setSpace(idle.core.math.BigNum.of(1e12));
+        game.state().setSpace(BigNum.of(1e12));
         return game;
     }
 

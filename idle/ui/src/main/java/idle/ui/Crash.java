@@ -1,7 +1,6 @@
 package idle.ui;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 
 /**
  * La mémoire des erreurs imprévues : la première qui survient est gardée, avec le nombre de
@@ -11,7 +10,6 @@ import java.io.StringWriter;
  * la première qui dit ce qui a cassé.
  */
 final class Crash {
-
     /** Nombre de lignes de la trace gardées : le haut de la pile, là où l'erreur est née. */
     private static final int MAX_LINES = 40;
 
@@ -35,14 +33,10 @@ final class Crash {
     }
 
     /** La première erreur survenue depuis le lancement, ou un texte vide. */
-    static synchronized String first() {
-        return first;
-    }
+    static synchronized String first() { return first; }
 
     /** Nombre d'erreurs survenues depuis le lancement. */
-    static synchronized long count() {
-        return count;
-    }
+    static synchronized long count() { return count; }
 
     /** Oublie tout : pour les essais. */
     static synchronized void clear() {

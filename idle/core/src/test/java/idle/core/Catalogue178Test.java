@@ -5,26 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
+import idle.core.achievements.*;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
+import idle.core.molecules.*;
 import idle.core.probes.ProbeDestination;
-import idle.core.sky.Assemblies;
-import idle.core.sky.Assembly;
-import idle.core.sky.Bodies;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import idle.core.sky.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -34,7 +21,6 @@ import org.junit.jupiter.api.Test;
  * « Chimiste » demande trente sortes, et plus aucun succès ne parle de collection.
  */
 class Catalogue178Test {
-
     private static long count(Molecule.Kind kind) {
         return Molecules.DEFAULT.stream().filter(molecule -> molecule.kind() == kind).count();
     }

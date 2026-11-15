@@ -1,15 +1,14 @@
 package idle.ui.collider;
 
 import idle.core.universe.Skin;
+import java.util.Locale;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * Le reste du collisionneur (version 0.195), dessiné à côté de {@link EnergyView} pour la garder lisible : le détecteur,
+ * Le reste du collisionneur, dessiné à côté de {@link EnergyView} pour la garder lisible : le détecteur,
  * les éclairs du croisement, les étincelles et les quarks qui s'envolent, un visuel chacun.
  * <ul>
  * <li>Le détecteur : « Œil » (une paupière qui s'ouvre au croisement, l'iris doré quand il est à capter), « Lanterne »
@@ -26,7 +25,6 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  */
 final class DetectorSkinArt {
-
     private static final Color IRON = Color.web("#3a3f48");
     private static final Color AMBER = Color.web("#ffb347");
     private static final Color BRONZE = Color.web("#b8863b");
@@ -58,9 +56,7 @@ final class DetectorSkinArt {
     private double swingAge = 10;
     private boolean wasCrossing;
 
-    DetectorSkinArt(EnergyView view) {
-        this.view = view;
-    }
+    DetectorSkinArt(EnergyView view) { this.view = view; }
 
     /** Vrai pour les détecteurs dessinés ici. */
     static boolean drawsDetector(Skin detector) {
@@ -83,9 +79,7 @@ final class DetectorSkinArt {
     }
 
     /** Le flash de l'appareil photo encore visible : pour les vérifications. */
-    boolean flashing() {
-        return flashAge < FLASH_SECONDS;
-    }
+    boolean flashing() { return flashAge < FLASH_SECONDS; }
 
     // ------------------------------------------------------------------
     // Le détecteur
@@ -440,7 +434,7 @@ final class DetectorSkinArt {
                 g.strokeRoundRect(x - s / 2, y - s / 2, s, s, 2, 2);
                 g.setFill(TILE_INK);
                 g.setFont(TILE_LETTER);
-                g.fillText(symbol.toUpperCase(java.util.Locale.ROOT), x - 1, y + 4);
+                g.fillText(symbol.toUpperCase(Locale.ROOT), x - 1, y + 4);
                 g.setFont(TILE_VALUE);
                 g.setTextAlign(TextAlignment.RIGHT);
                 g.fillText(String.valueOf(scrabbleValue(symbol)), x + s / 2 - 1.5, y + s / 2 - 1.5);

@@ -7,37 +7,27 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.history.Pace;
-import idle.core.history.PurchaseHistory;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.history.*;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
 import idle.ui.common.Format;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.198 : les skins des statistiques, sous Xvfb. Les courbes ({@link SkinVisual#CHART}) et la palette des
+ * Les skins des statistiques, sous Xvfb. Les courbes ({@link SkinVisual#CHART}) et la palette des
  * séries ({@link SkinVisual#CHART_PALETTE}) : chaque combinaison dessine un graphique à une et deux séries, avec des
  * points manquants et des marqueurs, à deux largeurs, autrement que le Classique ; la palette remplace les huit couleurs
  * et laisse les autres ; la frise ({@link SkinVisual#TIMELINE}) : chaque skin redessine les lignes des univers, autant
  * qu'il y en a, avec les mêmes textes ; la page des statistiques pousse les skins choisis.
  */
 class StatsSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
-    void classic() {
-        ChartPane.setSkins(null, null);
-    }
+    void classic() { ChartPane.setSkins(null, null); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

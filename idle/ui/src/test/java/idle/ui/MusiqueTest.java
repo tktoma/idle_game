@@ -5,23 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
-import idle.core.GameUniverse;
+import idle.core.*;
 import idle.ui.Music.Mood;
 import idle.ui.Music.Scene;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.210 : la musique de fond. Elle suit la partie, scène par scène ; elle se compose sans saturer, sans couper,
+ * La musique de fond. Elle suit la partie, scène par scène ; elle se compose sans saturer, sans couper,
  * de la même façon à chaque fois ; chaque univers a sa tonalité ; elle se coupe et reprend avec un fondu. Sans affichage
  * ni carte son : les blocs partent dans un relevé.
  */
 class MusiqueTest {
-
     private static Game partie() {
         Game game = new Game(42L);
         game.start();
@@ -203,9 +198,7 @@ class MusiqueTest {
         Music.Engine engine = new Music.Engine(201, tenues());
         engine.setMood(new Mood(Scene.ELAN, 1, 0));
         List<Music.Engine.Played> pads = new ArrayList<>();
-        engine.onPlayed = note -> {
-            if (note.role() == Music.Engine.Role.PAD) pads.add(note);
-        };
+        engine.onPlayed = note -> { if (note.role() == Music.Engine.Role.PAD) pads.add(note); };
         rendre(engine, 60);
         assertTrue(pads.size() >= 8, "des accords se suivent : " + pads.size());
         // Une note commune à deux accords reste tenue : chaque accord n'en fait entrer que deux ou trois.
@@ -229,7 +222,7 @@ class MusiqueTest {
     @Test
     void laMusiqueCoupeeNeDemarrePasEtReprendAvecUnFondu() throws InterruptedException {
         Music music = new Music();
-        List<byte[]> blocks = java.util.Collections.synchronizedList(new ArrayList<>());
+        List<byte[]> blocks = Collections.synchronizedList(new ArrayList<>());
         music.sink = blocks::add;
         Mood mood = new Mood(Scene.ELAN, 1, 0);
         music.update(mood, false, 50);
@@ -250,7 +243,7 @@ class MusiqueTest {
     @Test
     void leGainGlisseSurUnBloc() {
         float[] block = new float[100];
-        java.util.Arrays.fill(block, 0.5f);
+        Arrays.fill(block, 0.5f);
         byte[] pcm = Music.pcm(block, 0, 1);
         assertEquals(0, sample(pcm, 0), "le premier échantillon au gain de départ");
         assertEquals(Math.round(0.5 * 0.99 * Short.MAX_VALUE), sample(pcm, 99), 2, "le dernier presque au gain d'arrivée");

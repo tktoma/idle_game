@@ -1,23 +1,20 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
 import idle.core.molecules.ShoppingList;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeTrip;
+import idle.core.probes.*;
 import idle.core.save.SaveCodec;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.086 : l'onde d'urgence chimique, et les sondes qui servent pendant l'absence. */
 class SondesAbsenceTest {
-
     /** Une partie au troisième Big Bang, le troisième acte ouvert, et quelques éléments découverts. */
     private static Game game() {
         Game game = GameTestSupport.realGame();
@@ -29,7 +26,7 @@ class SondesAbsenceTest {
 
     /** L'élément le plus demandé, calculé à la main d'après la liste de courses. */
     private static int expected(Game game) {
-        Map<Integer, Long> demand = new java.util.TreeMap<>();
+        Map<Integer, Long> demand = new TreeMap<>();
         for (ShoppingList.Item item : game.shoppingList().items()) {
             long missing = Math.max(item.missing(), item.gather() ? 1 : 0);
             for (Map.Entry<Integer, Integer> part : item.molecule().recipe().entrySet()) {

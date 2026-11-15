@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.127 : le nom et la version du jeu qu'une sauvegarde porte, et son aperçu. */
 class SaveMetaTest {
-
     @Test
     void leNomEtLaVersionTraversentLExportEtLAperçu() throws Exception {
         Game game = GameTestSupport.realGame();

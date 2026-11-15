@@ -1,12 +1,11 @@
 package idle.ui.universe;
 
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 
 /**
- * Le lancement de l'univers suivant (version 0.111), par-dessus la page Univers : un point de lumière
+ * Le lancement de l'univers suivant, par-dessus la page Univers : un point de lumière
  * naît au centre, gonfle en une petite sphère, éclate en anneaux, et une gerbe de particules monte vers
  * les onglets, là où l'onglet « Particules » réapparaît. Le fond reste transparent : la page se voit derrière.
  *
@@ -14,7 +13,6 @@ import javafx.scene.paint.Color;
  * l'éclat ({@link #LAUNCH_AT}), elle lance l'univers par le {@link Runnable} reçu, une seule fois.
  */
 public final class LaunchView extends Canvas {
-
     /** Durée de toute l'animation, en secondes. */
     public static final double SECONDS = 1.8;
     /** Le moment où l'univers se lance : la sphère éclate. */
@@ -28,7 +26,7 @@ public final class LaunchView extends Canvas {
     private double age = -1;
     private Runnable onLaunch = () -> { };
     private boolean launched;
-    /** Le skin choisi (version 0.196), {@code null} pour le Classique : {@link LaunchSkinArt} le dessine. */
+    /** Le skin choisi, {@code null} pour le Classique : {@link LaunchSkinArt} le dessine. */
     private Skin skin;
 
     public LaunchView() {
@@ -43,15 +41,11 @@ public final class LaunchView extends Canvas {
         age = 0;
     }
 
-    /** Le skin du lancement (version 0.196), {@code null} pour le Classique. */
-    public void setSkin(Skin skin) {
-        this.skin = skin;
-    }
+    /** Le skin du lancement, {@code null} pour le Classique. */
+    public void setSkin(Skin skin) { this.skin = skin; }
 
     /** Vrai tant que l'animation se joue. */
-    public boolean isPlaying() {
-        return age >= 0;
-    }
+    public boolean isPlaying() { return age >= 0; }
 
     /** Fait avancer l'animation (au plus un dixième de seconde à la fois, pour ne pas sauter l'éclat). */
     public void frame(double elapsed) {

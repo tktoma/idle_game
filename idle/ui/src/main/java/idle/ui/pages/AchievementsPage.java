@@ -1,6 +1,9 @@
 package idle.ui.pages;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.Node;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangAchievement;
 import idle.core.collider.ColliderAchievement;
@@ -15,49 +18,47 @@ import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
 /**
- * Contenu de l'onglet « Succès » : le compte, ce que les succès rapportent en tout, puis une
- * tuile par succès ({@link Card}), obtenu ou non. Suivent, depuis la version 0.061, les succès du
- * collisionneur (avec la matière noire) et ceux du Big Bang (au premier Big Bang).
+ * Contenu de l'onglet « Succès » : le compte, ce que les succès rapportent en tout, puis une tuile par succès ({@link
+ * Card}), obtenu ou non. Suivent, depuis la version 0.061, les succès du collisionneur (avec la matière noire) et ceux
+ * du Big Bang (au premier Big Bang).
  *
- * <p>Les tuiles sont rangées dans l'ordre du catalogue, qui est celui où un joueur les obtient
- * d'ordinaire, et numérotées. Chacune porte le nom du succès, ce qu'il demande en quelques mots
- * et, s'il en a un, son bonus propre ; le texte complet vient au survol, ou en mode détails
- * ({@link Detail}). Les succès liés à une action, qui ont leur bonus à eux, sont dorés ; les
- * étapes ont la couleur de l'onglet.
+ * <p>Les tuiles sont rangées dans l'ordre du catalogue, qui est celui où un joueur les obtient d'ordinaire, et
+ * numérotées. Chacune porte le nom du succès, ce qu'il demande en quelques mots et, s'il en a un, son bonus propre ; le
+ * texte complet vient au survol, ou en mode détails ({@link Detail}). Les succès liés à une action, qui ont leur bonus
+ * à eux, sont dorés ; les étapes ont la couleur de l'onglet.
  *
- * <p>Il n'y a pas de courbe ici : celle des succès obtenus est avec les autres, dans l'onglet
- * « Statistiques ».
+ * <p>Il n'y a pas de courbe ici : celle des succès obtenus est avec les autres, dans l'onglet « Statistiques ».
  *
- * <p>Version 0.198 : les skins des tuiles ({@link idle.core.universe.SkinVisual#ACHIEVEMENT_TILE}) et des succès non
- * obtenus ({@link idle.core.universe.SkinVisual#ACHIEVEMENT_LOCKED}) mettent un insigne en tête de chaque tuile
- * ({@link AchievementSkinArt}), refait seulement quand le skin ou l'état du succès change.
+ * <p>Les skins des tuiles ({@link idle.core.universe.SkinVisual#ACHIEVEMENT_TILE}) et des succès non obtenus ({@link
+ * idle.core.universe.SkinVisual#ACHIEVEMENT_LOCKED}) mettent un insigne en tête de chaque tuile ({@link
+ * AchievementSkinArt}), refait seulement quand le skin ou l'état du succès change.
  */
 public final class AchievementsPage extends VBox {
-
     private final Game game;
     private final Label countLabel = new Label();
     private final Label bonusLabel = new Label();
     private final Label hintLabel = new Label();
     private final Map<Achievement, Card> tiles = new LinkedHashMap<>();
-    /** Les succès du collisionneur, ouverts avec la matière noire, et ceux du Big Bang, au premier Big Bang (version 0.061). */
+    /** Les succès du collisionneur, ouverts avec la matière noire, et ceux du Big Bang, au premier Big Bang. */
     private final Label colliderTitle = new Label();
     private final TileGrid colliderGrid = new TileGrid(150, 5, 6);
-    private final Map<ColliderAchievement, Card> colliderTiles = new java.util.EnumMap<>(ColliderAchievement.class);
+    private final Map<ColliderAchievement, Card> colliderTiles = new EnumMap<>(ColliderAchievement.class);
     private final Label bangTitle = new Label();
     private final TileGrid bangGrid = new TileGrid(150, 5, 6);
-    private final Map<BangAchievement, Card> bangTiles = new java.util.EnumMap<>(BangAchievement.class);
-    /** Les skins des insignes au dernier dessin (version 0.198), et pour chaque tuile si son insigne est celui d'un succès obtenu. */
-    private idle.core.universe.Skin drawnTiles, drawnLocked;
-    private final Map<Card, Boolean> drawnOwned = new java.util.HashMap<>();
+    private final Map<BangAchievement, Card> bangTiles = new EnumMap<>(BangAchievement.class);
+    /** Les skins des insignes au dernier dessin, et pour chaque tuile si son insigne est celui d'un succès obtenu. */
+    private Skin drawnTiles, drawnLocked;
+    private final Map<Card, Boolean> drawnOwned = new HashMap<>();
 
     public AchievementsPage(Game game) {
         super(8);
@@ -105,34 +106,26 @@ public final class AchievementsPage extends VBox {
     }
 
     /** La tuile d'un succès : pour les vérifications. */
-    Card tile(Achievement achievement) {
-        return tiles.get(achievement);
-    }
+    Card tile(Achievement achievement) { return tiles.get(achievement); }
 
-    /** Les skins des insignes en place (version 0.198), ou {@code null} pour le Classique : pour les vérifications. */
-    idle.core.universe.Skin tileSkin() {
-        return drawnTiles;
-    }
+    /** Les skins des insignes en place, ou {@code null} pour le Classique : pour les vérifications. */
+    Skin tileSkin() { return drawnTiles; }
 
-    idle.core.universe.Skin lockedSkin() {
-        return drawnLocked;
-    }
+    Skin lockedSkin() { return drawnLocked; }
 
-    /** Vrai si cette tuile porte un insigne (version 0.198) : pour les vérifications. */
-    boolean hasIcon(Card tile) {
-        return drawnOwned.containsKey(tile);
-    }
+    /** Vrai si cette tuile porte un insigne : pour les vérifications. */
+    boolean hasIcon(Card tile) { return drawnOwned.containsKey(tile); }
 
     /**
-     * Pose, retire ou garde l'insigne d'une tuile (version 0.198) : il est refait quand un skin a changé ou que le succès
+     * Pose, retire ou garde l'insigne d'une tuile : il est refait quand un skin a changé ou que le succès
      * vient d'être obtenu, jamais à chaque image.
      */
     private void icon(Card tile, boolean owned, int rank, int total, String accent) {
         Boolean before = drawnOwned.get(tile);
-        if (before != null && before == owned && drawnTiles == game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE)
-                && drawnLocked == game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED)) return;
-        javafx.scene.Node icon = AchievementSkinArt.icon(game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE),
-                game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED), owned, AchievementSkinArt.tier(rank, total), accent);
+        if (before != null && before == owned && drawnTiles == game.chosenSkin(SkinVisual.ACHIEVEMENT_TILE)
+                && drawnLocked == game.chosenSkin(SkinVisual.ACHIEVEMENT_LOCKED)) return;
+        Node icon = AchievementSkinArt.icon(game.chosenSkin(SkinVisual.ACHIEVEMENT_TILE),
+                game.chosenSkin(SkinVisual.ACHIEVEMENT_LOCKED), owned, AchievementSkinArt.tier(rank, total), accent);
         if (icon == null && before == null) return;
         tile.setInlinePicture(icon);
         if (icon == null) drawnOwned.remove(tile);
@@ -166,8 +159,8 @@ public final class AchievementsPage extends VBox {
                     + (own.isEmpty() ? "Bonus : " + AchievementText.common() + ", comme chaque succès."
                             : "Bonus propre : " + own + ".\nEn plus : " + AchievementText.common() + ", comme chaque succès."));
         }
-        drawnTiles = game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE);
-        drawnLocked = game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED);
+        drawnTiles = game.chosenSkin(SkinVisual.ACHIEVEMENT_TILE);
+        drawnLocked = game.chosenSkin(SkinVisual.ACHIEVEMENT_LOCKED);
     }
 
     /** Les succès du collisionneur : avec la matière noire, comme le collisionneur. */

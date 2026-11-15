@@ -1,15 +1,16 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * La boucle, cinquième dimension (version 0.153) : un jeu de rythme. Sur chaque cercle, un point tourne, très lentement
+ * La boucle, cinquième dimension : un jeu de rythme. Sur chaque cercle, un point tourne, très lentement
  * au début ; une ou plusieurs zones sont posées sur le cercle, chacune en trois parts : au bord « mauvais », puis
  * « bien », au centre « excellent ». Un clic (ou la touche du cercle) quand le point est dans une zone donne des nœuds,
  * d'autant plus que le clic est précis, et la zone touchée se pose ailleurs. Après chaque clic, juste ou non, le cercle
@@ -23,7 +24,6 @@ import java.util.random.RandomGenerator;
  * allongent sa durée et renforcent son effet.
  */
 public abstract class GameLoop extends GameDimensionAutomation {
-
     GameLoop(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -46,14 +46,10 @@ public abstract class GameLoop extends GameDimensionAutomation {
 
         private final Price price;
 
-        LoopUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        LoopUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Ce que vaut un clic, selon l'endroit de la zone où il tombe. */
@@ -87,7 +83,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
     public static final double LOOP_COOLDOWN = 0.4;
 
     // Les cercles ne se sauvegardent pas : ils repartent au lancement, avec leurs zones tirées au hasard.
-    private final java.util.Random loopRandom = new java.util.Random(5);
+    private final Random loopRandom = new Random(5);
     private final double[] loopPhase = new double[MAX_RINGS];
     private final double[] loopWait = new double[MAX_RINGS];
     private final double[][] loopZones = new double[MAX_RINGS][];
@@ -97,38 +93,24 @@ public abstract class GameLoop extends GameDimensionAutomation {
     private double loopAutoPending;
 
     /** Vrai dès que la cinquième dimension est ouverte : au cinquième univers. */
-    public boolean isLoopOpen() {
-        return dimensionsUnlocked() >= 5;
-    }
+    public boolean isLoopOpen() { return dimensionsUnlocked() >= 5; }
 
-    public int loopLevel(LoopUpgrade upgrade) {
-        return state.loopLevel(upgrade.ordinal());
-    }
+    public int loopLevel(LoopUpgrade upgrade) { return state.loopLevel(upgrade.ordinal()); }
 
     /** Les cercles en jeu : un, et un de plus par niveau. */
-    public int loopRings() {
-        return Math.min(MAX_RINGS, 1 + loopLevel(LoopUpgrade.RINGS));
-    }
+    public int loopRings() { return Math.min(MAX_RINGS, 1 + loopLevel(LoopUpgrade.RINGS)); }
 
     /** Les zones de chaque cercle : une, et une de plus par niveau. */
-    public int loopZoneCount() {
-        return Math.min(MAX_ZONES, 1 + loopLevel(LoopUpgrade.ZONES));
-    }
+    public int loopZoneCount() { return Math.min(MAX_ZONES, 1 + loopLevel(LoopUpgrade.ZONES)); }
 
     /** Les tours par seconde du point. */
-    public double loopTurnsPerSecond() {
-        return LOOP_TURNS * Math.pow(LOOP_SPEED_STEP, loopLevel(LoopUpgrade.SPEED));
-    }
+    public double loopTurnsPerSecond() { return LOOP_TURNS * Math.pow(LOOP_SPEED_STEP, loopLevel(LoopUpgrade.SPEED)); }
 
     /** La demi-largeur d'une zone, en tours. */
-    public double loopZoneHalfWidth() {
-        return LOOP_ZONE_HALF * (1 + LOOP_SIZE_STEP * loopLevel(LoopUpgrade.SIZE));
-    }
+    public double loopZoneHalfWidth() { return LOOP_ZONE_HALF * (1 + LOOP_SIZE_STEP * loopLevel(LoopUpgrade.SIZE)); }
 
     /** Les nœuds de base d'une zone touchée : 1, plus 1 par niveau de gain, et le bonus des omégas. */
-    public double loopValue() {
-        return (1 + loopLevel(LoopUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double loopValue() { return (1 + loopLevel(LoopUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA); }
 
     /** Ce que rapporte un clic de cette sorte. */
     public double loopReward(LoopHit hit) {
@@ -142,9 +124,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
     }
 
     /** Où est le point du cercle {@code ring}, en tours de 0 à 1. */
-    public double loopPhase(int ring) {
-        return ring >= 0 && ring < MAX_RINGS ? loopPhase[ring] : 0;
-    }
+    public double loopPhase(int ring) { return ring >= 0 && ring < MAX_RINGS ? loopPhase[ring] : 0; }
 
     /** Les centres des zones du cercle {@code ring}, en tours de 0 à 1. */
     public List<Double> loopZones(int ring) {
@@ -156,19 +136,13 @@ public abstract class GameLoop extends GameDimensionAutomation {
     }
 
     /** Ce qu'il reste au cercle {@code ring} à attendre avant de compter un clic, en secondes. */
-    public double loopWait(int ring) {
-        return ring >= 0 && ring < MAX_RINGS ? Math.max(0, loopWait[ring]) : 0;
-    }
+    public double loopWait(int ring) { return ring >= 0 && ring < MAX_RINGS ? Math.max(0, loopWait[ring]) : 0; }
 
     /** Les clics qui ont rapporté, depuis le lancement : l'interface y voit ceux de la dernière image. */
-    public long loopHits() {
-        return loopHits;
-    }
+    public long loopHits() { return loopHits; }
 
     /** Ce qu'a valu le dernier clic compté. */
-    public LoopHit lastLoopHit() {
-        return lastLoopHit;
-    }
+    public LoopHit lastLoopHit() { return lastLoopHit; }
 
     /** Ce que vaudrait un clic maintenant sur le cercle {@code ring}, sans cliquer. */
     public LoopHit loopAim(int ring) {
@@ -294,7 +268,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
 
     /**
      * La boucle avance de {@code dt} secondes : les points tournent, les attentes passent, les zones qui se
-     * chevauchent s'écartent. L'automatisme de jeu (automatisation des dimensions) joue vraiment (version 0.154) : il
+     * chevauchent s'écartent. L'automatisme de jeu (automatisation des dimensions) joue vraiment : il
      * clique quand le point arrive dans le « bien » d'une zone, qui part ailleurs, et son cercle attend, comme pour un
      * clic du joueur. Sur un grand pas (une absence, un bot), il compte autant de « bien » que de passages.
      */
@@ -313,7 +287,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
             loopWait[ring] = Math.max(0, loopWait[ring] - dt);
         }
         if (automatic && !played) {
-            // Version 0.209 : pas plus d'un clic par action de son palier.
+            // Pas plus d'un clic par action de son palier.
             loopAutoPending += Math.min(turns * loopRings() * loopZoneCount(), dt / period);
             long clicks = (long) Math.floor(loopAutoPending);
             if (clicks > 0) {
@@ -328,13 +302,13 @@ public abstract class GameLoop extends GameDimensionAutomation {
     /** Au-delà de ce pas, en secondes, l'automatisme compte ses clics au lieu de les jouer. */
     public static final double LOOP_PLAYED_STEP = 1;
 
-    /** Le temps avant la prochaine action de celui qui joue la boucle (version 0.209), tous cercles confondus. */
+    /** Le temps avant la prochaine action de celui qui joue la boucle, tous cercles confondus. */
     private double loopAutoWait;
 
     /**
      * L'automatisme sur un cercle : le point a fait {@code turns} tours depuis {@code from} ; s'il a passé l'endroit
      * où il vise dans une zone (au milieu du « bien », côté arrivée) et que le cercle n'attendait plus, il clique là.
-     * Version 0.209 : une action par {@code period} secondes au plus, pour tous les cercles.
+     * Une action par {@code period} secondes au plus, pour tous les cercles.
      */
     private void playRing(int ring, double from, double turns, double dt, double period) {
         double half = loopZoneHalfWidth(), aim = -half * (LOOP_EXCELLENT + LOOP_GOOD) / 2;
@@ -365,28 +339,20 @@ public abstract class GameLoop extends GameDimensionAutomation {
     private long loopAutoClicks;
 
     /** Les clics de l'automatisme, joués un par un : l'interface les montre comme ceux du joueur. */
-    public long loopAutoClicks() {
-        return loopAutoClicks;
-    }
+    public long loopAutoClicks() { return loopAutoClicks; }
 
     /** Vrai quand l'automatisme de la boucle joue (automatisation des dimensions, version 0.153). */
-    boolean isLoopAutomatic() {
-        return isDimensionPlayed(5);
-    }
+    boolean isLoopAutomatic() { return isDimensionPlayed(5); }
 
     /** Prix du prochain niveau, en nœuds ; infini une fois au plus haut. */
-    public double loopCost(LoopUpgrade upgrade) {
-        return upgrade.cost(loopLevel(upgrade));
-    }
+    public double loopCost(LoopUpgrade upgrade) { return upgrade.cost(loopLevel(upgrade)); }
 
     public boolean canBuyLoop(LoopUpgrade upgrade) {
         return isLoopOpen() && loopLevel(upgrade) < upgrade.max() && state.loopShards() >= loopCost(upgrade) - 1e-9;
     }
 
     @Override
-    boolean buyLoopUpgrade(int index) {
-        return buyLoop(LoopUpgrade.values()[index]);
-    }
+    boolean buyLoopUpgrade(int index) { return buyLoop(LoopUpgrade.values()[index]); }
 
     public boolean buyLoop(LoopUpgrade upgrade) {
         if (!canBuyLoop(upgrade)) return false;
@@ -408,27 +374,17 @@ public abstract class GameLoop extends GameDimensionAutomation {
     private long bloomsCaught;
 
     /** Vrai une fois le rond de croissance là : la boucle ouverte, l'univers formé (il pousse près de la graine). */
-    public boolean isBloomUnlocked() {
-        return isLoopOpen() && isUniverseFormed();
-    }
+    public boolean isBloomUnlocked() { return isLoopOpen() && isUniverseFormed(); }
 
     /** Vrai pendant qu'il attend d'être cueilli. */
-    public boolean isBloomVisible() {
-        return isBloomUnlocked() && bloomVisibleLeft > 0;
-    }
+    public boolean isBloomVisible() { return isBloomUnlocked() && bloomVisibleLeft > 0; }
 
-    public double bloomVisibleLeft() {
-        return isBloomVisible() ? bloomVisibleLeft : 0;
-    }
+    public double bloomVisibleLeft() { return isBloomVisible() ? bloomVisibleLeft : 0; }
 
     /** Où il est, de 0 à 1 sur chaque axe de la vue de la graine. */
-    public double bloomX() {
-        return bloomX;
-    }
+    public double bloomX() { return bloomX; }
 
-    public double bloomY() {
-        return bloomY;
-    }
+    public double bloomY() { return bloomY; }
 
     /** Ce que dure son effet, en secondes. */
     public double bloomSeconds() {
@@ -436,19 +392,13 @@ public abstract class GameLoop extends GameDimensionAutomation {
     }
 
     /** Ce qu'il ajoute à l'arrosage pendant son effet : 25 %, et 10 points de plus par niveau. */
-    public double bloomGain() {
-        return BLOOM_GAIN + BLOOM_GAIN_STEP * seedUpgradeLevel(SeedUpgrade.BLOOM_POWER);
-    }
+    public double bloomGain() { return BLOOM_GAIN + BLOOM_GAIN_STEP * seedUpgradeLevel(SeedUpgrade.BLOOM_POWER); }
 
     /** Ce qu'il reste à son effet, en secondes ; 0 sans effet en cours. */
-    public double bloomActiveLeft() {
-        return Math.max(0, bloomActiveLeft);
-    }
+    public double bloomActiveLeft() { return Math.max(0, bloomActiveLeft); }
 
     @Override
-    public long bloomsCaught() {
-        return bloomsCaught;
-    }
+    public long bloomsCaught() { return bloomsCaught; }
 
     /** Le cueille : son effet commence (ou repart de sa durée entière). Faux s'il n'y en a pas. */
     public boolean catchBloom() {
@@ -463,9 +413,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
 
     /** L'arrosage, accéléré pendant l'effet du rond. */
     @Override
-    public double wateringBoost() {
-        return super.wateringBoost() * (bloomActiveLeft > 0 ? 1 + bloomGain() : 1);
-    }
+    public double wateringBoost() { return super.wateringBoost() * (bloomActiveLeft > 0 ? 1 + bloomGain() : 1); }
 
     void runBloom(double dt) {
         if (dt <= 0) return;
@@ -488,12 +436,8 @@ public abstract class GameLoop extends GameDimensionAutomation {
     }
 
     /** L'attente avant le prochain rond : deux minutes environ, de 90 à 150 s. */
-    private double nextBloomWait() {
-        return BLOOM_EVERY * (0.75 + 0.5 * loopRandom.nextDouble());
-    }
+    private double nextBloomWait() { return BLOOM_EVERY * (0.75 + 0.5 * loopRandom.nextDouble()); }
 
     /** Outil d'essai : fait apparaître le rond de croissance tout de suite. */
-    public void testShowBloom() {
-        if (isBloomUnlocked()) bloomVisibleLeft = BLOOM_VISIBLE;
-    }
+    public void testShowBloom() { if (isBloomUnlocked()) bloomVisibleLeft = BLOOM_VISIBLE; }
 }

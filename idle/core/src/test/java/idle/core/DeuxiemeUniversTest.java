@@ -1,18 +1,18 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.bigbang.*;
+import idle.core.darkmatter.Challenges;
+import idle.core.probes.ProbeTrip;
+import idle.core.sky.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Cosmos;
-import idle.core.universe.CycleChoice;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
  * ({@link LigneTest}, {@link PlanTest}).
  */
 class DeuxiemeUniversTest {
-
     /** Une partie dans le deuxième univers : le premier formé, la partie suivante lancée, les paliers rouverts. */
     static Game second() {
         Game game = GameTestSupport.universe(1);
@@ -122,7 +121,7 @@ class DeuxiemeUniversTest {
 
     @Test
     void laVitesseQuiTourneVraimentPorteLeRegimeEtLaSynergie() {
-        // Version 0.123 : la production voit le régime et la synergie, pas seulement l'animation.
+        // La production voit le régime et la synergie, pas seulement l'animation.
         Game game = second();
         assertEquals(game.speed().toDouble(), game.runningSpeed().toDouble(), 1e-12, "sans régime ni synergie, la vitesse commune");
         game.state().setLevel("generator", Game.SYNERGY_GENERATORS - 1);
@@ -159,7 +158,7 @@ class DeuxiemeUniversTest {
         Game game = GameTestSupport.universe(1);
         assertTrue(!game.state().universeSeeds().lt(BigNum.ONE), "former l'univers donne une graine");
         assertFalse(game.isLineThresholdReached());
-        // Version 0.139 : le seuil de la dimension 1 ne la retient plus.
+        // Le seuil de la dimension 1 ne la retient plus.
         // Il n'y a qu'une graine, celle de l'univers : le bouton ne demande pas de graine en réserve (0.105).
         game.state().setUniverseSeeds(BigNum.ZERO);
         assertTrue(game.canTendSeed(), "l'univers formé suffit");
@@ -213,40 +212,40 @@ class DeuxiemeUniversTest {
         // Version 0.116 : ×2 particules, ×4 maturation, par défi ; 0.118 : sondes ×2 et ×2, plus d'espace ; 0.166 : maturation
         // ×2,5^(1/3) par défi (×5 avec les trois défis et la barre haute) ; 0.171 : ×2^(1/3) par défi (×4).
         Game first = GameTestSupport.realGame();
-        first.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
+        first.state().addCompletedBangChallenge(BangChallenge.VOID.name());
         assertEquals(1, first.universeBangFactor(2), 0, "rien dans le premier univers");
         Game game = second();
         GameTestSupport.bangs(game, 5);
-        var rubble = idle.core.sky.Bodies.DEFAULT.get(0);
+        var rubble = Bodies.DEFAULT.get(0);
         double slow = game.maturationSeconds(rubble);
-        var trip = idle.core.probes.ProbeTrip.values()[0];
+        var trip = ProbeTrip.values()[0];
         double trip0 = game.probeDuration(trip), value0 = game.probeValue(trip);
         BigNum particles0 = game.particlesPerCreation();
-        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
-        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FORGOTTEN.name());
+        game.state().addCompletedBangChallenge(BangChallenge.VOID.name());
+        game.state().addCompletedBangChallenge(BangChallenge.FORGOTTEN.name());
         assertEquals(4, game.universeBangFactor(Game.BANG_UNIVERSE_PARTICLES), 0, "deux défis : ×2 ×2");
         assertEquals(slow / Math.pow(Game.BANG_UNIVERSE_MATURATION, 2), game.maturationSeconds(rubble), 1e-9, "deux défis : maturation ×1,59");
         assertEquals(trip0 / 4, game.probeDuration(trip), 1e-9);
         assertEquals(value0 * 4, game.probeValue(trip), 1e-9);
         assertEquals(particles0.toDouble() * 4, game.particlesPerCreation().toDouble(), particles0.toDouble() * 1e-9);
         assertFalse(game.planetsTwice());
-        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.BY_HAND.name());
+        game.state().addCompletedBangChallenge(BangChallenge.BY_HAND.name());
         assertTrue(game.planetsTwice(), "les trois : planètes deux fois");
     }
 
     @Test
     void laFuiteSOuvreAuxDixDefisEtDonneLeCalmeDuBigBang() {
-        // Version 0.115 : un onzième défi, du deuxième univers, qui apparaît une fois les dix autres réussis.
+        // Un onzième défi, du deuxième univers, qui apparaît une fois les dix autres réussis.
         Game game = second();
         game.state().setExplosions(1);
         game.state().setDarkMatter(BigNum.of(1000));
-        String leak = idle.core.darkmatter.Challenges.LEAK.id();
+        String leak = Challenges.LEAK.id();
         assertFalse(game.isLeakChallengeShown(), "pas avant les dix défis");
         assertEquals(10, game.challenges().size());
-        for (var challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
+        for (var challenge : Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
         assertTrue(game.isLeakChallengeShown(), "elle apparaît aux dix défis");
         assertEquals(11, game.challenges().size());
-        assertTrue(game.isBigBangConditionMet(idle.core.bigbang.BigBangCondition.CHALLENGES), "le Big Bang ne la demande pas");
+        assertTrue(game.isBigBangConditionMet(BigBangCondition.CHALLENGES), "le Big Bang ne la demande pas");
         assertTrue(game.isChallengeUnlocked(leak));
         assertTrue(game.startChallenge(leak));
         // La fuite accélère tant qu'on n'achète rien ; une amélioration du joueur l'arrête, celle d'un automatisme non.
@@ -286,20 +285,20 @@ class DeuxiemeUniversTest {
                 game.bigBangParticles().log10(), 1e-6);
         game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS);
         assertEquals(1, game.bigBangParticles().toDouble(), 0, "une heure : une seule particule");
-        // Version 0.124 : les achats des automatismes rompent aussi le calme, et la barre haute l'ignore.
+        // Les achats des automatismes rompent aussi le calme, et la barre haute l'ignore.
         game.state().setParticles(BigNum.of(1, 100));
         game.state().setAutomationEnabled("auto_speed", true);
         game.state().addAutomation("auto_speed");
         game.tick(20);
         assertTrue(game.state().bangCalm() < 20, "un achat d'automatisme rompt le calme (" + game.state().bangCalm() + ")");
         game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS);
-        game.state().setActiveBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+        game.state().setActiveBangChallenge(BangChallenge.RAISED.name());
         assertEquals(0, game.bigBangCalmRelief(), 0, "pas de calme pendant la barre haute");
     }
 
     @Test
     void uneVieilleSauvegardeDontLUniversEstFormeNeCompteQuUnUnivers() {
-        // Version 0.113 : avant la 0.083, l'univers formé gardait son échelle du cosmos ; le chargement en comptait deux.
+        // Avant la 0.083, l'univers formé gardait son échelle du cosmos ; le chargement en comptait deux.
         Game game = GameTestSupport.realGame();
         game.state().setUniverseFormed(true);
         game.state().setCosmosLevel(Cosmos.values().length);
@@ -332,7 +331,7 @@ class DeuxiemeUniversTest {
 
     @Test
     void laBrindilleOuvreUnUniversAtteintParLEchelleSeule() {
-        // Version 0.110 : l'échelle du cosmos montée sans former l'univers bloquait la brindille.
+        // L'échelle du cosmos montée sans former l'univers bloquait la brindille.
         Game game = GameTestSupport.realGame();
         game.state().setCosmosLevel(Cosmos.values().length);
         game.state().setParticles(BigNum.of(1, 20));
@@ -348,8 +347,8 @@ class DeuxiemeUniversTest {
 
     @Test
     void lesPaliersDeLaGraineOuvrentLesUnivers() {
-        // Version 0.120 : le palier N de la graine ouvre l'univers N. Version 0.139 : des arrosages seulement, sans les
-        // seuils des dimensions. Version 0.179 : trente pour la tige, soixante de plus pour la graine craquelée, puis bien plus.
+        // Le palier N de la graine ouvre l'univers N. Des arrosages seulement, sans les
+        // seuils des dimensions. Trente pour la tige, soixante de plus pour la graine craquelée, puis bien plus.
         Game game = GameTestSupport.universe(1);
         assertEquals(1, game.seedStage());
         assertTrue(game.tendSeed(), "elle germe");

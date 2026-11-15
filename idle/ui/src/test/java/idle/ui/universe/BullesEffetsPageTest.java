@@ -1,6 +1,8 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.math.BigNum;
+import idle.ui.common.Format;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
@@ -8,25 +10,19 @@ import idle.core.GameUniverse.TreeBubble;
 import idle.ui.FxTestSupport;
 import java.util.List;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
-/**
- * Version 0.148 : les bulles disent ce qu'elles font, et celles qui se rachètent leur niveau, sous Xvfb.
- */
+/** Les bulles disent ce qu'elles font, et celles qui se rachètent leur niveau, sous Xvfb. */
 class BullesEffetsPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static Game at(int stage, double accumulated) {
         Game game = new Game();
         game.start();
         game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        // Version 0.179 : la graine ne dépasse pas deux paliers d'avance sur les univers formés.
+        // La graine ne dépasse pas deux paliers d'avance sur les univers formés.
         while (game.universes() + Game.SEED_STAGES_AHEAD < stage) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         if (accumulated > 0) game.state().noteVoidHistory("3", accumulated);
@@ -58,8 +54,8 @@ class BullesEffetsPageTest {
             }
             int left = game.treeBubblesShown().indexOf(TreeBubble.LEAVES_LEFT);
             assertEquals(SeedView.BubbleState.BUY, view.bubble(left).state(), "au niveau 1 sur 5, elle s'achète encore");
-            // Version 0.166 : le deuxième niveau du bonsaï coûte 26 000 (les bulles au prix de l'énergie gardée), plus 4 000.
-            String prix = idle.ui.common.Format.count(idle.core.math.BigNum.of(game.treeBubbleCost(TreeBubble.LEAVES_LEFT)));
+            // Le deuxième niveau du bonsaï coûte 26 000 (les bulles au prix de l'énergie gardée), plus 4 000.
+            String prix = Format.count(BigNum.of(game.treeBubbleCost(TreeBubble.LEAVES_LEFT)));
             assertTrue(view.bubble(left).price().startsWith("Niveau 1 / 5. Prix : " + prix + " d'énergie du vide"), view.bubble(left).price());
             assertEquals("Achetée", view.bubble(game.treeBubblesShown().indexOf(TreeBubble.SEED)).price());
             double[] at = view.bubblePoint(left);

@@ -1,36 +1,29 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.collider.*;
+import idle.core.history.Pace;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.prefs.AbstractPreferences;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.146 : les notifications, l'objectif et les signes d'état se règlent par catégorie. Sans affichage JavaFX ;
+ * Les notifications, l'objectif et les signes d'état se règlent par catégorie. Sans affichage JavaFX ;
  * les réglages s'écrivent dans un stockage en mémoire, jamais dans les préférences de l'utilisateur.
  */
 class NotificationsEtSignesTest {
-
     /** Des préférences en mémoire : ce que les réglages écrivent, ils le relisent, sans toucher au disque. */
     static final class MemoryPreferences extends AbstractPreferences {
         private final Map<String, String> values = new HashMap<>();
         private final Map<String, MemoryPreferences> children = new HashMap<>();
 
-        MemoryPreferences() {
-            super(null, "");
-        }
+        MemoryPreferences() { super(null, ""); }
 
-        private MemoryPreferences(MemoryPreferences parent, String name) {
-            super(parent, name);
-        }
+        private MemoryPreferences(MemoryPreferences parent, String name) { super(parent, name); }
 
         @Override protected void putSpi(String key, String value) { values.put(key, value); }
         @Override protected String getSpi(String key) { return values.get(key); }
@@ -44,9 +37,7 @@ class NotificationsEtSignesTest {
     }
 
     @AfterEach
-    void showAllDots() {
-        Readiness.setHidden(Set.of());
-    }
+    void showAllDots() { Readiness.setHidden(Set.of()); }
 
     @Test
     void chaqueCategorieDeNotificationSeCoupeEtSeRelit() {
@@ -88,10 +79,10 @@ class NotificationsEtSignesTest {
     void laLigneDObjectifNeGardeQueSesMorceauxMontres() {
         Game game = new Game(1L);
         game.start();
-        String all = Goals.line(game, part -> true, new idle.core.history.Pace());
+        String all = Goals.line(game, part -> true, new Pace());
         assertTrue(all.startsWith("Objectif : "), all);
-        assertEquals("", Goals.line(game, part -> false, new idle.core.history.Pace()), "rien de montré : une ligne vide");
-        String bare = Goals.line(game, part -> part != Goals.Part.ESTIMATE, new idle.core.history.Pace());
+        assertEquals("", Goals.line(game, part -> false, new Pace()), "rien de montré : une ligne vide");
+        String bare = Goals.line(game, part -> part != Goals.Part.ESTIMATE, new Pace());
         assertEquals("Objectif : " + Goals.next(game), bare, "sans le temps estimé, l'objectif seul");
     }
 
@@ -129,18 +120,18 @@ class NotificationsEtSignesTest {
         assertEquals(List.of("a", "b"), Notifier.summarize(List.of("a", "b")));
     }
 
-    /** Version 0.151 : un palier de gluons s'annonce une fois, en « Collisionneur » ; une partie relue qui l'avait se tait. */
+    /** Un palier de gluons s'annonce une fois, en « Collisionneur » ; une partie relue qui l'avait se tait. */
     @Test
     void unPalierDeGluonsSAnnonceUneFois() {
         Game game = new Game();
         game.start();
         Notifier notifier = new Notifier(game);
         assertTrue(notifier.poll().isEmpty(), "premier relevé : rien");
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 334);
+        game.state().setHadrons(Hadron.PROTON, 334);
         List<Notifier.News> news = notifier.poll();
         assertEquals(1, news.size(), news.toString());
         assertEquals(Notice.COLLIDER, news.get(0).kind());
-        assertEquals("Palier de gluons : Mémoire des liaisons. " + idle.core.collider.GluonMilestone.UPGRADES.effect(), news.get(0).text());
+        assertEquals("Palier de gluons : Mémoire des liaisons. " + GluonMilestone.UPGRADES.effect(), news.get(0).text());
         assertTrue(notifier.poll().isEmpty(), "une seule fois");
         Notifier reloaded = new Notifier(game);
         assertTrue(reloaded.poll().isEmpty());
@@ -152,7 +143,7 @@ class NotificationsEtSignesTest {
     void unPalierDesRacinesSAnnonceUneFois() {
         Game game = new Game();
         game.start();
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 28_000);
+        game.state().setHadrons(Hadron.PROTON, 28_000);
         Notifier notifier = new Notifier(game);
         assertTrue(notifier.poll().isEmpty(), "premier relevé : rien");
         game.state().setTreeBubbleBought(Game.TreeBubble.ROOTS.ordinal(), true);

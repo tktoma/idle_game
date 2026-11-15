@@ -1,20 +1,15 @@
 package idle.core.save;
 
 import idle.core.math.BigNum;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.function.Function;
 
 /**
  * Le contenu d'une sauvegarde, avant d'être écrit ou après avoir été relu : des lignes
  * {@code clé=valeur}, dans l'ordre où elles ont été posées.
  *
- * <p>Chaque classe qui porte une part de la partie ({@link idle.core.GameState}, {@link idle.core.GameStats},
- * {@link idle.core.StatsHistory}) y range ses propres champs et les y relit : les champs restent privés,
+ * <p>Chaque classe qui porte une part de la partie ({@link idle.core.state.GameState}, {@link idle.core.state.GameStats},
+ * {@link idle.core.state.StatsHistory}) y range ses propres champs et les y relit : les champs restent privés,
  * et un champ ajouté plus tard s'écrit à côté de sa déclaration.
  *
  * <p>Deux règles rendent une sauvegarde lisible d'une version du jeu à l'autre :
@@ -29,7 +24,6 @@ import java.util.function.Function;
  * bien qu'un identifiant peut contenir n'importe quoi.
  */
 public final class SaveData {
-
     private final Map<String, String> values = new LinkedHashMap<>();
 
     // ------------------------------------------------------------------
@@ -37,30 +31,18 @@ public final class SaveData {
     // ------------------------------------------------------------------
 
     /** Pose une valeur telle quelle. Une valeur {@code null} n'est pas écrite : la clé restera absente. */
-    public void put(String key, String value) {
-        if (value != null) values.put(key, value);
-    }
+    public void put(String key, String value) { if (value != null) values.put(key, value); }
 
-    public void put(String key, boolean value) {
-        values.put(key, value ? "1" : "0");
-    }
+    public void put(String key, boolean value) { values.put(key, value ? "1" : "0"); }
 
-    public void put(String key, long value) {
-        values.put(key, Long.toString(value));
-    }
+    public void put(String key, long value) { values.put(key, Long.toString(value)); }
 
-    public void put(String key, double value) {
-        values.put(key, number(value));
-    }
+    public void put(String key, double value) { values.put(key, number(value)); }
 
-    public void put(String key, BigNum value) {
-        values.put(key, value.toString());
-    }
+    public void put(String key, BigNum value) { values.put(key, value.toString()); }
 
     /** Une liste d'identifiants, dans son ordre. */
-    public void putList(String key, Collection<String> items) {
-        putJoined(key, ",", items, SaveData::escape);
-    }
+    public void putList(String key, Collection<String> items) { putJoined(key, ",", items, SaveData::escape); }
 
     /** Une table identifiant → nombre entier. */
     public void putInts(String key, Map<String, Integer> map) {
@@ -73,9 +55,7 @@ public final class SaveData {
     }
 
     /** Une suite de nombres à virgule, dans son ordre. */
-    public void putDoubleList(String key, List<Double> list) {
-        putJoined(key, ";", list, SaveData::number);
-    }
+    public void putDoubleList(String key, List<Double> list) { putJoined(key, ";", list, SaveData::number); }
 
     /** Pose les éléments écrits par {@code toText}, séparés par {@code separator}. */
     private <T> void putJoined(String key, String separator, Iterable<T> items, Function<T, String> toText) {
@@ -88,13 +68,9 @@ public final class SaveData {
     // Lecture
     // ------------------------------------------------------------------
 
-    public boolean has(String key) {
-        return values.containsKey(key);
-    }
+    public boolean has(String key) { return values.containsKey(key); }
 
-    public String text(String key, String fallback) {
-        return values.getOrDefault(key, fallback);
-    }
+    public String text(String key, String fallback) { return values.getOrDefault(key, fallback); }
 
     public boolean flag(String key, boolean fallback) {
         String value = values.get(key);
@@ -129,13 +105,9 @@ public final class SaveData {
         return items;
     }
 
-    public Map<String, Integer> ints(String key) {
-        return table(key, Integer::parseInt);
-    }
+    public Map<String, Integer> ints(String key) { return table(key, Integer::parseInt); }
 
-    public Map<String, Double> doubles(String key) {
-        return table(key, SaveData::parse);
-    }
+    public Map<String, Double> doubles(String key) { return table(key, SaveData::parse); }
 
     /** Relit une table {@code clé:valeur} dont {@code parseValue} lit les valeurs ; vide si la clé est absente. */
     private <V> Map<String, V> table(String key, Function<String, V> parseValue) {
@@ -194,9 +166,7 @@ public final class SaveData {
     }
 
     /** Relit ce qu'a écrit {@link #number(double)}. */
-    public static double parse(String text) {
-        return text.isEmpty() ? Double.NaN : Double.parseDouble(text);
-    }
+    public static double parse(String text) { return text.isEmpty() ? Double.NaN : Double.parseDouble(text); }
 
     /** Remplace les caractères qui servent de séparateurs par {@code %XX}. */
     public static String escape(String text) {

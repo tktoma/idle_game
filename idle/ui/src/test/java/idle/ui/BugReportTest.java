@@ -8,17 +8,13 @@ import idle.core.Game;
 import idle.core.save.SaveCodec;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Version 0.127 : le rapport de bug dit la session et où en est la partie, sans rien de personnel. Sans affichage. */
 class BugReportTest {
-
     @AfterEach
-    void forget() {
-        Crash.clear();
-    }
+    void forget() { Crash.clear(); }
 
     @Test
     void leRapportDitLaSessionEtLaPartie(@TempDir Path folder) throws Exception {
@@ -52,7 +48,7 @@ class BugReportTest {
         game.start();
         game.testFormUniverse();
         while (game.universes() < 4) assertTrue(game.testAddUniverse());
-        game.state().setPlaneShards(1e7);   // version 0.182 : l'étage du chrono se paie en facettes du plan
+        game.state().setPlaneShards(1e7);   // L'étage du chrono se paie en facettes du plan
         assertTrue(game.buySeedUpgrade(Game.SeedUpgrade.CHRONO));
         game.state().setChronoStored(90);
         game.setChronoSpeed(1.5);

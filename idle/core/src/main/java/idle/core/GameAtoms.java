@@ -1,33 +1,18 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.Element;
-import idle.core.elements.ElementBonuses;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.ElementSet;
-import idle.core.elements.ElementSets;
-import idle.core.elements.PeriodicTable;
+import idle.core.state.*;
+import idle.core.universe.CycleChoice;
+
+import idle.core.achievements.*;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les atomes : l'automatisation, le tableau périodique, les ensembles, les succès et les records.
- */
+/** Les atomes : l'automatisation, le tableau périodique, les ensembles, les succès et les records. */
 public abstract class GameAtoms extends GamePlans {
-
     GameAtoms(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -37,7 +22,7 @@ public abstract class GameAtoms extends GamePlans {
     public abstract boolean isMoleculeAutomationUnlocked();
     public abstract boolean isAutoGatherUnlocked();
     public abstract boolean isAutoFormUnlocked();
-    public abstract idle.core.universe.CycleChoice cycleChoice();
+    public abstract CycleChoice cycleChoice();
     public abstract ElementCategory preferredFamily();
     public abstract double preferenceMultiplier(ElementCategory category);
 
@@ -54,15 +39,12 @@ public abstract class GameAtoms extends GamePlans {
     public abstract boolean canBuy(String upgradeId);
     abstract Automation automation(String automationId);
 
-
     // ------------------------------------------------------------------
     // L'automatisation
     // ------------------------------------------------------------------
 
     /** Tous les automatismes, dans l'ordre du catalogue. */
-    public Collection<Automation> automations() {
-        return automations.values();
-    }
+    public Collection<Automation> automations() { return automations.values(); }
 
     /**
      * Vrai une fois {@link #UNLOCK_TOTAL_ATOMS} atomes créés depuis le début de la partie : les
@@ -74,9 +56,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Vrai une fois {@link #UNLOCK_TOTAL_ATOMS} atomes créés depuis le début de la partie. */
-    boolean hasCreatedEnoughAtoms() {
-        return state.totalAtoms().gte(UNLOCK_TOTAL_ATOMS);
-    }
+    boolean hasCreatedEnoughAtoms() { return state.totalAtoms().gte(UNLOCK_TOTAL_ATOMS); }
 
     /** Vrai une fois un élément unique obtenu : la synthèse automatique devient achetable. */
     public boolean isSynthesisAutomationUnlocked() {
@@ -99,9 +79,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Vrai si le joueur a acheté cet automatisme. */
-    public boolean ownsAutomation(String automationId) {
-        return state.ownsAutomation(automation(automationId).id());
-    }
+    public boolean ownsAutomation(String automationId) { return state.ownsAutomation(automation(automationId).id()); }
 
     public boolean canBuyAutomation(String automationId) {
         Automation automation = automation(automationId);
@@ -143,19 +121,14 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Vrai tant que le joueur a coupé d'un geste tous les automatismes : ceux de l'onglet
-     * Automatisation, ceux de matière noire, l'appui automatique et la création automatique.
-     * Aucun n'agit, mais chacun garde son propre réglage et reprend quand la coupure est levée.
-     * Le verrou de l'appui n'est pas un automatisme : il continue.
+     * Vrai tant que le joueur a coupé d'un geste tous les automatismes : ceux de l'onglet Automatisation, ceux de
+     * matière noire, l'appui automatique et la création automatique. Aucun n'agit, mais chacun garde son propre réglage
+     * et reprend quand la coupure est levée. Le verrou de l'appui n'est pas un automatisme : il continue.
      */
-    public boolean isAutomationPaused() {
-        return state.automationPaused();
-    }
+    public boolean isAutomationPaused() { return state.automationPaused(); }
 
     /** Coupe ou relance d'un geste tous les automatismes. Aucune remise à zéro ne change ce réglage. */
-    public void setAutomationPaused(boolean paused) {
-        state.setAutomationPaused(paused);
-    }
+    public void setAutomationPaused(boolean paused) { state.setAutomationPaused(paused); }
 
     /** Vrai si le joueur a au moins un automatisme, de quelque sorte que ce soit : il y a alors quelque chose à couper. */
     public boolean hasAnyAutomation() {
@@ -179,7 +152,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Vrai quand les automatismes agissent sans délai et achètent tout ce qu'ils peuvent (version 0.148, bulle du
+     * Vrai quand les automatismes agissent sans délai et achètent tout ce qu'ils peuvent (bulle du
      * bonsaï, à droite) ; pas pendant le défi de la rouille, qui les ralentit exprès.
      */
     public boolean isAutomationInstant() {
@@ -256,7 +229,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     // ------------------------------------------------------------------
-    // L'achat en lot (version 0.167)
+    // L'achat en lot
     // ------------------------------------------------------------------
 
     /** Niveaux d'achat en lot d'un automatisme : ×2, ×4… jusqu'à ×64. */
@@ -279,9 +252,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Ce qu'une action de cet automatisme achète au plus : 1, puis ×2 par niveau d'achat en lot, jusqu'à 64. */
-    public int automationBatch(String automationId) {
-        return 1 << automationBatchLevel(automationId);
-    }
+    public int automationBatch(String automationId) { return 1 << automationBatchLevel(automationId); }
 
     /** Vrai quand cet automatisme achète déjà par 64. */
     public boolean isAutomationBatchMaxed(String automationId) {
@@ -299,7 +270,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Double ce qu'une action de cet automatisme achète (version 0.167), payé en matière noire : elle est dépensée, mais
+     * Double ce qu'une action de cet automatisme achète, payé en matière noire : elle est dépensée, mais
      * toujours comptée comme gagnée. Le niveau tient tout l'univers, explosions et Big Bangs compris ; il ne part qu'avec
      * l'univers suivant.
      *
@@ -336,7 +307,7 @@ public abstract class GameAtoms extends GamePlans {
         for (Automation automation : automations.values()) {
             if (!isAutomationEnabled(automation.id())) continue;
             if (instant) {
-                // La bulle du bonsaï, à droite (version 0.148) : sans délai, autant d'actions qu'il y a à faire.
+                // La bulle du bonsaï, à droite : sans délai, autant d'actions qu'il y a à faire.
                 for (int actions = 0; actions < MAX_AUTO_ACTIONS_PER_STEP && act(automation); actions++) {
                     state.stats().noteAutomationAction();
                 }
@@ -381,7 +352,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * L'achat d'un automatisme (version 0.167) : un niveau par action, générateurs compris (avant, celui des générateurs
+     * L'achat d'un automatisme : un niveau par action, générateurs compris (avant, celui des générateurs
      * prenait d'un coup tous ceux que les particules permettaient), ou le lot que la matière noire a payé pour lui
      * ({@link #automationBatch(String)}, jusqu'à 64). La cadence fixe donc le rythme des fusions : neuf achats de
      * générateurs avant chacune, un par action sans lot. La bulle du bonsaï, à droite, rend l'achat « max » : sans délai,
@@ -396,7 +367,7 @@ public abstract class GameAtoms extends GamePlans {
             for (int bought = 0; bought < most && buy(upgrade.id()); bought++) any = true;
             return any;
         }
-        // Version 0.126 : les mêmes règles qu'un achat un à un (l'épreuve du premier générateur seul, entre autres),
+        // Les mêmes règles qu'un achat un à un (l'épreuve du premier générateur seul, entre autres),
         // vérifiées une fois avant de calculer le lot.
         if (!canBuy(upgrade.id())) return false;
         // Le même résultat qu'autant d'achats un à un, sans refaire chaque fois tous les calculs :
@@ -456,18 +427,13 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Atomes que la synthèse automatique laisse toujours au joueur (0 par défaut). */
-    public BigNum synthesisReserve() {
-        return state.synthesisReserve();
-    }
+    public BigNum synthesisReserve() { return state.synthesisReserve(); }
 
     /**
-     * Règle la réserve : la synthèse automatique n'agit que s'il reste au moins {@code atoms}
-     * atomes après elle. Les synthèses faites à la main n'en tiennent pas compte. Une valeur
-     * négative est ramenée à zéro.
+     * Règle la réserve : la synthèse automatique n'agit que s'il reste au moins {@code atoms} atomes après elle. Les
+     * synthèses faites à la main n'en tiennent pas compte. Une valeur négative est ramenée à zéro.
      */
-    public void setSynthesisReserve(BigNum atoms) {
-        state.setSynthesisReserve(atoms.max(BigNum.ZERO));
-    }
+    public void setSynthesisReserve(BigNum atoms) { state.setSynthesisReserve(atoms.max(BigNum.ZERO)); }
 
     /**
      * Vrai quand la réserve empêche à elle seule la synthèse automatique d'agir un jour : le prix
@@ -488,7 +454,7 @@ public abstract class GameAtoms extends GamePlans {
      * fois au plus. Un défi se joue sur un tableau de masse {@link #CHALLENGE_WEIGHT} (1 avant la version 0.097).
      */
     public BigNum tableWeight() {
-        // Version 0.181 : un défi se corse d'un facteur par univers formé ({@link #challengeUniverseFactor()}).
+        // Un défi se corse d'un facteur par univers formé ({@link #challengeUniverseFactor()}).
         if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT.multiply(challengeUniverseFactor());
         return inChallenge() ? CHALLENGE_WEIGHT.multiply(challengeUniverseFactor())
                 : BigNum.of(TABLE_WEIGHT_GROWTH).pow(Math.min(state.tableWeightLevel(), TABLE_WEIGHT_MAX_LEVEL));
@@ -499,20 +465,17 @@ public abstract class GameAtoms extends GamePlans {
      * {@link #MAX_ATOMS} fois la masse du tableau. Chaque explosion laisse donc un tableau plus
      * lourd à remplir : il faut produire plus que la fois d'avant pour exploser de nouveau.
      */
-    public BigNum atomCap() {
-        return Upgrade.roundUp(MAX_ATOMS.multiply(tableWeight()));
-    }
+    public BigNum atomCap() { return Upgrade.roundUp(MAX_ATOMS.multiply(tableWeight())); }
 
     /**
-     * Prix de la prochaine synthèse, en atomes : {@link #SYNTHESIS_BASE_COST}, doublé à chaque
-     * synthèse déjà faite, plafonné par {@link #atomCap()}, puis réduit par les éléments qui
-     * baissent ce prix.
+     * Prix de la prochaine synthèse, en atomes : {@link #SYNTHESIS_BASE_COST}, doublé à chaque synthèse déjà faite,
+     * plafonné par {@link #atomCap()}, puis réduit par les éléments qui baissent ce prix.
      */
     public BigNum synthesisCost() {
         BigNum cost = SYNTHESIS_BASE_COST.multiply(BigNum.of(2).pow(state.synthesisCount())).min(atomCap());
         double divisor = bonuses().costDivisor(ElementEffect.CostTarget.SYNTHESIS) * darkSynthesisDivisor()
                 * (1 + achievementBonus(Achievement.Bonus.SYNTHESIS_COST))
-                / (cycleChoice() == idle.core.universe.CycleChoice.SYNTHESIS ? 1 - idle.core.universe.CycleChoice.SYNTHESIS_SAVING : 1);
+                / (cycleChoice() == CycleChoice.SYNTHESIS ? 1 - CycleChoice.SYNTHESIS_SAVING : 1);
         return divisor == 1 ? cost : Upgrade.roundUp(cost.divide(divisor)).max(BigNum.ONE);
     }
 
@@ -521,9 +484,7 @@ public abstract class GameAtoms extends GamePlans {
      * tableau périodique devient accessible, en même temps que l'automatisation. Le compte des
      * atomes créés ne redescend qu'à l'explosion : d'ici là, le tableau reste débloqué.
      */
-    public boolean isPeriodicTableUnlocked() {
-        return hasCreatedEnoughAtoms();
-    }
+    public boolean isPeriodicTableUnlocked() { return hasCreatedEnoughAtoms(); }
 
     /** Vrai quand le tableau périodique est débloqué et que le joueur a de quoi payer la prochaine synthèse. */
     public boolean canSynthesize() {
@@ -565,24 +526,21 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Consomme {@link #synthesisCost()} atomes pour créer un élément du tableau périodique tiré au
-     * sort : d'abord la famille, selon {@link #categoryChance(ElementCategory)}, puis un élément de
-     * cette famille. Un élément déjà possédé gagne un exemplaire ; un élément qui a atteint son
-     * maximum d'exemplaires (un seul pour un élément unique) ne peut pas retomber. Avec de la
-     * chance ({@link #doubleDrawChance()}), un second élément est tiré, s'il en reste à obtenir.
-     * Si aucun élément unique n'est sorti avant, la synthèse n° {@link #guaranteedUniqueSynthesis()}
-     * en donne un à coup sûr.
-     * Rien d'autre n'est perdu : améliorations et automatismes sont conservés.
+     * Consomme {@link #synthesisCost()} atomes pour créer un élément du tableau périodique tiré au sort : d'abord la
+     * famille, selon {@link #categoryChance(ElementCategory)}, puis un élément de cette famille. Un élément déjà
+     * possédé gagne un exemplaire ; un élément qui a atteint son maximum d'exemplaires (un seul pour un élément unique)
+     * ne peut pas retomber. Avec de la chance ({@link #doubleDrawChance()}), un second élément est tiré, s'il en reste
+     * à obtenir. Si aucun élément unique n'est sorti avant, la synthèse n° {@link #guaranteedUniqueSynthesis()} en
+     * donne un à coup sûr. Rien d'autre n'est perdu : améliorations et automatismes sont conservés.
      *
-     * <p>Avec une famille visée ({@link #setSynthesisTarget(ElementCategory)}), la synthèse est
-     * ciblée : elle coûte plusieurs synthèses ({@link ElementCategory#targetTries()}). Les
-     * premières sont payées comme les autres, font monter le prix comme les autres, mais ne
-     * donnent rien ; la dernière donne un élément de la famille, en priorité un que le joueur
-     * n'a pas encore.
+     * <p>Avec une famille visée ({@link #setSynthesisTarget(ElementCategory)}), la synthèse est ciblée : elle coûte
+     * plusieurs synthèses ({@link ElementCategory#targetTries()}). Les premières sont payées comme les autres, font
+     * monter le prix comme les autres, mais ne donnent rien ; la dernière donne un élément de la famille, en priorité
+     * un que le joueur n'a pas encore.
      *
-     * @return les éléments obtenus (un, parfois deux, davantage avec la matière noire), ou une
-     *         liste vide si la synthèse est impossible (tableau verrouillé, tableau complet ou pas
-     *         assez d'atomes) ou si elle n'était qu'une étape d'une synthèse ciblée
+     * @return les éléments obtenus (un, parfois deux, davantage avec la matière noire), ou une liste vide si la
+     * synthèse est impossible (tableau verrouillé, tableau complet ou pas assez d'atomes) ou si elle n'était qu'une
+     * étape d'une synthèse ciblée
      */
     public List<Element> synthesize() {
         if (!canSynthesize()) return List.of();
@@ -592,8 +550,7 @@ public abstract class GameAtoms extends GamePlans {
         state.setSynthesisCount(state.synthesisCount() + 1);
 
         double doubleChance = doubleDrawChance();   // la chance d'avant le tirage, pas celle qu'il donnerait
-        boolean guaranteed = !isSynthesisAutomationUnlocked()
-                && state.synthesisCount() >= guaranteedUniqueSynthesis();
+        boolean guaranteed = !isSynthesisAutomationUnlocked() && state.synthesisCount() >= guaranteedUniqueSynthesis();
         // La garantie d'un élément unique passe avant la cible : cette synthèse-là est ordinaire.
         ElementCategory target = guaranteed ? null : synthesisTarget();
         if (target != null) {
@@ -612,7 +569,7 @@ public abstract class GameAtoms extends GamePlans {
         // Le garde-fou du hasard : après trop de synthèses sans rien de nouveau, celle-ci donne un élément inconnu.
         boolean rescue = target == null && !guaranteed && LUCK_FLOOR > 0 && state.drySyntheses() >= LUCK_FLOOR;
         obtained.add(target != null ? drawTargeted(target) : rescue ? drawUnknown() : drawElement(guaranteed));
-        // La préférence graduée (version 0.087) : chaque tirage au hasard la renforce un peu.
+        // La préférence graduée : chaque tirage au hasard la renforce un peu.
         if (target == null && preferredFamily() != null) state.setPreferenceDraws(state.preferenceDraws() + 1);
         // Les éléments en plus de la matière noire, tant qu'il en reste à obtenir.
         for (int extra = elementsPerSynthesis() - 1; extra > 0 && !isPeriodicTableComplete(); extra--) {
@@ -629,9 +586,8 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Famille visée par la synthèse ciblée, ou {@code null} si la synthèse tire au hasard. Une
-     * famille dont tous les éléments sont à leur maximum d'exemplaires ne peut plus être visée :
-     * la cible s'efface d'elle-même.
+     * Famille visée par la synthèse ciblée, ou {@code null} si la synthèse tire au hasard. Une famille dont tous les
+     * éléments sont à leur maximum d'exemplaires ne peut plus être visée : la cible s'efface d'elle-même.
      */
     public ElementCategory synthesisTarget() {
         ElementCategory target = state.synthesisTarget();
@@ -644,13 +600,12 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Vise une famille pour les prochaines synthèses, à la main comme automatiques, ou revient
-     * au hasard avec {@code null}. Les synthèses déjà payées pour une cible restent acquises si
-     * la cible change : elles comptent pour la suivante.
+     * Vise une famille pour les prochaines synthèses, à la main comme automatiques, ou revient au hasard avec {@code
+     * null}. Les synthèses déjà payées pour une cible restent acquises si la cible change : elles comptent pour la
+     * suivante.
      *
-     * @return {@code true} si la cible a été retenue ; faux si la synthèse ciblée n'est pas
-     *         débloquée ({@link #isTargetedSynthesisUnlocked()}), si le tableau périodique est
-     *         verrouillé ou si la famille n'a plus rien à donner
+     * @return {@code true} si la cible a été retenue ; faux si la synthèse ciblée n'est pas débloquée ({@link
+     * #isTargetedSynthesisUnlocked()}), si le tableau périodique est verrouillé ou si la famille n'a plus rien à donner
      */
     public boolean setSynthesisTarget(ElementCategory category) {
         if (category != null && (!isTargetedSynthesisUnlocked() || !isPeriodicTableUnlocked()
@@ -660,9 +615,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Vrai une fois la synthèse ciblée achetée avec de la matière noire : d'ici là, la synthèse tire toujours au hasard. */
-    public boolean isTargetedSynthesisUnlocked() {
-        return hasDark(DarkEffect.TargetedSynthesis.class);
-    }
+    public boolean isTargetedSynthesisUnlocked() { return hasDark(DarkEffect.TargetedSynthesis.class); }
 
     /** Vrai une fois acquis l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à portée. */
     public boolean isBulkAtomBuyUnlocked() {
@@ -674,9 +627,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Synthèses déjà payées pour la synthèse ciblée en cours. */
-    public int synthesisTries() {
-        return state.synthesisTries();
-    }
+    public int synthesisTries() { return state.synthesisTries(); }
 
     /**
      * Synthèses qu'il reste à payer, la prochaine comprise, avant que la synthèse ciblée donne
@@ -693,7 +644,7 @@ public abstract class GameAtoms extends GamePlans {
      * ne possède pas encore s'il en reste, sinon un de ceux qui peuvent encore gagner un exemplaire.
      */
     private Element drawTargeted(ElementCategory target) {
-        // Version 0.170 : le même tirage, sans construire les listes (la synthèse en fait des milliers par heure de jeu).
+        // Le même tirage, sans construire les listes (la synthèse en fait des milliers par heure de jeu).
         int cap = maxCopiesOf(target);
         int unknown = availableCount(target, cap, true);
         boolean among = unknown > 0;
@@ -725,7 +676,7 @@ public abstract class GameAtoms extends GamePlans {
      * ordinaire, parmi les familles qui en ont. S'il n'en reste aucun à découvrir, c'est un tirage ordinaire.
      */
     private Element drawUnknown() {
-        // Version 0.170 : les poids et les comptes se calculent une fois par famille, sans construire de listes ;
+        // Les poids et les comptes se calculent une fois par famille, sans construire de listes ;
         // les tirages au sort sont les mêmes qu'avant (une famille au poids, puis un élément parmi ses inconnus).
         ElementCategory[] categories = ElementCategory.values();
         double[] weights = new double[categories.length];
@@ -763,7 +714,7 @@ public abstract class GameAtoms extends GamePlans {
      * @param uniqueOnly vrai pour ne tirer que parmi les familles uniques
      */
     private Element drawElement(boolean uniqueOnly) {
-        // Version 0.167 : chaque poids se calcule une fois par tirage (deux avant), pour la synthèse sans délai.
+        // Chaque poids se calcule une fois par tirage (deux avant), pour la synthèse sans délai.
         ElementCategory[] categories = ElementCategory.values();
         double[] weights = new double[categories.length];
         double total = 0;
@@ -794,40 +745,28 @@ public abstract class GameAtoms extends GamePlans {
     // ------------------------------------------------------------------
 
     /** Tous les ensembles du tableau périodique : les familles, puis les périodes. */
-    public List<ElementSet> elementSets() {
-        return ElementSets.DEFAULT;
-    }
+    public List<ElementSet> elementSets() { return ElementSets.DEFAULT; }
 
     /** Nombre d'éléments de cet ensemble que le joueur possède. */
-    public int setProgress(ElementSet set) {
-        return set.progress(state.elements());
-    }
+    public int setProgress(ElementSet set) { return set.progress(state.elements()); }
 
     /** Vrai si le joueur possède tous les éléments de cet ensemble : son bonus est actif. */
-    public boolean isSetComplete(ElementSet set) {
-        return set.isComplete(state.elements());
-    }
+    public boolean isSetComplete(ElementSet set) { return set.isComplete(state.elements()); }
 
     /**
      * Force du bonus de cet ensemble en ce moment : 0, {@link ElementSet#HALF_STRENGTH} à partir
      * de la moitié réunie, 1 quand il est complet.
      */
-    public double setStrength(ElementSet set) {
-        return set.strength(state.elements());
-    }
+    public double setStrength(ElementSet set) { return set.strength(state.elements()); }
 
     /** Nombre d'ensembles complets. */
-    public int completedSets() {
-        return bonuses().completedSets();
-    }
+    public int completedSets() { return bonuses().completedSets(); }
 
     /** Nombre d'ensembles à moitié réunis, sans être complets. */
-    public int halfSets() {
-        return bonuses().halfSets();
-    }
+    public int halfSets() { return bonuses().halfSets(); }
 
     /** Les familles, dans l'ordre de l'énumération, chacune par numéro atomique croissant : lues à chaque tirage. */
-    private static final List<List<Element>> FAMILIES = java.util.Arrays.stream(ElementCategory.values())
+    private static final List<List<Element>> FAMILIES = Arrays.stream(ElementCategory.values())
             .map(PeriodicTable::elements).toList();
 
     /**
@@ -841,7 +780,7 @@ public abstract class GameAtoms extends GamePlans {
     /**
      * Combien d'éléments d'une famille peuvent encore sortir (ceux qui n'ont pas atteint leur maximum d'exemplaires),
      * ou, avec {@code unknownOnly}, combien le joueur n'en possède pas encore. Sans construire de liste : la synthèse
-     * automatique tire des milliers de fois par heure de jeu (version 0.170).
+     * automatique tire des milliers de fois par heure de jeu.
      */
     private int availableCount(ElementCategory category, int cap, boolean unknownOnly) {
         refreshMoleculeBonuses();
@@ -890,12 +829,10 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Chance qu'une synthèse donne un second élément, entre 0 et 1. */
-    public double doubleDrawChance() {
-        return Math.min(1, luckAndDoubleDraw()[1]);
-    }
+    public double doubleDrawChance() { return Math.min(1, luckAndDoubleDraw()[1]); }
 
     /**
-     * {@code {1 + chance des familles rares, double tirage non borné}} (version 0.202) : les mêmes nombres que
+     * {@code {1 + chance des familles rares, double tirage non borné}} : les mêmes nombres que
      * {@link #bonuses()}, sans recalculer les autres bonus à chaque tirage.
      */
     private double[] luckAndDoubleDraw() {
@@ -915,9 +852,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Nombre d'éléments différents possédés, sur 118. */
-    public int discoveredElements() {
-        return state.elements().size();
-    }
+    public int discoveredElements() { return state.elements().size(); }
 
     /** Nombre de familles dont le joueur possède au moins un élément, sur dix (version 0.192 : le skin « Spectre »). */
     public int familiesOwned() {
@@ -954,7 +889,7 @@ public abstract class GameAtoms extends GamePlans {
         for (ElementBonuses.SynergyTerm term : bonuses().synergies()) {
             if (term.stat() == stat) synergy += term.perUnit() * synergyUnits(term.source());
         }
-        // Borné (version 0.117) : avec les récompenses des sondes ×1 000 et plus, les exemplaires d'éléments peuvent pousser
+        // Borné : avec les récompenses des sondes ×1 000 et plus, les exemplaires d'éléments peuvent pousser
         // ce produit au-delà de ce qu'un double sait écrire.
         double value = bonuses().stat(stat) * (1 + synergy);
         return Double.isNaN(value) ? 1 : Math.min(value, ELEMENT_MULTIPLIER_CAP);
@@ -981,38 +916,28 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Ce que les éléments ajoutent à la vitesse d'un générateur précis (numéroté à partir de 0). */
-    public double generatorSpeedMultiplier(int generator) {
-        return capped(bonuses().generatorSpeed(generator + 1));
-    }
+    public double generatorSpeedMultiplier(int generator) { return capped(bonuses().generatorSpeed(generator + 1)); }
 
     /** Ce que les éléments ajoutent aux particules d'un générateur précis (numéroté à partir de 0). */
     public double generatorParticlesMultiplier(int generator) {
         return capped(bonuses().generatorParticles(generator + 1));
     }
 
-    /** Un bonus propre à un générateur, borné (version 0.117) : le produit de deux reste un double. */
-    private static double capped(double value) {
-        return Double.isNaN(value) ? 1 : Math.min(value, 1e150);
-    }
+    /** Un bonus propre à un générateur, borné : le produit de deux reste un double. */
+    private static double capped(double value) { return Double.isNaN(value) ? 1 : Math.min(value, 1e150); }
 
     /** Diviseur qu'appliquent les éléments à un prix (1 sans élément). */
-    public double elementCostDivisor(ElementEffect.CostTarget target) {
-        return bonuses().costDivisor(target);
-    }
+    public double elementCostDivisor(ElementEffect.CostTarget target) { return bonuses().costDivisor(target); }
 
     // ------------------------------------------------------------------
     // Les succès
     // ------------------------------------------------------------------
 
     /** Tous les succès du catalogue, dans son ordre. Vide pour une partie créée sans catalogue de succès. */
-    public Collection<Achievement> achievements() {
-        return achievements.values();
-    }
+    public Collection<Achievement> achievements() { return achievements.values(); }
 
     /** Vrai si ce succès est obtenu. */
-    public boolean hasAchievement(String achievementId) {
-        return state.achievements().contains(achievementId);
-    }
+    public boolean hasAchievement(String achievementId) { return state.achievements().contains(achievementId); }
 
     /** Nombre de succès obtenus parmi ceux du catalogue. */
     public int achievementCount() {
@@ -1114,11 +1039,9 @@ public abstract class GameAtoms extends GamePlans {
 
     /**
      * Temps de jeu de la partie en cours, en secondes : depuis le début du jeu pour la première, depuis le début
-     * de la nouvelle partie ensuite (version 0.126). {@code NaN} si ce début n'est pas connu (sauvegarde ancienne).
+     * de la nouvelle partie ensuite. {@code NaN} si ce début n'est pas connu (sauvegarde ancienne).
      */
-    public double runTimePlayed() {
-        return state.timePlayed() - state.stats().universeStart();
-    }
+    public double runTimePlayed() { return state.timePlayed() - state.stats().universeStart(); }
 
     /** Retient le temps de la partie comme record de cette étape s'il bat le précédent, ou s'il n'y en avait pas. */
     void noteRecord(GameStats.Step step) {
@@ -1137,9 +1060,7 @@ public abstract class GameAtoms extends GamePlans {
      * parties confondues, en secondes. {@code NaN} si elle ne l'a jamais été. La remise à zéro du
      * jeu garde les records : ce sont eux qu'on cherche à battre à la partie suivante.
      */
-    public double recordOf(GameStats.Step step) {
-        return state.records().getOrDefault(step.name(), Double.NaN);
-    }
+    public double recordOf(GameStats.Step step) { return state.records().getOrDefault(step.name(), Double.NaN); }
 
     /** La prochaine étape datée que cette partie n'a pas encore atteinte, ou {@code null} quand elles le sont toutes. */
     public GameStats.Step nextStep() {
@@ -1169,9 +1090,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /** Oublie tous les records. */
-    public void clearRecords() {
-        state.clearRecords();
-    }
+    public void clearRecords() { state.clearRecords(); }
 
     /** Les étapes dont le record vient d'être battu depuis le dernier appel : pour l'annoncer. Vidé à chaque lecture. */
     public List<GameStats.Step> takeNewRecords() {

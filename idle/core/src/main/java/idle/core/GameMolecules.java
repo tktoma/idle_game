@@ -1,31 +1,21 @@
 package idle.core;
 
+import idle.core.state.*;
+
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.SpaceUpgrade;
+import idle.core.bigbang.*;
 import idle.core.collider.ColliderUpgrade;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les molécules et ce qu'elles forment : états de la matière, assemblages, astres, galaxie, cosmos.
- */
+/** Les molécules et ce qu'elles forment : états de la matière, assemblages, astres, galaxie, cosmos. */
 public abstract class GameMolecules extends GameUniverse {
-
     GameMolecules(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -40,15 +30,12 @@ public abstract class GameMolecules extends GameUniverse {
     /** Vrai si une amélioration d'espace acquise a un effet de cette sorte ; faux avant le premier Big Bang. */
     abstract boolean ownsSpaceEffect(Class<? extends SpaceUpgrade.Effect> type);
 
-
     // ------------------------------------------------------------------
     // Les molécules
     // ------------------------------------------------------------------
 
     /** Toutes les molécules, dans l'ordre du catalogue. */
-    public List<Molecule> molecules() {
-        return moleculeList;
-    }
+    public List<Molecule> molecules() { return moleculeList; }
 
     /** La molécule qui porte cet identifiant. */
     public Molecule molecule(String moleculeId) {
@@ -58,19 +45,13 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Nombre de molécules de cette sorte créées. */
-    public int moleculeCount(String moleculeId) {
-        return state.moleculeCount(molecule(moleculeId).id());
-    }
+    public int moleculeCount(String moleculeId) { return state.moleculeCount(molecule(moleculeId).id()); }
 
     /** Nombre de molécules créées, toutes sortes confondues. */
-    public long moleculesCreated() {
-        return state.moleculeTotal();
-    }
+    public long moleculesCreated() { return state.moleculeTotal(); }
 
     /** Nombre de sortes de molécules dont le joueur a créé au moins une. */
-    public int moleculeKindsCreated() {
-        return state.moleculeKinds();
-    }
+    public int moleculeKindsCreated() { return state.moleculeKinds(); }
 
     /**
      * Ce que demande une création dans cette sorte : numéro atomique → exemplaires à y mettre, dans
@@ -78,19 +59,14 @@ public abstract class GameMolecules extends GameUniverse {
      * créées : ce qui limite une sorte, c'est l'espace qu'elle occupe ({@link #moleculeVolume(String)}),
      * et le tableau périodique qu'il faut regarnir entre deux créations.
      */
-    public Map<Integer, Integer> nextMoleculeCost(String moleculeId) {
-        return molecule(moleculeId).recipe();
-    }
+    public Map<Integer, Integer> nextMoleculeCost(String moleculeId) { return molecule(moleculeId).recipe(); }
 
     /**
-     * Espace qu'occupe une molécule de cette sorte : {@link #SPACE_PER_PROTON} par proton, multiplié
-     * par ce que demande son état ({@link Molecule.State#spaceFactor()}). Plus elle a d'atomes, et
-     * plus ils sont lourds, plus elle prend de place ; et un gaz en prend vingt fois plus qu'un
-     * cristal du même poids.
+     * Espace qu'occupe une molécule de cette sorte : {@link #SPACE_PER_PROTON} par proton, multiplié par ce que demande
+     * son état ({@link Molecule.State#spaceFactor()}). Plus elle a d'atomes, et plus ils sont lourds, plus elle prend
+     * de place ; et un gaz en prend vingt fois plus qu'un cristal du même poids.
      */
-    public BigNum moleculeVolume(String moleculeId) {
-        return BigNum.of(volumeOf(molecule(moleculeId)));
-    }
+    public BigNum moleculeVolume(String moleculeId) { return BigNum.of(volumeOf(molecule(moleculeId))); }
 
     static double volumeOf(Molecule molecule) {
         return SPACE_PER_PROTON * molecule.protons() * (molecule.hasState() ? molecule.state().spaceFactor() : 1);
@@ -129,7 +105,7 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Espace utilisé : celui que les molécules occupent, et celui que réservent les lieux de rassemblement. */
     public BigNum usedSpace() {
-        // Version 0.129 : les paires du vide tiennent leur espace tant qu'elles vivent.
+        // Les paires du vide tiennent leur espace tant qu'elles vivent.
         return occupiedSpace().add(reservedSpace()).add(voidHeldSpace());
     }
 
@@ -183,9 +159,7 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Vrai s'il reste assez d'espace libre pour une molécule de cette sorte. */
-    public boolean hasSpaceForMolecule(String moleculeId) {
-        return hasFreeSpace(moleculeVolume(moleculeId));
-    }
+    public boolean hasSpaceForMolecule(String moleculeId) { return hasFreeSpace(moleculeVolume(moleculeId)); }
 
     /** Vrai si cette sorte a atteint {@link #MAX_MOLECULES} molécules : on ne peut plus en créer, quoi qu'on ait. */
     public boolean isMoleculeKindFull(String moleculeId) {
@@ -204,9 +178,8 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Vrai si ce rayon du catalogue est ouvert : le premier Big Bang a eu lieu, et le joueur
-     * possède l'amélioration d'espace qui l'ouvre ({@link SpaceUpgrade.OpenKind}). Les petites
-     * molécules n'en demandent aucune.
+     * Vrai si ce rayon du catalogue est ouvert : le premier Big Bang a eu lieu, et le joueur possède l'amélioration
+     * d'espace qui l'ouvre ({@link SpaceUpgrade.OpenKind}). Les petites molécules n'en demandent aucune.
      */
     public boolean isMoleculeKindUnlocked(Molecule.Kind kind) {
         if (!isBigBangUnlocked()) return false;
@@ -273,7 +246,7 @@ public abstract class GameMolecules extends GameUniverse {
      * dans chaque rayon d'après la liste de courses. Les rayons dont rien ne manque n'y sont pas.
      */
     public Map<Molecule.Kind, Integer> missingByKind() {
-        Map<Molecule.Kind, Integer> missing = new java.util.EnumMap<>(Molecule.Kind.class);
+        Map<Molecule.Kind, Integer> missing = new EnumMap<>(Molecule.Kind.class);
         for (ShoppingList.Item item : shoppingList().items()) {
             int count = item.missing();
             if (count > 0) missing.merge(item.molecule().kind(), count, Integer::sum);
@@ -282,21 +255,18 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Crée une molécule : les exemplaires que demande sa formule quittent le tableau périodique,
-     * avec ce qu'ils y apportaient, et la molécule prend sa place dans l'espace. Il reste toujours
-     * au moins un exemplaire de chaque élément : le tableau reste découvert, et l'explosion reste
-     * possible. La molécule, elle, est définitive : ni l'explosion ni le Big Bang ne la reprennent,
-     * et l'espace qu'elle occupe ne se libère pas.
+     * Crée une molécule : les exemplaires que demande sa formule quittent le tableau périodique, avec ce qu'ils y
+     * apportaient, et la molécule prend sa place dans l'espace. Il reste toujours au moins un exemplaire de chaque
+     * élément : le tableau reste découvert, et l'explosion reste possible. La molécule, elle, est définitive : ni
+     * l'explosion ni le Big Bang ne la reprennent, et l'espace qu'elle occupe ne se libère pas.
      *
-     * <p>Dans une sorte rassemblée, l'amas attire en plus de la matière : la création y ajoute
-     * {@link #moleculesPerCreation(String)} molécules pour le même prix, dans la limite de l'espace
-     * libre. C'est ce qui permet de réunir les milliers de molécules que demande un astre.
+     * <p>Dans une sorte rassemblée, l'amas attire en plus de la matière : la création y ajoute {@link
+     * #moleculesPerCreation(String)} molécules pour le même prix, dans la limite de l'espace libre. C'est ce qui permet
+     * de réunir les milliers de molécules que demande un astre.
      *
      * @return {@code true} si la molécule a été créée
      */
-    public boolean createMolecule(String moleculeId) {
-        return createMolecule(moleculeId, false);
-    }
+    public boolean createMolecule(String moleculeId) { return createMolecule(moleculeId, false); }
 
     /** {@link #createMolecule(String)}, en notant pour les statistiques si c'est l'automatisme qui crée. */
     boolean createMolecule(String moleculeId, boolean automatic) {
@@ -317,7 +287,7 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Les molécules de plus que donnent les défis de Big Bang du deuxième univers (version 0.118) : la création en donne
+     * Les molécules de plus que donnent les défis de Big Bang du deuxième univers : la création en donne
      * ×2 au premier défi réussi, ×4 au troisième, ×8 au cinquième (version 0.119 : plafonné à ×8), pour le même prix
      * en éléments. Chacune prend sa place : sans assez d'espace libre, ou au plafond de la sorte, il en vient moins.
      */
@@ -338,9 +308,7 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Chance qu'une création de molécule en donne deux fois plus : le dédoublement du collisionneur (5 % par niveau). */
-    public double moleculeDoublingChance() {
-        return 0.05 * colliderUpgradeLevel(ColliderUpgrade.MOLECULES);
-    }
+    public double moleculeDoublingChance() { return 0.05 * colliderUpgradeLevel(ColliderUpgrade.MOLECULES); }
 
     /**
      * Les molécules de plus que donne le dédoublement à cette création : autant qu'elle en crée,
@@ -359,11 +327,10 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Nombre de molécules qu'une création ajoute à cette sorte quand la place ne manque pas : une
-     * seule tant que la sorte n'est pas rassemblée ; ensuite une, plus la racine carrée du nombre
-     * de molécules de l'amas (4 pour un amas de 9, 11 pour un amas de 100, 101 pour un amas de
-     * 10 000). Plus un amas est gros, plus il attire ; et le palier du troisième Big Bang double
-     * cette racine ({@link #accretionFactor()}).
+     * Nombre de molécules qu'une création ajoute à cette sorte quand la place ne manque pas : une seule tant que la
+     * sorte n'est pas rassemblée ; ensuite une, plus la racine carrée du nombre de molécules de l'amas (4 pour un amas
+     * de 9, 11 pour un amas de 100, 101 pour un amas de 10 000). Plus un amas est gros, plus il attire ; et le palier
+     * du troisième Big Bang double cette racine ({@link #accretionFactor()}).
      */
     public int moleculesPerCreation(String moleculeId) {
         Molecule molecule = molecule(moleculeId);
@@ -387,13 +354,12 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Ce par quoi l'acte du Big Bang multiplie une grandeur : {@code 1 + la somme} des bonus des
-     * molécules sur cette grandeur ({@link Molecule.Boost}), chaque sorte comptée pour
-     * {@link #effectiveMolecules(String)}, plus ce que donnent leurs rassemblements, les
-     * assemblages formés ({@link Assembly#boost()}) et les astres formés ({@link Body#boost()}) ;
-     * le tout multiplié par les améliorations d'espace qui portent sur cette grandeur
-     * ({@link #spaceUpgradeBoost(Molecule.Stat)}) et par les paliers de Big Bang atteints
-     * ({@link #bigBangMilestoneBoost(Molecule.Stat)}). Vaut 1 sans molécule, amélioration ni palier.
+     * Ce par quoi l'acte du Big Bang multiplie une grandeur : {@code 1 + la somme} des bonus des molécules sur cette
+     * grandeur ({@link Molecule.Boost}), chaque sorte comptée pour {@link #effectiveMolecules(String)}, plus ce que
+     * donnent leurs rassemblements, les assemblages formés ({@link Assembly#boost()}) et les astres formés ({@link
+     * Body#boost()}) ; le tout multiplié par les améliorations d'espace qui portent sur cette grandeur ({@link
+     * #spaceUpgradeBoost(Molecule.Stat)}) et par les paliers de Big Bang atteints ({@link
+     * #bigBangMilestoneBoost(Molecule.Stat)}). Vaut 1 sans molécule, amélioration ni palier.
      */
     public double moleculeBoost(Molecule.Stat stat) {
         refreshMoleculeBonuses();
@@ -412,7 +378,7 @@ public abstract class GameMolecules extends GameUniverse {
         return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * cosmosFactor() * Math.pow(1 + COSMOS_MILESTONE_GAIN, cosmosMilestones());
     }
 
-    /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière (version 0.068). */
+    /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière. */
     private double cosmosFactor() {
         double factor = 1;
         for (Cosmos scale : Cosmos.values()) if (hasCosmos(scale)) factor *= scale.factor();
@@ -427,9 +393,8 @@ public abstract class GameMolecules extends GameUniverse {
     public static final double COSMOS_MILESTONE_GAIN = 0.10;
 
     /**
-     * Les jalons de la fin de partie (version 0.068) : chaque état de la matière réuni pour l'amas de
-     * galaxies, puis pour l'univers, une fois l'échelle en vue. Une échelle formée compte tous les
-     * siens. Dix en tout.
+     * Les jalons de la fin de partie : chaque état de la matière réuni pour l'amas de galaxies, puis pour l'univers,
+     * une fois l'échelle en vue. Une échelle formée compte tous les siens. Dix en tout.
      */
     public int cosmosMilestones() {
         int count = 0;
@@ -447,7 +412,7 @@ public abstract class GameMolecules extends GameUniverse {
         return count;
     }
 
-    /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon (version 0.068). */
+    /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon. */
     public boolean isCosmosMilestoneMet(Cosmos scale, Molecule.State matter) {
         Integer need = cosmosMatter(scale).get(matter);
         return need != null && (hasCosmos(scale) || isCosmosUnlocked(scale) && gatheredInState(matter) >= need);
@@ -527,7 +492,7 @@ public abstract class GameMolecules extends GameUniverse {
     /** La liste de courses d'un astre : les ingrédients de ses assemblages pas encore formés, ses molécules, sa matière. */
     ShoppingList shoppingFor(Body body) {
         Map<String, int[]> wanted = new LinkedHashMap<>();       // sorte → {à avoir en tout, 1 s'il faut la rassembler}
-        Map<String, String> purposes = new java.util.HashMap<>();
+        Map<String, String> purposes = new HashMap<>();
         List<Assembly> ready = new ArrayList<>();
         for (String id : body.assemblies()) {
             if (state.hasAssembly(id)) continue;
@@ -540,7 +505,7 @@ public abstract class GameMolecules extends GameUniverse {
             want[0] = Math.max(want[0], needed.getValue());
             purposes.putIfAbsent(needed.getKey(), "");
         }
-        Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> matter = new EnumMap<>(Molecule.State.class);
         for (Map.Entry<Molecule.State, Integer> needed : bodyMatter(body).entrySet()) {
             int missing = (int) Math.max(0, needed.getValue() - gatheredInState(needed.getKey()));
             if (missing > 0) matter.put(needed.getKey(), missing);
@@ -579,11 +544,10 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Acquiert une amélioration d'espace dont le seuil est atteint. Le jeu le fait de lui-même à
-     * chaque {@link #tick(double)} : cette méthode ne sert qu'à l'acquérir sans attendre. Rien n'est
-     * dépensé : c'est l'espace gagné qui l'ouvre, et il reste entièrement disponible pour les
-     * molécules et leurs rassemblements. Elle est définitive, ni l'explosion ni le Big Bang ne la
-     * reprennent.
+     * Acquiert une amélioration d'espace dont le seuil est atteint. Le jeu le fait de lui-même à chaque {@link
+     * #tick(double)} : cette méthode ne sert qu'à l'acquérir sans attendre. Rien n'est dépensé : c'est l'espace gagné
+     * qui l'ouvre, et il reste entièrement disponible pour les molécules et leurs rassemblements. Elle est définitive,
+     * ni l'explosion ni le Big Bang ne la reprennent.
      *
      * @return {@code true} si l'amélioration vient d'être acquise
      */
@@ -598,20 +562,15 @@ public abstract class GameMolecules extends GameUniverse {
     // ------------------------------------------------------------------
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre le rassemblement des molécules ({@link SpaceUpgrade.OpenStates}). */
-    public boolean isStatesUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.OpenStates.class);
-    }
+    public boolean isStatesUnlocked() { return ownsSpaceEffect(SpaceUpgrade.OpenStates.class); }
 
     /** Vrai si les molécules de cette sorte sont rassemblées en leur substance : un gaz, un liquide ou un solide. */
-    public boolean hasSubstance(String moleculeId) {
-        return state.hasSubstance(molecule(moleculeId).id());
-    }
+    public boolean hasSubstance(String moleculeId) { return state.hasSubstance(molecule(moleculeId).id()); }
 
     /**
-     * Espace que réserve le lieu où se rassemblent les molécules de cette sorte : le volume des
-     * {@link #SUBSTANCE_MOLECULES} molécules qu'il faut pour l'ouvrir ({@link #moleculeVolume(String)},
-     * donc bien plus pour un gaz que pour un cristal). Il se paie une seule fois, et ne grandit pas
-     * avec le nombre de molécules rassemblées.
+     * Espace que réserve le lieu où se rassemblent les molécules de cette sorte : le volume des {@link
+     * #SUBSTANCE_MOLECULES} molécules qu'il faut pour l'ouvrir ({@link #moleculeVolume(String)}, donc bien plus pour un
+     * gaz que pour un cristal). Il se paie une seule fois, et ne grandit pas avec le nombre de molécules rassemblées.
      *
      * @throws IllegalArgumentException si ces molécules ne se rassemblent pas
      */
@@ -635,15 +594,14 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Rassemble les molécules d'une sorte en leur substance : un gaz, un liquide ou un solide,
-     * selon la molécule ({@link Molecule#state()}). C'est un achat unique par sorte de molécule :
-     * il réserve un lieu dans l'espace ({@link #substanceSpace(String)}), et toutes les molécules
-     * de la sorte s'y rangent, celles d'aujourd'hui comme celles qui seront créées ensuite.
+     * Rassemble les molécules d'une sorte en leur substance : un gaz, un liquide ou un solide, selon la molécule
+     * ({@link Molecule#state()}). C'est un achat unique par sorte de molécule : il réserve un lieu dans l'espace
+     * ({@link #substanceSpace(String)}), et toutes les molécules de la sorte s'y rangent, celles d'aujourd'hui comme
+     * celles qui seront créées ensuite.
      *
-     * <p>Aucune molécule n'est consommée : elles gardent leur place. Le rassemblement fait trois
-     * choses. La sorte compte davantage dans les bonus, à l'exposant de son état
-     * ({@link #effectiveMolecules(String)}) ; elle ajoute sa part de particules ou d'atomes ; et
-     * son amas attire la matière : chaque création y ajoute plus d'une molécule
+     * <p>Aucune molécule n'est consommée : elles gardent leur place. Le rassemblement fait trois choses. La sorte
+     * compte davantage dans les bonus, à l'exposant de son état ({@link #effectiveMolecules(String)}) ; elle ajoute sa
+     * part de particules ou d'atomes ; et son amas attire la matière : chaque création y ajoute plus d'une molécule
      * ({@link #moleculesPerCreation(String)}). Le rassemblement est définitif.
      *
      * @return {@code true} si les molécules ont été rassemblées
@@ -662,11 +620,10 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Pour combien cette sorte compte dans les bonus : le nombre de fois qu'elle a doublé
-     * ({@link #doublings(int)}), élevé à la puissance de son état quand elle est rassemblée. Trois
-     * molécules d'un liquide (deux doublements, exposant 1,25) comptent pour 2,38 ; mille (dix
-     * doublements), pour 17,7. Les premières molécules d'une sorte comptent donc beaucoup, les
-     * suivantes de moins en moins : il vaut mieux beaucoup de sortes qu'une seule énorme.
+     * Pour combien cette sorte compte dans les bonus : le nombre de fois qu'elle a doublé ({@link #doublings(int)}),
+     * élevé à la puissance de son état quand elle est rassemblée. Trois molécules d'un liquide (deux doublements,
+     * exposant 1,25) comptent pour 2,38 ; mille (dix doublements), pour 17,7. Les premières molécules d'une sorte
+     * comptent donc beaucoup, les suivantes de moins en moins : il vaut mieux beaucoup de sortes qu'une seule énorme.
      */
     public double effectiveMolecules(String moleculeId) {
         Molecule molecule = molecule(moleculeId);
@@ -680,23 +637,17 @@ public abstract class GameMolecules extends GameUniverse {
      * trois, 3 pour sept, 4 pour quinze, et ainsi de suite ; entre deux, la valeur glisse de l'un à
      * l'autre. C'est le logarithme en base deux de {@code count + 1}.
      */
-    public static double doublings(int count) {
-        return count <= 0 ? 0 : Math.log1p(count) / Math.log(2);
-    }
+    public static double doublings(int count) { return count <= 0 ? 0 : Math.log1p(count) / Math.log(2); }
 
     /** Nombre de sortes de molécules rassemblées dans le lieu de leur état. */
-    public int substancesFormed() {
-        return state.substances().size();
-    }
+    public int substancesFormed() { return state.substances().size(); }
 
     // ------------------------------------------------------------------
     // Les assemblages : roches, minerais, pierres précieuses, eaux, gaz, hydrocarbures
     // ------------------------------------------------------------------
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre les assemblages ({@link SpaceUpgrade.OpenAssemblies}). */
-    public boolean isAssembliesUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.OpenAssemblies.class);
-    }
+    public boolean isAssembliesUnlocked() { return ownsSpaceEffect(SpaceUpgrade.OpenAssemblies.class); }
 
     /** Tous les assemblages, dans l'ordre du catalogue ({@link idle.core.sky.Assemblies}). */
     public List<Assembly> assemblies() {
@@ -716,19 +667,14 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Vrai si cet assemblage est formé. */
-    public boolean hasAssembly(String assemblyId) {
-        return state.hasAssembly(assembly(assemblyId).id());
-    }
+    public boolean hasAssembly(String assemblyId) { return state.hasAssembly(assembly(assemblyId).id()); }
 
     /** Nombre d'assemblages formés. */
-    public int assembliesFormed() {
-        return state.assemblies().size();
-    }
+    public int assembliesFormed() { return state.assemblies().size(); }
 
     /**
-     * Nombre de molécules de cette sorte entrées dans des assemblages : la somme de ce qu'en
-     * demande chaque assemblage formé. Elles ne sont plus dans l'amas de leur sorte, et aucun
-     * autre assemblage ne peut compter dessus.
+     * Nombre de molécules de cette sorte entrées dans des assemblages : la somme de ce qu'en demande chaque assemblage
+     * formé. Elles ne sont plus dans l'amas de leur sorte, et aucun autre assemblage ne peut compter dessus.
      */
     public int assembledMolecules(String moleculeId) {
         String id = molecule(moleculeId).id();
@@ -763,11 +709,10 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Forme un assemblage : c'est un achat unique, qui ne consomme rien. Les molécules qu'il
-     * demande quittent l'amas de leur sorte pour entrer dans son bloc ; elles comptent toujours
-     * comme des molécules de leur sorte, avec leur bonus et celui de leur rassemblement. En plus,
-     * l'assemblage augmente la grandeur de sa famille ({@link Assembly#boost()}). Il est
-     * définitif : ni l'explosion ni le Big Bang ne le défont.
+     * Forme un assemblage : c'est un achat unique, qui ne consomme rien. Les molécules qu'il demande quittent l'amas de
+     * leur sorte pour entrer dans son bloc ; elles comptent toujours comme des molécules de leur sorte, avec leur bonus
+     * et celui de leur rassemblement. En plus, l'assemblage augmente la grandeur de sa famille ({@link
+     * Assembly#boost()}). Il est définitif : ni l'explosion ni le Big Bang ne le défont.
      *
      * @return {@code true} si l'assemblage a été formé
      */
@@ -783,9 +728,7 @@ public abstract class GameMolecules extends GameUniverse {
     // ------------------------------------------------------------------
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre les astres ({@link SpaceUpgrade.OpenBodies}). */
-    public boolean isBodiesUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.OpenBodies.class);
-    }
+    public boolean isBodiesUnlocked() { return ownsSpaceEffect(SpaceUpgrade.OpenBodies.class); }
 
     /** Tous les astres, du plus petit au plus grand ({@link idle.core.sky.Bodies}). */
     public List<Body> bodies() {
@@ -805,22 +748,16 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Vrai si cet astre est formé. */
-    public boolean hasBody(String bodyId) {
-        return state.hasBody(body(bodyId).id());
-    }
+    public boolean hasBody(String bodyId) { return state.hasBody(body(bodyId).id()); }
 
     /** Nombre d'astres formés. */
-    public int bodiesFormed() {
-        return state.bodies().size();
-    }
+    public int bodiesFormed() { return state.bodies().size(); }
 
     /**
      * L'astre dont cet assemblage fait partie : celui qui en est fait, dans le catalogue. Il n'y en
      * a qu'un, ou aucun ({@code null}). L'astre peut ne pas être formé encore ({@link #hasBody(String)}).
      */
-    public Body bodyOf(String assemblyId) {
-        return bodyByAssembly.get(assembly(assemblyId).id());
-    }
+    public Body bodyOf(String assemblyId) { return bodyByAssembly.get(assembly(assemblyId).id()); }
 
     /**
      * Nombre de molécules rassemblées dans cet état, toutes sortes confondues, qu'elles soient
@@ -859,10 +796,9 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Vrai si cet astre peut être formé maintenant : les astres sont ouverts, il n'est pas déjà
-     * formé, et toutes ses conditions sont réunies ({@link #bodyConditionsMet(String)}) : les
-     * assemblages dont il est fait et ses astres plus petits sont formés, sa matière est rassemblée,
-     * ses molécules sont créées.
+     * Vrai si cet astre peut être formé maintenant : les astres sont ouverts, il n'est pas déjà formé, et toutes ses
+     * conditions sont réunies ({@link #bodyConditionsMet(String)}) : les assemblages dont il est fait et ses astres
+     * plus petits sont formés, sa matière est rassemblée, ses molécules sont créées.
      */
     public boolean canFormBody(String bodyId) {
         Body body = body(bodyId);
@@ -872,11 +808,10 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Forme un astre : c'est un achat unique. Ses assemblages entrent dans l'astre et en font le
-     * corps ({@link #bodyOf(String)}) ; ils restent formés et gardent leur bonus. Le reste de ce
-     * qu'il demande n'est ni consommé ni réservé, et peut servir à d'autres astres. Une fois formé,
-     * il augmente sa grandeur de ce que vaut son échelle ({@link Body#boost()}). Il est définitif :
-     * ni l'explosion ni le Big Bang ne le défont.
+     * Forme un astre : c'est un achat unique. Ses assemblages entrent dans l'astre et en font le corps ({@link
+     * #bodyOf(String)}) ; ils restent formés et gardent leur bonus. Le reste de ce qu'il demande n'est ni consommé ni
+     * réservé, et peut servir à d'autres astres. Une fois formé, il augmente sa grandeur de ce que vaut son échelle
+     * ({@link Body#boost()}). Il est définitif : ni l'explosion ni le Big Bang ne le défont.
      *
      * @return {@code true} si l'astre a été formé
      */
@@ -929,14 +864,11 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Vrai si la galaxie est formée. */
-    public boolean hasGalaxy() {
-        return state.hasGalaxy();
-    }
+    public boolean hasGalaxy() { return state.hasGalaxy(); }
 
     /**
-     * Vrai si la galaxie peut être formée maintenant : les astres sont ouverts, elle ne l'est pas
-     * déjà, et tous les astres du catalogue sont formés, du premier amas de roches au trou noir
-     * supermassif.
+     * Vrai si la galaxie peut être formée maintenant : les astres sont ouverts, elle ne l'est pas déjà, et tous les
+     * astres du catalogue sont formés, du premier amas de roches au trou noir supermassif.
      */
     public boolean canFormGalaxy() {
         return state.started() && isBodiesUnlocked() && !state.hasGalaxy() && bodiesMature() == bodies.size()
@@ -944,15 +876,12 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /**
-     * Forme la galaxie : tout ce que le joueur a créé, molécules, amas, assemblages et astres, se
-     * met à tourner autour du trou noir supermassif. C'est un achat unique, qui ne consomme rien :
-     * les astres restent formés et gardent leur bonus. La galaxie multiplie par {@link #GALAXY_FACTOR}
-     * chacune des grandeurs que les molécules augmentent, et rien ne la défait, ni l'explosion ni
-     * le Big Bang.
+     * Forme la galaxie : tout ce que le joueur a créé, molécules, amas, assemblages et astres, se met à tourner autour
+     * du trou noir supermassif. C'est un achat unique, qui ne consomme rien : les astres restent formés et gardent leur
+     * bonus. La galaxie multiplie par {@link #GALAXY_FACTOR} chacune des grandeurs que les molécules augmentent, et
+     * rien ne la défait, ni l'explosion ni le Big Bang.
      *
      * @return {@code true} si la galaxie a été formée
      */
-    public boolean formGalaxy() {
-        return formCosmos(Cosmos.GALAXY);
-    }
+    public boolean formGalaxy() { return formCosmos(Cosmos.GALAXY); }
 }

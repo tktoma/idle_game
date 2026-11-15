@@ -7,19 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.ui.FxTestSupport;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.137 : l'arrosoir de la graine, sous Xvfb. Le bouton de l'étagère le débloque ; on le prend, on le glisse
+ * L'arrosoir de la graine, sous Xvfb. Le bouton de l'étagère le débloque ; on le prend, on le glisse
  * sur la graine, il se penche et verse ; relâché, il revient sur l'étagère.
  */
 class ArrosoirPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** La page de la graine, dans une scène de 1000 × 700, l'objectif de la dimension 1 atteint. */
     private static UniversePage page(Game game) {

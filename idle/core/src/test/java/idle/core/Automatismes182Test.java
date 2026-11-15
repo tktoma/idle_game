@@ -11,12 +11,11 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.182 : les automatismes de la dimension n s'ouvrent au palier n + 2 de la graine (l'arbre-monde au plus) et à
+ * Les automatismes de la dimension n s'ouvrent au palier n + 2 de la graine (l'arbre-monde au plus) et à
  * n + 1 univers formés, dimension par dimension ; la bulle du sommet de l'arbre-monde les fait moitié prix. L'étage du
  * chrono est passé au plan, le tuyau au volume, la terre fertile à la durée.
  */
 class Automatismes182Test {
-
     @Test
     void chaqueDimensionOuvreSesAutomatismesAUnPalierEtUnUniversDePlusQueLaPrecedente() {
         for (int dimension = 1; dimension <= Game.MAX_DIMENSIONS; dimension++) {
@@ -70,7 +69,7 @@ class Automatismes182Test {
         assertEquals(DimensionAutomation.VOLUME_TIME.cost(), game.dimensionAutomationCost(DimensionAutomation.VOLUME_TIME), 1e-9);
         game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
         assertEquals(DimensionAutomation.VOLUME_TIME.cost() * Game.SUMMIT_DISCOUNT, game.dimensionAutomationCost(DimensionAutomation.VOLUME_TIME), 1e-9);
-        // Version 0.209 : payé en sphères, la ressource du volume.
+        // Payé en sphères, la ressource du volume.
         game.state().setVolumeShards(DimensionAutomation.VOLUME_TIME.cost() * 0.6);
         assertTrue(game.canBuyDimensionAutomation(DimensionAutomation.VOLUME_TIME), "60 % du prix suffisent avec la bulle");
         assertTrue(game.buyDimensionAutomation(DimensionAutomation.VOLUME_TIME));

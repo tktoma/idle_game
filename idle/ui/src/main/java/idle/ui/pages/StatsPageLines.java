@@ -1,39 +1,27 @@
 package idle.ui.pages;
 
-import idle.core.Game;
-import idle.core.GameStats;
-import idle.core.StatsHistory;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.collider.GluonMilestone;
-import idle.core.collider.Hadron;
+import idle.core.*;
+import idle.core.history.*;
+import idle.core.universe.*;
+import idle.ui.universe.*;
+import java.util.function.*;
+import idle.core.state.*;
+import idle.core.bigbang.*;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.universe.DimensionAutomation;
-import idle.ui.GameApp;
-import idle.ui.Goals;
+import idle.core.sky.*;
+import idle.ui.*;
 import idle.ui.automation.AutomationPage;
 import idle.ui.bigbang.BigBangPage;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
-import idle.ui.universe.UniversePage;
+import idle.ui.common.*;
 import idle.ui.vacuum.VoidPage;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-/**
- * La page des statistiques : les courbes principales et ce que les lignes ont besoin de savoir.
- */
+/** La page des statistiques : les courbes principales et ce que les lignes ont besoin de savoir. */
 public abstract class StatsPageLines extends StatsPageBase {
-
-    StatsPageLines(Game game, idle.core.history.PurchaseHistory purchaseHistory, idle.core.history.Pace pace) {
-        super(game, purchaseHistory, pace);
-    }
-
+    StatsPageLines(Game game, PurchaseHistory purchaseHistory, Pace pace) { super(game, purchaseHistory, pace); }
 
     // ------------------------------------------------------------------
     // Les courbes proposées sur plusieurs sous-pages : la principale de chaque ressource
@@ -42,14 +30,12 @@ public abstract class StatsPageLines extends StatsPageBase {
     /**
      * Toutes les ressources sur un même graphique : ce que le joueur a en main au fil du temps.
      *
-     * <p>Les particules montent à 1e3000 quand les molécules se comptent en milliers : sur une
-     * échelle logarithmique ordinaire, tout sauf les particules serait écrasé en bas. L'échelle
-     * est donc logarithmique deux fois : la hauteur suit le logarithme de l'exposant, et les
-     * graduations vont de 1 à 10, 1000, 1e10, 1e100, 1e1000. Une ressource n'a sa courbe qu'à
-     * partir du moment où elle existe. Chaque relevé garde le plus haut atteint depuis le
-     * précédent : une fusion, une explosion ou un Big Bang n'y creusent donc un trou que s'ils
-     * durent. La matière noire est celle gagnée, dépensée ou non : la réserve seule retombe à
-     * zéro à chaque achat dans l'arbre.
+     * <p>Les particules montent à 1e3000 quand les molécules se comptent en milliers : sur une échelle logarithmique
+     * ordinaire, tout sauf les particules serait écrasé en bas. L'échelle est donc logarithmique deux fois : la hauteur
+     * suit le logarithme de l'exposant, et les graduations vont de 1 à 10, 1000, 1e10, 1e100, 1e1000. Une ressource n'a
+     * sa courbe qu'à partir du moment où elle existe. Chaque relevé garde le plus haut atteint depuis le précédent :
+     * une fusion, une explosion ou un Big Bang n'y creusent donc un trou que s'ils durent. La matière noire est celle
+     * gagnée, dépensée ou non : la réserve seule retombe à zéro à chaque achat dans l'arbre.
      */
     void resources() {
         building.graphs.add(new Graph("Toutes les ressources", game::isStarted,
@@ -119,8 +105,7 @@ public abstract class StatsPageLines extends StatsPageBase {
     }
 
     void atomsPerFusion() {
-        curve("Atomes par fusion", this::fused,
-                () -> new ChartPane("Atomes par fusion", "échelle logarithmique",
+        curve("Atomes par fusion", this::fused, () -> new ChartPane("Atomes par fusion", "échelle logarithmique",
                         true, Format::clock, StatsPage::power, true, 0, Double.NaN),
                 new Line("Atomes par fusion", ChartPane.YELLOW, StatsHistory.Sample::atomsPerFusion));
     }
@@ -161,13 +146,9 @@ public abstract class StatsPageLines extends StatsPageBase {
         return current;
     }
 
-    boolean fused() {
-        return stats().fusions() > 0 || game.state().totalAtoms().sign() > 0;
-    }
+    boolean fused() { return stats().fusions() > 0 || game.state().totalAtoms().sign() > 0; }
 
-    boolean exploded() {
-        return game.isDarkMatterUnlocked();
-    }
+    boolean exploded() { return game.isDarkMatterUnlocked(); }
 
     boolean tableSeen() {
         return game.isPeriodicTableUnlocked() || stats().syntheses() > 0 || game.discoveredElements() > 0;
@@ -188,18 +169,16 @@ public abstract class StatsPageLines extends StatsPageBase {
 
     int count(boolean inTree) {
         int count = 0;
-        java.util.Set<String> forks = new java.util.HashSet<>();
+        Set<String> forks = new HashSet<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
-            // Une bifurcation ne compte qu'une case : on n'en prend qu'une voie (version 0.069), sauf avec la Superposition (0.070).
+            // Une bifurcation ne compte qu'une case : on n'en prend qu'une voie, sauf avec la Superposition (0.070).
             if (upgrade.inTree() == inTree && (!upgrade.isFork() || game.hasSuperposition() || forks.add(upgrade.fork()))) count++;
         }
         return count;
     }
 
     /** Le prochain grand pas de la partie en cours, en une phrase. */
-    String nextGoal() {
-        return Goals.next(game);
-    }
+    String nextGoal() { return Goals.next(game); }
 
     /** Le troisième acte : l'espace, les molécules, ce qu'elles forment, et ce que tout cela multiplie. */
     void bigBang() {
@@ -359,11 +338,11 @@ public abstract class StatsPageLines extends StatsPageBase {
     }
 
     /**
-     * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
+     * Les univers : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
      * 0.153, la brane et la lumière astrale depuis la version 0.154, le clicker et la météo depuis la version 0.155, la grille
      * et la graine profonde depuis la version 0.156, le miroir et les saisons depuis la version 0.157, le mélange depuis la version
-     * 0.158, le défi final et la fin de la partie depuis la version 0.160), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * 0.158, le défi final et la fin de la partie depuis la version 0.160), le vide, les bulles de l'arbre, les hadrons et leurs gluons, et les règles du
      * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
@@ -468,11 +447,11 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Charges versées", () -> Format.whole(game.mixReleases()), () -> game.isMixOpen() && game.isMixing(4));
         row("Trésors du mélange", () -> Format.whole(game.mixTreasures()) + " trouvés", () -> game.isMixOpen() && game.isMixing(8));
         row("Paires du mélange", () -> Format.whole(game.mixPairStreak()) + " de suite", () -> game.isMixOpen() && game.isMixing(9));
-        // Le défi final (version 0.160) : les paliers, l'avancée de chaque dimension, et la fin de la partie.
+        // Le défi final : les paliers, l'avancée de chaque dimension, et la fin de la partie.
         row("Paliers du défi final", () -> game.finalTiersReached() + " / " + Game.MAX_DIMENSIONS + " atteints", game::isFinalChallengeOpen);
         for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
             int number = d;
-            row("Défi final, " + idle.ui.universe.Dimension.of(number).label().toLowerCase(java.util.Locale.ROOT),
+            row("Défi final, " + Dimension.of(number).label().toLowerCase(Locale.ROOT),
                     () -> Math.round(game.finalProgress(number) * 100) + " % (" + Format.darkMatter(BigNum.of(game.dimensionEarned(number)))
                             + " / " + Format.darkMatter(BigNum.of(game.finalGoalFor(number))) + ")"
                             + (game.isFinalTierReached(number) ? ", palier atteint" : ""), game::isFinalChallengeOpen);
@@ -496,7 +475,7 @@ public abstract class StatsPageLines extends StatsPageBase {
             for (Game.TreeBubble bubble : Game.TreeBubble.values()) if (game.isTreeBubbleBought(bubble)) bought++;
             return bought + " / " + game.treeBubblesShown().size() + " achetées";
         }, () -> !game.treeBubblesShown().isEmpty());
-        // Ce que les bulles produisent seules (version 0.148).
+        // Ce que les bulles produisent seules.
         row("Versé au cumul par le géant de gauche", () -> Format.count(BigNum.of(game.state().voidTrickled())) + " ("
                 + Math.round(100 * game.voidTrickleShare()) + " % du gain du vide)", () -> game.voidTrickleShare() > 0);
         row("Atomes par seconde, sans fusion", () -> Format.count(game.bubbleAtomsPerSecond()),
@@ -504,7 +483,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Matière noire par seconde, sans explosion", () -> Format.count(game.bubbleDarkMatterPerSecond()),
                 () -> game.isTreeBubbleBought(Game.TreeBubble.GIANT_RIGHT_HIGH));
 
-        // Les hadrons (version 0.149) : ce que les gluons ont lié, tant que leur onglet est ouvert.
+        // Les hadrons : ce que les gluons ont lié, tant que leur onglet est ouvert.
         section("Les hadrons");
         row("Hadrons assemblés", () -> Format.whole(game.hadronsMade()), game::isHadronsUnlocked);
         row("Protons", () -> Format.whole(game.hadrons(Hadron.PROTON)), game::isHadronsUnlocked);
@@ -514,19 +493,19 @@ public abstract class StatsPageLines extends StatsPageBase {
             for (Hadron hadron : Hadron.values()) if (hadron.isExotic()) exotic += game.hadrons(hadron);
             return game.isExoticHadronsUnlocked() || exotic > 0 ? Format.whole(exotic) : "pas encore ouvertes";
         }, game::isHadronsUnlocked);
-        // Version 0.151 : les gluons, un par quark lié, et les paliers qu'ils ont atteints.
+        // Les gluons, un par quark lié, et les paliers qu'ils ont atteints.
         row("Gluons", () -> Format.whole(game.gluons()), game::isHadronsUnlocked);
         row("Paliers de gluons atteints", () -> {
             int reached = 0;
             for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) reached++;
             return reached + " / " + GluonMilestone.values().length;
         }, game::isHadronsUnlocked);
-        // Version 0.169 : le jalon des racines, dix paliers de gluons qui abaissent les paliers du défi final.
+        // Le jalon des racines, dix paliers de gluons qui abaissent les paliers du défi final.
         row("Racines liées", () -> game.rootTiersReached() + " / " + Game.ROOT_GLUON_TIERS.length + " paliers, paliers du défi final "
                 + Format.multiplier(Math.pow(Game.ROOT_TIER_FACTOR, game.rootTiersReached())),
-                () -> game.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.ROOTS));
+                () -> game.isTreeBubbleBought(GameUniverse.TreeBubble.ROOTS));
 
-        // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
+        // L'automatisation des dimensions : avec la bulle du sommet de l'arbre-monde.
         section("L'automatisation des dimensions");
         row("Automatismes des dimensions", () -> game.dimensionAutomationsOwned() + " / " + DimensionAutomation.values().length
                 + " achetés", game::isDimensionAutomationUnlocked);
@@ -541,17 +520,17 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Épreuve en cours", () -> game.activeTrial().label() + ", encore " + Format.wait(game.trialLeft()), () -> game.activeTrial() != null);
         row("Épreuves réussies", () -> {
             int done = 0;
-            for (idle.core.universe.Trial trial : idle.core.universe.Trial.values()) if (game.isTrialCompleted(trial)) done++;
-            return done + " / " + idle.core.universe.Trial.values().length;
+            for (Trial trial : Trial.values()) if (game.isTrialCompleted(trial)) done++;
+            return done + " / " + Trial.values().length;
         }, () -> game.universes() > 0);
-        row("Skins débloqués", () -> game.skinsUnlocked() + " / " + idle.core.universe.Skin.values().length, game::isSkinsUnlocked);
+        row("Skins débloqués", () -> game.skinsUnlocked() + " / " + Skin.values().length, game::isSkinsUnlocked);
         row("Recherche du prisme", () -> game.hasPrismResearch() ? "faite" : "pas encore", () -> game.universes() > 0);
         row("Paliers de la recherche dense", () -> Format.whole(game.denseTiers()), game::isDenseResearchUnlocked);
     }
 
     /** Une dimension : sa ressource en réserve, ce qu'elle a gagné en tout et où en est son seuil. */
-    private void dimension(int number, String name, double threshold, java.util.function.BooleanSupplier open,
-            java.util.function.DoubleSupplier earned, String graph) {
+    private void dimension(int number, String name, double threshold, BooleanSupplier open,
+            DoubleSupplier earned, String graph) {
         charted(graph, row(name + " : " + Game.dimensionResourceName(number), () -> ElementText.number(game.dimensionResource(number))
                 + " en réserve, " + ElementText.number(earned.getAsDouble()) + " gagnés en tout", open));
         row(name + " : seuil", () -> game.isDimensionThresholdReached(number) ? "atteint (" + ElementText.number(threshold) + ")"
@@ -606,9 +585,7 @@ public abstract class StatsPageLines extends StatsPageBase {
     }
 
     /** Vrai dès que le troisième acte multiplie quelque chose : une molécule créée, ou une amélioration d'espace qui multiplie. */
-    private boolean boosted() {
-        return game.moleculesCreated() > 0 || upgraded();
-    }
+    private boolean boosted() { return game.moleculesCreated() > 0 || upgraded(); }
 
     /** Vrai si une amélioration d'espace acquise multiplie une grandeur. */
     private boolean upgraded() {
@@ -632,9 +609,7 @@ public abstract class StatsPageLines extends StatsPageBase {
     }
 
     /** L'historique affiché : celui de la partie en cours si le joueur l'a choisi, sinon celui du jeu entier. */
-    private StatsHistory history() {
-        return runOnly && exploded() ? stats().runHistory() : stats().history();
-    }
+    private StatsHistory history() { return runOnly && exploded() ? stats().runHistory() : stats().history(); }
 
     /** Les relevés de l'historique choisi, et celui de l'instant : recalculés au plus une fois par seconde de jeu. */
     List<StatsHistory.Sample> samples() {

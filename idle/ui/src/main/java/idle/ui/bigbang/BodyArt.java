@@ -3,56 +3,46 @@ package idle.ui.bigbang;
 import idle.core.sky.Body;
 import idle.core.universe.Skin;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.shape.StrokeLineJoin;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
 
 /**
  * Le dessin d'un astre ({@link Body}).
  *
- * <p>Son échelle décide de sa silhouette : un amas de roches est une poignée de cailloux dans leur
- * poussière, une comète un petit noyau dans sa chevelure avec ses deux queues qui s'effacent, un
- * astéroïde un bloc cabossé à facettes, une lune et une planète des globes, une étoile une boule
- * qui brille dans sa couronne, une étoile à neutrons un point entre ses deux faisceaux, un trou
- * noir un disque noir dans l'anneau de ce qui y tombe. Son aspect
- * ({@link Body.Look}) décide de sa surface : mers et cratères, plaques et fissures de glace,
- * veines et foyers qui luisent, brume, continents, calottes et nuages, bandes de gaz et tempête,
- * anneaux qui passent derrière puis devant.
+ * <p>Son échelle décide de sa silhouette : un amas de roches est une poignée de cailloux dans leur poussière, une
+ * comète un petit noyau dans sa chevelure avec ses deux queues qui s'effacent, un astéroïde un bloc cabossé à facettes,
+ * une lune et une planète des globes, une étoile une boule qui brille dans sa couronne, une étoile à neutrons un point
+ * entre ses deux faisceaux, un trou noir un disque noir dans l'anneau de ce qui y tombe. Son aspect ({@link Body.Look})
+ * décide de sa surface : mers et cratères, plaques et fissures de glace, veines et foyers qui luisent, brume,
+ * continents, calottes et nuages, bandes de gaz et tempête, anneaux qui passent derrière puis devant.
  *
- * <p>La lumière vient d'en haut à gauche, pour tous : un globe est clair de ce côté et s'éteint de
- * l'autre, un bloc aussi, et un cratère a son bord éclairé à l'opposé. Les mondes qui ont un air
- * sont entourés d'un halo qui s'efface.
+ * <p>La lumière vient d'en haut à gauche, pour tous : un globe est clair de ce côté et s'éteint de l'autre, un bloc
+ * aussi, et un cratère a son bord éclairé à l'opposé. Les mondes qui ont un air sont entourés d'un halo qui s'efface.
  *
- * <p>Assez grand à l'écran ({@link #DETAIL_FROM}), un astre montre des couches de plus (version
- * 0.183), toujours dans la même emprise que sans elles : un globe a son limbe qui s'assombrit, un
- * liseré d'air plus vif côté soleil s'il en a un, un reflet sur ses mers ou sa glace, l'ombre de
- * ses nuages, les creux de ses cratères ombrés d'un côté et éclairés de l'autre ; une géante a des
- * remous qui ondulent entre ses bandes et une tempête qui tourne, et ses anneaux portent l'ombre de
- * la planète comme la planète celle des anneaux ; une étoile bouillonne, lance plus de boucles et
- * quelques rayons fins ; une comète a des jets au noyau et des stries dans sa poussière ; un
- * astéroïde a ses pans éclairés ou dans l'ombre ; le disque d'un trou noir est plus brillant du côté
- * qui vient vers nous, et un fil de lumière cerne l'horizon. En dessous de ce rayon, ces couches ne
- * feraient que brouiller un dessin de quelques pixels : il reste tel qu'il était.
+ * <p>Assez grand à l'écran ({@link #DETAIL_FROM}), un astre montre des couches de plus (version 0.183), toujours dans
+ * la même emprise que sans elles : un globe a son limbe qui s'assombrit, un liseré d'air plus vif côté soleil s'il en a
+ * un, un reflet sur ses mers ou sa glace, l'ombre de ses nuages, les creux de ses cratères ombrés d'un côté et éclairés
+ * de l'autre ; une géante a des remous qui ondulent entre ses bandes et une tempête qui tourne, et ses anneaux portent
+ * l'ombre de la planète comme la planète celle des anneaux ; une étoile bouillonne, lance plus de boucles et quelques
+ * rayons fins ; une comète a des jets au noyau et des stries dans sa poussière ; un astéroïde a ses pans éclairés ou
+ * dans l'ombre ; le disque d'un trou noir est plus brillant du côté qui vient vers nous, et un fil de lumière cerne
+ * l'horizon. En dessous de ce rayon, ces couches ne feraient que brouiller un dessin de quelques pixels : il reste tel
+ * qu'il était.
  *
- * <p>Tout est tiré d'une suite fixe qui ne dépend que de l'identifiant de l'astre : un astre a
- * toujours les mêmes cailloux et les mêmes cratères, sur sa carte, dans le ciel et dans l'espace.
+ * <p>Tout est tiré d'une suite fixe qui ne dépend que de l'identifiant de l'astre : un astre a toujours les mêmes
+ * cailloux et les mêmes cratères, sur sa carte, dans le ciel et dans l'espace.
  *
- * <p>Trois skins (version 0.186, {@link Skin#BODIES}) remplacent cette apparence classique par une
- * autre, pour tous les astres, dans la même emprise : le Planétarium, des sphères de laiton et de
- * verre dépoli sur leur tige ; la Gravure, du noir sur blanc cassé modelé de hachures ; la
- * Cartographie, des globes à méridiens et parallèles, avec leur nom en capitales. Ils sont dessinés
- * par {@link BodySkinArt} ; sans skin ({@code null}), le dessin classique ne change pas d'un pixel,
+ * <p>Trois skins ({@link Skin#BODIES}) remplacent cette apparence classique par une autre, pour tous les astres, dans
+ * la même emprise : le Planétarium, des sphères de laiton et de verre dépoli sur leur tige ; la Gravure, du noir sur
+ * blanc cassé modelé de hachures ; la Cartographie, des globes à méridiens et parallèles, avec leur nom en capitales.
+ * Ils sont dessinés par {@link BodySkinArt} ; sans skin ({@code null}), le dessin classique ne change pas d'un pixel,
  * ses couches de détail comprises, que les skins n'ont pas : elles sont faites pour lui.
  */
 final class BodyArt {
-
     /**
      * Rayon à l'écran, en pixels, à partir duquel les couches de détail sont dessinées. Pour une
      * comète, c'est le rayon de son dessin (le noyau et un peu de chevelure), pas celui du noyau.
@@ -229,10 +219,9 @@ final class BodyArt {
         final Color jetWide;
         final Color jetThin;
         /**
-         * Pour les skins (version 0.186) : le nom en capitales (Cartographie), le verre dépoli teinté
-         * d'un gaz et le verre lumineux d'une étoile (Planétarium), proportionnels à la sphère qu'ils
-         * remplissent pour n'être construits qu'une fois, le fond de carte clair et celui, sombre,
-         * d'un trou noir (Cartographie).
+         * Pour les skins : le nom en capitales (Cartographie), le verre dépoli teinté d'un gaz et le verre lumineux
+         * d'une étoile (Planétarium), proportionnels à la sphère qu'ils remplissent pour n'être construits qu'une fois,
+         * le fond de carte clair et celui, sombre, d'un trou noir (Cartographie).
          */
         final String caps;
         final RadialGradient glass;
@@ -290,7 +279,7 @@ final class BodyArt {
             streak = fade(accent.interpolate(LIGHT, 0.45), 0.3);
             jetWide = fade(accent.interpolate(LIGHT, 0.5), 0.25);
             jetThin = fade(LIGHT, 0.55);
-            caps = body.name().toUpperCase(java.util.Locale.ROOT);
+            caps = body.name().toUpperCase(Locale.ROOT);
             glass = new RadialGradient(0, 0, 0.38, 0.36, 0.74, true, CycleMethod.NO_CYCLE,
                     new Stop(0, fade(tint.interpolate(LIGHT, 0.7), 0.88)), new Stop(0.6, fade(tint.interpolate(BodySkinArt.GLASS, 0.3), 0.62)),
                     new Stop(1, fade(tint.interpolate(SHADE, 0.3), 0.82)));
@@ -318,9 +307,7 @@ final class BodyArt {
     private BodyArt() {}
 
     /** Vrai si un astre de ce rayon à l'écran est assez grand pour ses couches de détail ({@link #DETAIL_FROM}). */
-    private static boolean detailed(double r) {
-        return r >= DETAIL_FROM;
-    }
+    private static boolean detailed(double r) { return r >= DETAIL_FROM; }
 
     private static Palette palette(Body body) {
         Palette palette = PALETTES.get(body.id());
@@ -349,9 +336,7 @@ final class BodyArt {
     }
 
     /** De combien un astre dépasse à gauche de son centre, en rayons. */
-    static double reachLeft(Body body) {
-        return body.tier() == Body.Tier.COMET ? COMA : reachRight(body);
-    }
+    static double reachLeft(Body body) { return body.tier() == Body.Tier.COMET ? COMA : reachRight(body); }
 
     /** De combien un astre dépasse au-dessus de son centre, en rayons. */
     static double reachUp(Body body) {
@@ -367,9 +352,7 @@ final class BodyArt {
     }
 
     /** De combien un astre dépasse en dessous de son centre, en rayons. */
-    static double reachDown(Body body) {
-        return body.tier() == Body.Tier.COMET ? COMA : reachUp(body);
-    }
+    static double reachDown(Body body) { return body.tier() == Body.Tier.COMET ? COMA : reachUp(body); }
 
     /**
      * Le rayon du plus petit cercle qui contient tout le dessin d'un astre, halo compris, en rayons
@@ -389,13 +372,9 @@ final class BodyArt {
     }
 
     /** Où est le centre de ce cercle par rapport à celui de l'astre, en rayons : décalé le long des queues pour une comète. */
-    static double centerX(Body body) {
-        return body.tier() == Body.Tier.COMET ? COMET_CENTER * Math.cos(TAIL) : 0;
-    }
+    static double centerX(Body body) { return body.tier() == Body.Tier.COMET ? COMET_CENTER * Math.cos(TAIL) : 0; }
 
-    static double centerY(Body body) {
-        return body.tier() == Body.Tier.COMET ? COMET_CENTER * Math.sin(TAIL) : 0;
-    }
+    static double centerY(Body body) { return body.tier() == Body.Tier.COMET ? COMET_CENTER * Math.sin(TAIL) : 0; }
 
     /** Jusqu'où va le halo d'air d'un globe, en rayons : 0 pour un monde sans air. */
     static double air(Body.Look look) {
@@ -414,9 +393,7 @@ final class BodyArt {
      * @param r son rayon : celui du globe d'une lune ou d'une planète, du bloc d'un astéroïde, du
      *          tas d'un amas, du noyau d'une comète avec un peu de sa chevelure
      */
-    static void draw(GraphicsContext g, Body body, double x, double y, double r) {
-        draw(g, body, x, y, r, null);
-    }
+    static void draw(GraphicsContext g, Body body, double x, double y, double r) { draw(g, body, x, y, r, null); }
 
     /**
      * Dessine un astre centré en (x, y) dans l'apparence d'un skin des astres ({@link Skin#BODIES}),
@@ -548,7 +525,7 @@ final class BodyArt {
      * étoile au cœur qui les éclaire.
      */
     private static void nebula(GraphicsContext g, Palette palette, double x, double y, double r) {
-        java.util.Random random = new java.util.Random(palette.seed);
+        Random random = new Random(palette.seed);
         for (int puff = 0; puff < 9; puff++) {
             double angle = random.nextDouble() * 2 * Math.PI;
             double away = random.nextDouble() * 0.55 * r;

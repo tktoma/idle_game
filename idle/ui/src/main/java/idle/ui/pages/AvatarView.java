@@ -3,34 +3,24 @@ package idle.ui.pages;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.geometry.VPos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.image.Image;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.FillRule;
-import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
 
 /**
- * Un avatar dans son cadre (version 0.147) : l'un de ceux que dessine le jeu ({@link Avatar}), ou l'image importée par
+ * Un avatar dans son cadre : l'un de ceux que dessine le jeu ({@link Avatar}), ou l'image importée par
  * le joueur, recadrée au carré du milieu puis à la forme du cadre. Le cadre est le skin choisi pour
- * {@link SkinVisual#AVATAR_FRAME} (version 0.189) : le Classique est le rond d'origine ; les six autres (rond cerné,
+ * {@link SkinVisual#AVATAR_FRAME} : le Classique est le rond d'origine ; les six autres (rond cerné,
  * hexagone, écusson, cadre doré baroque, timbre-poste, polaroid) réduisent l'image pour se loger dans le même carré.
  * La vue ne se redessine que lorsqu'on lui donne autre chose à montrer, ou un autre cadre.
  *
- * <p>Version 0.198 : le style des avatars ({@link SkinVisual#AVATAR_STYLE}, {@link #setAvatarStyle}) redessine l'avatar du jeu
+ * <p>Le style des avatars ({@link SkinVisual#AVATAR_STYLE}, {@link #setAvatarStyle}) redessine l'avatar du jeu
  * en trait, en pixels, à la craie ou en vitrail ({@link AvatarSkinArt}) ; une image importée reste telle quelle. Les
  * huit avatars de la 0.198 se dessinent dans {@link AvatarArt}.
  */
 public final class AvatarView extends Canvas {
-
     static final String BACKGROUND = "#0e1420";
     /** Le bord d'une image importée, là où un avatar du jeu prend sa propre couleur. */
     private static final String IMAGE_EDGE = "#d6dde6";
@@ -52,7 +42,7 @@ public final class AvatarView extends Canvas {
     private Image image;
     /** Le cadre ; {@code null} pour le Classique. */
     private Skin frame;
-    /** Le style des avatars du jeu (version 0.198) ; {@code null} pour le Classique. */
+    /** Le style des avatars du jeu ; {@code null} pour le Classique. */
     private Skin style;
     /** La « valeur » du timbre-poste : le nombre de titres obtenus. */
     private int stampValue;
@@ -72,11 +62,9 @@ public final class AvatarView extends Canvas {
     }
 
     /** Le cadre en place, ou {@code null} pour le Classique. */
-    public Skin frame() {
-        return frame;
-    }
+    public Skin frame() { return frame; }
 
-    /** Dessine les avatars du jeu dans ce style (version 0.198) ; {@code null}, ou un skin d'un autre visuel, remet le Classique. */
+    /** Dessine les avatars du jeu dans ce style ; {@code null}, ou un skin d'un autre visuel, remet le Classique. */
     public void setAvatarStyle(Skin skin) {
         Skin wanted = skin != null && skin.visual() == SkinVisual.AVATAR_STYLE ? skin : null;
         if (wanted == style) return;
@@ -85,9 +73,7 @@ public final class AvatarView extends Canvas {
     }
 
     /** Le style des avatars en place, ou {@code null} pour le Classique. */
-    public Skin avatarStyle() {
-        return style;
-    }
+    public Skin avatarStyle() { return style; }
 
     /** La valeur écrite en bas à droite du timbre-poste : le nombre de titres obtenus. */
     public void setStampValue(int value) {
@@ -117,9 +103,7 @@ public final class AvatarView extends Canvas {
     }
 
     /** Ce qui est montré : l'identifiant de l'avatar, ou {@link Avatar#CUSTOM} pour une image. */
-    public String shown() {
-        return image != null ? Avatar.CUSTOM : avatar.id();
-    }
+    public String shown() { return image != null ? Avatar.CUSTOM : avatar.id(); }
 
     private void draw() {
         double s = getWidth();
@@ -367,9 +351,7 @@ public final class AvatarView extends Canvas {
     }
 
     /** La couleur du bord : celle de l'avatar du jeu, ou un gris clair pour une image. */
-    private Color edge() {
-        return Color.web(image != null ? IMAGE_EDGE : avatar.color());
-    }
+    private Color edge() { return Color.web(image != null ? IMAGE_EDGE : avatar.color()); }
 
     /** Ajoute un cercle fermé au chemin en cours. */
     private static void circle(GraphicsContext g, double x, double y, double r) {
@@ -584,9 +566,7 @@ public final class AvatarView extends Canvas {
     }
 
     /** Un rond plein de rayon {@code r} centré en ({@code x}, {@code y}). */
-    static void dot(GraphicsContext g, double x, double y, double r) {
-        g.fillOval(x - r, y - r, 2 * r, 2 * r);
-    }
+    static void dot(GraphicsContext g, double x, double y, double r) { g.fillOval(x - r, y - r, 2 * r, 2 * r); }
 
     /** Un trait ondulé d'un point à l'autre : le gluon qui lie deux quarks. */
     private static void wave(GraphicsContext g, double x1, double y1, double x2, double y2, double amplitude) {

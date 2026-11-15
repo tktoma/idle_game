@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.126 : le numéro affiché dans le jeu et celui que déclare Gradle sont le même. Sans affichage JavaFX. */
 class VersionTest {
-
     @Test
     void laVersionDuJeuEstCelleDuBuild() {
         String declared = System.getProperty("idle.version");

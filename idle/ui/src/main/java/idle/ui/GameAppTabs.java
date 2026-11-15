@@ -8,10 +8,7 @@ import idle.ui.universe.UniversePage;
 import idle.ui.particles.ParticleView;
 import idle.ui.probes.ProbesPane;
 import java.util.List;
-import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
-import javafx.animation.ParallelTransition;
-import javafx.animation.ScaleTransition;
+import javafx.animation.*;
 import javafx.scene.control.Button;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -20,14 +17,12 @@ import javafx.util.Duration;
  * L'application : l'ordre et le style des onglets, l'explosion, les fenêtres d'explication, les annonces et l'animation.
  */
 public abstract class GameAppTabs extends GameAppWindow {
-
     /** Seul {@link GameApp} prolonge la chaîne. */
     GameAppTabs() {
     }
 
-
     // ------------------------------------------------------------------
-    // L'ordre des onglets, qu'on change en les glissant (version 0.060)
+    // L'ordre des onglets, qu'on change en les glissant
     // ------------------------------------------------------------------
 
     /** Temps d'appui avant qu'un onglet ne se laisse glisser, en nanosecondes : un clic bref reste un clic. */
@@ -142,13 +137,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         layoutTabs();
     }
 
-    /** L'ordre des onglets : pour les vérifications. */
-    List<String> tabOrderNames() {
-        List<String> names = new java.util.ArrayList<>();
-        for (Tab tab : tabOrder) names.add(tab.name());
-        return names;
-    }
-
     /** Passe au sous-onglet suivant ou précédent de l'onglet affiché, s'il en a. */
     void stepSubTab(int direction) {
         switch (selectedTab) {
@@ -207,8 +195,8 @@ public abstract class GameAppTabs extends GameAppWindow {
         exploding = true;
         blast.setVisible(true);
         flash.setOpacity(0);
-        // Le skin de l'animation (version 0.089) : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
-        // Version 0.191 : les quatre animations de plus (pluie, neige, sablier, feu d'artifice) jouent de même.
+        // Le skin de l'animation : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
+        // Les quatre animations de plus (pluie, neige, sablier, feu d'artifice) jouent de même.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION);
         boolean skinned = look != null;
         flash.setStyle("-fx-background-color: " + explosionFlashColor(look) + ";");
@@ -344,10 +332,10 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * Vrai dans la partie secondaire (version 0.081) : l'univers est formé, et les anciens onglets sont
+     * Vrai dans la partie secondaire : l'univers est formé, et les anciens onglets sont
      * cachés (sauf si l'outil d'essai les a fait revenir).
      */
-    /** L'onglet Particules réapparaît (version 0.111) : il grandit, dépasse un peu, revient ; puis on y va. */
+    /** L'onglet Particules réapparaît : il grandit, dépasse un peu, revient ; puis on y va. */
     void popParticlesTab(double dt) {
         particlesTabPop += Math.min(Math.max(0, dt), 0.1);
         double t = Math.min(1, particlesTabPop / PARTICLES_TAB_POP_SECONDS);
@@ -364,12 +352,10 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
     }
 
-    boolean universePhase() {
-        return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) && !universePage.showsOldTabs();
-    }
+    boolean universePhase() { return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) && !universePage.showsOldTabs(); }
 
     /**
-     * Les fenêtres d'explication (version 0.089) : chaque onglet qui s'ouvre, puis les nouveautés du
+     * Les fenêtres d'explication : chaque onglet qui s'ouvre, puis les nouveautés du
      * deuxième univers. Elles attendent qu'aucune autre fenêtre n'ait la main.
      */
     void checkPopups() {
@@ -389,7 +375,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         boolean busy = absencePane.isVisible() || endPane.isOpen() || finalePane.isOpen() || universePage.isFinalePlaying()
                 || transitionPane.isOpen() || exploding
                 || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying()) || darkMatterPage.isRevealing();
-        // La matière noire rendue par les bifurcations rouvertes (version 0.126) : annoncée avec son montant.
+        // La matière noire rendue par les bifurcations rouvertes : annoncée avec son montant.
         idle.core.math.BigNum refund = game.takeForkRefund();
         if (refund.sign() > 0) {
             popupPane.announce("Bifurcations rouvertes", "Matière noire remboursée",
@@ -402,9 +388,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /** Les fenêtres d'explication : pour les vérifications. */
-    PopupPane popupPane() {
-        return popupPane;
-    }
+    PopupPane popupPane() { return popupPane; }
 
     private static String tabColor(Tab tab) {
         return switch (tab) {
@@ -425,16 +409,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         };
     }
 
-    /** Le nom de l'onglet affiché en haut, dans la disposition à gauche : pour les vérifications. */
-    String tabTitleText() {
-        return tabTitle.isVisible() ? tabTitle.getText() : "";
-    }
-
-    /** Vrai si les onglets sont à gauche : pour les vérifications. */
-    boolean tabsOnLeft() {
-        return tabsLeftApplied;
-    }
-
     /**
      * Annonce ce qui vient de se passer dans le jeu, et fait vieillir les messages déjà affichés.
      * Coupées dans les réglages, les notifications sont tout de même relevées, pour ne pas toutes
@@ -445,13 +419,13 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Le journal garde tout, que les notifications soient affichées ou non, catégorie coupée comprise.
         for (Notifier.News item : news) EventLog.of(game).add(game, item.text());
         // Dans la partie secondaire, ce qui se passe dans les anciens onglets, cachés, n'est plus annoncé : seuls les
-        // succès et les titres du profil (version 0.147) le sont encore. Version 0.146 : une catégorie coupée dans les réglages ne s'affiche pas et ne sonne pas.
+        // succès et les titres du profil le sont encore. Une catégorie coupée dans les réglages ne s'affiche pas et ne sonne pas.
         boolean phase = universePhase();
         List<String> shown = Notifier.summarize(news.stream()
                 .filter(item -> (!phase || item.kind() == Notice.ACHIEVEMENTS || item.kind() == Notice.TITLES) && settings.notice(item.kind()))
                 .map(Notifier.News::text).toList());
         sound.announce(shown, settings.sound(), settings.volume());
-        // Version 0.210 : un Big Bang ou un univers formé fait monter la musique, même si l'annonce est coupée.
+        // Un Big Bang ou un univers formé fait monter la musique, même si l'annonce est coupée.
         Sound.Cue strongest = Sound.strongest(news.stream().map(Notifier.News::text).toList());
         if (strongest == Sound.Cue.BIG_BANG || strongest == Sound.Cue.UNIVERSE) music.accent();
         if (settings.notifications()) {
@@ -497,11 +471,11 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     /** Affiche un onglet et masque les autres. */
     void selectTab(Tab tab) {
-        // Version 0.213 : un changement d'onglet a son son ; pas l'onglet repris au lancement, fenêtre pas encore montrée.
+        // Un changement d'onglet a son son ; pas l'onglet repris au lancement, fenêtre pas encore montrée.
         if (tab != selectedTab && stage != null && stage.isShowing() && settings.sound()) sound.click(Sound.Cue.TAB, settings.volume());
         if (tab != selectedTab && selectedTab != Tab.SETTINGS) gameTab = selectedTab;
         selectedTab = tab;
-        // Le profil de test (version 0.122) : la barre d'outils ouvre le groupe de l'onglet affiché.
+        // Le profil de test : la barre d'outils ouvre le groupe de l'onglet affiché.
         if (debugBar != null) debugBar.followTab(tab.name());
         if (tab != Tab.DARK_MATTER) darkMatterPage.release();
         if (tab != Tab.SETTINGS) settingsPage.release();
@@ -535,7 +509,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Sept ou huit onglets ne tiennent pas en toutes lettres dans une fenêtre étroite : en haut, ils
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
-        // Les pastilles (version 0.190) ne montrent que l'icône, quelle que soit la largeur : le nom passe en infobulle.
+        // Les pastilles ne montrent que l'icône, quelle que soit la largeur : le nom passe en infobulle.
         boolean dots = tabSkin == idle.core.universe.Skin.TABS_DOTS;
         boolean icons = tabsLeftApplied || !narrow || dots;
         javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, hadronsIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
@@ -546,7 +520,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
-        // Version 0.203 : la colonne de gauche prend la largeur de ses onglets. Avant, elle gardait ses 194 pixels même avec
+        // La colonne de gauche prend la largeur de ses onglets. Avant, elle gardait ses 194 pixels même avec
         // les pastilles, larges de 36 : un grand bloc vide à côté d'elles.
         double column = dots ? SIDE_BAR_DOTS : SIDE_BAR;
         if (sideBar.getPrefWidth() != column) {
@@ -562,7 +536,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     /** La largeur de la colonne des onglets, à gauche : celle de toujours, et celle des pastilles (36 de pastille, 8 de marge de chaque côté, le bord). */
     static final double SIDE_BAR = 194, SIDE_BAR_DOTS = 54;
 
-    /** L'infobulle d'un onglet en pastille (version 0.190) : son nom, faite une fois par onglet et gardée. */
+    /** L'infobulle d'un onglet en pastille : son nom, faite une fois par onglet et gardée. */
     private javafx.scene.control.Tooltip tabTip(Tab tab) {
         if (tabTips == null) tabTips = new javafx.scene.control.Tooltip[Tab.values().length];
         if (tabTips[tab.ordinal()] == null) {
@@ -606,14 +580,13 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * L'allure d'un onglet selon son rôle (version 0.059). Les actes ont un cadre plein dans leur
-     * couleur ; ce qui tourne à côté, un cadre en pointillés ; les pages pour s'y retrouver, aucun
-     * cadre tant qu'elles ne sont pas affichées. L'onglet affiché est rempli d'un voile de sa couleur
-     * et brille. L'épaisseur du cadre, les marges et la police ne changent jamais d'un état à
-     * l'autre : rien ne bouge au clic.
+     * L'allure d'un onglet selon son rôle. Les actes ont un cadre plein dans leur couleur ; ce qui tourne à côté, un
+     * cadre en pointillés ; les pages pour s'y retrouver, aucun cadre tant qu'elles ne sont pas affichées. L'onglet
+     * affiché est rempli d'un voile de sa couleur et brille. L'épaisseur du cadre, les marges et la police ne changent
+     * jamais d'un état à l'autre : rien ne bouge au clic.
      *
-     * <p>Version 0.190 : avec un skin des onglets ({@link #tabSkin}), l'allure vient de {@link #skinnedTabStyle} ; sans
-     * skin, elle est celle de toujours, au caractère près.
+     * <p>Avec un skin des onglets ({@link #tabSkin}), l'allure vient de {@link #skinnedTabStyle} ; sans skin, elle est
+     * celle de toujours, au caractère près.
      */
     private String tabStyle(String color, boolean selected, TabRole role) {
         return tabStyle(tabSkin, color, selected, role, tabsLeftApplied, narrow);
@@ -643,7 +616,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * L'allure d'un onglet sous un skin (version 0.190), dans les deux dispositions. Onglets de classeur : un fond de
+     * L'allure d'un onglet sous un skin, dans les deux dispositions. Onglets de classeur : un fond de
      * papier teinté, arrondi du côté qui ne touche pas la page, l'onglet affiché plus haut et sans bord vers la page.
      * Boutons physiques : un relief en dégradé avec une ombre vers le bas, l'onglet affiché enfoncé (ombre interne,
      * texte décalé). Pastilles : un rond plein de la couleur, 36 × 36, l'icône seule ({@link #styleTabs} cache le texte
@@ -736,35 +709,21 @@ public abstract class GameAppTabs extends GameAppWindow {
         particlesIcon.setSpeed(1 + 3 * ParticleView.intensity(production));
         colliderIcon.setSpeed(Game.RESONANCE_PERIOD / game.colliderPeriod());
         for (TabIcon icon : tabIcons) icon.frame(dt, settings.effect(Settings.Effect.TAB_ICONS));
-        if (selectedTab == Tab.ATOMS) {
-            atomsPage.frame(dt);
-        }
-        if (selectedTab == Tab.DARK_MATTER) {
-            darkMatterPage.frame(dt, timeFactor());
-        }
-        if (selectedTab == Tab.COLLIDER) {
-            colliderPage.frame(dt);
-        }
-        if (selectedTab == Tab.BIG_BANG) {
-            bigBangPage.frame(dt);
-        }
+        if (selectedTab == Tab.ATOMS) atomsPage.frame(dt);
+        if (selectedTab == Tab.DARK_MATTER) darkMatterPage.frame(dt, timeFactor());
+        if (selectedTab == Tab.COLLIDER) colliderPage.frame(dt);
+        if (selectedTab == Tab.BIG_BANG) bigBangPage.frame(dt);
         if (selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying() || universePage.isFinalePlaying()) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
         if (particlesTabPop >= 0) popParticlesTab(dt);
-        if (selectedTab == Tab.VOID) {
-            voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
-        }
-        // La liaison des hadrons (version 0.151) : elle ne se joue que dans son sous-onglet, à l'écran.
-        if (selectedTab == Tab.HADRONS) {
-            hadronsPage.frame(dt, settings.effect(Settings.Effect.COLLIDER_MOTION));
-        }
+        if (selectedTab == Tab.VOID) voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
+        // La liaison des hadrons : elle ne se joue que dans son sous-onglet, à l'écran.
+        if (selectedTab == Tab.HADRONS) hadronsPage.frame(dt, settings.effect(Settings.Effect.COLLIDER_MOTION));
         dimensionWindow.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         lootPane.frame(dt);
-        if (selectedTab != Tab.PARTICLES) {
-            return;
-        }
-        if (settings.effect(Settings.Effect.AMBIENT)) generators.animateBackground(dt, production);   // celle du haut (version 0.214)
+        if (selectedTab != Tab.PARTICLES) return;
+        if (settings.effect(Settings.Effect.AMBIENT)) generators.animateBackground(dt, production);   // celle du haut
         else generators.clearBackground();
         // Chaque générateur a sa propre vitesse : les éléments du tableau périodique en accélèrent certains.
         List<ParticleView> views = generators.views();
@@ -790,7 +749,5 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /** Accélération du temps : toujours 1 en jeu normal, réglable dans le profil de test. */
-    double timeFactor() {
-        return debugBar == null ? 1 : debugBar.timeFactor();
-    }
+    double timeFactor() { return debugBar == null ? 1 : debugBar.timeFactor(); }
 }

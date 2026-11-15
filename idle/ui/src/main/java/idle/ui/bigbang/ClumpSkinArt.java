@@ -1,14 +1,13 @@
 package idle.ui.bigbang;
 
 import idle.core.molecules.Molecule;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
  * Les skins de ce que la vue de l'espace ({@link SpaceView}) montre entre les molécules et les astres
- * (version 0.194) : les amas rassemblés, les blocs d'assemblage, le gaz au loin. Trois visuels, qui
+ *  : les amas rassemblés, les blocs d'assemblage, le gaz au loin. Trois visuels, qui
  * se combinent entre eux et avec les skins du Big Bang, des molécules et des astres.
  *
  * <p><b>Les amas</b> ({@link SkinVisual#CLUMPS}) : chaque molécule rassemblée n'est plus un rond mais
@@ -30,7 +29,6 @@ import javafx.scene.paint.Color;
  * hauteur. Rien n'est alloué au dessin : les couleurs sont fixes ou reprises des tableaux de la vue.
  */
 final class ClumpSkinArt {
-
     private static final Color WHITE = Color.WHITE;
 
     // Minéraux : le gris du quartz, le bleu du cuivre, le violet de l'améthyste.
@@ -110,9 +108,7 @@ final class ClumpSkinArt {
     }
 
     /** Ce par quoi la largeur du liseré des amas est multipliée : deux pour les tubes du « Néon », un sinon. */
-    static double rimScale(Skin clumps) {
-        return clumps == Skin.CLUMPS_NEON ? 2 : 1;
-    }
+    static double rimScale(Skin clumps) { return clumps == Skin.CLUMPS_NEON ? 2 : 1; }
 
     /**
      * La forme d'une molécule rassemblée dans son amas, dans la couleur de remplissage en cours, tenant

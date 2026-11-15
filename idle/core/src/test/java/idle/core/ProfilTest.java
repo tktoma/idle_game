@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.math.BigNum;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -11,11 +14,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.147 : le profil du joueur (nom, avatar, titres) et les albums de ce qu'il a obtenu. Rien de tout cela ne
+ * Le profil du joueur (nom, avatar, titres) et les albums de ce qu'il a obtenu. Rien de tout cela ne
  * donne de bonus ; tout traverse le Big Bang, l'univers suivant et « Recommencer de zéro », comme les records.
  */
 class ProfilTest {
-
     @Test
     void lesTitresTombentQuandLeurConditionEstVraieEtSAnnoncentUneFois() {
         Game game = new Game(42L);
@@ -29,7 +31,7 @@ class ProfilTest {
         assertTrue(game.takeNewTitles().isEmpty(), "annoncé une seule fois");
         assertEquals(Title.SPARK, game.currentTitle());
         assertEquals(game.state().timePlayed(), game.titleEarnedAt(Title.SPARK), 1e-9, "le temps de jeu où il est tombé");
-        game.state().stats().noteFusion(idle.core.math.BigNum.ONE, 10);
+        game.state().stats().noteFusion(BigNum.ONE, 10);
         game.tick(1);
         assertTrue(game.hasTitle(Title.APPRENTICE_ALCHEMIST));
         assertEquals(Title.APPRENTICE_ALCHEMIST, game.currentTitle(), "sans choix, le plus avancé");
@@ -38,7 +40,7 @@ class ProfilTest {
     @Test
     void onPorteLeTitreQuOnVeutParmiCeuxQuOnA() {
         Game game = GameTestSupport.realGame();
-        game.state().stats().noteFusion(idle.core.math.BigNum.ONE, 10);
+        game.state().stats().noteFusion(BigNum.ONE, 10);
         game.tick(1);
         assertFalse(game.chooseTitle(Title.GALAXY_ARCHITECT), "pas encore la galaxie");
         assertEquals(Title.APPRENTICE_ALCHEMIST, game.currentTitle());

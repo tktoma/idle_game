@@ -11,7 +11,6 @@ import java.util.Locale;
  * dans {@link Notations}, et « Battements de cœur » change les durées plutôt que les nombres.
  */
 public final class Format {
-
     private static final BigNum THOUSAND = BigNum.of(1, 3);
     private static final BigNum MILLION = BigNum.of(1, 6);
     /** Abréviations des milliers successifs : 1e3, 1e6, 1e9… jusqu'à 1e33. */
@@ -20,14 +19,10 @@ public final class Format {
     private static Settings.Notation notation = Settings.Notation.SCIENTIFIC;
 
     /** Change la façon d'écrire les grands nombres, partout dans le jeu. */
-    public static void setNotation(Settings.Notation chosen) {
-        notation = chosen;
-    }
+    public static void setNotation(Settings.Notation chosen) { notation = chosen; }
 
     /** La façon d'écrire les grands nombres en ce moment. */
-    public static Settings.Notation notation() {
-        return notation;
-    }
+    public static Settings.Notation notation() { return notation; }
 
     /** Les noms des milliers, au singulier, de 1e3 (mille) à 1e63 (décilliard), selon l'échelle longue en usage en français. */
     private static final String[] WORDS = {"mille", "million", "milliard", "billion", "billiard", "trillion", "trilliard",
@@ -45,18 +40,10 @@ public final class Format {
             return value.format();
         }
         switch (notation) {
-            case BINARY -> {
-                return Notations.power(value, 2);
-            }
-            case HEX -> {
-                return Notations.hex(value);
-            }
-            case JAPANESE -> {
-                return Notations.japanese(value);
-            }
-            case MORSE -> {
-                return Notations.morse(mantissa(value), roundedExponent(value));
-            }
+            case BINARY -> { return Notations.power(value, 2); }
+            case HEX -> { return Notations.hex(value); }
+            case JAPANESE -> { return Notations.japanese(value); }
+            case MORSE -> { return Notations.morse(mantissa(value), roundedExponent(value)); }
             case POWERS -> {
                 long exponent = roundedExponent(value);
                 return mantissa(value) + "×10" + superscript(exponent);
@@ -82,23 +69,17 @@ public final class Format {
         String digits = String.format(Locale.ROOT, mantissa < 9.995 ? "%.2f" : mantissa < 99.95 ? "%.1f" : "%.0f", mantissa);
         int letter = (int) (exponent / 3) - 1;
         switch (notation) {
-            case LETTERS -> {
-                return letter < LETTERS.length ? digits + " " + LETTERS[letter] : value.format();
-            }
+            case LETTERS -> { return letter < LETTERS.length ? digits + " " + LETTERS[letter] : value.format(); }
             case WORDS -> {
                 if (letter >= WORDS.length) return value.format();
                 // « mille » ne prend pas de s ; les autres, à partir de deux.
                 return digits + " " + WORDS[letter] + (letter > 0 && Double.parseDouble(digits) >= 2 ? "s" : "");
             }
-            case ALPHABET -> {
-                return digits + " " + alphabet(letter);
-            }
+            case ALPHABET -> { return digits + " " + alphabet(letter); }
             case SI -> {
                 return letter < Notations.SI_PREFIXES.length ? digits + " " + Notations.SI_PREFIXES[letter] : value.format();
             }
-            default -> {
-                return digits + "e" + exponent;
-            }
+            default -> { return digits + "e" + exponent; }
         }
     }
 
@@ -150,7 +131,7 @@ public final class Format {
     /**
      * Durée lisible : « 8.2 s », « 12 min 05 s », « 3 h 12 min », « 2 j 3 h ». Deux unités au
      * plus : au-delà, la précision n'apporte rien. Dans la notation « Battements de cœur »
-     * (version 0.200), la durée se compte en battements : « 3 600 battements ».
+     * , la durée se compte en battements : « 3 600 battements ».
      */
     public static String duration(double seconds) {
         if (notation == Settings.Notation.HEARTBEATS) return Notations.heartbeats(seconds);
@@ -200,9 +181,7 @@ public final class Format {
     }
 
     /** Nombre entier avec des espaces entre les milliers : « 12 345 ». */
-    public static String whole(long value) {
-        return String.format(Locale.ROOT, "%,d", value).replace(',', ' ');
-    }
+    public static String whole(long value) { return String.format(Locale.ROOT, "%,d", value).replace(',', ' '); }
 
     /**
      * Quantité de ressource : en entier tant que c'est lisible, puis en notation scientifique.
@@ -214,7 +193,7 @@ public final class Format {
     }
 
     /**
-     * Quantité de matière noire (version 0.097) : elle peut avoir un dixième depuis que le premier cycle en donne
+     * Quantité de matière noire : elle peut avoir un dixième depuis que le premier cycle en donne
      * ×0,8 par explosion. « 12 », « 0.8 », « 499.6 », puis en notation scientifique. Arrondie vers le bas, comme
      * {@link #count} : 499,96 s'affiche 499.9, pas 500.
      */
@@ -222,13 +201,11 @@ public final class Format {
         if (!value.lt(MILLION)) return big(value);
         double tenths = Math.floor(value.toDouble() * 10 + 1e-6) / 10;
         if (tenths == Math.floor(tenths)) return String.valueOf((long) tenths);
-        return String.format(java.util.Locale.ROOT, "%.1f", tenths);
+        return String.format(Locale.ROOT, "%.1f", tenths);
     }
 
     /** La même quantité, donnée en double : les éclats des dimensions et de la graine. */
-    public static String darkMatter(double value) {
-        return darkMatter(BigNum.of(value));
-    }
+    public static String darkMatter(double value) { return darkMatter(BigNum.of(value)); }
 
     /** Multiplicateur : « ×2 », « ×1.25 », puis en notation scientifique. */
     public static String multiplier(BigNum value) {
@@ -237,14 +214,10 @@ public final class Format {
     }
 
     /** Le même multiplicateur, donné en double. */
-    public static String multiplier(double value) {
-        return multiplier(BigNum.of(value));
-    }
+    public static String multiplier(double value) { return multiplier(BigNum.of(value)); }
 
     /** Quantité qui peut être fractionnaire : « 1 », « 2.35 », puis en notation scientifique. */
-    public static String amount(BigNum value) {
-        return multiplier(value).substring(1);
-    }
+    public static String amount(BigNum value) { return multiplier(value).substring(1); }
 
     /** Unités de longueur, de la plus petite à la plus grande : symbole et valeur en mètres. */
     private static final String[] LENGTH_UNITS = {"fm", "pm", "nm", "µm", "mm", "m", "km", "années-lumière"};

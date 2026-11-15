@@ -1,27 +1,19 @@
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Compare deux parties du bot analyste (version 0.164) : deux versions du jeu, ou une partie avec et sans une
+ * Compare deux parties du bot analyste : deux versions du jeu, ou une partie avec et sans une
  * amélioration ({@code sans=}). Pour chaque palier atteint dans les deux, le moment dans chacune et l'écart ; puis ce qui
  * n'est atteint que d'un côté. Écrit comparaison.txt et comparaison.html.
  *
  * <p>Usage : {@code AnalyseComparaison <dossier A> <dossier B> <sortie>}.
  */
 final class AnalyseComparaison {
-
     private AnalyseComparaison() {}
 
     /** Un palier dans les deux parties : son nom, son moment dans A et dans B (NaN s'il n'y est pas). */
     record Ligne(String palier, double a, double b) {
-        double ecart() {
-            return b - a;
-        }
+        double ecart() { return b - a; }
     }
 
     /** Les paliers d'une partie : nom → moment de la première fois (secondes de jeu). */
@@ -69,9 +61,7 @@ final class AnalyseComparaison {
     static List<Ligne> comparer(Map<String, Double> a, Map<String, Double> b) {
         List<Ligne> out = new ArrayList<>();
         a.forEach((nom, t) -> out.add(new Ligne(nom, t, b.getOrDefault(nom, Double.NaN))));
-        b.forEach((nom, t) -> {
-            if (!a.containsKey(nom)) out.add(new Ligne(nom, Double.NaN, t));
-        });
+        b.forEach((nom, t) -> { if (!a.containsKey(nom)) out.add(new Ligne(nom, Double.NaN, t)); });
         return out;
     }
 
@@ -80,9 +70,7 @@ final class AnalyseComparaison {
         return (seconds >= 0 ? "+" : "−") + AnalyseJournal.duree(Math.abs(seconds));
     }
 
-    private static String esc(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    }
+    private static String esc(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); }
 
     static void ecrire(Path a, Path b, Path sortie) throws Exception {
         List<Ligne> lignes = comparer(paliers(a), paliers(b));

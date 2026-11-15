@@ -1,58 +1,44 @@
-package idle.core;
+package idle.core.state;
 
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Collision;
-import idle.core.collider.Quark;
+import idle.core.*;
+import idle.core.universe.Skin;
+import idle.core.collider.*;
 import idle.core.elements.ElementCategory;
 import idle.core.math.BigNum;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeUpgrade;
+import idle.core.probes.*;
 import idle.core.save.SaveData;
 import idle.core.sky.SolarSystem;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * L'état de la partie, première partie : tous ses champs, puis les ressources, les achats, les éléments,
  * la matière noire, les molécules, les astres et les plans.
  */
 public abstract class GameStateBase {
-
     /**
-     * Version 0.162 : une copie en lecture seule, parcourue dans l'ordre alphabétique. {@code Set.copyOf} parcourait ses
+     * Une copie en lecture seule, parcourue dans l'ordre alphabétique. {@code Set.copyOf} parcourait ses
      * éléments dans un ordre tiré au sort à chaque lancement du jeu : le rassemblement automatique, qui parcourt les
      * molécules, ne faisait pas les mêmes choix d'une session à l'autre, et deux parties identiques divergeaient.
      */
-    static Set<String> ordered(Set<String> set) {
-        return Collections.unmodifiableSortedSet(new java.util.TreeSet<>(set));
-    }
+    static Set<String> ordered(Set<String> set) { return Collections.unmodifiableSortedSet(new TreeSet<>(set)); }
 
     /** La même chose pour une table : ses clés dans l'ordre alphabétique. */
     static <V> Map<String, V> ordered(Map<String, V> map) {
-        return Collections.unmodifiableSortedMap(new java.util.TreeMap<>(map));
+        return Collections.unmodifiableSortedMap(new TreeMap<>(map));
     }
 
     /** Seul {@link GameState} prolonge la chaîne. */
     GameStateBase() {
     }
 
-
     boolean started = false;
     BigNum particles = BigNum.ZERO;
     BigNum atoms = BigNum.ZERO;
     BigNum totalAtoms = BigNum.ZERO;
     double timeSinceFusion = 0;
-    /** Secondes de jeu depuis la dernière amélioration achetée (version 0.114) : la fuite et le calme du Big Bang. */
+    /** Secondes de jeu depuis la dernière amélioration achetée : la fuite et le calme du Big Bang. */
     double upgradeCalm = 0;
-    /** Secondes de jeu depuis le dernier achat d'amélioration, joueur ou automatisme (version 0.124) : le calme du Big Bang. */
+    /** Secondes de jeu depuis le dernier achat d'amélioration, joueur ou automatisme : le calme du Big Bang. */
     double bangCalm = 0;
     final List<Double> formations = new ArrayList<>();
     double timePlayed = 0;
@@ -65,11 +51,11 @@ public abstract class GameStateBase {
     final Map<String, Double> automationTimers = new HashMap<>();
     final Map<Integer, Integer> elements = new TreeMap<>();
     /**
-     * Version 0.162 : les mêmes nombres d'exemplaires, rangés par numéro atomique, pour les lire sans chercher dans la
+     * Les mêmes nombres d'exemplaires, rangés par numéro atomique, pour les lire sans chercher dans la
      * table. Le jeu les lit des milliers de fois par seconde (bonus des éléments, plafonds) : c'était la première
      * dépense du moteur. Tenu à jour à chaque changement de {@link #elements} ({@link #syncElementCounts()}).
      */
-    int[] elementCounts = new int[129];
+    public int[] elementCounts = new int[129];
     int elementsVersion = 0;
     /** Augmente à chaque changement des niveaux de l'arbre de matière noire : le jeu s'en sert pour ne recalculer leurs effets qu'alors. */
     int darkVersion = 0;
@@ -94,7 +80,7 @@ public abstract class GameStateBase {
     int challengesVersion = 0;
     final Map<String, Double> challengeTimes = new HashMap<>();
     double decayDebt = 0;
-    final Set<String> achievements = new java.util.LinkedHashSet<>();
+    final Set<String> achievements = new LinkedHashSet<>();
     /** Change à chaque modification des succès : {@link Game} y garde son compte sans reparcourir la liste. Non sauvegardé. */
     int achievementsVersion = 0;
     final Set<String> enabledDarkAutomations = new HashSet<>();
@@ -102,21 +88,20 @@ public abstract class GameStateBase {
     int bigBangs = 0;
     final Map<String, Integer> molecules = new HashMap<>();
     /**
-     * Les molécules dans l'ordre de leur création, par suites : la sorte de chaque suite, et le rang
-     * où elle finit. Une création ajoute des centaines de molécules d'un coup ; on ne garde donc pas
-     * une entrée par molécule.
+     * Les molécules dans l'ordre de leur création, par suites : la sorte de chaque suite, et le rang où elle finit. Une
+     * création ajoute des centaines de molécules d'un coup ; on ne garde donc pas une entrée par molécule.
      */
     final List<String> logKinds = new ArrayList<>();
     long[] logEnds = new long[16];
     private final List<String> moleculeLog = new MoleculeLog();
     int moleculesVersion = 0;
-    final Set<String> substances = new java.util.LinkedHashSet<>();
-    final Set<String> assemblies = new java.util.LinkedHashSet<>();
-    final Set<String> bodies = new java.util.LinkedHashSet<>();
-    /** Les systèmes solaires (version 0.054). */
+    final Set<String> substances = new LinkedHashSet<>();
+    final Set<String> assemblies = new LinkedHashSet<>();
+    final Set<String> bodies = new LinkedHashSet<>();
+    /** Les systèmes solaires. */
     final List<SolarSystem> solarSystems = new ArrayList<>();
-    /** Les astres formés qui mûrissent encore (version 0.053), avec les secondes qu'il leur reste. */
-    final Map<String, Double> maturing = new java.util.LinkedHashMap<>();
+    /** Les astres formés qui mûrissent encore, avec les secondes qu'il leur reste. */
+    final Map<String, Double> maturing = new LinkedHashMap<>();
     /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link idle.core.sky.Cosmos} : 0 = aucune, 1 = la galaxie, 2 = l'amas de galaxies, 3 = l'univers. */
     int cosmos;
     /** Vrai tant que l'appui automatique sur la matière noire est en marche, une fois acquis ({@link Game#isAutoHolding()}). */
@@ -124,7 +109,7 @@ public abstract class GameStateBase {
     /** Vrai tant que la création automatique des molécules est en marche, une fois acquise ({@link Game#isAutoCreatingMolecules()}). */
     boolean autoMolecules = true;
     /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
-    final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
+    final Set<String> automatedMolecules = new LinkedHashSet<>();
     /**
      * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
      * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
@@ -132,7 +117,7 @@ public abstract class GameStateBase {
     List<String> substancesSeen;
     List<String> assembliesSeen;
     List<String> bodiesSeen;
-    final Set<String> spaceUpgrades = new java.util.LinkedHashSet<>();
+    final Set<String> spaceUpgrades = new LinkedHashSet<>();
     /** Vrai tant que le joueur a coupé d'un geste tous les automatismes : aucun n'agit, et chacun garde son propre réglage. */
     boolean automationPaused = false;
     /** Vrai tant que le rassemblement automatique est en marche, une fois acquis ({@link Game#isAutoGathering()}). */
@@ -148,22 +133,22 @@ public abstract class GameStateBase {
     double cometVisible = 0;
     double cometBoost = 0;
     int cometsCaught = 0;
-    // Les anomalies du ciel (version 0.127) : celle qui est à saisir, combien de temps encore, l'attente avant la
+    // Les anomalies du ciel : celle qui est à saisir, combien de temps encore, l'attente avant la
     // suivante, le vent de particules en cours, et combien en ont été saisies.
     String skyEvent = null;
     double skyEventVisible = 0;
     double skyEventWait = 0;
     double windLeft = 0;
     int skyEventsCaught = 0;
-    /** Vrai une fois l'écran de fin vu (version 0.068) : il ne s'ouvre qu'une fois par partie. */
+    /** Vrai une fois l'écran de fin vu : il ne s'ouvre qu'une fois par partie. */
     boolean endSeen = false;
-    // La partie secondaire (version 0.081), sans logique pour l'instant : les univers créés après le
+    // La partie secondaire, sans logique pour l'instant : les univers créés après le
     // premier, les graines d'univers, l'énergie du vide, et le niveau des améliorations de l'univers.
     int extraUniverses = 0;
     boolean universeFormed = false;
-    // Les plans de l'arbre et des systèmes solaires (version 0.084).
+    // Les plans de l'arbre et des systèmes solaires.
     final List<String> darkPlan = new ArrayList<>();
-    /** Les emplacements de sauvegarde des plans (version 0.086) : {@link #PLAN_SLOTS} chacun, vides au départ. */
+    /** Les emplacements de sauvegarde des plans : {@link #PLAN_SLOTS} chacun, vides au départ. */
     public static final int PLAN_SLOTS = 5;
     final List<String> savedDarkPlans = emptySlots();
     final List<SolarSystem> systemPlan = new ArrayList<>();
@@ -171,45 +156,41 @@ public abstract class GameStateBase {
 
     /** Relit des emplacements ; une sauvegarde de la 0.084 ou 0.085 n'en avait qu'un, sous l'ancienne clé. */
     static void readSlots(SaveData data, String key, String oldKey, List<String> slots) {
-        java.util.Collections.fill(slots, "");
+        Collections.fill(slots, "");
         List<String> read = data.has(key) ? data.list(key) : List.of(String.join("", data.list(oldKey)));
         for (int i = 0; i < Math.min(PLAN_SLOTS, read.size()); i++) slots.set(i, read.get(i) == null ? "" : read.get(i));
     }
 
-    private static List<String> emptySlots() {
-        return new ArrayList<>(java.util.Collections.nCopies(PLAN_SLOTS, ""));
-    }
+    private static List<String> emptySlots() { return new ArrayList<>(Collections.nCopies(PLAN_SLOTS, "")); }
     boolean forkResetArmed = false;
-    // Planifier la matière (version 0.085).
+    // Planifier la matière.
     final List<String> plannedBodies = new ArrayList<>();
     final Map<String, Double> stateCaps = new TreeMap<>();
-    // Le deuxième univers (version 0.087).
+    // Le deuxième univers.
     boolean replaying = false;
     long fusionsAtUniverse = 0;
-    /** Explosions déjà faites quand l'univers en cours a commencé (version 0.124) : la maturité du tableau se refait à chaque univers. */
+    /** Explosions déjà faites quand l'univers en cours a commencé : la maturité du tableau se refait à chaque univers. */
     long explosionsAtUniverse = 0;
     boolean skinsOpen = false;
-    final Set<String> unlockedSkins = new java.util.TreeSet<>();
+    final Set<String> unlockedSkins = new TreeSet<>();
     /**
-     * Version 0.202 : change à chaque fois que {@link #unlockedSkins} change ; le compte des skins débloqués (relu à chaque
+     * Change à chaque fois que {@link #unlockedSkins} change ; le compte des skins débloqués (relu à chaque
      * fusion et à chaque calcul de production, par le bonus des skins) se garde tant qu'il ne bouge pas. Pas sauvegardé.
      */
     int skinsVersion = 0;
     private int skinsCountVersion = -1, skinsCountUnlocked, skinsCountCounted;
 
     /**
-     * Version 0.214 : un nombre qui change à chaque fois que les skins débloqués changent. L'interface ne repasse les deux
+     * Un nombre qui change à chaque fois que les skins débloqués changent. L'interface ne repasse les deux
      * cents skins (pour annoncer les nouveaux) que lorsqu'il bouge.
      */
-    public int skinsVersion() {
-        return skinsVersion;
-    }
+    public int skinsVersion() { return skinsVersion; }
 
     /** Le nombre de skins débloqués, libres compris, et celui des skins non libres débloqués (sans plafond). */
-    final int skinsUnlockedCount(boolean counted) {
+    public final int skinsUnlockedCount(boolean counted) {
         if (skinsCountVersion != skinsVersion) {
             int unlocked = 0, nonFree = 0;
-            for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+            for (Skin skin : Skin.values()) {
                 boolean has = skin.isFree() || unlockedSkins.contains(skin.id());
                 if (has) unlocked++;
                 if (has && !skin.isFree()) nonFree++;
@@ -231,23 +212,23 @@ public abstract class GameStateBase {
     String preferredFamily = null;
     int preferenceDraws = 0;
     int freeElementsUsed = 0;
-    // Les skins à obtenir (version 0.088).
+    // Les skins à obtenir.
     String activeTrial = null;
     double trialStart = 0;
     double trialBase = 0;
     int trialCount = 0;
-    final Set<String> completedTrials = new java.util.TreeSet<>();
-    /** Les fenêtres d'explication déjà montrées (version 0.089) : onglets ouverts et nouveautés du deuxième univers. */
-    final Set<String> seenPopups = new java.util.TreeSet<>();
+    final Set<String> completedTrials = new TreeSet<>();
+    /** Les fenêtres d'explication déjà montrées : onglets ouverts et nouveautés du deuxième univers. */
+    final Set<String> seenPopups = new TreeSet<>();
     /** Vrai une fois les fenêtres d'une partie d'avant la 0.089 marquées vues, sans les montrer. */
     boolean popupsPrimed = false;
     double rebuildRecord = 0;
     boolean rebuildPending = false;
-    final Set<String> researches = new java.util.TreeSet<>();
+    final Set<String> researches = new TreeSet<>();
     BigNum universeSeeds = BigNum.ZERO;
     BigNum voidEnergy = BigNum.ZERO;
     /**
-     * Le vide (version 0.129) : ouvert (payé en énergie du collisionneur), son trou noir ouvert, la part de l'expansion
+     * Le vide : ouvert (payé en énergie du collisionneur), son trou noir ouvert, la part de l'expansion
      * qu'on lui donne, les particules sacrifiées au trou noir, et le niveau de ses huit améliorations. Tout repart de
      * zéro à chaque univers, sauf ce qu'il reste à la formation de chacun ({@link #voidHistory}).
      */
@@ -257,12 +238,12 @@ public abstract class GameStateBase {
     double voidPrice = 0;
     BigNum voidSacrificed = BigNum.ZERO;
     /** Le nombre d'améliorations du vide, celles de la sauvegarde, et leurs niveaux dans l'ordre de {@code Game.VoidUpgrade}. */
-    static final int VOID_UPGRADES = 8;
+    public static final int VOID_UPGRADES = 8;
     final int[] voidLevels = new int[VOID_UPGRADES];
     /** L'énergie du vide qu'il restait à la formation de chaque univers où le vide était ouvert : numéro de l'univers → stock. */
-    final Map<String, Double> voidHistory = new java.util.LinkedHashMap<>();
+    final Map<String, Double> voidHistory = new LinkedHashMap<>();
     /**
-     * La ligne, première dimension (version 0.101) : ses éclats, où en est la boule (0 au début de la
+     * La ligne, première dimension : ses éclats, où en est la boule (0 au début de la
      * ligne, 1 au bout, 2 de retour au début), le niveau de ses cinq améliorations dans l'ordre de
      * {@code Game.LineUpgrade} (éclats, traits, vitesse, boules, lignes) et tous les éclats gagnés, dépensés ou non.
      */
@@ -271,17 +252,17 @@ public abstract class GameStateBase {
     static final int LINE_UPGRADES = 5;
     final int[] lineLevels = new int[LINE_UPGRADES];
     double dimensionShardsEarned = 0;
-    /** La graine d'univers (version 0.103) : germée ou non, et combien de fois son germe a été arrosé. */
+    /** La graine d'univers : germée ou non, et combien de fois son germe a été arrosé. */
     boolean seedSprouted = false;
     long seedWaterings = 0;
-    /** L'arrosoir de la graine (version 0.137) : débloqué sur son étagère, il remplace le bouton d'arrosage. */
+    /** L'arrosoir de la graine : débloqué sur son étagère, il remplace le bouton d'arrosage. */
     boolean wateringCan = false;
-    /** Vrai une fois que la brindille a ouvert la partie du deuxième univers (version 0.109) : elle ne l'ouvre qu'une fois. */
+    /** Vrai une fois que la brindille a ouvert la partie du deuxième univers : elle ne l'ouvre qu'une fois. */
     boolean twigOpened = false;
-    /** Univers que la graine a ouverts (version 0.120) : le palier N + 1 ouvre le suivant. */
+    /** Univers que la graine a ouverts : le palier N + 1 ouvre le suivant. */
     int seedUniversesOpened = 0;
     /**
-     * Le plan, deuxième dimension (version 0.104) : ses éclats, propres à lui, tous ceux gagnés, et le
+     * Le plan, deuxième dimension : ses éclats, propres à lui, tous ceux gagnés, et le
      * niveau de ses cinq améliorations (valeur, réapparition, nombre, vitesse, taille), dans cet ordre.
      */
     double planeShards = 0;
@@ -289,7 +270,7 @@ public abstract class GameStateBase {
     static final int PLANE_UPGRADES = 5;
     final int[] planeLevels = new int[PLANE_UPGRADES];
     /**
-     * Le volume, troisième dimension (version 0.128) : ses éclats, tous ceux gagnés, et le niveau de ses cinq
+     * Le volume, troisième dimension : ses éclats, tous ceux gagnés, et le niveau de ses cinq
      * améliorations (durée, valeur, réapparition, nombre, taille), dans cet ordre.
      */
     double volumeShards = 0;
@@ -297,55 +278,54 @@ public abstract class GameStateBase {
     static final int VOLUME_UPGRADES = 5;
     final int[] volumeLevels = new int[VOLUME_UPGRADES];
     /**
-     * La durée, quatrième dimension (version 0.134) : ses éclats, tous ceux gagnés, et le niveau de ses quatre
+     * La durée, quatrième dimension : ses éclats, tous ceux gagnés, et le niveau de ses quatre
      * améliorations (vitesse, nombre de spirales, valeur, temps au plus), dans cet ordre.
      */
     double durationShards = 0;
     double durationShardsEarned = 0;
     static final int DURATION_UPGRADES = 4;
     final int[] durationLevels = new int[DURATION_UPGRADES];
-    /** La boucle, cinquième dimension (version 0.153) : ses nœuds, ceux gagnés en tout, et ses six améliorations. */
+    /** La boucle, cinquième dimension : ses nœuds, ceux gagnés en tout, et ses six améliorations. */
     double loopShards = 0;
     double loopShardsEarned = 0;
-    static final int LOOP_UPGRADES = 6;
+    public static final int LOOP_UPGRADES = 6;
     final int[] loopLevels = new int[LOOP_UPGRADES];
-    /** La brane, sixième dimension (version 0.154) : ses ondes, celles gagnées en tout, et ses cinq améliorations. */
+    /** La brane, sixième dimension : ses ondes, celles gagnées en tout, et ses cinq améliorations. */
     double braneShards = 0;
     double braneShardsEarned = 0;
-    static final int BRANE_UPGRADES = 5;
+    public static final int BRANE_UPGRADES = 5;
     final int[] braneLevels = new int[BRANE_UPGRADES];
-    /** Le clicker, septième dimension (version 0.155) : ses étincelles, celles gagnées en tout, et ses huit améliorations. */
+    /** Le clicker, septième dimension : ses étincelles, celles gagnées en tout, et ses huit améliorations. */
     double clickerShards = 0;
     double clickerShardsEarned = 0;
-    static final int CLICKER_UPGRADES = 8;
+    public static final int CLICKER_UPGRADES = 8;
     final int[] clickerLevels = new int[CLICKER_UPGRADES];
-    /** La grille, huitième dimension (version 0.156) : ses repères, ceux gagnés en tout, et ses six améliorations (les essais à la 0.157). */
+    /** La grille, huitième dimension : ses repères, ceux gagnés en tout, et ses six améliorations (les essais à la 0.157). */
     double gridShards = 0;
     double gridShardsEarned = 0;
-    static final int GRID_UPGRADES = 6;
+    public static final int GRID_UPGRADES = 6;
     final int[] gridLevels = new int[GRID_UPGRADES];
-    /** Le miroir, neuvième dimension (version 0.157) : ses reflets, ceux gagnés en tout, et ses cinq améliorations. */
+    /** Le miroir, neuvième dimension : ses reflets, ceux gagnés en tout, et ses cinq améliorations. */
     double mirrorShards = 0;
     double mirrorShardsEarned = 0;
-    static final int MIRROR_UPGRADES = 5;
+    public static final int MIRROR_UPGRADES = 5;
     final int[] mirrorLevels = new int[MIRROR_UPGRADES];
-    /** Les motifs réussis en tout (version 0.158) : le plateau s'agrandit toutes les trois. */
+    /** Les motifs réussis en tout : le plateau s'agrandit toutes les trois. */
     double mirrorWins = 0;
     /**
-     * Le mélange, dixième dimension (version 0.158, refait à la 0.159) : ses fragments, ceux gagnés en tout, son étape
-     * (le nombre de dimensions mêlées, de 1 à 9), ce qui a été gagné à cette étape, et ses onze améliorations, remises à
-     * zéro à chaque étape.
+     * Le mélange, dixième dimension : ses fragments, ceux gagnés en tout, son étape (le nombre de dimensions mêlées, de
+     * 1 à 9), ce qui a été gagné à cette étape, et ses onze améliorations, remises à zéro à chaque étape.
      */
     double mixShards = 0;
     double mixShardsEarned = 0;
     int mixStage = 1;
     double mixStageEarned = 0;
-    static final int MIX_UPGRADES = 11;
-    /** Vrai une fois les dix paliers du défi final atteints (version 0.160) : la partie est finie. */
+    public static final int MIX_UPGRADES = 11;
+    /** Vrai une fois les dix paliers du défi final atteints : la partie est finie. */
     boolean gameFinished = false;
     final int[] mixLevels = new int[MIX_UPGRADES];
     /**
-     * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
+     * Les améliorations de la graine, dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
      * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
      */
@@ -354,62 +334,62 @@ public abstract class GameStateBase {
     double chronoStored = 0;
     double chronoSpeed = 1;
     /**
-     * Les bulles de l'arbre (version 0.142) : le niveau de chacune, dans l'ordre de {@code Game.TreeBubble} (0 : pas
+     * Les bulles de l'arbre : le niveau de chacune, dans l'ordre de {@code Game.TreeBubble} (0 : pas
      * achetée ; version 0.148 : certaines s'achètent plusieurs fois), et l'énergie du vide accumulée (celle qui restait à
      * la formation de chaque univers) déjà dépensée pour elles. Et ce que la bulle du géant de gauche verse au cumul,
-     * seconde après seconde (version 0.148).
+     * seconde après seconde.
      */
     /**
-     * Les hadrons (version 0.149) : l'onglet ouvert dans cet univers, son prix fixé quand il s'est proposé, et ce
+     * Les hadrons : l'onglet ouvert dans cet univers, son prix fixé quand il s'est proposé, et ce
      * qu'on en a assemblé, par sorte.
      */
     boolean hadronsOpen = false;
     double hadronsPrice = 0;
     /**
-     * Version 0.169 : ce que les bulles de l'arbre peuvent garder, relevé à la formation de l'univers, en attendant que le
+     * Ce que les bulles de l'arbre peuvent garder, relevé à la formation de l'univers, en attendant que le
      * joueur lance le suivant ; et les bulles qui le gardaient déjà à la formation. Une bulle achetée entre les deux garde
      * aussi sa part pour l'univers lancé. {@code null} hors de cette attente.
      */
-    GameState bubbleKeep = null;
-    int bubbleKeepMask = 0;
-    final java.util.EnumMap<idle.core.collider.Hadron, Long> hadrons = new java.util.EnumMap<>(idle.core.collider.Hadron.class);
-    /** L'automatisation des dimensions (version 0.150) : les automatismes achetés, et ceux coupés à part. */
-    final Set<String> dimensionAutomations = new java.util.TreeSet<>();
-    final Set<String> dimensionAutomationsOff = new java.util.TreeSet<>();
+    public GameState bubbleKeep = null;
+    public int bubbleKeepMask = 0;
+    final EnumMap<Hadron, Long> hadrons = new EnumMap<>(Hadron.class);
+    /** L'automatisation des dimensions : les automatismes achetés, et ceux coupés à part. */
+    final Set<String> dimensionAutomations = new TreeSet<>();
+    final Set<String> dimensionAutomationsOff = new TreeSet<>();
     static final int TREE_BUBBLES = 31;
     final int[] treeBubbleLevels = new int[TREE_BUBBLES];
     double voidSpent = 0;
     double voidTrickled = 0;
-    /** L'énergie du vide gardée d'un univers à l'autre et déjà comptée au cumul (version 0.152). */
+    /** L'énergie du vide gardée d'un univers à l'autre et déjà comptée au cumul. */
     double voidCarried = 0;
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;
-    // Le collisionneur de quarks (version 0.050) : rien ne s'y perd à l'explosion ni au Big Bang.
+    // Le collisionneur de quarks : rien ne s'y perd à l'explosion ni au Big Bang.
     double colliderEnergy = 0;
-    /** Les générateurs du collisionneur (version 0.057) : ce qu'on en a, et combien ont été achetés. */
-    final java.util.EnumMap<ColliderGenerator, Double> colliderGenerators = new java.util.EnumMap<>(ColliderGenerator.class);
-    final java.util.EnumMap<ColliderGenerator, Integer> colliderGeneratorsBought = new java.util.EnumMap<>(ColliderGenerator.class);
+    /** Les générateurs du collisionneur : ce qu'on en a, et combien ont été achetés. */
+    final EnumMap<ColliderGenerator, Double> colliderGenerators = new EnumMap<>(ColliderGenerator.class);
+    final EnumMap<ColliderGenerator, Integer> colliderGeneratorsBought = new EnumMap<>(ColliderGenerator.class);
     /**
-     * Les faisceaux (version 0.059) : leur phase, de 0 à 1 (ils se croisent à 0,5), le nombre de
+     * Les faisceaux : leur phase, de 0 à 1 (ils se croisent à 0,5), le nombre de
      * croisements depuis le début, et le numéro du dernier croisement capté d'un clic.
      */
     double colliderPhase = 0;
     long colliderCrossings = 0;
     long colliderCaught = -1;
-    /** Les améliorations du collisionneur (version 0.059) et les automates mis en pause par le joueur. */
-    final java.util.EnumMap<ColliderUpgrade, Integer> colliderUpgrades = new java.util.EnumMap<>(ColliderUpgrade.class);
-    final java.util.EnumSet<ColliderUpgrade> colliderPaused = java.util.EnumSet.noneOf(ColliderUpgrade.class);
-    final java.util.EnumMap<Quark, Integer> quarks = new java.util.EnumMap<>(Quark.class);
-    /** L'énergie produite depuis le début (version 0.062) : elle ouvre les deux trous noirs. */
+    /** Les améliorations du collisionneur et les automates mis en pause par le joueur. */
+    final EnumMap<ColliderUpgrade, Integer> colliderUpgrades = new EnumMap<>(ColliderUpgrade.class);
+    final EnumSet<ColliderUpgrade> colliderPaused = EnumSet.noneOf(ColliderUpgrade.class);
+    final EnumMap<Quark, Integer> quarks = new EnumMap<>(Quark.class);
+    /** L'énergie produite depuis le début : elle ouvre les deux trous noirs. */
     double colliderEnergyProduced = 0;
     final List<Collision> collisions = new ArrayList<>();
     long collisionRuns = 0;
     double topLeft = 0;
     double overheatLeft = 0;
-    // Les sondes (version 0.052) : comme le collisionneur, elles traversent l'explosion et le Big Bang.
+    // Les sondes : comme le collisionneur, elles traversent l'explosion et le Big Bang.
     final List<Probe> probes = new ArrayList<>();
     final List<ProbeReward> probeRewards = new ArrayList<>();
-    final java.util.EnumMap<ProbeUpgrade, Integer> probeUpgrades = new java.util.EnumMap<>(ProbeUpgrade.class);
+    final EnumMap<ProbeUpgrade, Integer> probeUpgrades = new EnumMap<>(ProbeUpgrade.class);
     long probeRuns = 0;
     /** Numéros donnés aux sondes au départ. */
     long probeLaunches = 0;
@@ -418,7 +398,7 @@ public abstract class GameStateBase {
     long pulses = 0;
     /** Les records du joueur, étape par étape : le temps de jeu le plus court auquel chacune a été atteinte. La remise à zéro les garde. */
     final Map<String, Double> records = new HashMap<>();
-    // Le profil du joueur (version 0.147) : comme les records, rien ne le reprend, pas même « Recommencer de zéro ».
+    // Le profil du joueur : comme les records, rien ne le reprend, pas même « Recommencer de zéro ».
     /** Le nom du joueur ; vide tant qu'il n'en a pas choisi. */
     String playerName = "";
     /** L'avatar choisi : l'identifiant d'un avatar de la galerie, ou {@code custom} pour une image importée. */
@@ -428,7 +408,7 @@ public abstract class GameStateBase {
     /** Les titres obtenus, par leur nom, avec le temps de jeu auquel chacun l'a été. */
     final Map<String, Double> earnedTitles = new HashMap<>();
     /**
-     * Les albums (version 0.147) : ce que le joueur a déjà obtenu au moins une fois, dans n'importe quel univers, avec le
+     * Les albums : ce que le joueur a déjà obtenu au moins une fois, dans n'importe quel univers, avec le
      * temps de jeu de la première fois. Les molécules créées, les sortes rassemblées, les assemblages et les astres formés.
      */
     final Map<String, Double> foundMolecules = new HashMap<>();
@@ -438,7 +418,7 @@ public abstract class GameStateBase {
     // Les défis de Big Bang : celui en cours, ceux qui sont réussis, et leur meilleur temps.
     String activeBangChallenge = null;
     final Set<String> completedBangChallenges = new HashSet<>();
-    /** Les paliers de Big Bang payés (version 0.124), par leur nom. */
+    /** Les paliers de Big Bang payés, par leur nom. */
     final Set<String> boughtMilestones = new HashSet<>();
     final Map<String, Double> bangChallengeTimes = new HashMap<>();
     /** Le temps de jeu auquel le défi de Big Bang en cours a commencé. */
@@ -450,37 +430,27 @@ public abstract class GameStateBase {
     final List<String> automationOrder = new ArrayList<>();
     boolean automationOrdered = false;
     /** Les molécules épinglées par le joueur, dans l'ordre où il les a choisies. */
-    final Set<String> favoriteMolecules = new java.util.LinkedHashSet<>();
+    final Set<String> favoriteMolecules = new LinkedHashSet<>();
     BigNum space = BigNum.ZERO;
     GameStats stats = new GameStats();
 
     /** Les statistiques de la partie : des compteurs pour l'affichage, que les règles ne lisent pas. */
-    public GameStats stats() {
-        return stats;
-    }
+    public GameStats stats() { return stats; }
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
-    public boolean started() {
-        return started;
-    }
+    public boolean started() { return started; }
 
-    public void setStarted(boolean started) {
-        this.started = started;
-    }
+    public void setStarted(boolean started) { this.started = started; }
 
     /** Particules possédées : la ressource de base, créée par les générateurs. */
-    public BigNum particles() {
-        return particles;
-    }
+    public BigNum particles() { return particles; }
 
     public void setParticles(BigNum particles) {
         this.particles = nonNegative(particles, "Le nombre de particules ne peut pas être négatif");
     }
 
     /** Atomes disponibles : la deuxième ressource, gagnée par fusion et dépensée en améliorations. */
-    public BigNum atoms() {
-        return atoms;
-    }
+    public BigNum atoms() { return atoms; }
 
     public void setAtoms(BigNum atoms) {
         this.atoms = nonNegative(atoms, "Le nombre d'atomes ne peut pas être négatif");
@@ -490,36 +460,24 @@ public abstract class GameStateBase {
      * Atomes créés dans la partie en cours, dépensés ou non : depuis la dernière explosion, ou depuis le départ lancé
      * qu'elle accorde. Seules les remises à zéro le font redescendre ({@link GameState#clearMatter()}).
      */
-    public BigNum totalAtoms() {
-        return totalAtoms;
-    }
+    public BigNum totalAtoms() { return totalAtoms; }
 
     public void setTotalAtoms(BigNum totalAtoms) {
         this.totalAtoms = nonNegative(totalAtoms, "Le nombre d'atomes ne peut pas être négatif");
     }
 
     /** Temps écoulé depuis la dernière fusion (ou depuis le démarrage), en secondes. */
-    public double timeSinceFusion() {
-        return timeSinceFusion;
-    }
+    public double timeSinceFusion() { return timeSinceFusion; }
 
-    /** Secondes de jeu depuis la dernière amélioration achetée par le joueur (version 0.114) : la fuite. */
-    public double upgradeCalm() {
-        return upgradeCalm;
-    }
+    /** Secondes de jeu depuis la dernière amélioration achetée par le joueur : la fuite. */
+    public double upgradeCalm() { return upgradeCalm; }
 
-    public void setUpgradeCalm(double seconds) {
-        upgradeCalm = seconds >= 0 ? seconds : 0;
-    }
+    public void setUpgradeCalm(double seconds) { upgradeCalm = seconds >= 0 ? seconds : 0; }
 
-    /** Secondes depuis le dernier achat d'amélioration, automatismes compris (version 0.124) : le calme du Big Bang. */
-    public double bangCalm() {
-        return bangCalm;
-    }
+    /** Secondes depuis le dernier achat d'amélioration, automatismes compris : le calme du Big Bang. */
+    public double bangCalm() { return bangCalm; }
 
-    public void setBangCalm(double seconds) {
-        bangCalm = seconds >= 0 ? seconds : 0;
-    }
+    public void setBangCalm(double seconds) { bangCalm = seconds >= 0 ? seconds : 0; }
 
     public void setTimeSinceFusion(double timeSinceFusion) {
         if (!(timeSinceFusion >= 0)) throw new IllegalArgumentException("Durée invalide : " + timeSinceFusion);
@@ -532,43 +490,29 @@ public abstract class GameStateBase {
      *
      * @param generator numéro du générateur, 0 étant le premier
      */
-    public double formation(int generator) {
-        return generator < formations.size() ? formations.get(generator) : 0;
-    }
+    public double formation(int generator) { return generator < formations.size() ? formations.get(generator) : 0; }
 
     public void setFormation(int generator, double formation) {
         if (!(formation >= 0 && formation < 1)) {
             throw new IllegalArgumentException("La formation doit être dans [0, 1[ : " + formation);
         }
-        while (formations.size() <= generator) {
-            formations.add(0.0);
-        }
+        while (formations.size() <= generator) formations.add(0.0);
         formations.set(generator, formation);
     }
 
     /** Remet tous les générateurs à zéro (après une fusion). */
-    public void clearFormations() {
-        formations.clear();
-    }
+    public void clearFormations() { formations.clear(); }
 
     /** Vue en lecture seule des avancements, pour la sauvegarde. */
-    public List<Double> formations() {
-        return List.copyOf(formations);
-    }
+    public List<Double> formations() { return List.copyOf(formations); }
 
     /** Temps de jeu cumulé, en secondes. */
-    public double timePlayed() {
-        return timePlayed;
-    }
+    public double timePlayed() { return timePlayed; }
 
-    public void setTimePlayed(double timePlayed) {
-        this.timePlayed = timePlayed;
-    }
+    public void setTimePlayed(double timePlayed) { this.timePlayed = timePlayed; }
 
     /** Niveau possédé pour une amélioration (0 si jamais achetée). */
-    public int levelOf(String upgradeId) {
-        return upgradeLevels.getOrDefault(upgradeId, 0);
-    }
+    public int levelOf(String upgradeId) { return upgradeLevels.getOrDefault(upgradeId, 0); }
 
     public void setLevel(String upgradeId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
@@ -576,64 +520,45 @@ public abstract class GameStateBase {
     }
 
     /**
-     * Version 0.214 : le nombre d'automatismes achetés, sans la copie triée de {@code ownedAutomations()} (faite pour la
+     * Le nombre d'automatismes achetés, sans la copie triée de {@code ownedAutomations()} (faite pour la
      * sauvegarde) : la synergie le relit plusieurs fois à chaque pas de jeu.
      */
-    public int ownedAutomationCount() {
-        return ownedAutomations.size();
-    }
+    public int ownedAutomationCount() { return ownedAutomations.size(); }
 
     /** Vrai si le joueur a acheté cet automatisme. */
-    public boolean ownsAutomation(String automationId) {
-        return ownedAutomations.contains(automationId);
-    }
+    public boolean ownsAutomation(String automationId) { return ownedAutomations.contains(automationId); }
 
-    public void addAutomation(String automationId) {
-        ownedAutomations.add(automationId);
-    }
+    public void addAutomation(String automationId) { ownedAutomations.add(automationId); }
 
     /** Vrai si cet automatisme est en marche. Un automatisme acheté peut être coupé. */
-    public boolean isAutomationEnabled(String automationId) {
-        return enabledAutomations.contains(automationId);
-    }
+    public boolean isAutomationEnabled(String automationId) { return enabledAutomations.contains(automationId); }
 
     /**
-     * Version 0.204 : ce qu'une mesure interdit d'allumer, pour l'outil des bots qui cherche à partir de quand un
+     * Ce qu'une mesure interdit d'allumer, pour l'outil des bots qui cherche à partir de quand un
      * automatisme ne sert plus ({@code AnalyseArrets}). Jamais sauvegardé, vide dans une partie ordinaire. Les clés : l'identifiant
      * d'un automatisme (ordinaire ou de matière noire), {@code collider}, {@code gather}, {@code form}, {@code molecules},
      * {@code hold}, {@code dimension:N} pour les automatismes de la dimension N, et {@code bulle:NOM} pour l'effet d'une
      * bulle de l'arbre achetée (version 0.209 : les bots coupent celui du jeune arbre, à droite).
      */
-    private final Set<String> testBlocked = new java.util.HashSet<>();
+    private final Set<String> testBlocked = new HashSet<>();
 
     /** Interdit d'allumer ceci jusqu'à la fin de la partie en mémoire ; celui qui l'interdit l'éteint aussi lui-même. */
-    public void testBlock(String key) {
-        testBlocked.add(key);
-    }
+    public void testBlock(String key) { testBlocked.add(key); }
 
     /** Vrai si une mesure interdit quelque chose : faux dans une partie ordinaire. */
-    public boolean testBlocking() {
-        return !testBlocked.isEmpty();
-    }
+    public boolean testBlocking() { return !testBlocked.isEmpty(); }
 
     /** Vrai si une mesure interdit d'allumer ceci ({@link #testBlock}). */
-    public boolean testBlocked(String key) {
-        return !testBlocked.isEmpty() && testBlocked.contains(key);
-    }
+    public boolean testBlocked(String key) { return !testBlocked.isEmpty() && testBlocked.contains(key); }
 
     public void setAutomationEnabled(String automationId, boolean enabled) {
         if (enabled && testBlocked(automationId)) return;
-        if (enabled) {
-            enabledAutomations.add(automationId);
-        } else {
-            enabledAutomations.remove(automationId);
-        }
+        if (enabled) enabledAutomations.add(automationId);
+        else enabledAutomations.remove(automationId);
     }
 
     /** Niveau de cadence d'un automatisme : plus il est haut, plus le délai entre deux actions est court. */
-    public int automationSpeedLevel(String automationId) {
-        return automationSpeedLevels.getOrDefault(automationId, 0);
-    }
+    public int automationSpeedLevel(String automationId) { return automationSpeedLevels.getOrDefault(automationId, 0); }
 
     public void setAutomationSpeedLevel(String automationId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
@@ -641,19 +566,15 @@ public abstract class GameStateBase {
     }
 
     /** Temps écoulé depuis la dernière action d'un automatisme, en secondes. */
-    public double automationTimer(String automationId) {
-        return automationTimers.getOrDefault(automationId, 0.0);
-    }
+    public double automationTimer(String automationId) { return automationTimers.getOrDefault(automationId, 0.0); }
 
     public void setAutomationTimer(String automationId, double seconds) {
         if (!(seconds >= 0)) throw new IllegalArgumentException("Durée invalide : " + seconds);
         automationTimers.put(automationId, seconds);
     }
 
-    /** Niveau d'achat en lot d'un automatisme (version 0.167) : chaque action achète 2 puissance ce niveau. */
-    public int automationBatchLevel(String automationId) {
-        return automationBatchLevels.getOrDefault(automationId, 0);
-    }
+    /** Niveau d'achat en lot d'un automatisme : chaque action achète 2 puissance ce niveau. */
+    public int automationBatchLevel(String automationId) { return automationBatchLevels.getOrDefault(automationId, 0); }
 
     public void setAutomationBatchLevel(String automationId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
@@ -662,14 +583,10 @@ public abstract class GameStateBase {
     }
 
     /** Vue en lecture seule des niveaux d'achat en lot, pour la sauvegarde. */
-    public Map<String, Integer> automationBatchLevels() {
-        return ordered(automationBatchLevels);
-    }
+    public Map<String, Integer> automationBatchLevels() { return ordered(automationBatchLevels); }
 
     /** Vue en lecture seule des niveaux de cadence, pour la sauvegarde. */
-    public Map<String, Integer> automationSpeedLevels() {
-        return ordered(automationSpeedLevels);
-    }
+    public Map<String, Integer> automationSpeedLevels() { return ordered(automationSpeedLevels); }
 
     /** Nombre d'exemplaires possédés d'un élément du tableau périodique (0 si jamais obtenu). */
     public int elementCount(int atomicNumber) {
@@ -679,18 +596,15 @@ public abstract class GameStateBase {
 
     public void setElementCount(int atomicNumber, int count) {
         if (count < 0) throw new IllegalArgumentException("Nombre d'exemplaires négatif");
-        if (count == 0) {
-            elements.remove(atomicNumber);
-        } else {
-            elements.put(atomicNumber, count);
-        }
+        if (count == 0) elements.remove(atomicNumber);
+        else elements.put(atomicNumber, count);
         if (atomicNumber >= 0 && atomicNumber < elementCounts.length) elementCounts[atomicNumber] = count;
         elementsVersion++;
     }
 
     /** Remet {@link #elementCounts} d'accord avec {@link #elements}, après un changement de la table entière. */
     void syncElementCounts() {
-        java.util.Arrays.fill(elementCounts, 0);
+        Arrays.fill(elementCounts, 0);
         for (Map.Entry<Integer, Integer> e : elements.entrySet()) {
             int n = e.getKey();
             if (n >= 0 && n < elementCounts.length) elementCounts[n] = e.getValue();
@@ -698,14 +612,10 @@ public abstract class GameStateBase {
     }
 
     /** Compteur qui change à chaque modification des éléments possédés ; sert à savoir quand recalculer leurs bonus. */
-    public int elementsVersion() {
-        return elementsVersion;
-    }
+    public int elementsVersion() { return elementsVersion; }
 
     /** Nombre de synthèses déjà faites : c'est lui qui fixe le prix de la suivante. */
-    public int synthesisCount() {
-        return synthesisCount;
-    }
+    public int synthesisCount() { return synthesisCount; }
 
     public void setSynthesisCount(int synthesisCount) {
         if (synthesisCount < 0) throw new IllegalArgumentException("Nombre de synthèses négatif");
@@ -713,27 +623,17 @@ public abstract class GameStateBase {
     }
 
     /** Famille visée par la synthèse ciblée, ou {@code null} quand la synthèse tire au hasard. */
-    public ElementCategory synthesisTarget() {
-        return synthesisTarget;
-    }
+    public ElementCategory synthesisTarget() { return synthesisTarget; }
 
-    public void setSynthesisTarget(ElementCategory synthesisTarget) {
-        this.synthesisTarget = synthesisTarget;
-    }
+    public void setSynthesisTarget(ElementCategory synthesisTarget) { this.synthesisTarget = synthesisTarget; }
 
     /** Synthèses déjà payées pour la synthèse ciblée en cours, sans avoir encore rien donné. */
-    public int synthesisTries() {
-        return synthesisTries;
-    }
+    public int synthesisTries() { return synthesisTries; }
 
     /** Nombre de synthèses de suite qui n'ont donné aucun élément nouveau. */
-    public int drySyntheses() {
-        return drySyntheses;
-    }
+    public int drySyntheses() { return drySyntheses; }
 
-    public void setDrySyntheses(int count) {
-        drySyntheses = Math.max(0, count);
-    }
+    public void setDrySyntheses(int count) { drySyntheses = Math.max(0, count); }
 
     public void setSynthesisTries(int synthesisTries) {
         if (synthesisTries < 0) throw new IllegalArgumentException("Nombre d'essais négatif");
@@ -741,9 +641,7 @@ public abstract class GameStateBase {
     }
 
     /** Matière noire possédée : la troisième ressource, laissée par chaque explosion du tableau périodique. */
-    public BigNum darkMatter() {
-        return darkMatter;
-    }
+    public BigNum darkMatter() { return darkMatter; }
 
     public void setDarkMatter(BigNum darkMatter) {
         this.darkMatter = nonNegative(darkMatter, "La quantité de matière noire ne peut pas être négative");
@@ -753,18 +651,14 @@ public abstract class GameStateBase {
      * Matière noire dépensée en améliorations depuis le début du jeu. Ajoutée à celle qui reste
      * ({@link #darkMatter()}), elle donne la matière noire gagnée en tout.
      */
-    public BigNum darkMatterSpent() {
-        return darkMatterSpent;
-    }
+    public BigNum darkMatterSpent() { return darkMatterSpent; }
 
     public void setDarkMatterSpent(BigNum darkMatterSpent) {
         this.darkMatterSpent = nonNegative(darkMatterSpent, "La matière noire dépensée ne peut pas être négative");
     }
 
     /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
-    public BigNum darkMatterSize() {
-        return darkMatterSize;
-    }
+    public BigNum darkMatterSize() { return darkMatterSize; }
 
     public void setDarkMatterSize(BigNum darkMatterSize) {
         if (darkMatterSize.sign() <= 0) throw new IllegalArgumentException("La taille de la matière noire doit être positive");
@@ -772,9 +666,7 @@ public abstract class GameStateBase {
     }
 
     /** Nombre d'explosions déclenchées depuis le début du jeu. */
-    public int explosions() {
-        return explosions;
-    }
+    public int explosions() { return explosions; }
 
     public void setExplosions(int explosions) {
         if (explosions < 0) throw new IllegalArgumentException("Nombre d'explosions négatif");
@@ -785,9 +677,7 @@ public abstract class GameStateBase {
      * Nombre de fois où le tableau périodique s'est alourdi : une par explosion, sauf celles qui
      * terminent un défi déjà réussi. Aucune explosion ne le remet à zéro.
      */
-    public int tableWeightLevel() {
-        return tableWeightLevel;
-    }
+    public int tableWeightLevel() { return tableWeightLevel; }
 
     public void setTableWeightLevel(int tableWeightLevel) {
         if (tableWeightLevel < 0) throw new IllegalArgumentException("Masse du tableau négative");
@@ -795,14 +685,10 @@ public abstract class GameStateBase {
     }
 
     /** Nombre de molécules de cette sorte créées. Ni l'explosion ni le Big Bang ne les reprennent. */
-    public int moleculeCount(String moleculeId) {
-        return molecules.getOrDefault(moleculeId, 0);
-    }
+    public int moleculeCount(String moleculeId) { return molecules.getOrDefault(moleculeId, 0); }
 
     /** Ajoute une molécule de cette sorte, à la suite de celles déjà créées. */
-    public void addMolecule(String moleculeId) {
-        addMolecules(moleculeId, 1);
-    }
+    public void addMolecule(String moleculeId) { addMolecules(moleculeId, 1); }
 
     /** Ajoute d'un coup {@code count} molécules de cette sorte, à la suite de celles déjà créées. */
     public void addMolecules(String moleculeId, int count) {
@@ -814,7 +700,7 @@ public abstract class GameStateBase {
         if (last >= 0 && logKinds.get(last).equals(moleculeId)) {
             logEnds[last] += count;
         } else {
-            if (logKinds.size() == logEnds.length) logEnds = java.util.Arrays.copyOf(logEnds, logEnds.length * 2);
+            if (logKinds.size() == logEnds.length) logEnds = Arrays.copyOf(logEnds, logEnds.length * 2);
             logEnds[logKinds.size()] = (last >= 0 ? logEnds[last] : 0) + count;
             logKinds.add(moleculeId);
         }
@@ -864,22 +750,16 @@ public abstract class GameStateBase {
     }
 
     /** Vue en lecture seule des molécules créées (identifiant → nombre), pour la sauvegarde. */
-    public Map<String, Integer> molecules() {
-        return ordered(molecules);
-    }
+    public Map<String, Integer> molecules() { return ordered(molecules); }
 
     /**
      * Les molécules créées, une entrée par molécule, dans l'ordre de leur création : c'est l'ordre
      * dans lequel elles ont pris place dans l'espace.
      */
-    public List<String> moleculeLog() {
-        return moleculeLog;
-    }
+    public List<String> moleculeLog() { return moleculeLog; }
 
     /** Nombre de molécules créées, toutes sortes confondues. Peut dépasser deux milliards. */
-    public long moleculeTotal() {
-        return logKinds.isEmpty() ? 0 : logEnds[logKinds.size() - 1];
-    }
+    public long moleculeTotal() { return logKinds.isEmpty() ? 0 : logEnds[logKinds.size() - 1]; }
 
     /** La sorte de la molécule créée au rang {@code index} (à partir de 0), dans l'ordre de création. */
     public String moleculeAt(long index) {
@@ -900,12 +780,9 @@ public abstract class GameStateBase {
      * Une liste ne compte pas au-delà de deux milliards : passé ce nombre, elle s'arrête là, et
      * {@link #moleculeTotal()} et {@link #moleculeAt(long)} donnent le vrai compte.
      */
-    private final class MoleculeLog extends java.util.AbstractList<String> {
-
+    private final class MoleculeLog extends AbstractList<String> {
         @Override
-        public int size() {
-            return (int) Math.min(Integer.MAX_VALUE, moleculeTotal());
-        }
+        public int size() { return (int) Math.min(Integer.MAX_VALUE, moleculeTotal()); }
 
         @Override
         public String get(int index) {
@@ -914,19 +791,17 @@ public abstract class GameStateBase {
         }
 
         @Override
-        public java.util.Iterator<String> iterator() {
-            return new java.util.Iterator<>() {
+        public Iterator<String> iterator() {
+            return new Iterator<>() {
                 private int run = 0;
                 private long index = 0;
 
                 @Override
-                public boolean hasNext() {
-                    return index < size();
-                }
+                public boolean hasNext() { return index < size(); }
 
                 @Override
                 public String next() {
-                    if (!hasNext()) throw new java.util.NoSuchElementException();
+                    if (!hasNext()) throw new NoSuchElementException();
                     while (logEnds[run] <= index) run++;
                     index++;
                     return logKinds.get(run);
@@ -939,9 +814,7 @@ public abstract class GameStateBase {
      * Vrai si les molécules de cette sorte sont rassemblées en leur substance (gaz, liquide ou
      * solide). Ni l'explosion ni le Big Bang ne défont un rassemblement.
      */
-    public boolean hasSubstance(String moleculeId) {
-        return substances.contains(moleculeId);
-    }
+    public boolean hasSubstance(String moleculeId) { return substances.contains(moleculeId); }
 
     /** Note les molécules de cette sorte comme rassemblées. */
     public void addSubstance(String moleculeId) {
@@ -958,9 +831,7 @@ public abstract class GameStateBase {
     }
 
     /** Vrai si cet assemblage est formé. Ni l'explosion ni le Big Bang ne le défont. */
-    public boolean hasAssembly(String assemblyId) {
-        return assemblies.contains(assemblyId);
-    }
+    public boolean hasAssembly(String assemblyId) { return assemblies.contains(assemblyId); }
 
     /** Note un assemblage comme formé. */
     public void addAssembly(String assemblyId) {
@@ -977,9 +848,7 @@ public abstract class GameStateBase {
     }
 
     /** Vrai si cet astre est formé. Ni l'explosion ni le Big Bang ne le défont. */
-    public boolean hasBody(String bodyId) {
-        return bodies.contains(bodyId);
-    }
+    public boolean hasBody(String bodyId) { return bodies.contains(bodyId); }
 
     /** Note un astre comme formé. */
     public void addBody(String bodyId) {
@@ -990,17 +859,13 @@ public abstract class GameStateBase {
     }
 
     /** Les systèmes solaires, dans l'ordre de leur fondation. */
-    public List<SolarSystem> solarSystems() {
-        return Collections.unmodifiableList(solarSystems);
-    }
+    public List<SolarSystem> solarSystems() { return Collections.unmodifiableList(solarSystems); }
 
     /**
-     * Le plan de l'arbre (version 0.084) : les voies et les liaisons que le jeu prend dès qu'elles
+     * Le plan de l'arbre : les voies et les liaisons que le jeu prend dès qu'elles
      * sont payables, dans cet ordre. Vide : pas de plan.
      */
-    public List<String> darkPlan() {
-        return Collections.unmodifiableList(darkPlan);
-    }
+    public List<String> darkPlan() { return Collections.unmodifiableList(darkPlan); }
 
     public void setDarkPlan(List<String> ids) {
         darkPlan.clear();
@@ -1008,27 +873,19 @@ public abstract class GameStateBase {
     }
 
     /** Le plan de l'arbre gardé par « Sauvegarder », sous forme de code ; vide s'il n'y en a pas. */
-    public String savedDarkPlan() {
-        return savedDarkPlan(0);
-    }
+    public String savedDarkPlan() { return savedDarkPlan(0); }
 
     /** Le code gardé dans cet emplacement, de 0 à {@link #PLAN_SLOTS} − 1 ; vide s'il n'y en a pas. */
-    public String savedDarkPlan(int slot) {
-        return slot < 0 || slot >= PLAN_SLOTS ? "" : savedDarkPlans.get(slot);
-    }
+    public String savedDarkPlan(int slot) { return slot < 0 || slot >= PLAN_SLOTS ? "" : savedDarkPlans.get(slot); }
 
     public void setSavedDarkPlan(int slot, String code) {
         if (slot >= 0 && slot < PLAN_SLOTS) savedDarkPlans.set(slot, code == null ? "" : code);
     }
 
-    public void setSavedDarkPlan(String code) {
-        setSavedDarkPlan(0, code);
-    }
+    public void setSavedDarkPlan(String code) { setSavedDarkPlan(0, code); }
 
-    /** Le plan des systèmes solaires (version 0.084) : ce que le jeu place dès que les astres sont mûrs et libres. */
-    public List<SolarSystem> systemPlan() {
-        return Collections.unmodifiableList(systemPlan);
-    }
+    /** Le plan des systèmes solaires : ce que le jeu place dès que les astres sont mûrs et libres. */
+    public List<SolarSystem> systemPlan() { return Collections.unmodifiableList(systemPlan); }
 
     public void setSystemPlan(List<SolarSystem> systems) {
         systemPlan.clear();
@@ -1036,27 +893,19 @@ public abstract class GameStateBase {
     }
 
     /** Le plan des systèmes gardé par « Sauvegarder », sous forme de code ; vide s'il n'y en a pas. */
-    public String savedSystemPlan() {
-        return savedSystemPlan(0);
-    }
+    public String savedSystemPlan() { return savedSystemPlan(0); }
 
     /** La disposition gardée dans cet emplacement ; vide s'il n'y en a pas. */
-    public String savedSystemPlan(int slot) {
-        return slot < 0 || slot >= PLAN_SLOTS ? "" : savedSystemPlans.get(slot);
-    }
+    public String savedSystemPlan(int slot) { return slot < 0 || slot >= PLAN_SLOTS ? "" : savedSystemPlans.get(slot); }
 
     public void setSavedSystemPlan(int slot, String code) {
         if (slot >= 0 && slot < PLAN_SLOTS) savedSystemPlans.set(slot, code == null ? "" : code);
     }
 
-    public void setSavedSystemPlan(String code) {
-        setSavedSystemPlan(0, code);
-    }
+    public void setSavedSystemPlan(String code) { setSavedSystemPlan(0, code); }
 
-    /** Les astres planifiés ensemble (version 0.085), trois au plus, dans l'ordre du choix. */
-    public List<String> plannedBodies() {
-        return Collections.unmodifiableList(plannedBodies);
-    }
+    /** Les astres planifiés ensemble, trois au plus, dans l'ordre du choix. */
+    public List<String> plannedBodies() { return Collections.unmodifiableList(plannedBodies); }
 
     public void setPlannedBodies(List<String> ids) {
         plannedBodies.clear();
@@ -1068,5 +917,4 @@ public abstract class GameStateBase {
         if (value.sign() < 0) throw new IllegalArgumentException(message);
         return value;
     }
-
 }

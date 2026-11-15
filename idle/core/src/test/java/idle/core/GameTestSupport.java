@@ -1,21 +1,19 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.bigbang.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.Challenge;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Random;
+import idle.core.upgrades.*;
+import java.util.*;
 
 /**
  * Ce que partagent les tests des règles du jeu : un petit catalogue d'améliorations et d'automatismes,
@@ -23,7 +21,6 @@ import java.util.Random;
  * l'espace ouvert, le Big Bang prêt, la bifurcation « matière », le n-ième univers, la relecture d'une sauvegarde.
  */
 abstract class GameTestSupport {
-
     // ------------------------------------------------------------------
     // Le vrai jeu, avec ses catalogues complets et un hasard reproductible
     // ------------------------------------------------------------------
@@ -45,7 +42,7 @@ abstract class GameTestSupport {
     }
 
     /**
-     * Ouvre les automatismes des dimensions 1 à {@code dimension} (version 0.182) : la graine à l'arbre-monde, et
+     * Ouvre les automatismes des dimensions 1 à {@code dimension} : la graine à l'arbre-monde, et
      * {@code dimension + 1} univers formés au moins (ajoutés par l'outil d'essai s'il en manque).
      */
     static void openDimensionAutomations(Game game, int dimension) {
@@ -72,10 +69,10 @@ abstract class GameTestSupport {
      */
     static void readyForBigBang(Game game) {
         game.state().setExplosions(Math.max(1, game.state().explosions()));
-        // Version 0.181 : les particules et les atomes demandés dépendent de l'univers (moins au premier).
+        // Les particules et les atomes demandés dépendent de l'univers (moins au premier).
         game.state().setParticles(game.bigBangParticles());
         game.state().setAtoms(game.bigBangAtoms());
-        // Version 0.166 : la réserve du Big Bang à venir (plus pour le tout premier).
+        // La réserve du Big Bang à venir (plus pour le tout premier).
         game.state().setDarkMatter(game.bigBangDarkMatter());
         int given = 0;
         for (Achievement achievement : game.achievements()) {
@@ -137,11 +134,10 @@ abstract class GameTestSupport {
 
     /** Paie tous les paliers déjà ouverts, sans rien dépenser : la plupart des tests parlent de leurs effets, pas de leur prix. */
     static void payMilestones(Game game) {
-        for (idle.core.bigbang.BigBangMilestone milestone : idle.core.bigbang.BigBangMilestones.DEFAULT) {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
             if (game.state().bigBangs() >= milestone.bigBangs()) game.state().addBoughtMilestone(milestone.name());
         }
     }
-
 
     /** Vitesse de départ d'un point de création, en particules par seconde. */
     static final double BASE = Game.BASE_SPEED.toDouble();
@@ -191,8 +187,7 @@ abstract class GameTestSupport {
 
     /** Partie pas encore démarrée : aucun générateur. */
     static Game unstartedGame() {
-        return new Game(new GameState(),
-                List.of(SPEED, GENERATOR, HUGE, DOUBLE, MASS, PATIENCE, BOOST, DISCOUNT, KEEP),
+        return new Game(new GameState(), List.of(SPEED, GENERATOR, HUGE, DOUBLE, MASS, PATIENCE, BOOST, DISCOUNT, KEEP),
                 List.of(AUTO_SPEED, AUTO_GEN, AUTO_FUSION, AUTO_SLOW, AUTO_SYNTH), new Random(42));
     }
 

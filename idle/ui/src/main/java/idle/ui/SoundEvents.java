@@ -2,11 +2,10 @@ package idle.ui;
 
 import idle.core.Game;
 import idle.core.math.BigNum;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
- * Les bruitages de la partie (version 0.213) : ce qui vient de se passer depuis l'image d'avant, relevé sur les compteurs
+ * Les bruitages de la partie : ce qui vient de se passer depuis l'image d'avant, relevé sur les compteurs
  * du jeu. Une particule créée, une fusion, une collision, des hadrons, une paire du vide, un arrosage, un palier de la
  * graine, un point gagné dans la dimension ouverte.
  *
@@ -18,7 +17,6 @@ import java.util.List;
  * <p>La première image ne fait que relever les compteurs : une partie chargée ne sonne pas tout ce qu'elle a déjà fait.
  */
 final class SoundEvents {
-
     /** Un bruitage à jouer : son son ; un point gagné n'en a pas ({@code null}), il a sa dimension (0 pour le reste). */
     record Heard(Sound.Cue cue, int dimension) {}
 

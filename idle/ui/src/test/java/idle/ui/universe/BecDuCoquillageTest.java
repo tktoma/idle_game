@@ -1,29 +1,26 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import idle.core.universe.*;
+import javafx.scene.SnapshotParameters;
 
-import idle.core.universe.Skin;
 import idle.ui.FxTestSupport;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.203 : l'eau sort de ce qui la verse. L'arrosoir verse en (0,95 s ; −0,42 s) dans son repère : chaque skin de
+ * L'eau sort de ce qui la verse. L'arrosoir verse en (0,95 s ; −0,42 s) dans son repère : chaque skin de
  * l'arrosoir, le coquillage refait compris, est dessiné jusque-là (avant, le coquillage s'arrêtait à mi-chemin et l'eau
  * naissait en l'air). La fontaine a un bec qui finit à la lance du tuyau, d'où part le jet.
  */
 class BecDuCoquillageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static WritableImage shot(Canvas canvas) {
-        javafx.scene.SnapshotParameters parameters = new javafx.scene.SnapshotParameters();
+        SnapshotParameters parameters = new SnapshotParameters();
         parameters.setFill(Color.TRANSPARENT);
         return canvas.snapshot(parameters, null);
     }
@@ -45,7 +42,7 @@ class BecDuCoquillageTest {
         FxTestSupport.fx(() -> {
             double s = 100;
             for (Skin skin : Skin.values()) {
-                if (skin.visual() != idle.core.universe.SkinVisual.WATERING_CAN) continue;
+                if (skin.visual() != SkinVisual.WATERING_CAN) continue;
                 for (double degrees : new double[] {0, 35}) {
                     Canvas canvas = new Canvas(400, 400);
                     ToolsSkinArt.can(canvas.getGraphicsContext2D(), 200, 200, s, degrees, false, skin);

@@ -1,13 +1,8 @@
-import idle.core.history.Noms;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Ce que vaut chaque amélioration durable du premier univers (version 0.166), mesuré et non estimé. Le gain estimé par
+ * Ce que vaut chaque amélioration durable du premier univers, mesuré et non estimé. Le gain estimé par
  * achat ne regarde que la grandeur qui mène au palier suivant : il rate ce qu'une amélioration garde d'une fusion à
  * l'autre (la Persistance : 1 min 07 estimée, 4 h 47 mesurées en 0.164). Ici, le bot analyste joue le premier univers une
  * fois avec tout, puis une fois sans chacune ; l'écart à chaque grand palier est son apport.
@@ -22,7 +17,6 @@ import java.util.Map;
  * les bulles de l'arbre ({@link #BULLES}), depuis une sauvegarde et jusqu'à l'univers donné, univers formé par univers formé.
  */
 final class AnalyseDurables {
-
     private AnalyseDurables() {}
 
     /** Les améliorations payées en atomes : la fusion les garde. */
@@ -77,9 +71,7 @@ final class AnalyseDurables {
     }
 
     /** Les moments des grands paliers d'une partie jouée (NaN : pas atteint). */
-    static double[] moments(Path dossier) throws Exception {
-        return moments(dossier, PALIERS);
-    }
+    static double[] moments(Path dossier) throws Exception { return moments(dossier, PALIERS); }
 
     static double[] moments(Path dossier, List<String> noms) throws Exception {
         Map<String, Double> paliers = AnalyseComparaison.paliers(dossier);
@@ -121,7 +113,7 @@ final class AnalyseDurables {
         if (!Files.exists(ref.resolve("fin.save"))) jouer(ref, "");
         double[] reference = moments(ref);
         List<Apport> apports = new ArrayList<>();
-        // Version 0.168 : une partie compte comme jouée une fois son fin.save écrit ; une partie coupée en cours (son
+        // Une partie compte comme jouée une fois son fin.save écrit ; une partie coupée en cours (son
         // paliers.csv seul) se rejoue, au lieu de passer pour une amélioration dont le palier n'est « pas atteint ».
         for (String id : ids) {
             Path d = sortie.resolve("sans-" + id);

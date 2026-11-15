@@ -2,40 +2,35 @@ package idle.ui.darkmatter;
 
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
+import javafx.scene.paint.*;
 import idle.core.math.BigNum;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import idle.ui.common.Format;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
+import javafx.scene.canvas.*;
 import javafx.scene.text.TextAlignment;
 
 /**
  * Le point de matière noire et l'échelle des grandeurs autour de lui.
  *
- * <p>La vue fonctionne comme une caméra qui recule : quand la matière noire grossit, le point enfle
- * un instant, puis la caméra dézoome pour le ramener à sa taille habituelle à l'écran. Ce qui
- * montre la croissance, ce sont donc les repères autour de lui :
+ * <p>La vue fonctionne comme une caméra qui recule : quand la matière noire grossit, le point enfle un instant, puis la
+ * caméra dézoome pour le ramener à sa taille habituelle à l'écran. Ce qui montre la croissance, ce sont donc les
+ * repères autour de lui :
  * <ul>
- *   <li>des cercles gradués, un par longueur « ronde » (1, 2 ou 5 × 10ⁿ), chacun avec sa taille ;</li>
- *   <li>des cercles plus marqués pour les repères de {@link SizeScale} (atome, virus, Terre…),
- *       avec leur nom ;</li>
- *   <li>une règle graduée en bas à gauche, qui indique ce que vaut une longueur à l'écran.</li>
- * </ul>
- * Tous ces cercles se resserrent vers le centre à mesure que la caméra recule, jusqu'à être
- * avalés par le point.
+ * <li>des cercles gradués, un par longueur « ronde » (1, 2 ou 5 × 10ⁿ), chacun avec sa taille ;</li>
+ * <li>des cercles plus marqués pour les repères de {@link SizeScale} (atome, virus, Terre…), avec leur nom ;</li>
+ * <li>une règle graduée en bas à gauche, qui indique ce que vaut une longueur à l'écran.</li>
+ * </ul> Tous ces cercles se resserrent vers le centre à mesure que la caméra recule, jusqu'à être avalés par le point.
  * <ul>
  * </ul>
  *
- * <p>La vue se dessine d'après sa taille du moment : elle suit la fenêtre, et la caméra se
- * recale d'elle-même quand la vue change de taille.
+ * <p>La vue se dessine d'après sa taille du moment : elle suit la fenêtre, et la caméra se recale d'elle-même quand la
+ * vue change de taille.
  *
- * <p>Tous les calculs se font sur le logarithme des tailles : elles vont du proton à l'univers
- * et au-delà, bien plus qu'un nombre de pixels ne peut en contenir.
+ * <p>Tous les calculs se font sur le logarithme des tailles : elles vont du proton à l'univers et au-delà, bien plus
+ * qu'un nombre de pixels ne peut en contenir.
  */
 public final class DarkMatterView extends Canvas {
-
     /** Part de la plus petite dimension de la vue qu'occupe le rayon du point, au repos. */
     private static final double REST_RADIUS = 0.16;
     /** Rayon maximal du point à l'écran, même quand il grossit plus vite que la caméra ne recule. */
@@ -71,38 +66,27 @@ public final class DarkMatterView extends Canvas {
     private static boolean motion = true;
 
     /** Allume ou coupe l'animation de la matière noire (réglage « Matière noire animée »). */
-    public static void setMotion(boolean on) {
-        motion = on;
-    }
+    public static void setMotion(boolean on) { motion = on; }
 
     /** Allume ou coupe la spirale de matière qui tombe (réglage « Chute de matière noire »). */
-    public static void setFall(boolean on) {
-        fallOn = on;
-    }
+    public static void setFall(boolean on) { fallOn = on; }
     /** La chute de matière : pour les vérifications. */
-    double fall() {
-        return fall;
-    }
+    double fall() { return fall; }
 
     /**
-     * Le skin de la boule (version 0.089) : {@code null} pour le classique. « Obsidienne » : une pierre
-     * noire taillée en facettes, aux arêtes violettes et aux reflets vifs. « Nébuleuse » : un nuage de
-     * gaz rose et bleu qui ondule, piqué d'étoiles naissantes. « Contractée » : un cœur très dense
-     * vers lequel des anneaux se resserrent sans fin. Les cinq boules de la version 0.191 (mercure, trou
-     * noir, œuf, nœud, lanterne) sont dessinées par {@link DarkSkinArt}.
+     * Le skin de la boule : {@code null} pour le classique. « Obsidienne » : une pierre noire taillée en facettes, aux
+     * arêtes violettes et aux reflets vifs. « Nébuleuse » : un nuage de gaz rose et bleu qui ondule, piqué d'étoiles
+     * naissantes. « Contractée » : un cœur très dense vers lequel des anneaux se resserrent sans fin. Les cinq boules
+     * de la version 0.191 (mercure, trou noir, œuf, nœud, lanterne) sont dessinées par {@link DarkSkinArt}.
      */
     private Skin skin;
 
-    void setSkin(Skin chosen) {
-        skin = chosen != null && chosen.visual() == SkinVisual.DARK_BALL ? chosen : null;
-    }
+    void setSkin(Skin chosen) { skin = chosen != null && chosen.visual() == SkinVisual.DARK_BALL ? chosen : null; }
 
-    Skin skin() {
-        return skin;
-    }
+    Skin skin() { return skin; }
 
     /**
-     * Le skin de l'animation (version 0.089) : {@code null} pour le classique, où la matière ne tombe
+     * Le skin de l'animation : {@code null} pour le classique, où la matière ne tombe
      * en spirale que pendant la croissance. « Vortex » : un tourbillon de cinq bras violets qui tourne
      * sans cesse autour du point et l'alimente, bien plus vite quand on le fait grossir. « Pulsar » :
      * deux faisceaux qui balaient la vue en tournant et des anneaux qui battent depuis le point. Les quatre
@@ -114,24 +98,18 @@ public final class DarkMatterView extends Canvas {
         animation = chosen != null && chosen.visual() == SkinVisual.DARK_ANIMATION ? chosen : null;
     }
 
-    Skin animation() {
-        return animation;
-    }
+    Skin animation() { return animation; }
 
     /**
-     * Le skin de l'échelle des grandeurs (version 0.193) : {@code null} pour le classique. « Règle de bois » et
+     * Le skin de l'échelle des grandeurs : {@code null} pour le classique. « Règle de bois » et
      * « Règle d'architecte » redessinent la règle graduée ; « Repères célestes » remplace les cercles des objets
      * connus par leur silhouette. Tout est dessiné par {@link RulerSkinArt}.
      */
     private Skin ruler;
 
-    void setRuler(Skin chosen) {
-        ruler = chosen != null && chosen.visual() == SkinVisual.DARK_RULER ? chosen : null;
-    }
+    void setRuler(Skin chosen) { ruler = chosen != null && chosen.visual() == SkinVisual.DARK_RULER ? chosen : null; }
 
-    Skin ruler() {
-        return ruler;
-    }
+    Skin ruler() { return ruler; }
 
     /** L'angle du tourbillon ou des faisceaux, qui avance même au repos. */
     private double whirl = 0;
@@ -150,29 +128,17 @@ public final class DarkMatterView extends Canvas {
     private static final double LOG_PROTON = -15;
     private static final double LOG_UNIVERSE = Math.log10(8.8e26);
 
-    double time() {
-        return time;
-    }
+    double time() { return time; }
 
-    double press() {
-        return press;
-    }
+    double press() { return press; }
 
-    double hold() {
-        return hold;
-    }
+    double hold() { return hold; }
 
-    double growth() {
-        return growth;
-    }
+    double growth() { return growth; }
 
-    double blobRadius() {
-        return blobRadius;
-    }
+    double blobRadius() { return blobRadius; }
 
-    DarkMatterView(double width, double height) {
-        super(width, height);
-    }
+    DarkMatterView(double width, double height) { super(width, height); }
 
     /** Vrai si ce point de la vue est sur la matière noire (avec un peu de marge quand elle est petite). */
     boolean isOnDarkMatter(double x, double y) {
@@ -189,19 +155,17 @@ public final class DarkMatterView extends Canvas {
      * @param size    taille de la matière noire (son diamètre), en mètres
      * @param growing vrai tant que le joueur maintient le point appuyé
      */
-    void frame(double elapsed, BigNum size, boolean growing) {
-        frame(elapsed, size, growing, 1);
-    }
+    void frame(double elapsed, BigNum size, boolean growing) { frame(elapsed, size, growing, 1); }
 
     /**
-     * Avance l'animation et redessine (version 0.061) : quand la matière noire grossit, de la
+     * Avance l'animation et redessine : quand la matière noire grossit, de la
      * matière tombe vers elle en spirale, d'autant plus vite et plus dense que sa croissance est forte.
      *
      * @param momentum l'élan de la croissance ({@link idle.core.Game#darkMatterMomentum()})
      */
     void frame(double elapsed, BigNum size, boolean growing, double momentum) {
         double wanted = fallOn && growing && momentum > 0 ? Math.max(0.15, Math.min(1, Math.log10(1 + momentum) / 2)) : 0;
-        // Coupée, la chute s'arrête tout de suite au lieu de s'éteindre peu à peu (version 0.067).
+        // Coupée, la chute s'arrête tout de suite au lieu de s'éteindre peu à peu.
         fall = fallOn ? fall + (wanted - fall) * Math.min(1, Math.min(elapsed, 0.1) * 2) : 0;
         spiral += Math.min(elapsed, 0.1) * (0.4 + 3 * fall);
         double dt = Math.min(elapsed, 0.1);
@@ -430,9 +394,9 @@ public final class DarkMatterView extends Canvas {
                 double x = cx + d * Math.cos(a), y = cy + d * Math.sin(a) * 0.8;
                 Color c = gas[k % gas.length];
                 g.setGlobalAlpha(1);
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, size, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, Color.color(c.getRed(), c.getGreen(), c.getBlue(), growing ? 0.35 : 0.25)),
-                        new javafx.scene.paint.Stop(1, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0))));
+                g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.color(c.getRed(), c.getGreen(), c.getBlue(), growing ? 0.35 : 0.25)),
+                        new Stop(1, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0))));
                 g.fillOval(x - size, y - size, size * 2, size * 2);
             }
             // Des étoiles qui naissent dans le nuage.
@@ -477,11 +441,10 @@ public final class DarkMatterView extends Canvas {
     }
 
     /**
-     * Un cercle de l'échelle, avec son texte au-dessus (ou en haut à droite quand le haut du
-     * cercle sort de la vue).
+     * Un cercle de l'échelle, avec son texte au-dessus (ou en haut à droite quand le haut du cercle sort de la vue).
      *
-     * @param object l'objet connu, dessiné plus net qu'une simple graduation (et en silhouette sous le skin
-     *               « Repères célestes », version 0.193) ; {@code null} pour une graduation
+     * @param object l'objet connu, dessiné plus net qu'une simple graduation (et en silhouette sous le skin « Repères
+     * célestes », version 0.193) ; {@code null} pour une graduation
      */
     private void drawRing(GraphicsContext g, double cx, double cy, double radius, String text, Landmark object) {
         boolean landmark = object != null;

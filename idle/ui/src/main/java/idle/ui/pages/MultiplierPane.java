@@ -8,20 +8,15 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Ce qui fait grandir chaque grandeur (version 0.123), comme le détail des multiplicateurs d'Antimatter
+ * Ce qui fait grandir chaque grandeur, comme le détail des multiplicateurs d'Antimatter
  * Dimensions : une barre partagée entre les aspects du jeu, au prorata des ordres de grandeur que chacun
  * apporte, puis une ligne par aspect, la plus lourde en haut. Un clic sur une ligne déplie ses facteurs.
  *
@@ -29,7 +24,6 @@ import javafx.scene.layout.VBox;
  * recomposé que deux fois par seconde, et seulement quand la sous-page est à l'écran.
  */
 final class MultiplierPane extends VBox {
-
     static final double WIDTH = 640;
     private static final long EVERY_NANOS = 500_000_000L;
 
@@ -183,7 +177,7 @@ final class MultiplierPane extends VBox {
     }
 
     private static String orders(double log10) {
-        return log10 >= 100 ? Format.whole(Math.round(log10)) : String.format(java.util.Locale.FRANCE, "%.1f", log10);
+        return log10 >= 100 ? Format.whole(Math.round(log10)) : String.format(Locale.FRANCE, "%.1f", log10);
     }
 
     private static String pill(boolean chosen) {
@@ -193,9 +187,7 @@ final class MultiplierPane extends VBox {
     }
 
     // Pour les vérifications.
-    List<String> shownLines() {
-        return List.copyOf(shown);
-    }
+    List<String> shownLines() { return List.copyOf(shown); }
 
     void choose(Multipliers.Quantity quantity) {
         chosen = quantity;
@@ -209,7 +201,5 @@ final class MultiplierPane extends VBox {
         refresh();
     }
 
-    int lineCount() {
-        return lines.getChildren().size();
-    }
+    int lineCount() { return lines.getChildren().size(); }
 }

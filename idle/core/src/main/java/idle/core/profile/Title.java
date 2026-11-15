@@ -1,16 +1,15 @@
 package idle.core.profile;
 
-import idle.core.Game;
-import idle.core.collider.Quark;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
+import idle.core.*;
+import idle.core.collider.*;
+import java.util.Arrays;
+import idle.core.sky.*;
 import java.util.function.Predicate;
 
 /**
- * Les titres du joueur (version 0.147) : un nom qui dit jusqu'où il est allé. Chacun s'obtient une fois pour toutes,
- * dès que sa condition est vraie, et reste acquis : ni le Big Bang, ni l'univers suivant, ni « Recommencer de zéro »
- * ne le reprennent, comme les records. Le joueur porte celui qu'il veut parmi ceux qu'il a ; ils ne donnent aucun
- * bonus.
+ * Les titres du joueur : un nom qui dit jusqu'où il est allé. Chacun s'obtient une fois pour toutes, dès que sa
+ * condition est vraie, et reste acquis : ni le Big Bang, ni l'univers suivant, ni « Recommencer de zéro » ne le
+ * reprennent, comme les records. Le joueur porte celui qu'il veut parmi ceux qu'il a ; ils ne donnent aucun bonus.
  *
  * <p>L'ordre est celui de la partie, du premier générateur à l'arbre-monde ; les nouveaux s'ajoutent où ils tombent
  * (ils sont sauvegardés par leur nom, pas par leur rang).
@@ -51,11 +50,11 @@ public enum Title {
     STAR_EATER("Mangeur d'étoiles", "Ouvrir le trou noir du vide", game -> game.isVoidUnlocked() && game.isVoidHoleOpen()),
     GLUON_WEAVER("Tisseur de gluons", "Assembler un premier hadron", game -> game.hadronsMade() > 0),
     EXOTIC_HUNTER("Chasseur d'exotiques", "Assembler une particule exotique",
-            game -> java.util.Arrays.stream(idle.core.collider.Hadron.values()).anyMatch(h -> h.isExotic() && game.hadrons(h) > 0)),
+            game -> Arrays.stream(Hadron.values()).anyMatch(h -> h.isExotic() && game.hadrons(h) > 0)),
     SEED_GARDENER("Jardinier cosmique", "Faire monter la graine d'univers au palier 5", game -> game.seedStage() >= 5),
     WORLD_TREE_KEEPER("Gardien de l'arbre-monde", "Faire monter la graine au dernier palier",
             game -> game.seedStage() >= Game.SEED_STAGES),
-    // Version 0.197 : les skins gagnés seulement, sans les libres (dix palettes libres existent désormais dès le début).
+    // Les skins gagnés seulement, sans les libres (dix palettes libres existent désormais dès le début).
     SKIN_COLLECTOR("Collectionneur d'apparences", "Débloquer dix skins", game -> game.skinsCounted() >= 10),
     PATIENT_SPIRIT("Esprit patient", "Jouer vingt-quatre heures", game -> game.state().timePlayed() >= 24 * 3600),
     COSMIC_VETERAN("Vétéran du cosmos", "Jouer cent heures", game -> game.state().timePlayed() >= 100 * 3600),
@@ -72,22 +71,14 @@ public enum Title {
     }
 
     /** Le titre affiché : « Apprenti alchimiste ». */
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ce qu'il faut faire pour l'obtenir, en quelques mots. */
-    public String condition() {
-        return condition;
-    }
+    public String condition() { return condition; }
 
     /** Vrai si la partie remplit sa condition en ce moment. */
-    public boolean isReachedBy(Game game) {
-        return reached.test(game);
-    }
+    public boolean isReachedBy(Game game) { return reached.test(game); }
 
     /** Le titre de ce nom, ou {@code null} s'il n'existe plus (une sauvegarde d'une autre version). */
-    public static Title named(String name) {
-        return idle.core.Enums.parse(Title.class, name);
-    }
+    public static Title named(String name) { return Enums.parse(Title.class, name); }
 }

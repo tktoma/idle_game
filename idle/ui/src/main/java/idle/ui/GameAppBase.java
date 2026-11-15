@@ -1,9 +1,10 @@
 package idle.ui;
 
 import idle.core.Absence;
+import idle.core.Enums;
 import idle.core.Game;
-import idle.core.GameStats;
 import idle.core.Resource;
+import idle.core.state.GameStats;
 import idle.core.save.SaveCodec;
 import idle.core.upgrades.Upgrade;
 import idle.ui.atoms.AtomView;
@@ -13,6 +14,7 @@ import idle.ui.bigbang.BigBangPage;
 import idle.ui.collider.ColliderPage;
 import idle.ui.collider.ColliderPane;
 import idle.ui.common.Breakdown;
+import idle.ui.common.BurstView;
 import idle.ui.common.BuyAmountRow;
 import idle.ui.common.Card;
 import idle.ui.common.Format;
@@ -21,50 +23,39 @@ import idle.ui.common.StableHeight;
 import idle.ui.common.TabIcon;
 import idle.ui.common.TileGrid;
 import idle.ui.darkmatter.DarkMatterPage;
+import idle.ui.universe.ChronoCorner;
 import idle.ui.universe.Dimension;
 import idle.ui.universe.DimensionWindow;
 import idle.ui.universe.UniversePage;
 import idle.ui.pages.AchievementsPage;
 import idle.ui.pages.ProfilePage;
 import idle.ui.pages.SettingsPage;
+import idle.ui.pages.SkinsPage;
 import idle.ui.pages.StatsPage;
 import idle.ui.particles.GeneratorPane;
 import idle.ui.probes.LootPane;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.input.*;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
-/**
- * L'application, première partie : ses onglets, ses pages, et la construction de la fenêtre.
- */
+/** L'application, première partie : ses onglets, ses pages, et la construction de la fenêtre. */
 public abstract class GameAppBase extends Application {
-
     /** L'application entière : chaque partie de la chaîne est une {@link GameApp}. */
-    final GameApp self() {
-        return (GameApp) this;
-    }
+    final GameApp self() { return (GameApp) this; }
 
     /** Seul {@link GameApp} prolonge la chaîne. */
     GameAppBase() {
@@ -104,7 +95,6 @@ public abstract class GameAppBase extends Application {
     abstract double timeFactor();
     abstract void refresh();
 
-
     /** Largeur maximale de la rangée des améliorations, et de la carte de fusion en dessous. */
     private static final double UPGRADES_WIDTH = 760;
     static final double FUSE_WIDTH = 380;
@@ -135,7 +125,7 @@ public abstract class GameAppBase extends Application {
     /** Les onglets du jeu. */
     enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, HADRONS, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
-    /** Le nom d'un onglet, sans compteur : sur les fenêtres d'explication, et dans le rapport de bug (version 0.127). */
+    /** Le nom d'un onglet, sans compteur : sur les fenêtres d'explication, et dans le rapport de bug. */
     static String tabName(Tab tab) {
         return switch (tab) {
             case PARTICLES -> "Particules";
@@ -155,16 +145,15 @@ public abstract class GameAppBase extends Application {
         };
     }
 
-    /** La graine du hasard de cette session (version 0.127) : tirée au lancement, notée dans le rapport de bug. */
+    /** La graine du hasard de cette session : tirée au lancement, notée dans le rapport de bug. */
     final long randomSeed = new java.security.SecureRandom().nextLong();
     final Game game = new Game(randomSeed);
     /** Vrai dans le profil de test ({@code --test}) : connu au lancement. */
     boolean testProfile;
     final Settings settings = Settings.load();
     /**
-     * Le fichier de sauvegarde. Celui que désignent les arguments du jeu n'est connu qu'au
-     * lancement ({@link #start(Stage)}) : d'ici là, rien ne s'écrit. Déclaré avant les pages, qui
-     * l'interrogent dès leur construction.
+     * Le fichier de sauvegarde. Celui que désignent les arguments du jeu n'est connu qu'au lancement ({@link
+     * #start(Stage)}) : d'ici là, rien ne s'écrit. Déclaré avant les pages, qui l'interrogent dès leur construction.
      */
     SaveStore store = SaveStore.of(List.of("--sans-sauvegarde"));
     final GeneratorPane generators = new GeneratorPane();
@@ -181,25 +170,25 @@ public abstract class GameAppBase extends Application {
     final Button darkMatterTab = new Button();
     final Button colliderTab = new Button("Collisionneur");
     final Button bigBangTab = new Button("Big Bang");
-    /** L'onglet de l'univers (version 0.080), qui s'ouvre quand l'univers est formé : le quatrième acte. */
+    /** L'onglet de l'univers, qui s'ouvre quand l'univers est formé : le quatrième acte. */
     final Button universeTab = new Button("Univers");
-    /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du troisième univers (version 0.116). */
+    /** L'onglet du vide, deuxième acte de la partie secondaire : au premier Big Bang du troisième univers. */
     final Button voidTab = new Button("Le vide");
-    /** L'onglet des hadrons (version 0.149) : il se propose dans le collisionneur avec la bulle de l'arbuste, au milieu. */
+    /** L'onglet des hadrons : il se propose dans le collisionneur avec la bulle de l'arbuste, au milieu. */
     final Button hadronsTab = new Button("Hadrons");
-    /** L'onglet du profil (version 0.147) : le joueur, ses titres, ses albums et le journal ; là dès le premier générateur. */
+    /** L'onglet du profil : le joueur, ses titres, ses albums et le journal ; là dès le premier générateur. */
     final Button profileTab = new Button("Profil");
     final Button achievementsTab = new Button("Succès");
     final Button statsTab = new Button("Statistiques");
     final Button settingsTab = new Button("Réglages");
-    /** Le régime rapide des générateurs (version 0.087), et la ligne de la synergie et de la prime. */
+    /** Le régime rapide des générateurs, et la ligne de la synergie et de la prime. */
     final Button regimeButton = new Button();
     final Label secondLabel = new Label();
     final HBox secondRow = new HBox(10, regimeButton, secondLabel);
-    /** L'onglet des skins (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après cinq fusions. */
+    /** L'onglet des skins, sous les réglages : il s'ouvre dans le deuxième univers, après cinq fusions. */
     final Button skinsTab = new Button("Skins");
     final AtomView atomsTabIcon = new AtomView(22);
-    /** Les icônes animées des autres onglets (version 0.059), chacune dans la couleur de son onglet. */
+    /** Les icônes animées des autres onglets, chacune dans la couleur de son onglet. */
     final TabIcon particlesIcon = new TabIcon(TabIcon.Kind.PARTICLES, PARTICLES_COLOR, 20);
     final TabIcon automationIcon = new TabIcon(TabIcon.Kind.AUTOMATION, AUTOMATION_COLOR, 20);
     final TabIcon darkMatterIcon = new TabIcon(TabIcon.Kind.DARK_MATTER, DARK_MATTER_COLOR, 20);
@@ -248,11 +237,11 @@ public abstract class GameAppBase extends Application {
     final UniversePage universePage = new UniversePage(game);
     final idle.ui.vacuum.VoidPage voidPage = new idle.ui.vacuum.VoidPage(game);
     final idle.ui.hadrons.HadronsPage hadronsPage = new idle.ui.hadrons.HadronsPage(game);
-    /** La fenêtre d'une dimension (version 0.081), par-dessus tout le jeu, avec son bouton de retour. */
+    /** La fenêtre d'une dimension, par-dessus tout le jeu, avec son bouton de retour. */
     final DimensionWindow dimensionWindow = new DimensionWindow(game, settings::freeCamera, settings::setFreeCamera);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
     /**
-     * Version 0.165 : vos achats, notés entre une action et le pas de temps suivant ({@link PurchaseHistory}), et le
+     * Vos achats, notés entre une action et le pas de temps suivant ({@link PurchaseHistory}), et le
      * compteur de la prochaine étape ({@link Pace}).
      */
     final idle.core.history.PurchaseHistory purchaseHistory = new idle.core.history.PurchaseHistory();
@@ -270,12 +259,12 @@ public abstract class GameAppBase extends Application {
     /** Le compteur et les améliorations, sous les générateurs. */
     final VBox controls = new VBox(12, particlesLabel, productionLabel);
     Button startButton;
-    /** Le retour de l'onglet Particules (version 0.111) : son âge en secondes, négatif hors animation. */
+    /** Le retour de l'onglet Particules : son âge en secondes, négatif hors animation. */
     double particlesTabPop = -1;
     /** Durée de ce retour. */
     static final double PARTICLES_TAB_POP_SECONDS = 0.9;
     final BorderPane root = new BorderPane();
-    /** La disposition à gauche (version 0.057) : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
+    /** La disposition à gauche : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
     final VBox sideBar = new VBox(2);
     final StackPane subTabHolder = new StackPane();
     /** Une barre de sous-onglets, et d'où elle vient dans sa page : la disposition d'avant l'y remet. */
@@ -285,7 +274,7 @@ public abstract class GameAppBase extends Application {
     boolean tabsLeftApplied = false;
     Tab selectedTab = Tab.PARTICLES;
     /**
-     * Le dernier onglet de jeu affiché avant les réglages (version 0.127) : le rapport de bug se copie depuis les
+     * Le dernier onglet de jeu affiché avant les réglages : le rapport de bug se copie depuis les
      * réglages, c'est donc celui-là qu'il nomme, là où le joueur jouait.
      */
     Tab gameTab = Tab.PARTICLES;
@@ -303,26 +292,26 @@ public abstract class GameAppBase extends Application {
     boolean detailKeyDown = false;
     // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
     final ToastPane toasts = new ToastPane();
-    /** Le chrono dans un coin (version 0.182), en bas à gauche, hors de la sous-page Graine. */
+    /** Le chrono dans un coin, en bas à gauche, hors de la sous-page Graine. */
     final idle.ui.universe.ChronoCorner chronoCorner = new idle.ui.universe.ChronoCorner(game);
     /** Version 0.203 : le même chrono, dans l'en-tête de la fenêtre d'une dimension, qui recouvre tout le reste. */
     final idle.ui.universe.ChronoCorner dimensionChrono = new idle.ui.universe.ChronoCorner(game);
     final Notifier notifier = new Notifier(game);
-    /** Le guide de transition entre univers (version 0.127). */
+    /** Le guide de transition entre univers. */
     final TransitionPane transitionPane = new TransitionPane(game);
     {
         bigBangPage.galaxyPane().setUniverseConfirm(go -> transitionPane.open(false, go));
         universePage.setLaunchConfirm(go -> transitionPane.open(true, go));
-        // Les anomalies du ciel (version 0.127) : montrées et annoncées seulement si le joueur le veut.
+        // Les anomalies du ciel : montrées et annoncées seulement si le joueur le veut.
         bigBangPage.showSkyEvents(settings::skyEvents);
         notifier.showSkyEvents(settings::skyEvents);
     }
     final Sound sound = new Sound();
-    /** La musique de fond (version 0.210), qui suit la partie. */
+    /** La musique de fond, qui suit la partie. */
     final Music music = new Music();
-    /** Les bruitages relevés image par image (version 0.213). */
+    /** Les bruitages relevés image par image. */
     final SoundEvents soundEvents = new SoundEvents();
-    /** La marque d'un bouton d'onglet (version 0.213) : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
+    /** La marque d'un bouton d'onglet : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
     static final String TAB_BUTTON = "ongletDuJeu";
     // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
     ScaledPane scaled;
@@ -330,19 +319,19 @@ public abstract class GameAppBase extends Application {
     final StackPane flash = new StackPane();
     final Circle shockwave = new Circle(24, Color.web(DARK_MATTER_COLOR));
     final StackPane blast = new StackPane(flash, shockwave);
-    /** Les animations plein écran des skins : l'explosion sous Vortex ou Pulsar, le Big Bang sous ses trois skins (version 0.089). */
+    /** Les animations plein écran des skins : l'explosion sous Vortex ou Pulsar, le Big Bang sous ses trois skins. */
     final idle.ui.common.BurstView burst = new idle.ui.common.BurstView();
     /** Toute la fenêtre : l'animation des skins en prend la taille. */
     StackPane windowPane;
-    /** Le fond de la fenêtre (version 0.190), sous tout le jeu : rien sans skin, un décor dans les marges avec. */
+    /** Le fond de la fenêtre, sous tout le jeu : rien sans skin, un décor dans les marges avec. */
     final Chrome chrome = new Chrome();
-    /** Le rideau de la transition entre univers (version 0.199), joué quand le guide est confirmé sous un skin. */
+    /** Le rideau de la transition entre univers, joué quand le guide est confirmé sous un skin. */
     final TransitionSkinArt curtain = new TransitionSkinArt();
-    /** La traînée du curseur « Étoile filante » (version 0.199), tout au-dessus de la fenêtre. */
+    /** La traînée du curseur « Étoile filante », tout au-dessus de la fenêtre. */
     final CursorSkinArt.Trail cursorTrail = new CursorSkinArt.Trail();
-    /** Le skin du curseur posé sur la fenêtre (version 0.199), ou {@code null} : {@code refresh()} le compare à celui à montrer. */
+    /** Le skin du curseur posé sur la fenêtre, ou {@code null} : {@code refresh()} le compare à celui à montrer. */
     idle.core.universe.Skin cursorSkin = null;
-    /** Le skin des onglets appliqué par {@link #styleTabs} (version 0.190), ou {@code null} : {@code refresh()} le compare au choisi. */
+    /** Le skin des onglets appliqué par {@link #styleTabs}, ou {@code null} : {@code refresh()} le compare au choisi. */
     idle.core.universe.Skin tabSkin = null;
     boolean exploding = false;
     /** Secondes restantes pour confirmer l'explosion par un second clic ; 0 quand elle n'est pas demandée. */
@@ -360,12 +349,12 @@ public abstract class GameAppBase extends Application {
     // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
     double sinceSave = 0;
     final AbsencePane absencePane = new AbsencePane(this::save);
-    /** Les fenêtres d'explication : un onglet qui s'ouvre, une nouveauté du deuxième univers (version 0.089). */
+    /** Les fenêtres d'explication : un onglet qui s'ouvre, une nouveauté du deuxième univers. */
     final PopupPane popupPane = new PopupPane(game);
     List<PopupPane.Entry> popupEntries;
-    /** L'écran de fin (version 0.068) : une fois par partie, quand l'univers se forme. */
+    /** L'écran de fin : une fois par partie, quand l'univers se forme. */
     final EndPane endPane = new EndPane(game);
-    /** L'écran de la fin de la partie (version 0.160), au bout de l'animation de la carte des dimensions. */
+    /** L'écran de la fin de la partie, au bout de l'animation de la carte des dimensions. */
     final FinalePane finalePane = new FinalePane(game);
     /** Le butin d'une sonde, par-dessus la fenêtre : une carte à la fois. */
     final LootPane lootPane = new LootPane(game, this::refresh);
@@ -398,9 +387,9 @@ public abstract class GameAppBase extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         settingsPage.setSoundTest(() -> sound.test(settings.volume()));
-        // Version 0.213 : les catégories de sons coupées dans les réglages ne sonnent pas.
+        // Les catégories de sons coupées dans les réglages ne sonnent pas.
         sound.setAllowed(settings::soundKind);
-        // Version 0.210 : un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
+        // Un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
         Card.setOnActed(state -> {
             if (!settings.sound()) return;
             boolean toggle = state == Card.State.ON || state == Card.State.OFF;
@@ -409,27 +398,19 @@ public abstract class GameAppBase extends Application {
         dimensionWindow.setOnGesture(dimension -> {
             if (settings.sound()) sound.gesture(dimension, settings.volume());
         });
-        // La boucle (version 0.153) : les touches de ses cercles et son métronome se rangent dans les réglages.
+        // La boucle : les touches de ses cercles et son métronome se rangent dans les réglages.
         dimensionWindow.setLoopSettings(new DimensionWindow.LoopSettings() {
             @Override
-            public javafx.scene.input.KeyCode loopKey(int ring) {
-                return settings.loopKey(ring);
-            }
+            public javafx.scene.input.KeyCode loopKey(int ring) { return settings.loopKey(ring); }
 
             @Override
-            public boolean metronome() {
-                return settings.loopMetronome();
-            }
+            public boolean metronome() { return settings.loopMetronome(); }
 
             @Override
-            public void setMetronome(boolean on) {
-                settings.setLoopMetronome(on);
-            }
+            public void setMetronome(boolean on) { settings.setLoopMetronome(on); }
 
             @Override
-            public void beat() {
-                if (settings.sound()) sound.beat(settings.volume());
-            }
+            public void beat() { if (settings.sound()) sound.beat(settings.volume()); }
         });
         // Une erreur imprévue ne ferme pas le jeu : elle est gardée pour le rapport de bug, et écrite dans la console.
         Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
@@ -453,7 +434,7 @@ public abstract class GameAppBase extends Application {
 
         // La quantité achetée à chaque clic : un niveau, dix, ou tout ce qui est à portée.
         controls.getChildren().add(amountRow);
-        // Le deuxième univers (version 0.087) : le régime des générateurs, la synergie et la prime de cycle parfait.
+        // Le deuxième univers : le régime des générateurs, la synergie et la prime de cycle parfait.
         regimeButton.setFocusTraversable(false);
         regimeButton.setOnAction(event -> {
             game.startRegime();
@@ -566,7 +547,7 @@ public abstract class GameAppBase extends Application {
         HBox infoBar = new HBox(10, goalLabel, helpButton, detailHint);
         infoBar.setAlignment(Pos.CENTER);
         infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
-        // Version 0.203 : le chrono a sa ligne, sous celle de l'objectif : il ne flotte plus par-dessus les pages.
+        // Le chrono a sa ligne, sous celle de l'objectif : il ne flotte plus par-dessus les pages.
         VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar, chronoCorner);
         topBox = top;
         sideBar.setStyle("-fx-background-color: #0e131b; -fx-padding: 10 8; -fx-spacing: 6; -fx-border-color: transparent #1d2633 transparent transparent;");
@@ -580,25 +561,25 @@ public abstract class GameAppBase extends Application {
         tabTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
         subTabHolder.getChildren().add(tabTitle);
         dock(Tab.ATOMS, atomsPage, atomsPage.subTabs());
-        // L'automatisation (version 0.150) : les automatismes de toujours, et ceux des dimensions.
+        // L'automatisation : les automatismes de toujours, et ceux des dimensions.
         dock(Tab.AUTOMATION, automationPage, automationPage.subTabs());
         dock(Tab.DARK_MATTER, darkMatterPage, darkMatterPage.subTabs());
         dock(Tab.COLLIDER, colliderPage, colliderPage.subTabs());
         dock(Tab.BIG_BANG, bigBangPage, bigBangPage.subTabs());
         dock(Tab.UNIVERSE, universePage, universePage.subTabs());
-        // Le vide (version 0.129) : ses paires, et ses améliorations à part.
+        // Le vide : ses paires, et ses améliorations à part.
         dock(Tab.VOID, voidPage, voidPage.subTabs());
-        // Les hadrons (version 0.149) : les gluons ; les paliers et la liaison (version 0.151).
+        // Les hadrons : les gluons ; les paliers et la liaison.
         dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());
         universePage.setOnFinale(finalePane::open);
-        // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.
+        // Rouvrir les paliers : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
-            // Les trois actes repartent de zéro (version 0.108) : les pages oublient ce qu'elles montraient.
+            // Les trois actes repartent de zéro : les pages oublient ce qu'elles montraient.
             forgetOldPages();
             refresh();
-            // Version 0.111 : l'onglet Particules réapparaît en grandissant ; on y va une fois qu'il est là.
+            // L'onglet Particules réapparaît en grandissant ; on y va une fois qu'il est là.
             particlesTabPop = 0;
             particlesTab.setScaleX(0.2);
             particlesTab.setScaleY(0.2);
@@ -616,9 +597,7 @@ public abstract class GameAppBase extends Application {
             });
             debugBar.setAnimations(new DebugBar.AnimationTools() {
                 @Override
-                public void explosion() {
-                    playExplosion(false);
-                }
+                public void explosion() { playExplosion(false); }
 
                 @Override
                 public boolean bigBang() {
@@ -679,7 +658,7 @@ public abstract class GameAppBase extends Application {
 
         root.setTop(top);
         root.setCenter(pages);
-        // Version 0.203 : la fenêtre ne se laisse plus pousser par une page plus haute qu'elle. Avant, le contenu, centré,
+        // La fenêtre ne se laisse plus pousser par une page plus haute qu'elle. Avant, le contenu, centré,
         // dépassait en haut comme en bas : dans une petite fenêtre, le haut de la barre du profil de test sortait de l'écran.
         root.setMinSize(0, 0);
         StackPane.setAlignment(root, Pos.TOP_LEFT);
@@ -696,7 +675,7 @@ public abstract class GameAppBase extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        // Le fond skinné (version 0.190) est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
+        // Le fond skinné est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
         StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
                 transitionPane, absencePane, curtain, cursorTrail);
         window.widthProperty().addListener((observable, before, width) -> fitLayers(width.doubleValue(), window.getHeight()));
@@ -719,7 +698,7 @@ public abstract class GameAppBase extends Application {
             public void handle(long now) {
                 double elapsed = previous == 0 ? 0 : (now - previous) / 1e9; // nanosecondes → secondes
                 previous = now;
-                // Version 0.165 : ce que le joueur a acheté depuis l'image d'avant, avant que le temps ne repasse.
+                // Ce que le joueur a acheté depuis l'image d'avant, avant que le temps ne repasse.
                 purchaseHistory.after(game, pace);
                 // Au retour d'une absence, le jeu rattrape d'abord le temps perdu : rien d'autre n'avance.
                 if (absencePane.isCatchingUp()) {
@@ -744,17 +723,17 @@ public abstract class GameAppBase extends Application {
                     animate(dt);
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
-                // Version 0.165 : ce qu'il achète compte comme un achat du joueur.
+                // Ce qu'il achète compte comme un achat du joueur.
                 if (Card.held() != null || !heldKeys.isEmpty()) purchaseHistory.before(game);
                 Card.repeatHeld(dt);
                 repeatHeldKeys(dt);
                 explosionArmed = Math.max(0, explosionArmed - dt);
                 if (selectedTab == Tab.SETTINGS) settingsPage.frame(dt);
                 announce(dt);
-                // Version 0.210 : la musique suit le moment de la partie, et la fenêtre d'une dimension ouverte.
+                // La musique suit le moment de la partie, et la fenêtre d'une dimension ouverte.
                 int openDimension = dimensionWindow.isOpen() ? dimensionWindow.dimension().number() : 0;
                 music.update(Music.moodOf(game, openDimension), settings.music(), settings.musicVolume());
-                // Version 0.213 : les bruitages de ce qui vient de se passer, là où on le voit.
+                // Les bruitages de ce qui vient de se passer, là où on le voit.
                 for (SoundEvents.Heard heard : soundEvents.frame(game, selectedTab.name(), openDimension)) {
                     if (!settings.sound()) continue;
                     if (heard.cue() == null) sound.gain(heard.dimension(), settings.volume());
@@ -763,7 +742,7 @@ public abstract class GameAppBase extends Application {
                 // L'écran de fin attend que la naissance de l'univers soit jouée.
                 boolean bornNow = hadUniverse == 0 && game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
                 if (!bornNow && !(selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying())) endPane.check();
-                // Le défi final (version 0.160) : la partie vient d'être finie, la fin se joue sur la carte des dimensions.
+                // Le défi final : la partie vient d'être finie, la fin se joue sur la carte des dimensions.
                 // La fenêtre d'une dimension ouverte se ferme : la carte doit se voir.
                 if (universePage.checkFinale()) {
                     dimensionWindow.close();
@@ -771,11 +750,11 @@ public abstract class GameAppBase extends Application {
                 }
                 checkPopups();
                 // Les thèmes et notations à débloquer : annoncés après le reste, pour ne pas être chassés par lui.
-                // Version 0.146 : leur catégorie se coupe dans les réglages, comme les autres notifications.
+                // Leur catégorie se coupe dans les réglages, comme les autres notifications.
                 for (Cosmetic opened : cosmetics.frame(dt, settings.paused())) {
                     if (settings.notice(Notice.COSMETICS)) toasts.show(Cosmetics.announcement(opened), SETTINGS_COLOR);
                 }
-                // Version 0.199 : le rideau de la transition et la traînée du curseur suivent le temps de l'interface.
+                // Le rideau de la transition et la traînée du curseur suivent le temps de l'interface.
                 curtain.frame(dt);
                 cursorTrail.frame(dt);
                 refresh();
@@ -796,7 +775,7 @@ public abstract class GameAppBase extends Application {
         }
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
         Scene scene = new Scene(scaled, Settings.WindowSize.SMALL.width(), Settings.WindowSize.SMALL.height());
-        // Version 0.213 : un clic sur un bouton, quel qu'il soit, sauf un onglet (qui a son propre son).
+        // Un clic sur un bouton, quel qu'il soit, sauf un onglet (qui a son propre son).
         scene.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (event.getTarget() instanceof Button button && !button.getProperties().containsKey(TAB_BUTTON) && settings.sound()) {
                 sound.click(Sound.Cue.CLICK, settings.volume());
@@ -805,7 +784,7 @@ public abstract class GameAppBase extends Application {
         applyAppearance();
         // Les touches sont lues avant les boutons : sinon, Espace irait d'abord au bouton qui a le focus.
         // Sauf quand le joueur écrit dans une barre de recherche : ses lettres ne sont pas des raccourcis.
-        // Version 0.165 : la photo d'avant une action du joueur, prise avant que l'action ne s'applique (les filtres
+        // La photo d'avant une action du joueur, prise avant que l'action ne s'applique (les filtres
         // passent avant les boutons) ; la comparaison se fait à l'image suivante, avant le pas de temps.
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> purchaseHistory.before(game));
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, event -> purchaseHistory.before(game));
@@ -825,7 +804,7 @@ public abstract class GameAppBase extends Application {
         // Toucher à la souris remet à zéro le temps passé sans rien faire (le thème « Sépia »).
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> cosmetics.input());
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> cosmetics.input());
-        // La traînée de l'étoile filante (version 0.199) suit la souris, en coordonnées de son calque.
+        // La traînée de l'étoile filante suit la souris, en coordonnées de son calque.
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> {
             if (!cursorTrail.isActive()) return;
             javafx.geometry.Point2D local = cursorTrail.sceneToLocal(event.getSceneX(), event.getSceneY());
@@ -850,11 +829,8 @@ public abstract class GameAppBase extends Application {
 
     /** Ce que la page des réglages demande pour la sauvegarde : chaque geste rend la phrase qui dit ce qu'il a donné. */
     private final class SaveActions implements SettingsPage.Saves {
-
         @Override
-        public String status() {
-            return store.status();
-        }
+        public String status() { return store.status(); }
 
         @Override
         public String saveNow() {
@@ -908,9 +884,7 @@ public abstract class GameAppBase extends Application {
         }
 
         @Override
-        public int checkpointSlots() {
-            return SaveStore.MAX_CHECKPOINTS;
-        }
+        public int checkpointSlots() { return SaveStore.MAX_CHECKPOINTS; }
 
         @Override
         public String checkpointLine(int slot) {
@@ -920,9 +894,7 @@ public abstract class GameAppBase extends Application {
         }
 
         @Override
-        public boolean checkpointUsed(int slot) {
-            return store.checkpoint(slot).used();
-        }
+        public boolean checkpointUsed(int slot) { return store.checkpoint(slot).used(); }
 
         @Override
         public String saveCheckpoint(int slot, String name) {

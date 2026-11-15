@@ -8,12 +8,11 @@ import idle.core.GameUniverse.LineUpgrade;
 import org.junit.jupiter.api.Test;
 
 /**
- * La ligne, première dimension (version 0.101, ouverte avec le premier univers formé) : des boules qui vont et viennent
+ * La ligne, première dimension (ouverte avec le premier univers formé) : des boules qui vont et viennent
  * sur une ligne graduée, un dixième de segment par trait touché ; cinq améliorations (densité, graduation, élan, boules,
- * lignes) avec leurs prix ; le seuil des 250 000 segments gagnés (version 0.136).
+ * lignes) avec leurs prix ; le seuil des 250 000 segments gagnés.
  */
 class LigneTest {
-
     /** Une partie au premier univers formé, la ligne remise au départ, sans segment. */
     private static Game line() {
         Game game = GameTestSupport.universe(1);

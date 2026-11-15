@@ -1,32 +1,29 @@
 package idle.ui.universe;
 
 import idle.ui.common.CanvasPane;
+import idle.core.universe.Skin;
 import java.util.function.IntConsumer;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * La carte des dimensions (version 0.081) : dix points en cercle, et un onzième au milieu, relié à
- * tous. Les dimensions ouvertes brillent, leur numéro et leur nom dessous ; les autres restent
- * éteintes, un point d'interrogation dedans. Des éclats partent du milieu vers celles qui sont
- * ouvertes. Un clic sur une dimension ouverte l'ouvre dans sa fenêtre.
+ * La carte des dimensions : dix points en cercle, et un onzième au milieu, relié à tous. Les dimensions ouvertes
+ * brillent, leur numéro et leur nom dessous ; les autres restent éteintes, un point d'interrogation dedans. Des éclats
+ * partent du milieu vers celles qui sont ouvertes. Un clic sur une dimension ouverte l'ouvre dans sa fenêtre.
  *
- * <p>Le défi final (version 0.160), une fois la bulle des racines achetée : chaque point se remplit de vert, du bas
- * vers le haut, selon l'avancée vers son palier (en puissances de dix), et devient entièrement vert au palier atteint ;
- * le seuil, lui, devient un anneau vert autour du point. Sous chaque nom, l'avancée (« 3.2e6 / 2.5e7 ») ; au milieu,
- * les paliers atteints (« 7 / 10 paliers »). Les dix paliers atteints, la fin se joue ({@link #playFinale()}) : les
- * traits deviennent verts en vague, avec une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue ; au
- * bout, l'écran de fin ({@link #setOnFinale}). La partie finie, les traits restent verts et dorés.
+ * <p>Le défi final, une fois la bulle des racines achetée : chaque point se remplit de vert, du bas vers le haut, selon
+ * l'avancée vers son palier (en puissances de dix), et devient entièrement vert au palier atteint ; le seuil, lui,
+ * devient un anneau vert autour du point. Sous chaque nom, l'avancée (« 3.2e6 / 2.5e7 ») ; au milieu, les paliers
+ * atteints (« 7 / 10 paliers »). Les dix paliers atteints, la fin se joue ({@link #playFinale()}) : les traits
+ * deviennent verts en vague, avec une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue ; au bout,
+ * l'écran de fin ({@link #setOnFinale}). La partie finie, les traits restent verts et dorés.
  *
- * <p>Version 0.197 : les skins de la carte ({@link idle.core.universe.SkinVisual#DIMENSIONS_MAP}) et du remplissage du
- * défi final ({@link idle.core.universe.SkinVisual#FINALE_FILL}), dessinés par {@link DimensionsMapSkinArt} ; les points
- * de la carte skinnée prennent la couleur de leur dimension ({@link DimensionPalette}). Sans skin, rien ne change.
+ * <p>Les skins de la carte ({@link idle.core.universe.SkinVisual#DIMENSIONS_MAP}) et du remplissage du défi final
+ * ({@link idle.core.universe.SkinVisual#FINALE_FILL}), dessinés par {@link DimensionsMapSkinArt} ; les points de la
+ * carte skinnée prennent la couleur de leur dimension ({@link DimensionPalette}). Sans skin, rien ne change.
  */
 public final class DimensionsView extends Canvas {
-
     private static final Color BACK = Color.web("#05060e");
     private static final Color LINE = Color.web("#a8b8ff");
     private static final Color ON = Color.web("#d6c2ff");
@@ -34,17 +31,17 @@ public final class DimensionsView extends Canvas {
     private static final Color CENTER = Color.web("#ffe2b0");
     private static final Color MARK = Color.web("#3ddc6a");
     private static final Color GOLD = Color.web("#ffd27f");
-    /** La fin (version 0.160) : la vague verte des traits, puis le point du milieu qui grandit, en secondes. */
+    /** La fin : la vague verte des traits, puis le point du milieu qui grandit, en secondes. */
     public static final double FINALE_WAVE_SECONDS = 4, FINALE_GROW_SECONDS = 2.5;
     /** Les traits de la carte : les dix rayons du milieu, puis les dix côtés du cercle. */
     private static final int LINKS = 20;
 
     private double time;
     private int unlocked;
-    /** Les dimensions dont le seuil est atteint (version 0.102) : un rond vert dans leur point. */
+    /** Les dimensions dont le seuil est atteint : un rond vert dans leur point. */
     private final boolean[] marked = new boolean[Dimension.values().length + 1];
     private IntConsumer onOpen = number -> { };
-    /** Le défi final (version 0.160) : ouvert, l'avancée de chaque dimension (0 à 1), ses paliers et ce qui s'écrit dessous. */
+    /** Le défi final : ouvert, l'avancée de chaque dimension (0 à 1), ses paliers et ce qui s'écrit dessous. */
     private boolean finalOpen, finished;
     private final double[] progress = new double[Dimension.values().length + 1];
     private final boolean[] reached = new boolean[Dimension.values().length + 1];
@@ -53,8 +50,8 @@ public final class DimensionsView extends Canvas {
     /** Le temps de la fin qui se joue, en secondes ; négatif quand elle ne se joue pas. */
     private double finale = -1;
     private Runnable onFinale = () -> { };
-    /** Les skins de la carte et du remplissage (version 0.197), {@code null} pour le Classique. */
-    private idle.core.universe.Skin mapSkin, fillSkin;
+    /** Les skins de la carte et du remplissage, {@code null} pour le Classique. */
+    private Skin mapSkin, fillSkin;
 
     public DimensionsView() {
         super(800, 440);
@@ -65,8 +62,8 @@ public final class DimensionsView extends Canvas {
         });
     }
 
-    /** Les skins de la carte et du remplissage du défi final (version 0.197) ; {@code null} ou un autre visuel : le Classique. */
-    public void setSkins(idle.core.universe.Skin map, idle.core.universe.Skin fill) {
+    /** Les skins de la carte et du remplissage du défi final ; {@code null} ou un autre visuel : le Classique. */
+    public void setSkins(Skin map, Skin fill) {
         mapSkin = DimensionsMapSkinArt.maps(map) ? map : null;
         fillSkin = DimensionsMapSkinArt.fills(fill) ? fill : null;
     }
@@ -77,31 +74,21 @@ public final class DimensionsView extends Canvas {
     }
 
     /** Le nombre de dimensions ouvertes (0 à 10). */
-    public void setUnlocked(int count) {
-        unlocked = Math.max(0, Math.min(Dimension.values().length, count));
-    }
+    public void setUnlocked(int count) { unlocked = Math.max(0, Math.min(Dimension.values().length, count)); }
 
-    public int unlocked() {
-        return unlocked;
-    }
+    public int unlocked() { return unlocked; }
 
     /** Marque une dimension (1 à 10) d'un rond vert : son seuil est atteint. */
     public void setMarked(int number, boolean mark) {
         if (number >= 1 && number < marked.length) marked[number] = mark;
     }
 
-    public boolean isMarked(int number) {
-        return number >= 1 && number < marked.length && marked[number];
-    }
+    public boolean isMarked(int number) { return number >= 1 && number < marked.length && marked[number]; }
 
     /** Le défi final est ouvert (la bulle des racines achetée) : les points se remplissent. */
-    public void setFinalOpen(boolean open) {
-        finalOpen = open;
-    }
+    public void setFinalOpen(boolean open) { finalOpen = open; }
 
-    public boolean isFinalOpen() {
-        return finalOpen;
-    }
+    public boolean isFinalOpen() { return finalOpen; }
 
     /** L'avancée d'une dimension (1 à 10) vers son palier, de 0 à 1 ; son palier atteint ; et le texte sous son nom. */
     public void setFinalProgress(int number, double share, boolean tier, String text) {
@@ -122,9 +109,7 @@ public final class DimensionsView extends Canvas {
     }
 
     /** Les paliers atteints, écrits au milieu. */
-    public void setFinalTiers(int count) {
-        tiers = count;
-    }
+    public void setFinalTiers(int count) { tiers = count; }
 
     /** « 7 / 10 paliers », au milieu de la carte. */
     public String tiersText() {
@@ -132,9 +117,7 @@ public final class DimensionsView extends Canvas {
     }
 
     /** La partie est finie : les traits restent verts, avec leur aura dorée. */
-    public void setFinished(boolean done) {
-        finished = done;
-    }
+    public void setFinished(boolean done) { finished = done; }
 
     /** Ce qui suit la fin, une fois le point du milieu grandi : l'écran de fin. */
     public void setOnFinale(Runnable action) {
@@ -142,18 +125,9 @@ public final class DimensionsView extends Canvas {
     }
 
     /** Joue la fin depuis son début : la vague verte des traits, puis le point du milieu qui grandit. */
-    public void playFinale() {
-        finale = 0;
-    }
+    public void playFinale() { finale = 0; }
 
-    public boolean isFinalePlaying() {
-        return finale >= 0;
-    }
-
-    /** Le temps de la fin qui se joue, en secondes, ou −1 : pour les vérifications. */
-    public double finaleTime() {
-        return finale;
-    }
+    public boolean isFinalePlaying() { return finale >= 0; }
 
     /** Les traits déjà verts : tous une fois la partie finie hors de la fin, sinon ceux que la vague a passés. */
     public int greenLinks() {
@@ -208,34 +182,22 @@ public final class DimensionsView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    private double cx() {
-        return getWidth() / 2;
-    }
+    private double cx() { return getWidth() / 2; }
 
-    private double cy() {
-        return getHeight() / 2;
-    }
+    private double cy() { return getHeight() / 2; }
 
-    private double radius() {
-        return Math.min(getWidth() * 0.4, getHeight() * 0.36);
-    }
+    private double radius() { return Math.min(getWidth() * 0.4, getHeight() * 0.36); }
 
     /** La place du point de cette dimension (1 à 10) : en cercle, la première en haut. */
-    public double x(int number) {
-        return cx() + radius() * Math.cos(angle(number));
-    }
+    public double x(int number) { return cx() + radius() * Math.cos(angle(number)); }
 
-    public double y(int number) {
-        return cy() + radius() * Math.sin(angle(number));
-    }
+    public double y(int number) { return cy() + radius() * Math.sin(angle(number)); }
 
     private static double angle(int number) {
         return -Math.PI / 2 + 2 * Math.PI * (number - 1) / Dimension.values().length;
     }
 
-    private double dot() {
-        return Math.max(10, Math.min(getWidth(), getHeight()) * 0.035);
-    }
+    private double dot() { return Math.max(10, Math.min(getWidth(), getHeight()) * 0.035); }
 
     /** Le numéro de la dimension sous ce point de la vue, 0 s'il n'y en a pas. */
     public int dimensionAt(double x, double y) {

@@ -4,28 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.196 : les univers en bulles et le lancement, sous Xvfb. Chaque skin des bulles, de la naissance et des liens
+ * Les univers en bulles et le lancement, sous Xvfb. Chaque skin des bulles, de la naissance et des liens
  * dessine la vue à deux tailles, avec un ou dix univers, pendant la naissance du premier et d'un nouvel univers, sans
  * exception et sans changer le nombre de bulles ni de liens ; immobile, une bulle ou un lien habillé diffère du Classique
  * en pixels. Chaque skin du lancement joue l'animation entière, lance l'univers à l'éclat et dessine à chaque image.
  */
 class UniverseSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

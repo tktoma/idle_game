@@ -1,35 +1,35 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
 /**
- * Le vide (version 0.129), deuxième acte de la partie secondaire, qui se joue dans les anciens onglets à partir du
- * premier Big Bang du troisième univers.
+ * Le vide, deuxième acte de la partie secondaire, qui se joue dans les anciens onglets à partir du premier Big Bang du
+ * troisième univers.
  *
  * <p>Il se propose dans le collisionneur ({@link #isVoidOffered()}) et s'ouvre contre {@link #VOID_UNLOCK_COST}
  * d'énergie du collisionneur. Ouvert, le collisionneur y fait naître des paires de particules virtuelles : chacune
- * coûte de l'énergie du collisionneur et de l'espace libre, occupe cet espace tant qu'elle vit
- * ({@link #VOID_PAIR_LIFE} secondes), et donne de l'énergie du vide à sa naissance. L'énergie du vide fond de
- * {@link #VOID_DECAY} par seconde : elle tend vers un équilibre, le gain par seconde divisé par la fonte
- * ({@link #voidEquilibrium()}). La part du collisionneur et de l'espace libre que le vide peut prendre se règle
- * ({@link GameState#voidShare()}).
+ * coûte de l'énergie du collisionneur et de l'espace libre, occupe cet espace tant qu'elle vit ({@link #VOID_PAIR_LIFE}
+ * secondes), et donne de l'énergie du vide à sa naissance. L'énergie du vide fond de {@link #VOID_DECAY} par seconde :
+ * elle tend vers un équilibre, le gain par seconde divisé par la fonte ({@link #voidEquilibrium()}). La part du
+ * collisionneur et de l'espace libre que le vide peut prendre se règle ({@link GameState#voidShare()}).
  *
  * <p>Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent une masse
  * ({@link #voidMass()}) qui raccourcit la vie des paires (elles rendent leur espace plus vite) et ralentit la fonte.
  * L'énergie du vide paie huit améliorations ({@link VoidUpgrade}), dont trois raccourcissent le troisième acte :
- * l'allègement des besoins du ciel, la maturation plus courte des astres et le rassemblement plus court (version 0.132). À la
- * formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé ; le vide, lui, repart de zéro.
+ * l'allègement des besoins du ciel, la maturation plus courte des astres et le rassemblement plus court. À la formation
+ * de l'univers, ce qu'il en reste s'ajoute au cumul, gardé ; le vide, lui, repart de zéro.
  */
 public abstract class GameVoid extends GameBigBang {
-
     GameVoid(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -86,23 +86,17 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** Vrai une fois le trou noir du vide ouvert : le vide est ouvert et un trou noir a été formé dans cet univers. */
-    public boolean isVoidHoleOpen() {
-        return isVoidUnlocked() && state.voidHoleOpen();
-    }
+    public boolean isVoidHoleOpen() { return isVoidUnlocked() && state.voidHoleOpen(); }
 
     // ------------------------------------------------------------------
     // Les paires
     // ------------------------------------------------------------------
 
     /** Combien de temps vit une paire : {@link #VOID_PAIR_LIFE} ÷ (1 + m/10), m la masse du trou noir. */
-    public double voidPairLife() {
-        return VOID_PAIR_LIFE / (1 + voidMass() / 10);
-    }
+    public double voidPairLife() { return VOID_PAIR_LIFE / (1 + voidMass() / 10); }
 
     /** Les paires par seconde que le rythme permet, avant les limites de l'énergie et de l'espace. */
-    public double voidBaseRate() {
-        return VOID_BASE_RATE * Math.pow(VOID_RATE_STEP, voidLevel(VoidUpgrade.RATE));
-    }
+    public double voidBaseRate() { return VOID_BASE_RATE * Math.pow(VOID_RATE_STEP, voidLevel(VoidUpgrade.RATE)); }
 
     /** L'énergie du collisionneur que coûte une paire : une fraction de seconde de sa production. */
     public double voidPairEnergy() {
@@ -116,21 +110,17 @@ public abstract class GameVoid extends GameBigBang {
 
     /** L'énergie du vide que donne une paire à sa naissance : 1, plus 1 par niveau de gain, ×2 par niveau de la bulle du bonsaï. */
     public double voidPairGain() {
-        return (1 + voidLevel(VoidUpgrade.GAIN)) * voidBubbleFactor() * hadronBoost(idle.core.collider.Hadron.D_MESON);
+        return (1 + voidLevel(VoidUpgrade.GAIN)) * voidBubbleFactor() * hadronBoost(Hadron.D_MESON);
     }
 
-    /** Ce que la bulle du bonsaï, à gauche, fait au gain du vide (version 0.148) : ×2 par niveau, ×32 au plus. */
-    public double voidBubbleFactor() {
-        return Math.pow(2, bubbleLevel(TreeBubble.LEAVES_LEFT));
-    }
+    /** Ce que la bulle du bonsaï, à gauche, fait au gain du vide : ×2 par niveau, ×32 au plus. */
+    public double voidBubbleFactor() { return Math.pow(2, bubbleLevel(TreeBubble.LEAVES_LEFT)); }
 
-    /** Ce que la bulle du géant, tout à gauche, verse au cumul (version 0.148) : 5 % du gain du vide par niveau. */
+    /** Ce que la bulle du géant, tout à gauche, verse au cumul : 5 % du gain du vide par niveau. */
     public static final double VOID_TRICKLE_STEP = 0.05;
 
     /** La part du gain du vide versée au cumul des bulles, chaque seconde : 0 sans la bulle du géant, 25 % au plus. */
-    public double voidTrickleShare() {
-        return VOID_TRICKLE_STEP * bubbleLevel(TreeBubble.GIANT_LEFT_HIGH);
-    }
+    public double voidTrickleShare() { return VOID_TRICKLE_STEP * bubbleLevel(TreeBubble.GIANT_LEFT_HIGH); }
 
     /** Ce que la part réglée laisse au vide de la production du collisionneur : en paires par seconde. */
     public double voidEnergyRateLimit() {
@@ -153,9 +143,7 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** Les paires par seconde que l'espace permet : celles qu'il peut tenir, renouvelées à chaque vie. */
-    public double voidSpaceRateLimit() {
-        return voidSpaceLimit() / voidPairLife();
-    }
+    public double voidSpaceRateLimit() { return voidSpaceLimit() / voidPairLife(); }
 
     /** Les paires qui naissent par seconde : le rythme, borné par la part d'énergie et la part d'espace. Nul fermé. */
     public double voidRate() {
@@ -172,7 +160,7 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /**
-     * La part de la production du collisionneur que les paires prennent en ce moment (version 0.169), de 0 à la part
+     * La part de la production du collisionneur que les paires prennent en ce moment, de 0 à la part
      * réglée : ce que le vide coûte au reste du jeu en énergie.
      */
     public double voidColliderShare() {
@@ -180,7 +168,7 @@ public abstract class GameVoid extends GameBigBang {
         return voidRate() * VOID_PAIR_ENERGY_SECONDS * Math.pow(VOID_COST_STEP, voidLevel(VoidUpgrade.ENERGY));
     }
 
-    /** La part de l'espace que les paires vivantes tiennent en ce moment (version 0.169) : ce qu'il coûte en place. */
+    /** La part de l'espace que les paires vivantes tiennent en ce moment : ce qu'il coûte en place. */
     public double voidSpaceShare() {
         BigNum held = voidHeldSpace();
         if (held.sign() <= 0 || state.space().sign() <= 0) return 0;
@@ -188,14 +176,10 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** Les paires vivantes en ce moment. */
-    public double voidPairs() {
-        return voidPairs;
-    }
+    public double voidPairs() { return voidPairs; }
 
     /** Les paires nées depuis l'ouverture de la fenêtre : un compte qui ne fait que monter. */
-    public double voidPairsBorn() {
-        return voidBorn;
-    }
+    public double voidPairsBorn() { return voidBorn; }
 
     /** L'espace que tiennent les paires vivantes : il compte dans l'espace utilisé. */
     @Override
@@ -209,9 +193,7 @@ public abstract class GameVoid extends GameBigBang {
     // ------------------------------------------------------------------
 
     /** L'énergie du vide gagnée par seconde : les paires qui naissent, fois leur gain. */
-    public double voidGainPerSecond() {
-        return voidRate() * voidPairGain();
-    }
+    public double voidGainPerSecond() { return voidRate() * voidPairGain(); }
 
     /** La fonte, par seconde : {@link #VOID_DECAY}, −10 % par niveau, divisée par (1 + m/5). */
     public double voidDecay() {
@@ -219,18 +201,12 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** L'équilibre : là où la fonte reprend autant que les paires donnent. */
-    public double voidEquilibrium() {
-        return voidGainPerSecond() / voidDecay();
-    }
+    public double voidEquilibrium() { return voidGainPerSecond() / voidDecay(); }
 
     /** Ce qu'il reste d'énergie du vide de cet univers, et le cumul de ce qui restait à la formation des précédents. */
-    public BigNum voidEnergy() {
-        return state.voidEnergy();
-    }
+    public BigNum voidEnergy() { return state.voidEnergy(); }
 
-    public double voidAccumulated() {
-        return state.voidAccumulated();
-    }
+    public double voidAccumulated() { return state.voidAccumulated(); }
 
     /**
      * Fait passer le temps du vide : les paires naissent au rythme permis, payent leur énergie, vivent et rendent
@@ -257,7 +233,7 @@ public abstract class GameVoid extends GameBigBang {
         voidPairs = Math.max(0, Math.min(voidPairs, voidSpaceLimit()));
         voidBorn += rate * dt;
         double gain = rate * voidPairGain();
-        // La bulle du géant, tout à gauche (version 0.148) : une part du gain va aussi au cumul, sans rien ôter au vide.
+        // La bulle du géant, tout à gauche : une part du gain va aussi au cumul, sans rien ôter au vide.
         if (voidTrickleShare() > 0) state.setVoidTrickled(state.voidTrickled() + voidTrickleShare() * gain * dt);
         double decay = voidDecay();
         double stock = state.voidEnergy().toDouble();
@@ -269,18 +245,16 @@ public abstract class GameVoid extends GameBigBang {
     // Le trou noir
     // ------------------------------------------------------------------
 
-    /** Ce que le trou noir du vide retire à la maturation des deux trous noirs, par univers compté (version 0.177) : 10 %. */
+    /** Ce que le trou noir du vide retire à la maturation des deux trous noirs, par univers compté : 10 %. */
     public static final double VOID_HOLE_MATURATION_STEP = 0.10;
-    /** Le premier univers formé que le trou noir du vide compte (version 0.177) : le quatrième. */
+    /** Le premier univers formé que le trou noir du vide compte : le quatrième. */
     public static final int VOID_HOLE_FIRST_UNIVERSE = 4;
 
-    /** Les univers formés que le trou noir du vide compte : ceux à partir du quatrième (version 0.177). */
-    public int voidHoleUniverses() {
-        return Math.max(0, universes() - (VOID_HOLE_FIRST_UNIVERSE - 1));
-    }
+    /** Les univers formés que le trou noir du vide compte : ceux à partir du quatrième. */
+    public int voidHoleUniverses() { return Math.max(0, universes() - (VOID_HOLE_FIRST_UNIVERSE - 1)); }
 
     /**
-     * Ce par quoi le trou noir du vide divise la maturation du trou noir et du trou noir supermassif (version 0.177) :
+     * Ce par quoi le trou noir du vide divise la maturation du trou noir et du trou noir supermassif :
      * 1 + {@link #VOID_HOLE_MATURATION_STEP} × univers comptés ({@link #voidHoleUniverses()}), tant qu'il est ouvert
      * dans cet univers ; 1 sinon. ×1,1 quand quatre univers sont formés, ×1,5 quand huit le sont.
      */
@@ -289,7 +263,7 @@ public abstract class GameVoid extends GameBigBang {
         return isVoidHoleOpen() ? 1 + VOID_HOLE_MATURATION_STEP * voidHoleUniverses() : 1;
     }
 
-    /** Ouvre le trou noir du vide : les trous noirs qui mûrissent déjà voient leur reste raccourci d'autant (version 0.177). */
+    /** Ouvre le trou noir du vide : les trous noirs qui mûrissent déjà voient leur reste raccourci d'autant. */
     private void openVoidHole() {
         state.setVoidHoleOpen(true);
         double factor = voidHoleMaturationFactor();
@@ -300,9 +274,7 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** La masse du trou noir : 2 × log₁₀(1 + log₁₀(1 + S)), S les particules sacrifiées, au plus {@link #VOID_MAX_MASS}. */
-    public double voidMass() {
-        return voidMassOf(state.voidSacrificed());
-    }
+    public double voidMass() { return voidMassOf(state.voidSacrificed()); }
 
     /** La masse que donneraient ces particules sacrifiées. */
     private static double voidMassOf(BigNum sacrificed) {
@@ -312,9 +284,7 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** La masse qu'aurait le trou noir si on lui sacrifiait maintenant toutes les particules. */
-    public double voidMassAfterSacrifice() {
-        return voidMassOf(state.voidSacrificed().add(state.particles()));
-    }
+    public double voidMassAfterSacrifice() { return voidMassOf(state.voidSacrificed().add(state.particles())); }
 
     public boolean canSacrificeParticles() {
         return isVoidHoleOpen() && state.particles().sign() > 0 && voidMass() < VOID_MAX_MASS;
@@ -357,22 +327,16 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** Règle la part du collisionneur et de l'espace libre que le vide peut prendre, de 0 à 1. */
-    public void setVoidShare(double share) {
-        state.setVoidShare(share);
-    }
+    public void setVoidShare(double share) { state.setVoidShare(share); }
 
     /** Outils d'essai : ouvrir le vide sans payer, lui donner de la masse. */
-    public void testOpenVoid() {
-        state.setVoidOpen(true);
-    }
+    public void testOpenVoid() { state.setVoidOpen(true); }
 
     public void testOpenVoidHole() {
         state.setVoidOpen(true);
         state.setVoidHoleOpen(true);
     }
 
-    /** Outil d'essai (version 0.195) : des paires nées en plus, pour les skins des paires du vide. */
-    public void testAddVoidPairsBorn(double count) {
-        voidBorn += Math.max(0, count);
-    }
+    /** Outil d'essai : des paires nées en plus, pour les skins des paires du vide. */
+    public void testAddVoidPairsBorn(double count) { voidBorn += Math.max(0, count); }
 }

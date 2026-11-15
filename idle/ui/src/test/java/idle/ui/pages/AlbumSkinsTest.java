@@ -1,6 +1,7 @@
 package idle.ui.pages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.layout.HBox;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,37 +9,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.sky.*;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
 import idle.ui.bigbang.CatalogArt;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.198 : les skins des albums ({@link SkinVisual#ALBUM}), sous Xvfb. Les dessins du catalogue se font pour
+ * Les skins des albums ({@link SkinVisual#ALBUM}), sous Xvfb. Les dessins du catalogue se font pour
  * chaque molécule, astre et assemblage, à deux tailles et dans chaque skin de leur visuel ; chaque case trouvée ou non
  * se dessine dans chaque skin des albums, autrement que vide ; le profil recopie l'album dans le skin choisi sans
  * changer ses textes, et revient au Classique sans dessin.
  */
 class AlbumSkinsTest {
-
     @TempDir
     Path data;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -98,7 +92,7 @@ class AlbumSkinsTest {
                     for (boolean found : new boolean[] {true, false}) {
                         Node node = AlbumSkinArt.picture(entry, found, 7, skin, "#ffd27f");
                         assertNotNull(node);
-                        Canvas canvas = (Canvas) ((javafx.scene.layout.HBox) node).getChildren().get(0);
+                        Canvas canvas = (Canvas) ((HBox) node).getChildren().get(0);
                         // « Illustré » ne dessine que le dessin de la case : trouvée et sans dessin, elle reste nue (aucune case
                         // du jeu n'est sans dessin ; les autres skins ont leur cadre, leur timbre ou leur étiquette).
                         boolean nue = skin == Skin.ALBUM_ILLUSTRATED && found && entry.picture() == null;

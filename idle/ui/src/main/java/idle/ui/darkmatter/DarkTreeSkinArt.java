@@ -1,17 +1,21 @@
 package idle.ui.darkmatter;
 
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import java.util.EnumMap;
+import java.util.Map;
+import javafx.geometry.Insets;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.Image;
+import javafx.scene.layout.*;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.*;
 
 /**
- * Les skins de l'arbre de matière noire (version 0.193), dessinés à côté de {@link DarkMatterTreePane} pour la garder
- * lisible : les traits entre les cases ({@link #dress}) et une petite vignette au coin de chaque case ({@link #paint}).
- * Version 0.203 : chaque skin a aussi son fond sous l'arbre ({@link #backdrop}) et ses en-têtes ({@link #header}) ;
- * avant, seuls les traits et les vignettes changeaient, et l'arbre restait presque le même.
+ * Les skins de l'arbre de matière noire, dessinés à côté de {@link DarkMatterTreePane} pour la garder lisible : les
+ * traits entre les cases ({@link #dress}) et une petite vignette au coin de chaque case ({@link #paint}). Chaque skin a
+ * aussi son fond sous l'arbre ({@link #backdrop}) et ses en-têtes ({@link #header}) ; avant, seuls les traits et les
+ * vignettes changeaient, et l'arbre restait presque le même.
  * <ul>
  * <li>« Racines » : des racines brunes, plus épaisses à mesure que la case monte en niveau, bouts arrondis ; chaque
  * case porte un bulbe, qui germe une fois achetée et feuille au maximum ;</li>
@@ -21,12 +25,10 @@ import javafx.scene.shape.StrokeLineCap;
  * que la case est avancée ;</li>
  * <li>« Métro » : des lignes épaisses de la couleur de la branche, arrondies ; chaque case est une station, un rond
  * blanc cerclé, plein une fois achetée, double au terminus (le maximum).</li>
- * </ul>
- * Sans skin, {@link #dress} rend aux traits leur largeur de toujours (2 px), sans pointillés ni bouts arrondis : le
- * Classique reste le même au pixel.
+ * </ul> Sans skin, {@link #dress} rend aux traits leur largeur de toujours (2 px), sans pointillés ni bouts arrondis :
+ * le Classique reste le même au pixel.
  */
 final class DarkTreeSkinArt {
-
     /** Le côté des vignettes, en pixels (version 0.203 : 26, 18 avant, trop petites pour se voir). */
     static final double ART = 26;
 
@@ -96,12 +98,12 @@ final class DarkTreeSkinArt {
     }
 
     // ------------------------------------------------------------------
-    // Version 0.203 : le fond de l'arbre et ses en-têtes
+    // Le fond de l'arbre et ses en-têtes
     // ------------------------------------------------------------------
 
     /** Le côté du motif du fond, en pixels : il se répète sous tout l'arbre. */
     static final int TILE = 160;
-    private static final java.util.Map<Skin, javafx.scene.layout.Background> BACKDROPS = new java.util.EnumMap<>(Skin.class);
+    private static final Map<Skin, Background> BACKDROPS = new EnumMap<>(Skin.class);
 
     private static double fraction(double seed) {
         double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
@@ -109,27 +111,26 @@ final class DarkTreeSkinArt {
     }
 
     /**
-     * Le fond de l'arbre sous ce skin (version 0.203), {@code null} pour le Classique : une couleur, et un motif de
+     * Le fond de l'arbre sous ce skin, {@code null} pour le Classique : une couleur, et un motif de
      * {@link #TILE} pixels dessiné une fois puis répété (il ne coûte rien à l'image). « Racines » : la terre, ses cailloux
      * et ses radicelles ; « Circuit » : le vernis vert d'une carte, son quadrillage, ses pastilles et quelques pistes ;
      * « Constellation » : le ciel et ses étoiles ; « Métro » : le papier sombre d'un plan, son carroyage et ses croix.
      */
-    static javafx.scene.layout.Background backdrop(Skin skin) {
+    static Background backdrop(Skin skin) {
         if (!draws(skin)) return null;
         return BACKDROPS.computeIfAbsent(skin, DarkTreeSkinArt::buildBackdrop);
     }
 
-    private static javafx.scene.layout.Background buildBackdrop(Skin skin) {
+    private static Background buildBackdrop(Skin skin) {
         Canvas canvas = new Canvas(TILE, TILE);
         GraphicsContext g = canvas.getGraphicsContext2D();
         Color base = tile(skin, g);
-        javafx.scene.SnapshotParameters parameters = new javafx.scene.SnapshotParameters();
+        SnapshotParameters parameters = new SnapshotParameters();
         parameters.setFill(Color.TRANSPARENT);
-        javafx.scene.image.Image image = canvas.snapshot(parameters, null);
-        return new javafx.scene.layout.Background(
-                new javafx.scene.layout.BackgroundFill[] {new javafx.scene.layout.BackgroundFill(base, new javafx.scene.layout.CornerRadii(10), javafx.geometry.Insets.EMPTY)},
-                new javafx.scene.layout.BackgroundImage[] {new javafx.scene.layout.BackgroundImage(image, javafx.scene.layout.BackgroundRepeat.REPEAT,
-                        javafx.scene.layout.BackgroundRepeat.REPEAT, javafx.scene.layout.BackgroundPosition.DEFAULT, javafx.scene.layout.BackgroundSize.DEFAULT)});
+        Image image = canvas.snapshot(parameters, null);
+        return new Background(new BackgroundFill[] {new BackgroundFill(base, new CornerRadii(10), Insets.EMPTY)},
+                new BackgroundImage[] {new BackgroundImage(image, BackgroundRepeat.REPEAT,
+                        BackgroundRepeat.REPEAT, BackgroundPosition.DEFAULT, BackgroundSize.DEFAULT)});
     }
 
     /** Dessine le motif de ce skin (rien ne touche le bord : il se répète sans couture) et rend la couleur du fond. */
@@ -224,7 +225,7 @@ final class DarkTreeSkinArt {
     }
 
     /**
-     * Le style d'un en-tête de l'arbre sous ce skin (version 0.203), à ajouter à son style de toujours ; vide pour le
+     * Le style d'un en-tête de l'arbre sous ce skin, à ajouter à son style de toujours ; vide pour le
      * Classique. {@code color} est la couleur de la branche (ou celle de la matière noire, pour la racine).
      * « Racines » : une étiquette de jardin, bois clair bordé de brun ; « Circuit » : une sérigraphie, fond sombre, texte
      * et bord de cuivre, police à chasse fixe, coins droits ; « Constellation » : un cartouche sans fond, le nom dans la

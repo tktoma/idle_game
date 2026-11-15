@@ -1,6 +1,8 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.math.BigNum;
+import idle.core.save.SaveCodec;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,26 +10,19 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.ColliderAchievement;
-import idle.core.collider.ColliderGenerator;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.elements.ElementCategory;
 import idle.core.profile.Title;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import idle.core.universe.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.214 : les recherches rendues directes et le code mis en commun donnent exactement ce que donnaient les
+ * Les recherches rendues directes et le code mis en commun donnent exactement ce que donnaient les
  * anciennes boucles. Chaque test refait l'ancienne façon à côté de la nouvelle, sur tout le catalogue.
  */
 class OptimisationsTest {
-
     private static Game partie() {
         Game game = new Game(42L);
         game.start();
@@ -184,10 +179,10 @@ class OptimisationsTest {
         Game b = partie();
         for (Game game : List.of(a, b)) {
             game.state().setBigBangs(6);
-            game.state().setParticles(idle.core.math.BigNum.of(1, 40));
+            game.state().setParticles(BigNum.of(1, 40));
             game.buyAllWithParticles();
             for (int s = 0; s < 3600; s++) game.tick(1);
         }
-        assertEquals(idle.core.save.SaveCodec.write(a.state(), 0), idle.core.save.SaveCodec.write(b.state(), 0));
+        assertEquals(SaveCodec.write(a.state(), 0), SaveCodec.write(b.state(), 0));
     }
 }

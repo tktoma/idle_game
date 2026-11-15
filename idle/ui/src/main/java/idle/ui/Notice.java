@@ -1,7 +1,7 @@
 package idle.ui;
 
 /**
- * Les catégories des notifications (version 0.146) : chacune se coupe à part dans les réglages. Une notification coupée
+ * Les catégories des notifications : chacune se coupe à part dans les réglages. Une notification coupée
  * ne s'affiche pas et ne joue pas de son ; le journal, lui, garde tout.
  *
  * <p>Elles sont rangées par endroit du jeu, dans l'ordre où la partie les découvre.
@@ -37,12 +37,8 @@ public enum Notice {
         this.detail = detail;
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ce que la catégorie annonce, pour la bulle d'aide de son bouton. */
-    public String detail() {
-        return detail;
-    }
+    public String detail() { return detail; }
 }

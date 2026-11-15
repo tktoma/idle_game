@@ -1,39 +1,33 @@
 package idle.core.sky;
 
 import idle.core.molecules.Molecule;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Un assemblage : une matière du monde minéral faite de plusieurs sortes de molécules, comme une
- * roche granitique (quartz, orthose, albite), des rubis et saphirs (corindon et des traces de
- * chrome, de fer et de titane) ou une eau salée (eau et sels). Rien de vivant : ce sont des
- * mélanges et des roches, pas des organismes. Rien de fabriqué non plus : seulement ce qu'on
- * trouve dans la nature, sur Terre ou ailleurs, sans verre, sans alliage, sans batterie.
+ * Un assemblage : une matière du monde minéral faite de plusieurs sortes de molécules, comme une roche granitique
+ * (quartz, orthose, albite), des rubis et saphirs (corindon et des traces de chrome, de fer et de titane) ou une eau
+ * salée (eau et sels). Rien de vivant : ce sont des mélanges et des roches, pas des organismes. Rien de fabriqué non
+ * plus : seulement ce qu'on trouve dans la nature, sur Terre ou ailleurs, sans verre, sans alliage, sans batterie.
  *
- * <p>Les assemblages portent des noms généraux : « Minerai de cuivre » plutôt qu'une mine en
- * particulier, « Eau salée » plutôt que chaque mer. Chacun réunit les molécules de sa
- * famille de matière, de trois à huit sortes.
+ * <p>Les assemblages portent des noms généraux : « Minerai de cuivre » plutôt qu'une mine en particulier, « Eau salée »
+ * plutôt que chaque mer. Chacun réunit les molécules de sa famille de matière, de trois à huit sortes.
  *
- * <p>Un assemblage se forme avec {@link Game#formAssembly(String)}, une seule fois. Il demande
- * beaucoup de molécules, des centaines, pour que sa taille reste comparable à ce qu'il
- * représente à côté d'une molécule seule : chaque ingrédient doit être rassemblé
- * ({@link Game#formSubstance(String)}), et le joueur doit en posséder le nombre demandé. Les
- * molécules ne sont pas consommées : elles quittent l'amas de leur sorte pour entrer dans le bloc
- * de l'assemblage, où elles restent ; deux assemblages ne se partagent donc pas les mêmes molécules.
+ * <p>Un assemblage se forme avec {@link Game#formAssembly(String)}, une seule fois. Il demande beaucoup de molécules,
+ * des centaines, pour que sa taille reste comparable à ce qu'il représente à côté d'une molécule seule : chaque
+ * ingrédient doit être rassemblé ({@link Game#formSubstance(String)}), et le joueur doit en posséder le nombre demandé.
+ * Les molécules ne sont pas consommées : elles quittent l'amas de leur sorte pour entrer dans le bloc de l'assemblage,
+ * où elles restent ; deux assemblages ne se partagent donc pas les mêmes molécules.
  *
- * <p>Les proportions sont celles de la matière réelle, à peu près : 78 % de diazote dans l'air,
- * une trace d'oxyde de chrome dans un rubis. Elles viennent de mémoire.
+ * <p>Les proportions sont celles de la matière réelle, à peu près : 78 % de diazote dans l'air, une trace d'oxyde de
+ * chrome dans un rubis. Elles viennent de mémoire.
  *
- * @param id          identifiant stable (sert de clé dans la sauvegarde) : « granitic_rock »
- * @param name        nom affiché
- * @param family      la famille de matière, qui décide de la grandeur augmentée
- * @param tint        la couleur du bloc dans la vue de l'espace, « #rrggbb »
+ * @param id identifiant stable (sert de clé dans la sauvegarde) : « granitic_rock »
+ * @param name nom affiché
+ * @param family la famille de matière, qui décide de la grandeur augmentée
+ * @param tint la couleur du bloc dans la vue de l'espace, « #rrggbb »
  * @param ingredients ce qu'il demande : identifiant de la molécule → nombre de molécules
  */
 public record Assembly(String id, String name, Family family, String tint, Map<String, Integer> ingredients) {
-
     /**
      * Nombre de molécules d'un assemblage qui valent un bonus de 100 % : 100 depuis la version 0.178 (200 avant),
      * parce que les astres n'ont plus qu'un assemblage chacun et que les collections de rayon ont disparu.
@@ -59,14 +53,10 @@ public record Assembly(String id, String name, Family family, String tint, Map<S
         }
 
         /** Nom affiché au joueur. */
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** La grandeur que les assemblages de cette famille augmentent. */
-        public Molecule.Stat stat() {
-            return stat;
-        }
+        public Molecule.Stat stat() { return stat; }
     }
 
     public Assembly {
@@ -108,7 +98,5 @@ public record Assembly(String id, String name, Family family, String tint, Map<S
      * Ce que donne l'assemblage une fois formé : la grandeur de sa famille, augmentée de 100 % par
      * {@link #MOLECULES_PER_WHOLE} molécules assemblées. Une roche granitique de 270 molécules ajoute 135 %.
      */
-    public Molecule.Boost boost() {
-        return new Molecule.Boost(family.stat(), size() / MOLECULES_PER_WHOLE);
-    }
+    public Molecule.Boost boost() { return new Molecule.Boost(family.stat(), size() / MOLECULES_PER_WHOLE); }
 }

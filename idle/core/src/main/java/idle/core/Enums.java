@@ -1,19 +1,14 @@
 package idle.core;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 /**
- * Version 0.214 : ce que le jeu faisait à plusieurs endroits avec ses énumérations, écrit une fois. Relire un nom
+ * Ce que le jeu faisait à plusieurs endroits avec ses énumérations, écrit une fois. Relire un nom
  * sauvegardé sans planter sur celui d'une autre version ({@link #parse}), relire une liste de noms ({@link #parseAll}),
  * et retrouver une constante par son identifiant sans parcourir toutes les autres ({@link #index}).
  */
 public final class Enums {
-
     private Enums() {
     }
 

@@ -1,17 +1,17 @@
 package idle.ui.pages;
 
-import idle.core.Game;
+import idle.core.*;
+import java.util.*;
 import idle.core.profile.Title;
-import java.util.Locale;
 import java.util.function.Predicate;
 
 /**
- * Les avatars que dessine le jeu (version 0.147) : un par étape de la partie, de la particule à l'arbre-monde. Les
+ * Les avatars que dessine le jeu : un par étape de la partie, de la particule à l'arbre-monde. Les
  * deux premiers sont là d'emblée ou presque ; les autres attendent un titre, celui qui dit qu'on est allé jusque-là.
  * Ils se sauvegardent par leur identifiant ({@link #id()}), dans {@code game.state().avatar()} ; l'image importée par
  * le joueur s'y note {@link #CUSTOM}.
  *
- * <p>Version 0.198 : huit avatars de plus (le hadron, la sonde, la toile de l'univers, la bulle, l'arrosoir, le chrono,
+ * <p>Huit avatars de plus (le hadron, la sonde, la toile de l'univers, la bulle, l'arrosoir, le chrono,
  * le miroir, le kaléidoscope). Les cinq qui ont un titre l'attendent ; la sonde, l'arrosoir et le chrono, qui n'en ont
  * pas, attendent dix voyages de sondes, le tuyau d'arrosage et le chrono achetés.
  */
@@ -69,45 +69,29 @@ public enum Avatar {
     }
 
     /** Le nom affiché sous l'avatar. */
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Sa couleur : celle du cercle qui l'entoure. */
-    public String color() {
-        return color;
-    }
+    public String color() { return color; }
 
     /** Le titre qui l'ouvre, ou {@code null} pour un avatar libre ou ouvert par autre chose qu'un titre ({@link #how()}). */
-    public Title unlock() {
-        return unlock;
-    }
+    public Title unlock() { return unlock; }
 
-    /** Comment il s'ouvre (version 0.198) : « avec le titre « Alchimiste » », « avec le chrono » ; vide pour un avatar libre. */
-    public String how() {
-        return how;
-    }
+    /** Comment il s'ouvre : « avec le titre « Alchimiste » », « avec le chrono » ; vide pour un avatar libre. */
+    public String how() { return how; }
 
-    /** Ce qu'il faut faire pour l'ouvrir (version 0.198), en quelques mots ; vide pour un avatar libre. */
-    public String condition() {
-        return condition;
-    }
+    /** Ce qu'il faut faire pour l'ouvrir, en quelques mots ; vide pour un avatar libre. */
+    public String condition() { return condition; }
 
     /** L'identifiant sauvegardé : « black_hole ». */
-    public String id() {
-        return name().toLowerCase(Locale.ROOT);
-    }
+    public String id() { return name().toLowerCase(Locale.ROOT); }
 
     /** Vrai si le joueur peut le porter dans cette partie. */
-    public boolean isOpen(Game game) {
-        return open.test(game);
-    }
+    public boolean isOpen(Game game) { return open.test(game); }
 
     /** L'avatar de cet identifiant, ou {@code null} (vide, image importée, ou un avatar d'une autre version). */
-    public static Avatar of(String id) {
-        return id == null ? null : BY_ID.get(id);
-    }
+    public static Avatar of(String id) { return id == null ? null : BY_ID.get(id); }
 
     /** Version 0.214 : les avatars par identifiant. */
-    private static final java.util.Map<String, Avatar> BY_ID = idle.core.Enums.index(values(), Avatar::id);
+    private static final Map<String, Avatar> BY_ID = Enums.index(values(), Avatar::id);
 }

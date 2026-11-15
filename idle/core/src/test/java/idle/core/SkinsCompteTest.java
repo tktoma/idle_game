@@ -1,25 +1,24 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.achievements.Achievements;
 import idle.core.darkmatter.DarkUpgrades;
-import idle.core.save.SaveCodec;
-import idle.core.save.SaveData;
+import idle.core.save.*;
 import idle.core.universe.Skin;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
+import idle.core.upgrades.*;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.202 : le compte des skins débloqués se garde tant que les skins ne changent pas (le bonus des skins le relit
+ * Le compte des skins débloqués se garde tant que les skins ne changent pas (le bonus des skins le relit
  * à chaque fusion : sur ~370 skins, il prenait jusqu'au tiers du calcul d'une partie). Il doit toujours valoir le compte
  * fait skin par skin, quoi qu'il arrive aux skins : déblocage, verrouillage, univers suivant, remise à zéro, relecture.
  */
 class SkinsCompteTest {
-
     /** Le compte fait à la main, skin par skin, comme avant la 0.202. */
     private static int[] recompte(Game game) {
         int unlocked = 0, counted = 0;

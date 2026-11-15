@@ -1,11 +1,10 @@
 package idle.ui.universe;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import javafx.scene.paint.Color;
 
 /**
- * La palette des dix dimensions (version 0.197, {@link SkinVisual#DIMENSION_PALETTE}) : la couleur de chaque dimension,
+ * La palette des dix dimensions ({@link SkinVisual#DIMENSION_PALETTE}) : la couleur de chaque dimension,
  * que lisent l'arène ({@link DimensionView}), sa fenêtre ({@link DimensionWindow} : éclats, améliorations, étape du
  * mélange) et la carte des dimensions sous ses skins ({@link DimensionsMapSkinArt}). Cinq palettes libres, en bloc :
  * « Pastel » (les couleurs d'origine, tirées vers le blanc), « Daltonien sûr » (la palette d'Okabe et Ito, que
@@ -16,7 +15,6 @@ import javafx.scene.paint.Color;
  * <p>Le skin choisi est posé par {@link #setSkin} à chaque image des fenêtres qui s'en servent, et vaut pour toutes.
  */
 public final class DimensionPalette {
-
     private DimensionPalette() {
     }
 
@@ -44,9 +42,7 @@ public final class DimensionPalette {
         skin = chosen != null && chosen.visual() == SkinVisual.DIMENSION_PALETTE ? chosen : null;
     }
 
-    public static Skin skin() {
-        return skin;
-    }
+    public static Skin skin() { return skin; }
 
     /** La couleur de la dimension {@code number} (1 à 10) dans l'arène. */
     public static Color color(int number) {

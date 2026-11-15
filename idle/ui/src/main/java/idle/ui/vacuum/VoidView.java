@@ -3,23 +3,20 @@ package idle.ui.vacuum;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import idle.core.universe.Skin;
+import javafx.scene.shape.ArcType;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
 
 /**
- * L'écume quantique du vide (version 0.099, branchée sur la partie en 0.129). Des paires de particules y naissent d'un
+ * L'écume quantique du vide (branchée sur la partie en 0.129). Des paires de particules y naissent d'un
  * point, s'écartent un instant, puis se rejoignent et s'annulent dans un petit éclair. Depuis la 0.129, ce sont les
  * paires de la partie : elles naissent au rythme du jeu ({@link #follow}) et vivent ce que vit une paire ; le trou
  * noir, une fois ouvert, se dessine au centre, d'autant plus gros que sa masse l'est. Derrière, le champ ondule.
  *
- * <p>Version 0.195 : l'écume, les paires et le trou noir ont leurs skins ({@link #skins}), dessinés par {@link VoidSkinArt}.
+ * <p>L'écume, les paires et le trou noir ont leurs skins ({@link #skins}), dessinés par {@link VoidSkinArt}.
  */
 public final class VoidView extends Canvas {
-
     private static final Color BACK = Color.web("#03060c");
     private static final Color GLOW = Color.web(VoidPage.COLOR);
     private static final Color MATTER = Color.web(VoidPage.COLOR);
@@ -44,11 +41,11 @@ public final class VoidView extends Canvas {
     private double life = 6, mass = -1;
     /** Combien de paires de la partie chaque paire dessinée représente. */
     private double scale = 1;
-    /** Les skins choisis (version 0.195) ; {@code null} pour le Classique. */
-    private idle.core.universe.Skin foamSkin, pairSkin, holeSkin;
+    /** Les skins choisis ; {@code null} pour le Classique. */
+    private Skin foamSkin, pairSkin, holeSkin;
 
-    /** Les skins de l'écume, des paires et du trou noir (version 0.195) : la page les donne avant chaque image. */
-    public void skins(idle.core.universe.Skin foam, idle.core.universe.Skin pairs, idle.core.universe.Skin hole) {
+    /** Les skins de l'écume, des paires et du trou noir : la page les donne avant chaque image. */
+    public void skins(Skin foam, Skin pairs, Skin hole) {
         foamSkin = foam;
         pairSkin = pairs;
         holeSkin = hole;
@@ -104,9 +101,7 @@ public final class VoidView extends Canvas {
     }
 
     /** Les paires dessinées en ce moment : pour les vérifications. */
-    public int drawnPairs() {
-        return pairs.size();
-    }
+    public int drawnPairs() { return pairs.size(); }
 
     /** Une image : l'écume avance si l'animation est allumée, sinon elle reste figée. */
     public void frame(double elapsed, boolean motion) {
@@ -123,11 +118,8 @@ public final class VoidView extends Canvas {
         double w = getWidth(), h = getHeight();
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
-        if (VoidSkinArt.drawsFoam(foamSkin)) {
-            VoidSkinArt.foam(g, foamSkin, w, h, time);
-        } else {
-            field(g, w, h);
-        }
+        if (VoidSkinArt.drawsFoam(foamSkin)) VoidSkinArt.foam(g, foamSkin, w, h, time);
+        else field(g, w, h);
         if (mass >= 0) {
             if (VoidSkinArt.drawsHole(holeSkin)) VoidSkinArt.hole(g, holeSkin, w / 2, h / 2, 10 + 3 * mass, time);
             else hole(g, w / 2, h / 2);
@@ -192,7 +184,7 @@ public final class VoidView extends Canvas {
         g.setStroke(Color.color(1, 0.75, 0.4, 0.75));
         g.setLineWidth(2);
         double spin = time * 40;
-        g.strokeArc(cx - r * 1.6, cy - r * 0.55, r * 3.2, r * 1.1, spin % 360, 250, javafx.scene.shape.ArcType.OPEN);
+        g.strokeArc(cx - r * 1.6, cy - r * 0.55, r * 3.2, r * 1.1, spin % 360, 250, ArcType.OPEN);
         g.setFill(Color.BLACK);
         g.fillOval(cx - r, cy - r, r * 2, r * 2);
     }

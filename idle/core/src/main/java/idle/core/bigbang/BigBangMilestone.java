@@ -1,6 +1,8 @@
 package idle.core.bigbang;
 
 import idle.core.molecules.Molecule;
+import idle.core.Resource;
+import idle.core.math.BigNum;
 import idle.core.upgrades.Effect;
 import java.util.List;
 
@@ -20,12 +22,9 @@ import java.util.List;
  * @param resource ce qui le paie : particules ou atomes
  * @param price    son prix, une fois ouvert
  */
-public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, idle.core.Resource resource, idle.core.math.BigNum price) {
-
-    /** Vrai si le palier se paie, une fois son nombre de Big Bangs atteint (version 0.124). */
-    public boolean hasPrice() {
-        return price.sign() > 0;
-    }
+public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, Resource resource, BigNum price) {
+    /** Vrai si le palier se paie, une fois son nombre de Big Bangs atteint. */
+    public boolean hasPrice() { return price.sign() > 0; }
 
     /**
      * Ce que donne un palier.
@@ -82,12 +81,11 @@ public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, 
     public record AutoMolecules() implements Effect {}
 
     /**
-     * L'arbre de matière noire traverse le Big Bang ({@link Game#bigBangKeepsDarkTree()}) : ses
-     * cases, ses automatismes et leurs réglages restent, avec la matière noire déjà dépensée, celle
-     * qui ouvre les cases et les défis. Le Big Bang ne reprend plus que la réserve, la taille et la
-     * masse du tableau (les défis réussis, eux, sont gardés depuis {@link KeepChallenges}). Cela vaut
-     * dès le Big Bang qui atteint le palier : c'est lui qui s'en trouve raccourci. Pour les suivants, depuis la
-     * version 0.124, il faut que le palier soit payé : sinon le Big Bang reprend l'arbre.
+     * L'arbre de matière noire traverse le Big Bang ({@link Game#bigBangKeepsDarkTree()}) : ses cases, ses automatismes
+     * et leurs réglages restent, avec la matière noire déjà dépensée, celle qui ouvre les cases et les défis. Le Big
+     * Bang ne reprend plus que la réserve, la taille et la masse du tableau (les défis réussis, eux, sont gardés depuis
+     * {@link KeepChallenges}). Cela vaut dès le Big Bang qui atteint le palier : c'est lui qui s'en trouve raccourci.
+     * Pour les suivants, depuis la version 0.124, il faut que le palier soit payé : sinon le Big Bang reprend l'arbre.
      */
     public record KeepDarkTree() implements Effect {}
 

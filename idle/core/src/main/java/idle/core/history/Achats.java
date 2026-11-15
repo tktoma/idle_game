@@ -1,24 +1,21 @@
 package idle.core.history;
 
-import idle.core.Game;
+import idle.core.*;
+import idle.core.collider.*;
+import idle.core.darkmatter.DarkUpgrades;
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 
 /**
- * Ce qui a été acheté entre deux photos de la partie, et ce que chaque achat a coûté (version 0.165, venu du bot
+ * Ce qui a été acheté entre deux photos de la partie, et ce que chaque achat a coûté (venu du bot
  * analyste de la 0.161 pour servir aussi à l'historique des achats du joueur). Seules les clés d'achat comptent
  * ({@link #achat}) : améliorations, automatismes, arbre, générateurs, bulles, dimensions, graine ; les compteurs d'actions
  * (fusions, synthèses, impulsions…) n'en sont pas, et les réglages ({@link #REGLAGES}) non plus. Chaque monnaie payée se
  * répartit entre les achats du même moment au prorata de leur prix estimé ({@link #coutRelatif}), sinon à parts égales.
  */
 public final class Achats {
-
     private Achats() {}
 
     /**
@@ -29,15 +26,12 @@ public final class Achats {
      */
     public record Achat(String groupe, String chose, double quantite, String monnaie, String paye, double montantLog, String montant,
             double part, Tenue tenue) {
-
         /** « Amélioration — Couplage ». */
-        public String quoi() {
-            return groupe + (chose.isEmpty() ? "" : " — " + chose);
-        }
+        public String quoi() { return groupe + (chose.isEmpty() ? "" : " — " + chose); }
     }
 
     /**
-     * Jusqu'où tient un achat (version 0.168) : la remise à zéro qui l'efface. Les améliorations en particules partent à
+     * Jusqu'où tient un achat : la remise à zéro qui l'efface. Les améliorations en particules partent à
      * la fusion (sauf la part que garde la Persistance), celles en atomes et les automatismes à l'explosion, l'arbre de
      * matière noire au Big Bang, ce qui appartient à l'acte du Big Bang et au collisionneur à la formation de l'univers ;
      * les bulles, la graine et les dimensions tiennent toute la partie.
@@ -52,17 +46,13 @@ public final class Achats {
 
         private final String label;
 
-        Tenue(String label) {
-            this.label = label;
-        }
+        Tenue(String label) { this.label = label; }
 
         /** « jusqu'à la prochaine explosion ». */
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
-    /** Jusqu'où tient ce qui s'achète à cette clé (version 0.168). */
+    /** Jusqu'où tient ce qui s'achète à cette clé. */
     public static Tenue tenue(String key, String sub) {
         if (key == null) return Tenue.INCONNUE;
         if (key.equals("upgradeLevels")) return "particles".equals(monnaie(key, sub)) ? Tenue.FUSION : Tenue.EXPLOSION;
@@ -137,7 +127,7 @@ public final class Achats {
     }
 
     /** Les clés où ce qui monte a été acheté (version 0.162 : les autres, des compteurs d'actions, ne sont plus pris pour des achats). */
-    public static final java.util.Set<String> ACHATS = java.util.Set.of("upgradeLevels", "ownedAutomations", "automationSpeedLevels", "darkUpgradeLevels",
+    public static final Set<String> ACHATS = Set.of("upgradeLevels", "ownedAutomations", "automationSpeedLevels", "darkUpgradeLevels",
             "spaceUpgrades", "boughtMilestones", "colliderGeneratorsBought", "colliderUpgrades", "probeUpgrades", "dimensionAutomations",
             "hadrons", "universeUpgrades", "tableWeightLevel", "voidOpen", "hadronsOpen", "unlockedSkins", "automationBatchLevels");
 
@@ -168,12 +158,12 @@ public final class Achats {
     /** La ressource qui paie ce qui est monté à cette clé : sa clé dans la sauvegarde, ou {@code null} si inconnue. */
     public static String monnaie(String key, String sub) {
         if (key.equals("upgradeLevels")) {
-            for (Upgrade u : Upgrades.DEFAULT) if (u.id().equals(sub)) return u.resource() == idle.core.Resource.PARTICLES ? "particles" : "atoms";
+            for (Upgrade u : Upgrades.DEFAULT) if (u.id().equals(sub)) return u.resource() == Resource.PARTICLES ? "particles" : "atoms";
             return null;
         }
         if (key.equals("darkUpgradeLevels")) {
             // L'arbre se paie selon la branche : particules, atomes ou matière noire ; la taille s'atteint sans payer.
-            for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
+            for (var d : DarkUpgrades.DEFAULT) {
                 if (!d.id().equals(sub)) continue;
                 return switch (d.branch()) {
                     case PARTICLES -> "particles";
@@ -186,7 +176,7 @@ public final class Achats {
         }
         // Les automatismes ordinaires et leur cadence se paient en atomes.
         if (key.equals("ownedAutomations") || key.equals("automationSpeedLevels")) return "atoms";
-        // L'achat en lot des automatismes (version 0.167) se paie en matière noire.
+        // L'achat en lot des automatismes se paie en matière noire.
         if (key.equals("automationBatchLevels")) return "darkMatter";
         if (key.equals("spaceUpgrades")) return "space";
         if (key.startsWith("collider")) return "colliderEnergy";
@@ -219,28 +209,28 @@ public final class Achats {
                 for (Upgrade u : Upgrades.DEFAULT) if (u.id().equals(sub)) return somme(u.baseCost().log10(), Math.log10(u.costGrowth()), from, to);
             }
             if (key.equals("ownedAutomations")) {
-                for (var a : idle.core.upgrades.Automations.DEFAULT) if (a.id().equals(sub)) return a.cost().log10();
+                for (var a : Automations.DEFAULT) if (a.id().equals(sub)) return a.cost().log10();
             }
             if (key.equals("automationSpeedLevels")) {
-                for (var a : idle.core.upgrades.Automations.DEFAULT) if (a.id().equals(sub)) return somme(a.speedBaseCost().log10(), Math.log10(a.speedCostGrowth()), from, to);
+                for (var a : Automations.DEFAULT) if (a.id().equals(sub)) return somme(a.speedBaseCost().log10(), Math.log10(a.speedCostGrowth()), from, to);
             }
             if (key.equals("automationBatchLevels")) {
                 return somme(Math.log10(Game.AUTOMATION_BATCH_BASE_COST), Math.log10(Game.AUTOMATION_BATCH_COST_GROWTH), from, to);
             }
             if (key.equals("darkUpgradeLevels")) {
-                for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) if (d.id().equals(sub)) return somme(d.baseCost().log10(), Math.log10(d.costGrowth()), from, to);
+                for (var d : DarkUpgrades.DEFAULT) if (d.id().equals(sub)) return somme(d.baseCost().log10(), Math.log10(d.costGrowth()), from, to);
             }
             if (key.equals("colliderGeneratorsBought")) {
-                var gen = idle.core.collider.ColliderGenerator.valueOf(sub);
+                var gen = ColliderGenerator.valueOf(sub);
                 return Math.log10(gen.cost(from)) + Math.log10(Math.max(1, to - from));
             }
-            if (key.equals("colliderUpgrades")) return Math.log10(idle.core.collider.ColliderUpgrade.valueOf(sub).cost(from));
+            if (key.equals("colliderUpgrades")) return Math.log10(ColliderUpgrade.valueOf(sub).cost(from));
             if (key.equals("dimensionAutomations")) return Math.log10(DimensionAutomation.valueOf(sub).cost());
             if (key.startsWith("treeBubbleLevel")) {
                 TreeBubble bubble = TreeBubble.values()[Integer.parseInt(key.substring("treeBubbleLevel".length()))];
                 return Math.log10(bubble.costAt(from));
             }
-            idle.core.GameUniverse.Priced priced = priced(key);
+            GameUniverse.Priced priced = priced(key);
             if (priced != null) return Math.log10(priced.cost(from)) + Math.log10(Math.max(1, to - from));
         } catch (RuntimeException unknown) {
             return Double.NaN;
@@ -254,7 +244,7 @@ public final class Achats {
         return baseLog + growthLog * last;
     }
 
-    private static idle.core.GameUniverse.Priced priced(String key) {
+    private static GameUniverse.Priced priced(String key) {
         String[][] prefixes = {{"planeLevel"}, {"volumeLevel"}, {"durationLevel"}, {"loopLevel"}, {"braneLevel"}, {"clickerLevel"},
             {"gridLevel"}, {"mirrorLevel"}, {"mixStageLevel"}, {"voidLevel"}, {"seedUpgrade"}};
         Object[][] enums = {Game.PlaneUpgrade.values(), Game.VolumeUpgrade.values(), Game.DurationUpgrade.values(), Game.LoopUpgrade.values(),
@@ -264,7 +254,7 @@ public final class Achats {
             String p = prefixes[i][0];
             if (key.startsWith(p) && key.length() > p.length()) {
                 int index = Integer.parseInt(key.substring(p.length()));
-                return (idle.core.GameUniverse.Priced) enums[i][index];
+                return (GameUniverse.Priced) enums[i][index];
             }
         }
         String[][] line = {{"lineYieldLevel", "YIELD"}, {"lineTicksLevel", "TICKS"}, {"lineSpeedLevel", "SPEED"}, {"lineBallsLevel", "BALLS"},
@@ -272,5 +262,4 @@ public final class Achats {
         for (String[] l : line) if (key.equals(l[0])) return Game.LineUpgrade.valueOf(l[1]);
         return null;
     }
-
 }

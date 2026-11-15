@@ -2,13 +2,11 @@ package idle.ui.particles;
 
 import idle.core.universe.Skin;
 import java.util.List;
-import javafx.animation.Interpolator;
-import javafx.animation.ParallelTransition;
-import javafx.animation.Transition;
+import javafx.animation.*;
 import javafx.util.Duration;
 
 /**
- * Les trois skins de la fusion des générateurs (version 0.192), à côté de {@link GeneratorPane} pour le garder
+ * Les trois skins de la fusion des générateurs, à côté de {@link GeneratorPane} pour le garder
  * lisible. Chacun remplace le glissement classique vers le centre par un mouvement à lui, de même durée et qui
  * finit au même endroit, à la même taille :
  * <ul>
@@ -21,7 +19,6 @@ import javafx.util.Duration;
  * </ul>
  */
 final class GeneratorFusionArt {
-
     /** La part du temps où les éclats s'éloignent, avant de se rassembler. */
     static final double SHATTER_OUT = 0.4;
 

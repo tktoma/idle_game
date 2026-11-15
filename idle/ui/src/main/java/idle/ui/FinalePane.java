@@ -1,24 +1,22 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.GameStats;
+import idle.core.state.GameStats;
 import idle.core.math.BigNum;
 import idle.ui.common.Format;
 import java.util.List;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'écran de la fin de la partie (version 0.160), par-dessus la fenêtre, quand le défi final est réussi : les dix
+ * L'écran de la fin de la partie, par-dessus la fenêtre, quand le défi final est réussi : les dix
  * paliers des dimensions atteints. Il vient au bout de l'animation de la carte des dimensions, et le bouton « Revoir la
  * fin » le ramène. Il dit le temps de jeu, les univers formés et quelques chiffres de toute la partie, remercie, puis
  * laisse continuer : le jeu tourne toujours derrière.
  */
 public final class FinalePane extends Overlay {
-
     private static final String GOLD = "#ffd27f";
     private static final String CARD_STYLE = cardStyle(GOLD, true, "28 34");
     private static final String BUTTON_STYLE = buttonStyle("8 22", GOLD);
@@ -58,13 +56,9 @@ public final class FinalePane extends Overlay {
         reveal();
     }
 
-    public void close() {
-        setVisible(false);
-    }
+    public void close() { setVisible(false); }
 
-    public boolean isOpen() {
-        return isVisible();
-    }
+    public boolean isOpen() { return isVisible(); }
 
     /** Les textes : le temps de jeu, les univers, et quelques chiffres de toute la partie. */
     void fill() {
@@ -83,23 +77,11 @@ public final class FinalePane extends Overlay {
     }
 
     /** Le titre, le résumé, les chiffres, le remerciement et le bouton : pour les vérifications. */
-    public String titleText() {
-        return title.getText();
-    }
+    public String titleText() { return title.getText(); }
 
-    public String summaryText() {
-        return summary.getText();
-    }
+    public String summaryText() { return summary.getText(); }
 
-    public String numbersText() {
-        return numbers.getText();
-    }
+    public String thanksText() { return thanks.getText(); }
 
-    public String thanksText() {
-        return thanks.getText();
-    }
-
-    public Button continueButton() {
-        return button;
-    }
+    public Button continueButton() { return button; }
 }

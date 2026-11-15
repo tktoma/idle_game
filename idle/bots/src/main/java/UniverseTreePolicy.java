@@ -2,19 +2,12 @@ import idle.core.Game;
 import idle.core.GameUniverse.LineUpgrade;
 import idle.core.GameUniverse.SeedUpgrade;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.universe.DimensionAutomation;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
- * Ce que les bots font en plus à partir de l'univers 4 (version 0.152), par-dessus {@link NextUniversePolicy} et
+ * Ce que les bots font en plus à partir de l'univers 4, par-dessus {@link NextUniversePolicy} et
  * {@link VoidPolicy} : la graine d'univers et son arrosoir, les bulles de l'arbre, les hadrons, la ligne et
  * l'automatisation des dimensions. Une seule classe pour tous les bots, appelée par
  * {@link RobotCosmosPlanner#resourceLoop()} et {@link RobotCosmosPlanner#universeProgress()}.
@@ -41,7 +34,6 @@ import java.util.Random;
  * {@code -Didle.sansArbre=true} coupe tout cela : l'univers suivant se lance alors dès l'univers formé, comme avant.
  */
 final class UniverseTreePolicy {
-
     /** Univers formés à partir desquels la politique joue : trois (la partie de l'univers 4 et les suivantes). */
     static final int FROM_UNIVERSES = 3;
     /** La réserve d'énergie du collisionneur pour les hadrons ne dure pas plus que ce temps de jeu. */
@@ -69,7 +61,7 @@ final class UniverseTreePolicy {
     /** Une bulle de la liste de l'expert, au niveau voulu. */
     record Step(TreeBubble bubble, int level) {}
 
-    /** Version 0.163 : le nombre d'univers formés après lequel les bots prennent la bulle des racines (le défi final). */
+    /** Le nombre d'univers formés après lequel les bots prennent la bulle des racines (le défi final). */
     static final int ROOTS_AFTER = 11;
 
     /**
@@ -90,12 +82,12 @@ final class UniverseTreePolicy {
     }
 
     /**
-     * Version 0.208 : la bulle du jeune arbre, à droite (plus de plafond de générateurs), coûtait trop de calcul aux bots.
+     * La bulle du jeune arbre, à droite (plus de plafond de générateurs), coûtait trop de calcul aux bots.
      * Avec celle du bonsaï (automatismes sans délai), l'automatisme des générateurs a toujours un achat à tenter et
      * recalcule des prix à chaque pas : les univers où le bot la possède coûtent trois à six fois plus de calcul, pour
      * 13 min de jeu gagnées sur 87 h (Speedrunner, graine 201, dix univers : 86 h 44 avec, 86 h 57 sans ; 6 682 s de
      * calcul contre 2 101 s). En 0.208, les bots ne l'achetaient pas, et lui manquaient deux skins de bulles (18 achetées
-     * sur 19). Version 0.209 : ils l'achètent après les autres, mais son effet reste coupé pour eux
+     * sur 19). Ils l'achètent après les autres, mais son effet reste coupé pour eux
      * ({@link #keepGeneratorCap}) : elle compte comme achetée, paie son prix, et le plafond de générateurs reste. Un
      * joueur n'a pas cet interrupteur. {@code -Didle.avecBulleGenerateurs=true} la rend aux bots avec son effet, à sa
      * place dans l'ordre, pour comparer avec les mesures d'avant la 0.208.
@@ -106,20 +98,18 @@ final class UniverseTreePolicy {
     static final String GENERATOR_CAP_KEY = "bulle:" + TreeBubble.YOUNG_RIGHT.name();
 
     /**
-     * Version 0.209 : coupe l'effet de la bulle du jeune arbre, à droite, pour la partie en mémoire (jamais sauvegardé, à
+     * Coupe l'effet de la bulle du jeune arbre, à droite, pour la partie en mémoire (jamais sauvegardé, à
      * remettre après chaque reprise : l'achat des bulles le fait à chaque passage).
      */
-    static void keepGeneratorCap(Game game) {
-        if (!UNCAPPED_GENERATORS) game.state().testBlock(GENERATOR_CAP_KEY);
-    }
+    static void keepGeneratorCap(Game game) { if (!UNCAPPED_GENERATORS) game.state().testBlock(GENERATOR_CAP_KEY); }
 
     /**
-     * Version 0.168 : les bulles qu'une mesure « sans » retire ({@code sans=bulle:NOM} du bot analyste) : aucun profil ne
+     * Les bulles qu'une mesure « sans » retire ({@code sans=bulle:NOM} du bot analyste) : aucun profil ne
      * les achète. Une mesure par JVM : la valeur vaut pour la partie et ses copies d'essai.
      */
-    static volatile java.util.Set<TreeBubble> withoutBubbles = java.util.Set.of();
+    static volatile Set<TreeBubble> withoutBubbles = Set.of();
 
-    /** Version 0.168 : l'ordre des bulles imposé à tous les profils pour une mesure ({@code null} : celui de chaque profil). */
+    /** L'ordre des bulles imposé à tous les profils pour une mesure ({@code null} : celui de chaque profil). */
     static volatile Plan forcedPlan = null;
 
     /**
@@ -138,9 +128,7 @@ final class UniverseTreePolicy {
      * </ol>
      * L'ordre de la 0.173 ({@link #ORDER_0173}) reste pour les mesures : {@code -Didle.cheminBulles=0173}.
      */
-    static final List<Step> BEST_ORDER = List.of(
-            new Step(TreeBubble.SEED, 1),
-            new Step(TreeBubble.LEAVES_RIGHT, 1),
+    static final List<Step> BEST_ORDER = List.of(new Step(TreeBubble.SEED, 1), new Step(TreeBubble.LEAVES_RIGHT, 1),
             new Step(TreeBubble.LEAVES_LEFT, 1),
             new Step(TreeBubble.CROWN_LEFT, 1),
             new Step(TreeBubble.CROWN_RIGHT, 1),
@@ -171,9 +159,7 @@ final class UniverseTreePolicy {
             new Step(TreeBubble.GIANT_LEFT_HIGH, 5));
 
     /** L'ordre de l'expert jusqu'à la version 0.173, gardé pour les mesures ({@code -Didle.cheminBulles=0173}). */
-    static final List<Step> ORDER_0173 = List.of(
-            new Step(TreeBubble.SEED, 1),
-            new Step(TreeBubble.LEAVES_LEFT, 1),
+    static final List<Step> ORDER_0173 = List.of(new Step(TreeBubble.SEED, 1), new Step(TreeBubble.LEAVES_LEFT, 1),
             new Step(TreeBubble.LEAVES_RIGHT, 1),
             new Step(TreeBubble.LEAVES_LEFT, 2),
             new Step(TreeBubble.CROWN_RIGHT, 1),
@@ -224,9 +210,7 @@ final class UniverseTreePolicy {
     /** Les bulles achetées, dans l'ordre, avec l'univers où elles l'ont été : pour le bilan. */
     final List<String> journal = new ArrayList<>();
 
-    UniverseTreePolicy() {
-        this(Style.EXPERT, new Random(0));
-    }
+    UniverseTreePolicy() { this(Style.EXPERT, new Random(0)); }
 
     /**
      * @param style  la façon de jouer du profil
@@ -237,18 +221,12 @@ final class UniverseTreePolicy {
         this.random = random;
     }
 
-    Style style() {
-        return style;
-    }
+    Style style() { return style; }
 
-    static boolean disabled() {
-        return Boolean.getBoolean("idle.sansArbre");
-    }
+    static boolean disabled() { return Boolean.getBoolean("idle.sansArbre"); }
 
     /** Vrai à partir de trois univers formés : la partie de l'univers 4, et toutes les suivantes. */
-    static boolean active(Game game) {
-        return !disabled() && game.universes() >= FROM_UNIVERSES;
-    }
+    static boolean active(Game game) { return !disabled() && game.universes() >= FROM_UNIVERSES; }
 
     private boolean chance(double p) {
         if (p >= 1) return true;
@@ -257,21 +235,17 @@ final class UniverseTreePolicy {
     }
 
     /**
-     * Le palier de la graine que vise le joueur. Version 0.179 : l'arbre-monde, toujours. Les paliers demandent maintenant
+     * Le palier de la graine que vise le joueur. L'arbre-monde, toujours. Les paliers demandent maintenant
      * des heures d'arrosoir, et chacun ouvre des bulles : un joueur présent tient l'arrosoir tant que la graine grandit,
      * dès l'univers 1 formé. Avant (0.152 à 0.178), le palier de l'univers suivant, trente arrosages plus loin.
      */
-    static int wantedStage(Game game) {
-        return Game.SEED_STAGES;
-    }
+    static int wantedStage(Game game) { return Game.SEED_STAGES; }
 
     /** Vrai dès qu'il y a une graine à arroser : l'univers 1 formé. La politique des bulles attend {@link #FROM_UNIVERSES}. */
-    static boolean watering(Game game) {
-        return !disabled() && game.isUniverseFormed();
-    }
+    static boolean watering(Game game) { return !disabled() && game.isUniverseFormed(); }
 
     // ------------------------------------------------------------------
-    // Les dimensions jouées à la main pendant les attentes (version 0.179)
+    // Les dimensions jouées à la main pendant les attentes
     // ------------------------------------------------------------------
 
     /** Le joueur appliqué de la dimension en cours, ou {@code null} ; sa dimension est reconsidérée toutes les {@link #DIMENSION_RETHINK_SECONDS} secondes. */
@@ -287,32 +261,32 @@ final class UniverseTreePolicy {
      * ({@code Game.playDimensionByHand}), une action toutes les {@link #HAND_SECONDS} secondes.
      */
     static final int FIRST_PLAYED = 2, LAST_PLAYED = 10, LAST_APPLIED = 4;
-    /** Le temps entre deux actions d'un joueur présent qui joue une dimension à la main (version 0.209). */
+    /** Le temps entre deux actions d'un joueur présent qui joue une dimension à la main. */
     static final double HAND_SECONDS = 1;
     /**
-     * Version 0.209 : la part du prix de l'automatisme suivant à partir de laquelle le joueur économise pour lui. En
+     * La part du prix de l'automatisme suivant à partir de laquelle le joueur économise pour lui. En
      * dessous, il achète les améliorations de la dimension, qui font monter ce qu'elle rapporte ; au-dessus, seulement
      * ce qui laisse de quoi payer l'automatisme. Économiser dès le premier segment bloquait la ligne : sans
      * amélioration, elle ne rapportait presque rien (5 402 segments en quatre univers, mesure de réglage).
      */
     static final double SAVE_FROM = 0.5;
 
-    /** Vrai si le joueur achète à la main ce niveau de cette dimension, à ce prix (version 0.209, {@link #SAVE_FROM}). */
+    /** Vrai si le joueur achète à la main ce niveau de cette dimension, à ce prix ({@link #SAVE_FROM}). */
     static boolean handBuys(Game game, int dimension, double price) {
         double balance = game.dimensionResource(dimension), reserve = game.dimensionAutomationReserve(dimension);
         return price <= balance && (balance < reserve * SAVE_FROM || balance - price >= reserve - 1e-9);
     }
 
     /**
-     * Version 0.209 : le temps entre deux actions à la main d'un joueur qui ne s'occupe pas de l'arbre à chaque décision
+     * Le temps entre deux actions à la main d'un joueur qui ne s'occupe pas de l'arbre à chaque décision
      * ({@link Style#care} sous 1), celui de ses décisions ; 0 : il ne joue pas les dimensions. Les profils le donnent.
      */
     double occasionalHandSeconds;
 
     /**
-     * Avant chaque pas du jeu, le joueur joue une dimension à la main (version 0.179), celle dont la ressource couvre le
+     * Avant chaque pas du jeu, le joueur joue une dimension à la main, celle dont la ressource couvre le
      * moins ce qu'elle doit payer ensuite ({@link #bestDimension}) : les attentes de l'amas, de la formation et de la
-     * maturation se passent dans les dimensions. Version 0.209 : les automatismes des dimensions se paient avec leur
+     * maturation se passent dans les dimensions. Les automatismes des dimensions se paient avec leur
      * propre ressource, et celui qui joue vient en dernier ; sans jouer à la main, une dimension ne rapporte rien. Le joueur
      * présent ({@link Style#care} à 1) joue à vitesse humaine ; les autres, au rythme de leurs décisions
      * ({@link #occasionalHandSeconds}). Rien si la politique est coupée ou avant l'univers 1 formé.
@@ -343,7 +317,7 @@ final class UniverseTreePolicy {
     /**
      * La dimension à jouer : parmi celles ouvertes de {@link #FIRST_PLAYED} à {@link #LAST_PLAYED}, celle dont la réserve
      * couvre le moins ce qu'elle doit payer ensuite, la moins chère de ses améliorations de la graine ou son automatisme
-     * suivant (version 0.209) ; pas celles qu'un automatisme joue déjà au moins aussi vite que la main ; 0 sans.
+     * suivant ; pas celles qu'un automatisme joue déjà au moins aussi vite que la main ; 0 sans.
      */
     static int bestDimension(Game game, double hand) {
         int best = 0;
@@ -360,7 +334,7 @@ final class UniverseTreePolicy {
         return best;
     }
 
-    /** Le temps entre deux actions du palier qui joue cette dimension, sans la main d'un bot ; l'infini sans palier (version 0.209). */
+    /** Le temps entre deux actions du palier qui joue cette dimension, sans la main d'un bot ; l'infini sans palier. */
     static double automaticPeriod(Game game, int dimension) {
         double period = Double.POSITIVE_INFINITY;
         for (DimensionAutomation automation : DimensionAutomation.values()) {
@@ -370,14 +344,14 @@ final class UniverseTreePolicy {
         return period;
     }
 
-    /** Le prix de l'automatisme suivant de cette dimension, s'il s'achète déjà ; l'infini sinon (version 0.209). */
+    /** Le prix de l'automatisme suivant de cette dimension, s'il s'achète déjà ; l'infini sinon. */
     static double nextAutomationCost(Game game, int dimension) {
         DimensionAutomation next = game.nextDimensionAutomation(dimension);
         return next == null || !game.isDimensionAutomationAvailable(next) ? Double.POSITIVE_INFINITY : game.dimensionAutomationCost(next);
     }
 
     /**
-     * Version 0.209 : les améliorations d'une dimension jouée à la main au-delà de la durée, prises comme le ferait un
+     * Les améliorations d'une dimension jouée à la main au-delà de la durée, prises comme le ferait un
      * joueur, la moins chère d'abord ; près du prix de l'automatisme suivant, il économise ({@link #handBuys}).
      * Le plan, le volume et la durée ont leur joueur appliqué, qui achète lui-même.
      */
@@ -490,7 +464,7 @@ final class UniverseTreePolicy {
         for (int n = 0; n < 40; n++) {
             TreeBubble choice;
             if ((forcedPlan != null ? forcedPlan : style.plan()) == Plan.BEST) {
-                // Version 0.163 : l'ordre de l'expert fini, les bulles qui restent (celle des racines), la moins chère d'abord.
+                // L'ordre de l'expert fini, les bulles qui restent (celle des racines), la moins chère d'abord.
                 Step next = nextBest(game);
                 choice = next == null ? (allBestDone(game) ? cheapestBubble(game) : null) : next.bubble();
             } else {
@@ -513,7 +487,7 @@ final class UniverseTreePolicy {
     /** Vrai tant que le joueur garde l'énergie du collisionneur pour ouvrir l'onglet des hadrons (deux heures au plus). */
     boolean savingForHadrons(Game game) {
         if (!active(game) || !game.isHadronsOffered()) return false;
-        // Version 0.174 : comme pour le vide, pas pour un prix trop loin de la production du collisionneur.
+        // Comme pour le vide, pas pour un prix trop loin de la production du collisionneur.
         if (!VoidPolicy.nearPrice(game, game.hadronsPrice())) return false;
         if (offeredIn != game.universes()) {
             offeredIn = game.universes();
@@ -539,7 +513,7 @@ final class UniverseTreePolicy {
         return keep;
     }
 
-    /** Version 0.174 : une amélioration du collisionneur est « à portée » si elle demande au plus deux fois les quarks qu'on a. */
+    /** Une amélioration du collisionneur est « à portée » si elle demande au plus deux fois les quarks qu'on a. */
     static final int QUARK_REACH = 2;
 
     /** Combien de ce hadron se lient sans entamer la réserve du collisionneur. */
@@ -588,14 +562,13 @@ final class UniverseTreePolicy {
     // ------------------------------------------------------------------
 
     /**
-     * Le chrono à fond (version 0.182) ; les automatismes des dimensions (ouverts par les paliers de la graine et les univers,
-     * version 0.182), dans l'ordre du jeu ; le débit de l'arrosoir tant que la graine
-     * pousse ; les autres améliorations de la graine dès qu'elles sont payables (version 0.163) ; puis la ligne au
-     * meilleur rapport.
+     * Le chrono à fond ; les automatismes des dimensions (ouverts par les paliers de la graine et les univers, version
+     * 0.182), dans l'ordre du jeu ; le débit de l'arrosoir tant que la graine pousse ; les autres améliorations de la
+     * graine dès qu'elles sont payables ; puis la ligne au meilleur rapport.
      */
     int line(Game game) {
         int done = 0;
-        // Version 0.182 : le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
+        // Le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
         // comptent en secondes de jeu), seulement au temps réel : la colonne « réel » des mesures le dit.
         if (game.isChronoUnlocked() && game.chronoSpeed() < game.chronoMaxSpeed() - 1e-9) {
             game.setChronoSpeed(game.chronoMaxSpeed());
@@ -615,7 +588,7 @@ final class UniverseTreePolicy {
             seedBought++;
             done++;
         }
-        // Version 0.163 : les autres améliorations de la graine, payées avec les ressources des dimensions, dès qu'elles
+        // Les autres améliorations de la graine, payées avec les ressources des dimensions, dès qu'elles
         // sont payables (avant, les bots ne prenaient que le débit de l'arrosoir) ; la bulle des racines d'abord, puisqu'elle
         // ouvre le défi final.
         if (game.canBuySeedUpgrade(SeedUpgrade.ROOT_BUBBLE) && game.buySeedUpgrade(SeedUpgrade.ROOT_BUBBLE)) {
@@ -634,14 +607,14 @@ final class UniverseTreePolicy {
             }
             if (!any) break;
         }
-        // Version 0.209 : près du prix de l'automatisme suivant de la ligne, payé en segments, il économise ({@link #handBuys}).
+        // Près du prix de l'automatisme suivant de la ligne, payé en segments, il économise ({@link #handBuys}).
         for (int n = 0; n < 50; n++) {
             LineUpgrade best = DimensionBots.bestLine(game);
             if (best == null || !handBuys(game, 1, game.lineCost(best)) || !game.buyLine(best)) break;
             lineBought++;
             done++;
         }
-        // Version 0.182 : le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
+        // Le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
         // comptent en secondes de jeu), seulement au temps réel : la colonne « réel » des mesures le dit.
         if (game.isChronoUnlocked() && game.chronoSpeed() < game.chronoMaxSpeed() - 1e-9) {
             game.setChronoSpeed(game.chronoMaxSpeed());

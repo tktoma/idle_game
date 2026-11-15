@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.save.SaveCodec;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,16 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeTrip;
+import idle.core.probes.*;
 import idle.core.sky.SkyEvent;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.127 : les anomalies du ciel, facultatives, petites, et sans effet sur le hasard du jeu. */
 class EvenementsDuCielTest {
-
     private static Game afterBigBang() {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
@@ -72,7 +72,7 @@ class EvenementsDuCielTest {
         try {
             Game game = afterBigBang();
             game.achievements().stream().limit(30).forEach(achievement -> game.state().addAchievement(achievement.id()));
-            game.state().setParticles(idle.core.math.BigNum.of(1, 50));
+            game.state().setParticles(BigNum.of(1, 50));
             assertEquals(SkyEvent.PARTICLE_WIND, waitForEvent(game));
             assertTrue(game.systemsPower() > 0, "une puissance agit");
             double before = game.particlesPerCreation().log10();
@@ -144,7 +144,7 @@ class EvenementsDuCielTest {
     void lAnomalieSeSauvegarde() throws Exception {
         Game game = afterBigBang();
         assertNotNull(waitForEvent(game));
-        GameState back = idle.core.save.SaveCodec.read(idle.core.save.SaveCodec.write(game.state(), 0)).state();
+        GameState back = SaveCodec.read(SaveCodec.write(game.state(), 0)).state();
         assertEquals(game.state().skyEvent(), back.skyEvent());
         assertEquals(game.state().skyEventVisible(), back.skyEventVisible(), 1e-9);
     }

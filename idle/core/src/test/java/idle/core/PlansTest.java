@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.save.SaveData;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,15 +14,10 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.084 : les plans de l'arbre et des systèmes solaires, en code texte, et la réouverture des bifurcations. */
 class PlansTest {
-
     /** Une partie où la bifurcation « matière » est ouverte, ses deux voies payables. */
-    private static Game atFork() {
-        return GameTestSupport.atFork();
-    }
+    private static Game atFork() { return GameTestSupport.atFork(); }
 
-    private static GameState reread(GameState state) {
-        return GameTestSupport.reread(state);
-    }
+    private static GameState reread(GameState state) { return GameTestSupport.reread(state); }
 
     @Test
     void leCodeDeLArbreSeCopieEtSeRecolle() {
@@ -90,9 +88,7 @@ class PlansTest {
         assertTrue(game.state().darkLevelOf("dark_nucleus") > 0, "le reste de l'arbre ne bouge pas");
     }
 
-    private static Game systems() {
-        return Systemes.huitAstres(6);
-    }
+    private static Game systems() { return Systemes.huitAstres(6); }
 
     @Test
     void leCodeDesSystemesSeCopieEtSeRecolle() {
@@ -171,7 +167,7 @@ class PlansTest {
     @Test
     void uneSauvegardeDeLa085GardeSonPlanDansLePremierEmplacement() {
         // L'ancienne clé, à un seul emplacement, sans la nouvelle.
-        idle.core.save.SaveData data = new idle.core.save.SaveData();
+        SaveData data = new SaveData();
         data.putList("savedDarkPlan", List.of("arbre:dark_rich_fusion"));
         data.putList("savedSystemPlan", List.of("systemes:yellow_sun||"));
         GameState back = new GameState();

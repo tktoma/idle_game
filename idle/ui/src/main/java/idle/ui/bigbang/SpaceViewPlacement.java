@@ -1,43 +1,34 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import java.util.*;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import java.util.List;
+import idle.core.sky.*;
 import javafx.scene.paint.Color;
 
-/**
- * La vue de l'espace : où va chaque molécule, chaque amas et chaque astre.
- */
+/** La vue de l'espace : où va chaque molécule, chaque amas et chaque astre. */
 public abstract class SpaceViewPlacement extends SpaceViewBase {
-
-    SpaceViewPlacement(Game game) {
-        super(game);
-    }
+    SpaceViewPlacement(Game game) { super(game); }
 
     // Ce que fournissent les parties suivantes.
     abstract void clear(double[] x, double[] y, int[] owner, double span, Grid grid);
     abstract void collide(double[] x, double[] y, int[] owner, double span, Grid grid);
     abstract void settle(int cell, Molecule molecule, Molecule.State state);
 
-
     /**
-     * Range les molécules créées sur la spirale, quand leur liste a changé. Les places sont comptées
-     * en parts du cœur utilisé, pas en unités d'espace : elles se resserrent ou s'écartent avec lui,
-     * et aucune ne peut se retrouver hors de l'espace.
+     * Range les molécules créées sur la spirale, quand leur liste a changé. Les places sont comptées en parts du cœur
+     * utilisé, pas en unités d'espace : elles se resserrent ou s'écartent avec lui, et aucune ne peut se retrouver hors
+     * de l'espace.
      *
-     * <p>Les assemblages choisissent d'abord : chacun prend au centre un bloc de places qui se
-     * touchent, et y mêle les molécules de ses ingrédients. Les molécules rassemblées qui restent
-     * choisissent ensuite. Chaque sorte prend des places qui se touchent, en partant de la place
-     * libre la plus proche du centre ({@link Growth#gather}) ; les sortes passent dans l'ordre des
-     * états, du plus serré au plus lâche, et les cristaux se retrouvent donc près du cœur, les gaz
-     * vers le bord. Les autres molécules prennent les places qui
-     * restent, du centre vers le bord, dans l'ordre de leur création. Les ronds des amas sont
-     * ensuite taillés pour ne pas se chevaucher ({@link #collide}).
+     * <p>Les assemblages choisissent d'abord : chacun prend au centre un bloc de places qui se touchent, et y mêle les
+     * molécules de ses ingrédients. Les molécules rassemblées qui restent choisissent ensuite. Chaque sorte prend des
+     * places qui se touchent, en partant de la place libre la plus proche du centre ({@link Growth#gather}) ; les
+     * sortes passent dans l'ordre des états, du plus serré au plus lâche, et les cristaux se retrouvent donc près du
+     * cœur, les gaz vers le bord. Les autres molécules prennent les places qui restent, du centre vers le bord, dans
+     * l'ordre de leur création. Les ronds des amas sont ensuite taillés pour ne pas se chevaucher ({@link #collide}).
      *
-     * <p>Tout cela ne regarde jamais que les places proches les unes des autres ({@link Grid}) :
-     * le temps passé grandit comme le nombre de molécules, pas comme son carré.
+     * <p>Tout cela ne regarde jamais que les places proches les unes des autres ({@link Grid}) : le temps passé grandit
+     * comme le nombre de molécules, pas comme son carré.
      */
     void place() {
         if (placedVersion == game.state().moleculesVersion() && placedPalette == MoleculeArt.palette() || calm) return;
@@ -85,29 +76,29 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         }
         Grid grid = new Grid(x, y, span);
         // Ce qu'il reste à placer de chaque sorte rassemblée, une fois servis les assemblages.
-        java.util.Map<String, Integer> spare = new java.util.HashMap<>();
+        Map<String, Integer> spare = new HashMap<>();
         for (String id : game.state().substances()) {
             if (game.gatheredMolecules(id) > 0) spare.put(id, dots(game.gatheredMolecules(id)));
         }
         // Les astres passent avant tout, du plus gros au plus petit. Chacun réunit ses assemblages : leurs molécules,
         // mêlées comme dans un bloc, toujours de la même façon pour un assemblage donné.
-        List<Body> launched = new java.util.ArrayList<>();
-        List<List<Assembly>> parts = new java.util.ArrayList<>();
-        List<List<List<Molecule>>> contents = new java.util.ArrayList<>();
-        List<Integer> sizes = new java.util.ArrayList<>();
-        java.util.Set<String> inside = new java.util.HashSet<>();
+        List<Body> launched = new ArrayList<>();
+        List<List<Assembly>> parts = new ArrayList<>();
+        List<List<List<Molecule>>> contents = new ArrayList<>();
+        List<Integer> sizes = new ArrayList<>();
+        Set<String> inside = new HashSet<>();
         for (String id : game.state().bodies()) {
             Body body = game.body(id);
-            List<Assembly> made = new java.util.ArrayList<>();
-            List<List<Molecule>> held = new java.util.ArrayList<>();
+            List<Assembly> made = new ArrayList<>();
+            List<List<Molecule>> held = new ArrayList<>();
             int size = 0;
             for (String part : body.assemblies()) {
                 if (!game.hasAssembly(part)) continue;
                 inside.add(part);
-                List<Molecule> mixed = new java.util.ArrayList<>();
+                List<Molecule> mixed = new ArrayList<>();
                 take(game.assembly(part), spare, mixed);
                 if (mixed.isEmpty()) continue;
-                java.util.Collections.shuffle(mixed, new java.util.Random(part.hashCode()));
+                Collections.shuffle(mixed, new Random(part.hashCode()));
                 made.add(game.assembly(part));
                 held.add(mixed);
                 size += mixed.size();
@@ -125,16 +116,16 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         }
         // Puis les blocs des assemblages qui ne sont dans aucun astre formé, dans l'ordre où ils ont été
         // formés, puis les amas. Pour chacun : ses molécules, une par place.
-        List<List<Molecule>> bodies = new java.util.ArrayList<>();
-        List<Assembly> formed = new java.util.ArrayList<>();
+        List<List<Molecule>> bodies = new ArrayList<>();
+        List<Assembly> formed = new ArrayList<>();
         for (String id : game.state().assemblies()) {
             if (inside.contains(id)) continue;
             Assembly assembly = game.assembly(id);
-            List<Molecule> mixed = new java.util.ArrayList<>();
+            List<Molecule> mixed = new ArrayList<>();
             take(assembly, spare, mixed);
             if (mixed.isEmpty()) continue;
             // Les ingrédients sont mêlés, toujours de la même façon pour un assemblage donné.
-            java.util.Collections.shuffle(mixed, new java.util.Random(assembly.id().hashCode()));
+            Collections.shuffle(mixed, new Random(assembly.id().hashCode()));
             bodies.add(mixed);
             formed.add(assembly);
         }
@@ -143,13 +134,13 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
             for (Molecule molecule : game.molecules()) {
                 int left = spare.getOrDefault(molecule.id(), 0);
                 if (molecule.state() != PLACES[place] || left == 0) continue;
-                bodies.add(java.util.Collections.nCopies(left, molecule));
+                bodies.add(Collections.nCopies(left, molecule));
                 formed.add(null);
                 gathered[place] += (long) left * perDot;
             }
         }
         int[] owner = new int[count];
-        java.util.Arrays.fill(owner, -1);
+        Arrays.fill(owner, -1);
         assembled = new boolean[count];
         hidden = new boolean[count];
         tints = new Color[count];
@@ -158,13 +149,13 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         double join = count == 0 ? 0 : JOIN * (span - 1) / span;
         // Pour souder les amas : le rang de chaque place dans l'amas en cours (-1 ailleurs), et les voisines trouvées.
         int[] rank = new int[count];
-        java.util.Arrays.fill(rank, -1);
+        Arrays.fill(rank, -1);
         int[] near = new int[count];
         // Les corps, à mesure qu'ils prennent place : leurs places, leurs ponts, et leur assemblage si ce sont des blocs.
-        List<int[]> cells = new java.util.ArrayList<>();
-        List<int[]> links = new java.util.ArrayList<>();
-        List<Assembly> block = new java.util.ArrayList<>();
-        List<double[]> marks = new java.util.ArrayList<>();
+        List<int[]> cells = new ArrayList<>();
+        List<int[]> links = new ArrayList<>();
+        List<Assembly> block = new ArrayList<>();
+        List<double[]> marks = new ArrayList<>();
         int[][] groups = launch(launched, sizes, x, y, owner, grid, span);
         int taken = 0;
         for (int body = 0; body < groups.length; body++) {
@@ -193,7 +184,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                     around[outer++] = ((long) Float.floatToIntBits(angle) << 32) | cell;
                 }
             }
-            java.util.Arrays.sort(around, 0, outer);
+            Arrays.sort(around, 0, outer);
             List<Assembly> made = parts.get(body);
             List<List<Molecule>> held = contents.get(body);
             // La couronne se partage entre les assemblages, à proportion de leur taille ; le reste de leurs molécules est sous l'astre.
@@ -208,7 +199,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                 share[part] += more;
                 given += more;
             }
-            List<Molecule> under = new java.util.ArrayList<>();
+            List<Molecule> under = new ArrayList<>();
             int from = 0;
             for (int part = 0; part < share.length; part++) {
                 List<Molecule> molecules = held.get(part);
@@ -242,7 +233,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                 settle(heart[index], molecule, molecule.state());
                 hidden[heart[index]] = true;
             }
-            cells.set(body, java.util.Arrays.copyOf(heart, inner));
+            cells.set(body, Arrays.copyOf(heart, inner));
             skyRound[body] = middle;
         }
         Growth growth = new Growth(x, y, owner, grid, reachable);
@@ -272,7 +263,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         if (perDot == 1) {
             // Les molécules rassemblées d'une sorte sont déjà placées dans leurs amas ; le reste de la sorte, libre,
             // prend sa place ici (version 0.090 : avant, toute la sorte était sautée et des places restaient vides).
-            java.util.Map<String, Integer> skip = new java.util.HashMap<>();
+            Map<String, Integer> skip = new HashMap<>();
             for (String id : game.state().substances()) {
                 if (game.gatheredMolecules(id) > 0) skip.put(id, game.gatheredMolecules(id));
             }
@@ -298,10 +289,10 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                 }
             }
         }
-        // Version 0.090 : le compte des molécules peut dépasser le journal (molécules d'avant le journal, sortes
+        // Le compte des molécules peut dépasser le journal (molécules d'avant le journal, sortes
         // retirées du catalogue…). Les places restées vides prennent une sorte réellement possédée, sinon se cachent :
         // une place sans dessin faisait tomber toute la vue.
-        java.util.List<Molecule> owned = new java.util.ArrayList<>();
+        List<Molecule> owned = new ArrayList<>();
         for (Molecule molecule : game.molecules()) {
             if (game.moleculeCount(molecule.id()) > 0) owned.add(molecule);
         }
@@ -350,14 +341,13 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
     }
 
     /**
-     * Prépare la galaxie, si elle est formée : où chaque place va quand le cœur s'enroule en bras,
-     * et où les astres se rangent le long de ces bras.
+     * Prépare la galaxie, si elle est formée : où chaque place va quand le cœur s'enroule en bras, et où les astres se
+     * rangent le long de ces bras.
      *
-     * <p>Une place garde sa distance au centre ; son angle est tiré vers le bras le plus proche
-     * ({@link Spiral#bend}). Les places se resserrent donc dans les bras, et chacune n'y est plus
-     * qu'un point, aussi gros que le permet sa plus proche voisine. Le trou noir supermassif reste
-     * au centre ; les autres astres se suivent le long des deux bras, les plus gros près du centre,
-     * sans se toucher. S'ils n'y tiennent pas tous, ils rapetissent ensemble.
+     * <p>Une place garde sa distance au centre ; son angle est tiré vers le bras le plus proche ({@link Spiral#bend}).
+     * Les places se resserrent donc dans les bras, et chacune n'y est plus qu'un point, aussi gros que le permet sa
+     * plus proche voisine. Le trou noir supermassif reste au centre ; les autres astres se suivent le long des deux
+     * bras, les plus gros près du centre, sans se toucher. S'ils n'y tiennent pas tous, ils rapetissent ensemble.
      */
     private void swirl(double span) {
         int count = distances.length;
@@ -376,7 +366,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         rooms = new double[count];
         swirlTints = new Color[count];
         // Une couleur ne se mêle qu'une fois par sorte de molécule et par anneau de la galaxie.
-        java.util.Map<Color, Color[]> toned = new java.util.HashMap<>();
+        Map<Color, Color[]> toned = new HashMap<>();
         for (int index = 0; index < count; index++) {
             Color own = tints[index] != null ? tints[index] : shapes[index].dominant();
             Color[] rings = toned.computeIfAbsent(own, each -> new Color[TONES]);
@@ -439,10 +429,10 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
             swirlAway[0] = 0;
             swirlAngle[0] = 0;
             swirlRadius[0] = Math.min(size * skyRadius[0] / HEART, 0.5 * widest + 0.06 * limit);
-            java.util.Arrays.fill(lastRadius, swirlRadius[0]);
+            Arrays.fill(lastRadius, swirlRadius[0]);
             first = 1;
         }
-        java.util.Arrays.fill(at, 0.1);
+        Arrays.fill(at, 0.1);
         for (int body = first; body < sky.length; body++) {
             int arm = (body - first) % Spiral.ARMS;
             double radius = Math.min(size * skyRadius[body] * SpaceView.share(sky[body].tier()), widest);
@@ -471,8 +461,8 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
     }
 
     /** Retire de {@code spare} les molécules d'un assemblage, et les ajoute à {@code into}, une par exemplaire. */
-    private void take(Assembly assembly, java.util.Map<String, Integer> spare, List<Molecule> into) {
-        for (java.util.Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+    private void take(Assembly assembly, Map<String, Integer> spare, List<Molecule> into) {
+        for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
             int taken = Math.min(dots(ingredient.getValue()), spare.getOrDefault(ingredient.getKey(), 0));
             spare.merge(ingredient.getKey(), -taken, Integer::sum);
             for (int copy = 0; copy < taken; copy++) into.add(game.molecule(ingredient.getKey()));
@@ -480,15 +470,13 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
     }
 
     /**
-     * Installe les astres : ce sont les premiers corps, et chacun prend autant de places qu'il a de
-     * molécules.
+     * Installe les astres : ce sont les premiers corps, et chacun prend autant de places qu'il a de molécules.
      *
-     * <p>Chaque astre a une clairière ronde, de la surface de ses places. Les clairières sont posées
-     * l'une après l'autre, la plus grande au centre, chaque suivante accolée aux précédentes au plus
-     * près du centre, sans qu'aucune en recouvre une autre ni ne sorte du cœur. Si elles n'y tiennent
-     * pas toutes, elles rétrécissent ensemble jusqu'à y tenir ({@link #TIGHTER}) : un astre garde
-     * alors autour de sa clairière les places qui n'y entrent plus. L'astre lui-même n'occupe que le
-     * milieu de sa clairière ({@link #HEART}) : le reste est la couronne de ses assemblages.
+     * <p>Chaque astre a une clairière ronde, de la surface de ses places. Les clairières sont posées l'une après
+     * l'autre, la plus grande au centre, chaque suivante accolée aux précédentes au plus près du centre, sans qu'aucune
+     * en recouvre une autre ni ne sorte du cœur. Si elles n'y tiennent pas toutes, elles rétrécissent ensemble jusqu'à
+     * y tenir ({@link #TIGHTER}) : un astre garde alors autour de sa clairière les places qui n'y entrent plus. L'astre
+     * lui-même n'occupe que le milieu de sa clairière ({@link #HEART}) : le reste est la couronne de ses assemblages.
      *
      * @return les places de chaque astre
      */
@@ -562,7 +550,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
             side = Math.max(1, (int) Math.ceil(2 * (span + 1) / FAR));
             head = new int[side * side];
             next = new int[x.length];
-            java.util.Arrays.fill(head, -1);
+            Arrays.fill(head, -1);
             for (int cell = 0; cell < x.length; cell++) {
                 int box = box(x[cell]) + side * box(y[cell]);
                 next[cell] = head[box];
@@ -587,7 +575,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
             for (int row = box(top); row <= lastRow; row++) {
                 for (int column = box(left); column <= lastColumn; column++) {
                     for (int cell = head[column + side * row]; cell >= 0; cell = next[cell]) {
-                        if (count == found.length) found = java.util.Arrays.copyOf(found, 2 * count);
+                        if (count == found.length) found = Arrays.copyOf(found, 2 * count);
                         found[count++] = cell;
                     }
                 }
@@ -595,18 +583,15 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
             return count;
         }
 
-        int[] found() {
-            return found;
-        }
+        int[] found() { return found; }
     }
 
     /**
-     * Le choix des places des amas, l'un après l'autre. Un amas part de la place libre la plus
-     * proche du centre qui a encore des voisines libres ; chaque place suivante est la place libre
-     * la plus proche de celles qu'il a déjà, avec une préférence pour celles qui restent près de la
-     * première ({@link #COMPACT}). Les places d'un amas se touchent donc, tant qu'il en reste de
-     * libres à côté. Une place libre isolée entre deux amas est laissée à une molécule qui n'est
-     * pas rassemblée, sauf s'il n'y a plus que cela.
+     * Le choix des places des amas, l'un après l'autre. Un amas part de la place libre la plus proche du centre qui a
+     * encore des voisines libres ; chaque place suivante est la place libre la plus proche de celles qu'il a déjà, avec
+     * une préférence pour celles qui restent près de la première ({@link #COMPACT}). Les places d'un amas se touchent
+     * donc, tant qu'il en reste de libres à côté. Une place libre isolée entre deux amas est laissée à une molécule qui
+     * n'est pas rassemblée, sauf s'il n'y a plus que cela.
      */
     private static final class Growth {
         private final double[] x;
@@ -716,7 +701,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                     inFront[cell] = true;
                     nearest[cell] = gap;
                     anchor[cell] = member;
-                    if (fronted == front.length) front = java.util.Arrays.copyOf(front, 2 * fronted);
+                    if (fronted == front.length) front = Arrays.copyOf(front, 2 * fronted);
                     front[fronted++] = cell;
                 } else if (gap < nearest[cell]) {
                     nearest[cell] = gap;

@@ -1,25 +1,17 @@
-package idle.core;
+package idle.core.state;
 
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Collision;
-import idle.core.collider.CollisionTier;
-import idle.core.collider.Quark;
+import idle.core.*;
+import idle.core.bigbang.*;
+import idle.core.save.*;
+import idle.core.sky.*;
+import idle.core.universe.*;
+import java.nio.charset.StandardCharsets;
+import java.util.function.*;
+import idle.core.collider.*;
 import idle.core.elements.ElementCategory;
 import idle.core.math.BigNum;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeTrip;
-import idle.core.probes.ProbeUpgrade;
-import idle.core.save.SaveData;
-import idle.core.sky.SolarSystem;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import idle.core.probes.*;
+import java.util.*;
 
 /**
  * Tout ce qui change pendant une partie, et rien d'autre.
@@ -27,20 +19,19 @@ import java.util.TreeMap;
  *
  * <p>Aucune règle du jeu ici : les règles sont dans {@link Game}.
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code GameState}. De la base au bout :
  * {@link GameStateBase}, {@link GameStateUnlocks}, {@link GameStateCollider}, {@link GameStateResets}.
  * Quand une partie a besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en
  * tête, sous « Ce que fournissent les parties suivantes ».
  */
 public final class GameState extends GameStateResets {
-
     // ------------------------------------------------------------------
     // Sauvegarde
     // ------------------------------------------------------------------
 
     /** Les clés de sauvegarde des cinq niveaux de la ligne, dans l'ordre de {@code Game.LineUpgrade} (nommées depuis la 0.101). */
-    /** L'identifiant de Persistance, pour relire les sauvegardes d'avant ses cinq niveaux (version 0.167). */
+    /** L'identifiant de Persistance, pour relire les sauvegardes d'avant ses cinq niveaux. */
     private static final String PERSISTENCE_ID = "atom_keep";
     private static final String[] LINE_LEVEL_KEYS = {"lineYieldLevel", "lineTicksLevel", "lineSpeedLevel", "lineBallsLevel", "lineCountLevel"};
 
@@ -52,12 +43,10 @@ public final class GameState extends GameStateResets {
      * <p>Tout champ ajouté à cette classe doit être écrit ici et relu dans {@link #load(SaveData)} :
      * un test compare champ par champ une partie à sa copie relue, et échoue sinon.
      */
-    public void save(SaveData data) {
-        save(data, true);
-    }
+    public void save(SaveData data) { save(data, true); }
 
     /**
-     * La même chose, avec ou sans les statistiques (version 0.162). Sans elles, l'écriture va bien plus vite : le bot
+     * La même chose, avec ou sans les statistiques. Sans elles, l'écriture va bien plus vite : le bot
      * analyste photographie la partie deux fois par pas, et l'historique des statistiques était sa première dépense.
      */
     public void save(SaveData data, boolean withStats) {
@@ -71,14 +60,14 @@ public final class GameState extends GameStateResets {
         data.putDoubleList("formations", formations);
         data.put("timePlayed", timePlayed);
         data.putInts("upgradeLevels", new TreeMap<>(upgradeLevels));
-        // Version 0.167 : Persistance a cinq niveaux ; une sauvegarde sans cette marque n'en connaissait qu'un, qui gardait tout.
+        // Persistance a cinq niveaux ; une sauvegarde sans cette marque n'en connaissait qu'un, qui gardait tout.
         data.put("persistenceTiers", true);
-        data.putList("ownedAutomations", new java.util.TreeSet<>(ownedAutomations));
-        data.putList("enabledAutomations", new java.util.TreeSet<>(enabledAutomations));
+        data.putList("ownedAutomations", new TreeSet<>(ownedAutomations));
+        data.putList("enabledAutomations", new TreeSet<>(enabledAutomations));
         data.putInts("automationSpeedLevels", new TreeMap<>(automationSpeedLevels));
         data.putInts("automationBatchLevels", new TreeMap<>(automationBatchLevels));
         data.putDoubles("automationTimers", new TreeMap<>(automationTimers));
-        Map<String, Integer> copies = new java.util.LinkedHashMap<>();
+        Map<String, Integer> copies = new LinkedHashMap<>();
         elements.forEach((number, count) -> copies.put(String.valueOf(number), count));
         data.putInts("elements", copies);
         data.put("synthesisCount", synthesisCount);
@@ -95,11 +84,11 @@ public final class GameState extends GameStateResets {
         data.put("synthesisReserve", synthesisReserve);
         data.put("holdLocked", holdLocked);
         data.put("activeChallenge", activeChallenge == null ? null : SaveData.escape(activeChallenge));
-        data.putList("completedChallenges", new java.util.TreeSet<>(completedChallenges));
+        data.putList("completedChallenges", new TreeSet<>(completedChallenges));
         data.putDoubles("challengeTimes", new TreeMap<>(challengeTimes));
         data.put("decayDebt", decayDebt);
         data.putList("achievements", achievements);
-        data.putList("enabledDarkAutomations", new java.util.TreeSet<>(enabledDarkAutomations));
+        data.putList("enabledDarkAutomations", new TreeSet<>(enabledDarkAutomations));
         data.putDoubles("darkAutomationTimers", new TreeMap<>(darkAutomationTimers));
         data.put("bigBangs", bigBangs);
         // Les molécules, par suites dans l'ordre de leur création : « sorte:nombre ». Le total par sorte s'en déduit.
@@ -196,7 +185,7 @@ public final class GameState extends GameStateResets {
         data.put("twigOpened", twigOpened);
         data.put("seedUniversesOpened", seedUniversesOpened);
         data.put("seedWaterings", seedWaterings);
-        // Version 0.179 : les paliers de la graine demandent bien plus d'arrosages ; une sauvegarde sans cette marque
+        // Les paliers de la graine demandent bien plus d'arrosages ; une sauvegarde sans cette marque
         // comptait trente arrosages par palier, et garde son palier au chargement.
         data.put("seedStages179", true);
         data.put("planeShards", planeShards);
@@ -234,15 +223,15 @@ public final class GameState extends GameStateResets {
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
         data.put("treeBubbles", treeBubbles());
-        // Version 0.148 : le niveau des bulles qui se rachètent, au-delà du premier (le champ de bits dit les autres).
+        // Le niveau des bulles qui se rachètent, au-delà du premier (le champ de bits dit les autres).
         for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 1) data.put("treeBubbleLevel" + i, treeBubbleLevels[i]);
         data.put("voidSpent", voidSpent);
         data.put("voidTrickled", voidTrickled);
         data.put("voidCarried", voidCarried);
-        // L'automatisation des dimensions (version 0.150).
+        // L'automatisation des dimensions.
         data.putList("dimensionAutomations", dimensionAutomations);
         data.putList("dimensionAutomationsOff", dimensionAutomationsOff);
-        // Les hadrons (version 0.149).
+        // Les hadrons.
         data.put("hadronsOpen", hadronsOpen);
         data.put("hadronsPrice", hadronsPrice);
         Map<String, Double> hadronCounts = new TreeMap<>();
@@ -305,8 +294,8 @@ public final class GameState extends GameStateResets {
         data.putDoubles("found.assemblies", new TreeMap<>(foundAssemblies));
         data.putDoubles("found.bodies", new TreeMap<>(foundBodies));
         data.put("activeBangChallenge", activeBangChallenge == null ? null : SaveData.escape(activeBangChallenge));
-        data.putList("completedBangChallenges", new java.util.TreeSet<>(completedBangChallenges));
-        data.putList("boughtMilestones", new java.util.TreeSet<>(boughtMilestones));
+        data.putList("completedBangChallenges", new TreeSet<>(completedBangChallenges));
+        data.putList("boughtMilestones", new TreeSet<>(boughtMilestones));
         data.putDoubles("bangChallengeTimes", new TreeMap<>(bangChallengeTimes));
         data.put("bangChallengeStarted", bangChallengeStarted);
         data.putList("atomUpgradeOrder", atomUpgradeOrder);
@@ -314,10 +303,10 @@ public final class GameState extends GameStateResets {
         data.putList("automationOrder", automationOrder);
         data.put("automationOrdered", automationOrdered);
         data.put("space", space);
-        // Version 0.169 : ce que les bulles peuvent garder, mis de côté à la formation de l'univers jusqu'au lancement.
+        // Ce que les bulles peuvent garder, mis de côté à la formation de l'univers jusqu'au lancement.
         if (bubbleKeep != null) {
-            data.put("bubbleKeep", java.util.Base64.getEncoder().encodeToString(
-                    idle.core.save.SaveCodec.write(bubbleKeep, 0).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            data.put("bubbleKeep", Base64.getEncoder().encodeToString(
+                    SaveCodec.write(bubbleKeep, 0).getBytes(StandardCharsets.UTF_8)));
             data.put("bubbleKeepMask", bubbleKeepMask);
         }
         if (withStats) stats.save(data, "stats.");
@@ -353,7 +342,7 @@ public final class GameState extends GameStateResets {
         data.doubles("automationTimers").forEach(this::setAutomationTimer);
         data.ints("elements").forEach((number, count) -> setElementCount(Integer.parseInt(number), count));
         setSynthesisCount(data.whole("synthesisCount", 0));
-        // Une famille d'une autre version (version 0.126) : la synthèse repart sans cible, la partie se relit.
+        // Une famille d'une autre version : la synthèse repart sans cible, la partie se relit.
         synthesisTarget = Enums.parse(ElementCategory.class, data.text("synthesisTarget", null));
         setSynthesisTries(data.whole("synthesisTries", 0));
         setDrySyntheses(data.whole("drySyntheses", 0));
@@ -421,12 +410,12 @@ public final class GameState extends GameStateResets {
         skinsOpen = data.flag("skinsOpen", false);
         unlockedSkins.clear();
         skinsVersion++;
-        // Version 0.203 : un skin retiré du jeu (six l'ont été) ne se relit pas : ni débloqué, ni choisi.
-        for (String id : data.list("unlockedSkins")) if (idle.core.universe.Skin.byId(id) != null) unlockSkin(id);
+        // Un skin retiré du jeu (six l'ont été) ne se relit pas : ni débloqué, ni choisi.
+        for (String id : data.list("unlockedSkins")) if (Skin.byId(id) != null) unlockSkin(id);
         chosenSkins.clear();
         for (String pair : data.list("chosenSkins")) {
             int arrow = pair.indexOf('>');
-            if (arrow > 0 && idle.core.universe.Skin.byId(pair.substring(arrow + 1)) != null) {
+            if (arrow > 0 && Skin.byId(pair.substring(arrow + 1)) != null) {
                 chosenSkins.put(pair.substring(0, arrow), pair.substring(arrow + 1));
             }
         }
@@ -446,7 +435,7 @@ public final class GameState extends GameStateResets {
         setTrialCount(data.whole("trialCount", 0));
         completedTrials.clear();
         for (String id : data.list("completedTrials")) {
-            // La fuite était une épreuve en 0.114 : elle est devenue un défi (version 0.115).
+            // La fuite était une épreuve en 0.114 : elle est devenue un défi.
             if (id.equals("LEAK")) { completedChallenges.add("challenge_leak"); challengesVersion++; continue; }
             addCompletedTrial(id);
         }
@@ -470,7 +459,7 @@ public final class GameState extends GameStateResets {
         setCometsCaught(data.whole("cometsCaught", 0));
         // Une anomalie d'une autre version est oubliée : elle repassera.
         String event = data.text("skyEvent", null);
-        setSkyEvent(event != null && java.util.Arrays.stream(idle.core.sky.SkyEvent.values()).anyMatch(e -> e.name().equals(event)) ? event : null);
+        setSkyEvent(event != null && Arrays.stream(SkyEvent.values()).anyMatch(e -> e.name().equals(event)) ? event : null);
         setSkyEventVisible(skyEvent == null ? 0 : data.real("skyEventVisible", 0));
         setSkyEventWait(data.real("skyEventWait", 0));
         setWindLeft(data.real("windLeft", 0));
@@ -482,7 +471,7 @@ public final class GameState extends GameStateResets {
         setExtraUniverses(data.whole("extraUniverses", 0));
         setUniverseSeeds(data.big("universeSeeds", BigNum.ZERO));
         setVoidEnergy(data.big("voidEnergy", BigNum.ZERO));
-        // Le vide (version 0.129) : absent des sauvegardes d'avant, il part fermé, à zéro.
+        // Le vide : absent des sauvegardes d'avant, il part fermé, à zéro.
         setVoidOpen(data.flag("voidOpen", false));
         setVoidHoleOpen(data.flag("voidHoleOpen", false));
         setVoidShare(data.real("voidShare", 0.25));
@@ -497,7 +486,7 @@ public final class GameState extends GameStateResets {
         // Une sauvegarde de la 0.101 n'a pas ce total : les éclats en réserve en sont le minimum.
         setDimensionShardsEarned(data.real("dimensionShardsEarned", dimensionShards));
         setSeedSprouted(data.flag("seedSprouted", false));
-        // Version 0.137 : une partie d'avant n'a pas d'arrosoir ; il se débloque d'un clic sur l'étagère.
+        // Une partie d'avant n'a pas d'arrosoir ; il se débloque d'un clic sur l'étagère.
         setWateringCan(data.flag("wateringCan", false));
         setSeedWaterings(data.count("seedWaterings", 0));
         // Avant la version 0.179, chaque palier demandait trente arrosages : le palier atteint est gardé, les arrosages
@@ -516,79 +505,79 @@ public final class GameState extends GameStateResets {
         setPlaneShards(data.real("planeShards", 0));
         setPlaneShardsEarned(data.real("planeShardsEarned", 0));
         for (int i = 0; i < PLANE_UPGRADES; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));
-        // Le volume (version 0.128) : absent des sauvegardes d'avant, il part de zéro.
+        // Le volume : absent des sauvegardes d'avant, il part de zéro.
         setVolumeShards(data.real("volumeShards", 0));
         setVolumeShardsEarned(data.real("volumeShardsEarned", 0));
         for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, data.whole("volumeLevel" + i, 0));
-        // La durée (version 0.134) : absente des sauvegardes d'avant, elle part de zéro.
+        // La durée : absente des sauvegardes d'avant, elle part de zéro.
         setDurationShards(data.real("durationShards", 0));
         setDurationShardsEarned(data.real("durationShardsEarned", 0));
         for (int i = 0; i < DURATION_UPGRADES; i++) setDurationLevel(i, data.whole("durationLevel" + i, 0));
-        // La boucle (version 0.153) : absente d'avant, elle part de zéro.
+        // La boucle : absente d'avant, elle part de zéro.
         setLoopShards(data.real("loopShards", 0));
         setLoopShardsEarned(data.real("loopShardsEarned", 0));
         for (int i = 0; i < LOOP_UPGRADES; i++) setLoopLevel(i, data.whole("loopLevel" + i, 0));
-        // La brane (version 0.154) : absente d'avant, elle part de zéro.
+        // La brane : absente d'avant, elle part de zéro.
         setBraneShards(data.real("braneShards", 0));
         setBraneShardsEarned(data.real("braneShardsEarned", 0));
         for (int i = 0; i < BRANE_UPGRADES; i++) setBraneLevel(i, data.whole("braneLevel" + i, 0));
-        // Le clicker (version 0.155) : absent d'avant, il part de zéro.
+        // Le clicker : absent d'avant, il part de zéro.
         setClickerShards(data.real("clickerShards", 0));
         setClickerShardsEarned(data.real("clickerShardsEarned", 0));
         for (int i = 0; i < CLICKER_UPGRADES; i++) setClickerLevel(i, data.whole("clickerLevel" + i, 0));
-        // La grille (version 0.156) : absente d'avant, elle part de zéro.
+        // La grille : absente d'avant, elle part de zéro.
         setGridShards(data.real("gridShards", 0));
         setGridShardsEarned(data.real("gridShardsEarned", 0));
         for (int i = 0; i < GRID_UPGRADES; i++) setGridLevel(i, data.whole("gridLevel" + i, 0));
-        // Le miroir (version 0.157) : absent d'avant, il part de zéro.
+        // Le miroir : absent d'avant, il part de zéro.
         setMirrorShards(data.real("mirrorShards", 0));
         setMirrorShardsEarned(data.real("mirrorShardsEarned", 0));
         for (int i = 0; i < MIRROR_UPGRADES; i++) setMirrorLevel(i, data.whole("mirrorLevel" + i, 0));
-        // Version 0.158 : les réussites, qui agrandissent le plateau ; absentes d'avant, elles partent de zéro.
+        // Les réussites, qui agrandissent le plateau ; absentes d'avant, elles partent de zéro.
         setMirrorWins(data.real("mirrorWins", 0));
-        // Le mélange (version 0.158) : absent d'avant, il part de zéro.
+        // Le mélange : absent d'avant, il part de zéro.
         setMixShards(data.real("mixShards", 0));
         setMixShardsEarned(data.real("mixShardsEarned", 0));
-        // Version 0.159 : le mélange refait, par étapes ; ses améliorations ont d'autres clés (celles de la 0.158 ne
+        // Le mélange refait, par étapes ; ses améliorations ont d'autres clés (celles de la 0.158 ne
         // veulent plus rien dire et sont laissées de côté).
         setMixStage(data.whole("mixStage", 1));
-        // Version 0.160 : la fin de la partie ; absente d'avant, elle n'est pas encore venue.
+        // La fin de la partie ; absente d'avant, elle n'est pas encore venue.
         setGameFinished(data.flag("gameFinished", false));
         setMixStageEarned(data.real("mixStageEarned", 0));
         for (int i = 0; i < MIX_UPGRADES; i++) setMixLevel(i, data.whole("mixStageLevel" + i, 0));
-        // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
+        // Les améliorations de la graine et le chrono : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));
         setChronoSpeed(data.real("chronoSpeed", 1));
-        // Les bulles de l'arbre (version 0.142) : absentes d'avant, rien d'acheté ni de dépensé.
+        // Les bulles de l'arbre : absentes d'avant, rien d'acheté ni de dépensé.
         setTreeBubbles(data.whole("treeBubbles", 0));
-        // Version 0.148 : les niveaux au-delà du premier ; absents d'avant, chaque bulle achetée est au niveau 1.
+        // Les niveaux au-delà du premier ; absents d'avant, chaque bulle achetée est au niveau 1.
         for (int i = 0; i < TREE_BUBBLES; i++) if (data.has("treeBubbleLevel" + i)) setTreeBubbleLevel(i, data.whole("treeBubbleLevel" + i, 1));
         setVoidSpent(data.real("voidSpent", 0));
         setVoidTrickled(data.real("voidTrickled", 0));
-        // Version 0.152 : absent d'avant, rien de compté d'avance.
+        // Absent d'avant, rien de compté d'avance.
         setVoidCarried(data.real("voidCarried", 0));
-        // L'automatisation des dimensions (version 0.150) : absente d'avant, rien d'acheté. Les noms inconnus sont oubliés.
+        // L'automatisation des dimensions : absente d'avant, rien d'acheté. Les noms inconnus sont oubliés.
         clearDimensionAutomations();
-        data.list("dimensionAutomations").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
+        data.list("dimensionAutomations").forEach(name -> known(name, DimensionAutomation.class,
                 automation -> addDimensionAutomation(automation.name())));
-        // Version 0.209 : l'automatisme qui joue a cinq paliers, et l'ancien garde son nom pour le dernier, sans attente.
+        // L'automatisme qui joue a cinq paliers, et l'ancien garde son nom pour le dernier, sans attente.
         // Qui l'avait les a tous : un palier acheté donne ceux, plus lents, d'avant lui.
-        for (idle.core.universe.DimensionAutomation owned : idle.core.universe.DimensionAutomation.values()) {
-            if (owned.kind() != idle.core.universe.DimensionAutomation.Kind.PLAY || !dimensionAutomations.contains(owned.name())) continue;
-            for (idle.core.universe.DimensionAutomation slower : idle.core.universe.DimensionAutomation.values()) {
+        for (DimensionAutomation owned : DimensionAutomation.values()) {
+            if (owned.kind() != DimensionAutomation.Kind.PLAY || !dimensionAutomations.contains(owned.name())) continue;
+            for (DimensionAutomation slower : DimensionAutomation.values()) {
                 if (slower.kind() == owned.kind() && slower.dimension() == owned.dimension() && slower.playPeriod() > owned.playPeriod()) {
                     addDimensionAutomation(slower.name());
                 }
             }
         }
-        data.list("dimensionAutomationsOff").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
+        data.list("dimensionAutomationsOff").forEach(name -> known(name, DimensionAutomation.class,
                 automation -> setDimensionAutomationOff(automation.name(), true)));
-        // Les hadrons (version 0.149) : absents d'avant, l'onglet fermé et rien d'assemblé.
+        // Les hadrons : absents d'avant, l'onglet fermé et rien d'assemblé.
         setHadronsOpen(data.flag("hadronsOpen", false));
         setHadronsPrice(data.real("hadronsPrice", 0));
         hadrons.clear();
-        known(data.doubles("hadrons"), idle.core.collider.Hadron.class, (hadron, count) -> setHadrons(hadron, (long) (double) count));
+        known(data.doubles("hadrons"), Hadron.class, (hadron, count) -> setHadrons(hadron, (long) (double) count));
         setPulseCharges(data.real("pulseCharges", 0));
         setPulses((long) data.real("pulses", 0));
         setColliderEnergy(data.real("colliderEnergy", 0));
@@ -649,7 +638,7 @@ public final class GameState extends GameStateResets {
         setProbeBoostLeft(data.real("probeBoostLeft", 0));
         records.clear();
         data.doubles("records").forEach(this::setRecord);
-        // Le profil et les albums (version 0.147) : une sauvegarde d'avant n'en a pas, tout part vide.
+        // Le profil et les albums : une sauvegarde d'avant n'en a pas, tout part vide.
         setPlayerName(SaveData.unescape(data.text("playerName", "")));
         setAvatar(SaveData.unescape(data.text("avatar", "")));
         setChosenTitle(SaveData.unescape(data.text("chosenTitle", "")));
@@ -669,7 +658,7 @@ public final class GameState extends GameStateResets {
         data.list("boughtMilestones").forEach(this::addBoughtMilestone);
         // Avant la version 0.124, les paliers étaient gratuits : ceux qu'une ancienne partie a atteints sont acquis.
         if (!data.has("boughtMilestones")) {
-            for (idle.core.bigbang.BigBangMilestone milestone : idle.core.bigbang.BigBangMilestones.DEFAULT) {
+            for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
                 if (data.whole("bigBangs", 0) >= milestone.bigBangs()) addBoughtMilestone(milestone.name());
             }
         }
@@ -683,10 +672,10 @@ public final class GameState extends GameStateResets {
         String keep = data.text("bubbleKeep", "");
         if (!keep.isEmpty()) {
             try {
-                bubbleKeep = idle.core.save.SaveCodec.read(new String(java.util.Base64.getDecoder().decode(keep),
-                        java.nio.charset.StandardCharsets.UTF_8)).state();
+                bubbleKeep = SaveCodec.read(new String(Base64.getDecoder().decode(keep),
+                        StandardCharsets.UTF_8)).state();
                 bubbleKeepMask = data.whole("bubbleKeepMask", 0);
-            } catch (idle.core.save.SaveCodec.Unreadable unreadable) {
+            } catch (SaveCodec.Unreadable unreadable) {
                 throw new IllegalArgumentException("bubbleKeep illisible", unreadable);
             }
         }
@@ -705,19 +694,18 @@ public final class GameState extends GameStateResets {
      * version du jeu peut en nommer d'autres ; {@link #retainKnown(Known)} les oublie.
      * Un catalogue vide n'écarte rien : c'est celui d'une partie de test, qui n'en a pas.
      */
-    record Known(Set<String> upgrades, Set<String> automations, Set<String> darkUpgrades, Set<String> darkAutomations,
+    public record Known(Set<String> upgrades, Set<String> automations, Set<String> darkUpgrades, Set<String> darkAutomations,
                  Set<String> challenges, Set<String> achievements, Set<String> molecules, Set<String> assemblies,
                  Set<String> bodies, Set<String> spaceUpgrades, int elements) {
     }
 
     /**
-     * Oublie tout ce qui porte un identifiant que le jeu ne connaît pas : après une mise à jour,
-     * une sauvegarde peut nommer une amélioration ou une molécule disparue, et les règles ne
-     * sauraient qu'en faire.
+     * Oublie tout ce qui porte un identifiant que le jeu ne connaît pas : après une mise à jour, une sauvegarde peut
+     * nommer une amélioration ou une molécule disparue, et les règles ne sauraient qu'en faire.
      *
      * @return le nombre d'identifiants oubliés
      */
-    int retainKnown(Known known) {
+    public int retainKnown(Known known) {
         int before = identifiers();
         if (!known.upgrades().isEmpty()) {
             upgradeLevels.keySet().retainAll(known.upgrades());
@@ -777,34 +765,25 @@ public final class GameState extends GameStateResets {
     }
 
     /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */
-    public Map<Integer, Integer> elements() {
-        return Collections.unmodifiableMap(elements);
-    }
+    public Map<Integer, Integer> elements() { return Collections.unmodifiableMap(elements); }
 
     /** Vue en lecture seule des automatismes achetés, pour la sauvegarde. */
-    public Set<String> ownedAutomations() {
-        return ordered(ownedAutomations);
-    }
+    public Set<String> ownedAutomations() { return ordered(ownedAutomations); }
 
     /** Vue en lecture seule des automatismes en marche, pour la sauvegarde. */
-    public Set<String> enabledAutomations() {
-        return ordered(enabledAutomations);
-    }
+    public Set<String> enabledAutomations() { return ordered(enabledAutomations); }
 
     /** Vue en lecture seule des niveaux, pour la sauvegarde. */
-    public Map<String, Integer> upgradeLevels() {
-        return ordered(upgradeLevels);
-    }
+    public Map<String, Integer> upgradeLevels() { return ordered(upgradeLevels); }
 
     /** Donne à {@code action} chaque entrée dont la clé nomme une constante de {@code type} ; les noms d'une autre version sont écartés. */
-    private static <E extends Enum<E>, V> void known(Map<String, V> entries, Class<E> type, java.util.function.BiConsumer<E, V> action) {
+    private static <E extends Enum<E>, V> void known(Map<String, V> entries, Class<E> type, BiConsumer<E, V> action) {
         entries.forEach((name, value) -> known(name, type, constant -> action.accept(constant, value)));
     }
 
     /** Donne à {@code action} la constante de {@code type} que nomme {@code name}, s'il y en a une ; sinon rien. */
-    private static <E extends Enum<E>> void known(String name, Class<E> type, java.util.function.Consumer<E> action) {
+    private static <E extends Enum<E>> void known(String name, Class<E> type, Consumer<E> action) {
         E constant = Enums.parse(type, name);
         if (constant != null) action.accept(constant);
     }
-
 }

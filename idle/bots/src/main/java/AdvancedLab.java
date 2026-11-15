@@ -1,4 +1,5 @@
 import idle.core.*;
+import idle.core.achievements.Achievements;
 import idle.core.upgrades.*;
 import idle.core.darkmatter.*;
 import idle.core.math.*;
@@ -28,7 +29,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
   double reachedGalaxy=Double.NaN,reachedCluster=Double.NaN,reachedUniverse=Double.NaN,reachedB8=Double.NaN;
   AdvancedLab(Game g,double dt,String mode,long seed){
     super(g,dt);this.mode=mode;policyRandom=new Random(seed ^ 0x71abcL);
-    // Version 0.131 : le débutant joue le deuxième univers en débutant ; les autres modes, en experts.
+    // Le débutant joue le deuxième univers en débutant ; les autres modes, en experts.
     if(mode.equals("DEBUTANT_APPRENANT")){
       nextUniverse=new NextUniversePolicy(IdleProfiles24.STYLES[15],new Random(seed ^ 0x2b2L));
       voidPolicy=new VoidPolicy(IdleProfiles24.VOID_STYLES[15],new Random(seed ^ 0x701dL));
@@ -41,10 +42,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
   @Override double clockSeconds(){return wall;}
   @Override
   boolean waitForPatientFusion(){
-    return mode.equals("EXPERT_COMPLET")
-        && !g.hasAchievement(idle.core.achievements.Achievements.PATIENT_FUSION)
-        && !g.inChallenge()
-        && g.state().timeSinceFusion()<idle.core.achievements.Achievements.PATIENT_SECONDS;
+    return mode.equals("EXPERT_COMPLET") && !g.hasAchievement(Achievements.PATIENT_FUSION) && !g.inChallenge()
+        && g.state().timeSinceFusion()<Achievements.PATIENT_SECONDS;
   }
   boolean getsPlanning(){
     switch(mode){
@@ -65,7 +64,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
   void act(){
     acts++;
     if(!mode.equals("SANS_COMETES") && g.isCometVisible() && g.catchComet())caught++;
-    // Version 0.131 : les anomalies du ciel, comme les comètes (sauf dans le mode qui les ignore).
+    // Les anomalies du ciel, comme les comètes (sauf dans le mode qui les ignore).
     if(!mode.equals("SANS_COMETES"))catchSkyEvent();
     if(!mode.equals("SANS_IMPULSIONS") && g.isPulseUnlocked()){
       int toUse=mode.equals("DEBUTANT_APPRENANT")?Math.min(2,g.pulseCharges()):g.pulseCharges();
@@ -127,7 +126,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
       maxStall=Math.max(maxStall,wall-lastMilestone);
       if(wall-lastMilestone>=1800)idleMinutes+=step/60;
       if(i%Math.max(1,(long)Math.round(600/step))==0)snapshot();
-      // Version 0.130 : l'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
+      // L'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
       boolean done=universeProgress();
       // La remise à zéro de l'univers suivant n'est pas un recul : le pas suivant se compare à l'état neuf.
       if(launchedNextUniverse){event("UNIVERS_SUIVANT",String.valueOf(g.universes()+1));rememberState();}

@@ -1,25 +1,22 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.state.*;
+import idle.core.achievements.*;
+import idle.core.collider.*;
+import idle.core.darkmatter.*;
+import idle.core.profile.Title;
+import idle.core.universe.*;
+
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Map;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les univers : la partie secondaire, le deuxième univers et les skins à obtenir.
- */
+/** Les univers : la partie secondaire, le deuxième univers et les skins à obtenir. */
 public abstract class GameUniverse extends GameAtoms {
-
     GameUniverse(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -38,20 +35,20 @@ public abstract class GameUniverse extends GameAtoms {
     public abstract int assembliesFormed();
     public abstract int baseChallengesCompleted();
     public abstract boolean isBigBangUnlocked();
-    public abstract boolean hasTitle(idle.core.profile.Title title);
-    // Version 0.195 : ce que lisent les skins des hadrons et du vide, définis dans GameHadrons et GameVoid.
+    public abstract boolean hasTitle(Title title);
+    // Ce que lisent les skins des hadrons et du vide, définis dans GameHadrons et GameVoid.
     public abstract long hadronsMade();
     public abstract double voidPairsBorn();
     public abstract int voidHoleUniverses();
-    // Version 0.196 : ce que lisent les skins de l'établi de la graine, comptés depuis l'ouverture de la fenêtre dans GameLoop,
+    // Ce que lisent les skins de l'établi de la graine, comptés depuis l'ouverture de la fenêtre dans GameLoop,
     // GameClicker et GameMirror : les ronds de croissance cueillis, les orages, les cycles complets des saisons.
     public abstract long bloomsCaught();
     public abstract long storms();
     public abstract int seasonCycles();
-    // Version 0.197 : les saisons figées de l'arbre lisent les saisons débloquées, définies dans GameMirror.
+    // Les saisons figées de l'arbre lisent les saisons débloquées, définies dans GameMirror.
     public abstract boolean areSeasonsUnlocked();
-    // Version 0.198 : les albums du profil lisent les catalogues des assemblages et des astres, définis dans GameMolecules.
-    public abstract List<idle.core.sky.Assembly> assemblies();
+    // Les albums du profil lisent les catalogues des assemblages et des astres, définis dans GameMolecules.
+    public abstract List<Assembly> assemblies();
     public abstract List<Body> bodies();
 
     // ------------------------------------------------------------------
@@ -59,7 +56,7 @@ public abstract class GameUniverse extends GameAtoms {
     // ------------------------------------------------------------------
 
     // ------------------------------------------------------------------
-    // La partie secondaire (version 0.081) : les univers, sans logique pour l'instant
+    // La partie secondaire : les univers, sans logique pour l'instant
     // ------------------------------------------------------------------
 
     /** Nombre de dimensions à ouvrir, une par univers jusqu'au dixième. */
@@ -67,24 +64,18 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après (créés pour l'instant par les outils d'essai). */
     @Override
-    public int universes() {
-        return isUniverseFormed() ? 1 + state.extraUniverses() : 0;
-    }
+    public int universes() { return isUniverseFormed() ? 1 + state.extraUniverses() : 0; }
 
-    /** Vrai une fois un univers formé, même pendant la partie qui mène au suivant (version 0.087). */
+    /** Vrai une fois un univers formé, même pendant la partie qui mène au suivant. */
     public boolean isUniverseFormed() {
         return state.universeFormed() || state.cosmosLevel() >= Cosmos.values().length;
     }
 
     /** Vrai dès le premier univers (version 0.100 ; avant, au deuxième) : la sous-page des dimensions s'ouvre. */
-    public boolean isDimensionsUnlocked() {
-        return universes() >= 1;
-    }
+    public boolean isDimensionsUnlocked() { return universes() >= 1; }
 
     /** Dimensions ouvertes : une par univers, la première dès le premier, dix au plus. */
-    public int dimensionsUnlocked() {
-        return isDimensionsUnlocked() ? Math.min(MAX_DIMENSIONS, universes()) : 0;
-    }
+    public int dimensionsUnlocked() { return isDimensionsUnlocked() ? Math.min(MAX_DIMENSIONS, universes()) : 0; }
 
     /** Outil d'essai : un univers de plus, une fois le premier formé. Faux s'il n'y en a pas encore. */
     public boolean testAddUniverse() {
@@ -101,44 +92,40 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Outil d'essai : des graines d'univers en plus. */
-    public void testAddUniverseSeeds(BigNum amount) {
-        state.setUniverseSeeds(state.universeSeeds().add(amount));
-    }
+    public void testAddUniverseSeeds(BigNum amount) { state.setUniverseSeeds(state.universeSeeds().add(amount)); }
 
     /**
-     * Le vide (version 0.099), deuxième acte de la partie secondaire. Depuis la version 0.129, il se propose au
+     * Le vide, deuxième acte de la partie secondaire. Depuis la version 0.129, il se propose au
      * premier Big Bang du troisième univers ({@link #isVoidOffered()}) et ne s'ouvre qu'une fois payé en énergie du
      * collisionneur ; vrai une fois ouvert dans cet univers.
      */
     public boolean isVoidUnlocked() {
-        // La bulle du géant de gauche, en bas (version 0.148) : le vide toujours ouvert, sans le payer.
+        // La bulle du géant de gauche, en bas : le vide toujours ouvert, sans le payer.
         return state.voidOpen() || hasBubble(TreeBubble.GIANT_LEFT_LOW);
     }
 
     /** Vrai quand le vide se propose dans le collisionneur : premier Big Bang du troisième univers passé, pas encore ouvert. */
-    public boolean isVoidOffered() {
-        return universes() >= 2 && state.bigBangs() > 0 && !isVoidUnlocked();
-    }
+    public boolean isVoidOffered() { return universes() >= 2 && state.bigBangs() > 0 && !isVoidUnlocked(); }
 
     // ------------------------------------------------------------------
-    // Les améliorations du vide (version 0.129), et l'allègement des besoins du ciel
+    // Les améliorations du vide, et l'allègement des besoins du ciel
     // ------------------------------------------------------------------
 
     /**
      * Les huit améliorations du vide, payées en énergie du vide : leur prix de départ, la croissance, le plafond. Dans
      * l'ordre de la sauvegarde : gain par paire, rythme, coût en énergie, espace par paire, fonte, allègement, maturation,
-     * et depuis la version 0.132 le rassemblement. Version 0.132 : les cinq qui font grandir le vide montent bien plus vite
+     * et depuis la version 0.132 le rassemblement. Les cinq qui font grandir le vide montent bien plus vite
      * de prix (×3,7 à ×4,1 par niveau, au lieu de ×2,2 à ×2,6), pour que le vide ne se remplisse pas en une heure ; les
      * trois qui raccourcissent le troisième acte vont plus loin (maturation −70 %, rassemblement −80 %) et montent de
      * prix moins vite (×2) : elles se gagnent au fil de l'acte, mesurées sur le Speedrunner du troisième univers.
      *
-     * <p>Version 0.169 : les prix suivent l'énergie du vide de la partie, comme les bulles de l'arbre. Le premier niveau
+     * <p>Les prix suivent l'énergie du vide de la partie, comme les bulles de l'arbre. Le premier niveau
      * coûte de l'ordre des premières bulles (500 à 5 000, la graine en vaut 5 200), le dernier de l'ordre des dernières
      * (70 000 à 600 000, l'arbre-monde vaut 69 300 et les derniers rachats 400 000 à 840 000) ; chaque niveau entre les
      * deux multiplie le prix d'autant. Le gain par paire n'a plus de niveau sans fin : quinze au plus. Le rassemblement et
      * la maturation raccourcissent de moitié au plus.
      *
-     * <p>Version 0.171 : le premier niveau dix fois moins cher (50 à 500), à la portée de l'énergie d'un seul univers,
+     * <p>Le premier niveau dix fois moins cher (50 à 500), à la portée de l'énergie d'un seul univers,
      * puisque les améliorations du vide repartent de zéro à chaque univers ; le dernier trente fois plus cher (2,1 à
      * 18 millions), à la portée de l'équilibre du vide en fin de partie. Le prix monte donc plus vite d'un niveau à
      * l'autre (×1,9 à ×8,1), et les achats s'étalent d'un univers à l'autre au lieu de tous tomber dans le même : essayé
@@ -157,9 +144,7 @@ public abstract class GameUniverse extends GameAtoms {
         }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Le prix d'une amélioration à niveaux : {@code base × growth^niveau}, jusqu'au niveau {@code max} exclu. */
@@ -171,19 +156,13 @@ public abstract class GameUniverse extends GameAtoms {
         Price price();
 
         /** Le prix du premier niveau. */
-        default double baseCost() {
-            return price().base();
-        }
+        default double baseCost() { return price().base(); }
 
         /** Ce par quoi le prix est multiplié à chaque niveau. */
-        default double growth() {
-            return price().growth();
-        }
+        default double growth() { return price().growth(); }
 
         /** Le niveau le plus haut. */
-        default int max() {
-            return price().max();
-        }
+        default int max() { return price().max(); }
 
         /** Le prix du niveau suivant {@code level} ; infini une fois au plus haut. */
         default double cost(int level) {
@@ -192,17 +171,13 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** L'espace que tiennent les paires du vide encore vivantes ({@link GameVoid}) : il compte dans l'espace utilisé. */
-    public BigNum voidHeldSpace() {
-        return BigNum.ZERO;
-    }
+    public BigNum voidHeldSpace() { return BigNum.ZERO; }
 
     /** Ce que chaque niveau d'allègement retire aux besoins des astres, de l'amas et de l'univers : 3 %, dix niveaux au plus. */
     public static final double VOID_LIGHTEN_STEP = 0.03;
 
     /** Le niveau d'une amélioration du vide, jamais au-dessus de son plafond (version 0.169 : une sauvegarde d'avant peut le dépasser). */
-    public int voidLevel(VoidUpgrade upgrade) {
-        return Math.min(upgrade.max(), state.voidLevel(upgrade.ordinal()));
-    }
+    public int voidLevel(VoidUpgrade upgrade) { return Math.min(upgrade.max(), state.voidLevel(upgrade.ordinal())); }
 
     /** La part des besoins du ciel qui reste avec l'allègement du vide : 1 sans lui, 0,7 au plus fort. */
     public double needShare() {
@@ -229,35 +204,29 @@ public abstract class GameUniverse extends GameAtoms {
 
     private Map<String, Integer> lightenedMolecules(Map<String, Integer> raw) {
         if (needShare() >= 1) return raw;
-        Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        Map<String, Integer> out = new LinkedHashMap<>();
         raw.forEach((id, need) -> out.put(id, lightened(need)));
         return out;
     }
 
     private Map<Molecule.State, Integer> lightenedMatter(Map<Molecule.State, Integer> raw) {
         if (needShare() >= 1) return raw;
-        Map<Molecule.State, Integer> out = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> out = new EnumMap<>(Molecule.State.class);
         raw.forEach((matter, need) -> out.put(matter, lightened(need)));
         return out;
     }
 
-    /** Les molécules que demande cet astre, allégées par le vide (version 0.129). */
-    public Map<String, Integer> bodyMolecules(Body body) {
-        return lightenedMolecules(body.molecules());
-    }
+    /** Les molécules que demande cet astre, allégées par le vide. */
+    public Map<String, Integer> bodyMolecules(Body body) { return lightenedMolecules(body.molecules()); }
 
     /** La matière que demande cet astre, par état, allégée par le vide. */
-    public Map<Molecule.State, Integer> bodyMatter(Body body) {
-        return lightenedMatter(body.matter());
-    }
+    public Map<Molecule.State, Integer> bodyMatter(Body body) { return lightenedMatter(body.matter()); }
 
     /** La matière que demande cette échelle du cosmos (l'amas, l'univers), par état, allégée par le vide. */
-    public Map<Molecule.State, Integer> cosmosMatter(Cosmos scale) {
-        return lightenedMatter(scale.matter());
-    }
+    public Map<Molecule.State, Integer> cosmosMatter(Cosmos scale) { return lightenedMatter(scale.matter()); }
 
     // ------------------------------------------------------------------
-    // La ligne, première dimension (version 0.101)
+    // La ligne, première dimension
     // ------------------------------------------------------------------
 
     /** Secondes que met la boule de la ligne pour aller d'un bout à l'autre, avant l'accélération. */
@@ -272,7 +241,7 @@ public abstract class GameUniverse extends GameAtoms {
     /** Boules et lignes en plus, au plus : dix boules par ligne, cinq lignes. */
     public static final int LINE_MAX_EXTRA_BALLS = 9, LINE_MAX_EXTRA_LINES = 4;
     /**
-     * Le seuil de la ligne (version 0.102) : tant d'éclats gagnés en tout, et la dimension 1 est marquée. Version 0.136 :
+     * Le seuil de la ligne : tant d'éclats gagnés en tout, et la dimension 1 est marquée. Version 0.136 :
      * 250 000 au lieu de 100, qu'un joueur appliqué atteignait en 3 minutes ; il lui en faut maintenant environ 15 (bot
      * {@code DimensionBots} des bots).
      */
@@ -288,59 +257,41 @@ public abstract class GameUniverse extends GameAtoms {
 
         private final Price price;
 
-        LineUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        LineUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Vrai dès que la première dimension est ouverte : les boules courent, les éclats tombent. */
-    public boolean isLineOpen() {
-        return dimensionsUnlocked() >= 1;
-    }
+    public boolean isLineOpen() { return dimensionsUnlocked() >= 1; }
 
     /** Traits sur chaque ligne, ses deux bouts compris, également espacés. */
-    public int lineTicks() {
-        return 2 + state.lineTicksLevel();
-    }
+    public int lineTicks() { return 2 + state.lineTicksLevel(); }
 
     /** Boules sur chaque ligne. */
-    public int lineBalls() {
-        return 1 + state.lineBallsLevel();
-    }
+    public int lineBalls() { return 1 + state.lineBallsLevel(); }
 
     /** Lignes. */
-    public int lineCount() {
-        return 1 + state.lineCountLevel();
-    }
+    public int lineCount() { return 1 + state.lineCountLevel(); }
 
     /** La vitesse des boules, ×1 au départ. */
-    public double lineSpeed() {
-        return 1 + LINE_SPEED_STEP * state.lineSpeedLevel();
-    }
+    public double lineSpeed() { return 1 + LINE_SPEED_STEP * state.lineSpeedLevel(); }
 
     /** Secondes pour un aller, à la vitesse actuelle. */
-    public double lineHalfTrip() {
-        return LINE_HALF_TRIP / lineSpeed();
-    }
+    public double lineHalfTrip() { return LINE_HALF_TRIP / lineSpeed(); }
 
     /** Éclats de chaque trait touché : 0,1, et 0,1 de plus par niveau de l'amélioration. */
     public double lineShardsPerTouch() {
-        // Version 0.151 : les omégas renforcent les éclats des quatre dimensions.
-        return LINE_SHARD * (1 + state.lineYieldLevel()) * hadronBoost(idle.core.collider.Hadron.OMEGA);
+        // Les omégas renforcent les éclats des quatre dimensions.
+        return LINE_SHARD * (1 + state.lineYieldLevel()) * hadronBoost(Hadron.OMEGA);
     }
 
     /**
      * Le décalage d'une boule sur la route (aller puis retour, longueur 2) : les boules d'une même ligne
      * se répartissent également, et chaque ligne est un peu décalée de la précédente.
      */
-    public double lineOffset(int line, int ball) {
-        return (2.0 * ball / lineBalls() + 0.5 * line / lineCount()) % 2;
-    }
+    public double lineOffset(int line, int ball) { return (2.0 * ball / lineBalls() + 0.5 * line / lineCount()) % 2; }
 
     /** Où est cette boule de cette ligne : 0 au début, 1 au bout. */
     public double linePosition(int line, int ball) {
@@ -349,22 +300,18 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Où est la première boule de la première ligne. */
-    public double linePosition() {
-        return linePosition(0, 0);
-    }
+    public double linePosition() { return linePosition(0, 0); }
 
     /** Éclats par seconde : chaque aller d'une boule touche tous les traits sauf celui d'où elle part. */
     public double lineShardsPerSecond() {
         return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() * lineBalls() * lineCount() / lineHalfTrip() : 0;
     }
 
-    /** Éclats du plan à gagner pour son seuil (version 0.120) : 3 500 depuis la version 0.136 (100 avant), environ 15 minutes de jeu appliqué. */
+    /** Éclats du plan à gagner pour son seuil : 3 500 depuis la version 0.136 (100 avant), environ 15 minutes de jeu appliqué. */
     public static final double PLANE_THRESHOLD = 3_500;
 
     /** Vrai une fois le seuil du plan atteint : {@link #PLANE_THRESHOLD} éclats du plan gagnés en tout. */
-    public boolean isPlaneThresholdReached() {
-        return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
-    }
+    public boolean isPlaneThresholdReached() { return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9; }
 
     /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir, 10 le mélange) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     /**
@@ -404,9 +351,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Vrai une fois le seuil de la ligne atteint : {@link #LINE_THRESHOLD} éclats gagnés en tout. */
-    public boolean isLineThresholdReached() {
-        return state.dimensionShardsEarned() >= LINE_THRESHOLD - 1e-9;
-    }
+    public boolean isLineThresholdReached() { return state.dimensionShardsEarned() >= LINE_THRESHOLD - 1e-9; }
 
     /**
      * Fait avancer les boules de {@code dt} secondes et donne les éclats des traits touchés. L'aller et
@@ -433,19 +378,13 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Le niveau d'une amélioration de la ligne. */
-    public int lineLevel(LineUpgrade upgrade) {
-        return state.lineLevel(upgrade.ordinal());
-    }
+    public int lineLevel(LineUpgrade upgrade) { return state.lineLevel(upgrade.ordinal()); }
 
     /** Le niveau le plus haut d'une amélioration de la ligne ; sans limite pour la densité. */
-    public int lineMaxLevel(LineUpgrade upgrade) {
-        return upgrade.max();
-    }
+    public int lineMaxLevel(LineUpgrade upgrade) { return upgrade.max(); }
 
     /** Prix du prochain niveau, en éclats ; infini une fois au plus haut. */
-    public double lineCost(LineUpgrade upgrade) {
-        return upgrade.cost(lineLevel(upgrade));
-    }
+    public double lineCost(LineUpgrade upgrade) { return upgrade.cost(lineLevel(upgrade)); }
 
     public boolean canBuyLine(LineUpgrade upgrade) {
         return isLineOpen() && lineLevel(upgrade) < lineMaxLevel(upgrade) && state.dimensionShards() >= lineCost(upgrade) - 1e-9;
@@ -460,32 +399,20 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // Les améliorations de densité et de traits sous leur nom de la 0.101 : des tests s'en servent encore.
-    public double lineYieldCost() {
-        return lineCost(LineUpgrade.YIELD);
-    }
+    public double lineYieldCost() { return lineCost(LineUpgrade.YIELD); }
 
-    public double lineTicksCost() {
-        return lineCost(LineUpgrade.TICKS);
-    }
+    public double lineTicksCost() { return lineCost(LineUpgrade.TICKS); }
 
-    public boolean canBuyLineYield() {
-        return canBuyLine(LineUpgrade.YIELD);
-    }
+    public boolean canBuyLineYield() { return canBuyLine(LineUpgrade.YIELD); }
 
-    public boolean canBuyLineTicks() {
-        return canBuyLine(LineUpgrade.TICKS);
-    }
+    public boolean canBuyLineTicks() { return canBuyLine(LineUpgrade.TICKS); }
 
-    public boolean buyLineYield() {
-        return buyLine(LineUpgrade.YIELD);
-    }
+    public boolean buyLineYield() { return buyLine(LineUpgrade.YIELD); }
 
-    public boolean buyLineTicks() {
-        return buyLine(LineUpgrade.TICKS);
-    }
+    public boolean buyLineTicks() { return buyLine(LineUpgrade.TICKS); }
 
     // ------------------------------------------------------------------
-    // Le plan, deuxième dimension (version 0.104)
+    // Le plan, deuxième dimension
     // ------------------------------------------------------------------
 
     /** Le plan va de −1 à 1 dans les deux sens : le point du joueur n'en sort pas. */
@@ -507,14 +434,10 @@ public abstract class GameUniverse extends GameAtoms {
 
         private final Price price;
 
-        PlaneUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        PlaneUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Un éclat posé sur le plan : il attend qu'on passe dessus. */
@@ -523,61 +446,41 @@ public abstract class GameUniverse extends GameAtoms {
 
     // Ce qui ne se sauvegarde pas : où est le point, où sont les éclats, la direction tenue.
     private double planeX, planeY, planeInputX, planeInputY, planeSpawnTimer;
-    private final java.util.List<PlaneShard> planeShardsOnBoard = new java.util.ArrayList<>();
-    private final java.util.Random planeRandom = new java.util.Random(2);
+    private final List<PlaneShard> planeShardsOnBoard = new ArrayList<>();
+    private final Random planeRandom = new Random(2);
     private long planeCollected;
 
     /** Vrai dès que la deuxième dimension est ouverte. */
-    public boolean isPlaneOpen() {
-        return dimensionsUnlocked() >= 2;
-    }
+    public boolean isPlaneOpen() { return dimensionsUnlocked() >= 2; }
 
-    public int planeLevel(PlaneUpgrade upgrade) {
-        return state.planeLevel(upgrade.ordinal());
-    }
+    public int planeLevel(PlaneUpgrade upgrade) { return state.planeLevel(upgrade.ordinal()); }
 
     /** Éclats du plan que donne chaque éclat ramassé : 1, et 1 de plus par niveau. */
-    public double planeValue() {
-        return (1 + planeLevel(PlaneUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double planeValue() { return (1 + planeLevel(PlaneUpgrade.VALUE)) * hadronBoost(Hadron.OMEGA); }
 
     /** Secondes entre deux apparitions : 3, ×0,85 par niveau. */
-    public double planeSpawnSeconds() {
-        return PLANE_SPAWN_SECONDS * Math.pow(0.85, planeLevel(PlaneUpgrade.SPAWN));
-    }
+    public double planeSpawnSeconds() { return PLANE_SPAWN_SECONDS * Math.pow(0.85, planeLevel(PlaneUpgrade.SPAWN)); }
 
     /** Éclats présents à la fois, au plus : 3, et 1 de plus par niveau (vingt au plus). */
-    public int planeMaxShards() {
-        return PLANE_MAX_SHARDS + planeLevel(PlaneUpgrade.COUNT);
-    }
+    public int planeMaxShards() { return PLANE_MAX_SHARDS + planeLevel(PlaneUpgrade.COUNT); }
 
     /** Vitesse du point du joueur : 0,6 par seconde, +20 % par niveau. */
-    public double planeSpeed() {
-        return PLANE_SPEED * (1 + 0.2 * planeLevel(PlaneUpgrade.SPEED));
-    }
+    public double planeSpeed() { return PLANE_SPEED * (1 + 0.2 * planeLevel(PlaneUpgrade.SPEED)); }
 
     /** Rayon du point du joueur : 0,025, +25 % par niveau (quinze niveaux : ×4,75). */
     public double planePlayerRadius() {
         return PLANE_PLAYER_RADIUS * (1 + PLANE_SIZE_STEP * planeLevel(PlaneUpgrade.SIZE));
     }
 
-    public double planeX() {
-        return planeX;
-    }
+    public double planeX() { return planeX; }
 
-    public double planeY() {
-        return planeY;
-    }
+    public double planeY() { return planeY; }
 
     /** Les éclats posés sur le plan, dans l'ordre où ils sont apparus. */
-    public java.util.List<PlaneShard> planeShardsOnBoard() {
-        return java.util.Collections.unmodifiableList(planeShardsOnBoard);
-    }
+    public List<PlaneShard> planeShardsOnBoard() { return Collections.unmodifiableList(planeShardsOnBoard); }
 
     /** Éclats ramassés depuis le lancement : l'interface y voit ceux de la dernière image. */
-    public long planeCollected() {
-        return planeCollected;
-    }
+    public long planeCollected() { return planeCollected; }
 
     /** La direction que tient le joueur, de −1 à 1 sur chaque axe (ZQSD) ; 0, 0 pour s'arrêter. */
     public void setPlaneInput(double dx, double dy) {
@@ -602,7 +505,7 @@ public abstract class GameUniverse extends GameAtoms {
     void runPlane(double dt) {
         if (!isPlaneOpen() || dt <= 0) return;
         // La visée automatique, sur un grand pas (une absence rejouée par pas de 10 s), se joue par morceaux, comme en jeu
-        // ouvert (version 0.163). Avant, un pas ne valait jamais plus d'un quart de seconde de course : sur un pas de 10 s, le
+        // ouvert. Avant, un pas ne valait jamais plus d'un quart de seconde de course : sur un pas de 10 s, le
         // point automatique avançait quarante fois moins vite, et le plan ne rapportait presque rien en absence.
         if (dt > PLANE_AUTO_STEP && planeInputX == 0 && planeInputY == 0 && isPlaneAutomatic()) {
             for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runPlaneStep(Math.min(PLANE_AUTO_STEP, left));
@@ -612,7 +515,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Le morceau de temps des automatismes de jeu sur un grand pas (version 0.163) : celui du plan, du volume et de la
+     * Le morceau de temps des automatismes de jeu sur un grand pas : celui du plan, du volume et de la
      * brane. Assez court pour que le point du plan ne passe à côté d'aucun éclat ; en jeu ouvert, une image dure moins.
      */
     public static final double PLANE_AUTO_STEP = 0.05;
@@ -628,7 +531,7 @@ public abstract class GameUniverse extends GameAtoms {
         }
         // Plein : le minuteur attend, il ne s'accumule pas.
         if (planeShardsOnBoard.size() >= planeMaxShards()) planeSpawnTimer = Math.min(planeSpawnTimer, every);
-        // La visée automatique (version 0.150) ne prend la main que quand le joueur ne tient aucune direction.
+        // La visée automatique ne prend la main que quand le joueur ne tient aucune direction.
         double inputX = planeInputX, inputY = planeInputY;
         if (inputX == 0 && inputY == 0) {
             double[] auto = planeAutoDirection(dt);
@@ -643,7 +546,7 @@ public abstract class GameUniverse extends GameAtoms {
             setPlanePosition(planeX + inputX * step, planeY + inputY * step);
         }
         double reach = planePlayerRadius() + PLANE_SHARD_RADIUS;
-        for (java.util.Iterator<PlaneShard> it = planeShardsOnBoard.iterator(); it.hasNext(); ) {
+        for (Iterator<PlaneShard> it = planeShardsOnBoard.iterator(); it.hasNext(); ) {
             PlaneShard shard = it.next();
             if (Math.hypot(shard.x() - planeX, shard.y() - planeY) > reach) continue;
             it.remove();
@@ -654,22 +557,16 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * La direction que donne la visée automatique du plan (version 0.150) ; {@code null} sans elle. Version 0.209 : elle
+     * La direction que donne la visée automatique du plan ; {@code null} sans elle. Elle
      * reçoit le temps écoulé, pour ne reprendre sa direction qu'à son rythme.
      */
-    double[] planeAutoDirection(double dt) {
-        return null;
-    }
+    double[] planeAutoDirection(double dt) { return null; }
 
-    /** Vrai quand quelqu'un d'autre que le joueur mène le point du plan (version 0.209) : un palier de la visée, un bot. */
-    boolean isPlaneAutomatic() {
-        return false;
-    }
+    /** Vrai quand quelqu'un d'autre que le joueur mène le point du plan : un palier de la visée, un bot. */
+    boolean isPlaneAutomatic() { return false; }
 
     /** Prix du prochain niveau, en éclats du plan ; infini une fois au plus haut. */
-    public double planeCost(PlaneUpgrade upgrade) {
-        return upgrade.cost(planeLevel(upgrade));
-    }
+    public double planeCost(PlaneUpgrade upgrade) { return upgrade.cost(planeLevel(upgrade)); }
 
     public boolean canBuyPlane(PlaneUpgrade upgrade) {
         return isPlaneOpen() && planeLevel(upgrade) < upgrade.max() && state.planeShards() >= planeCost(upgrade) - 1e-9;
@@ -683,7 +580,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // Le volume, troisième dimension (version 0.128)
+    // Le volume, troisième dimension
     // ------------------------------------------------------------------
 
     /** Le volume est le cube de −1 à 1 sur les trois axes ; le joueur y plonge et regarde depuis son centre. */
@@ -715,14 +612,10 @@ public abstract class GameUniverse extends GameAtoms {
 
         private final Price price;
 
-        VolumeUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        VolumeUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Une boule qui flotte dans le volume, en attendant qu'on la cueille. */
@@ -732,18 +625,14 @@ public abstract class GameUniverse extends GameAtoms {
     // Ce qui ne se sauvegarde pas : la plongée en cours, son minuteur, les boules du cube.
     private boolean inVolume;
     private double volumeTimeLeft, volumeSpawnTimer;
-    private final java.util.List<VolumeBall> volumeBalls = new java.util.ArrayList<>();
-    private final java.util.Random volumeRandom = new java.util.Random(3);
+    private final List<VolumeBall> volumeBalls = new ArrayList<>();
+    private final Random volumeRandom = new Random(3);
     private long volumeCollected, volumeDives;
 
     /** Vrai dès que la troisième dimension est ouverte : au troisième univers. */
-    public boolean isVolumeOpen() {
-        return dimensionsUnlocked() >= 3;
-    }
+    public boolean isVolumeOpen() { return dimensionsUnlocked() >= 3; }
 
-    public int volumeLevel(VolumeUpgrade upgrade) {
-        return state.volumeLevel(upgrade.ordinal());
-    }
+    public int volumeLevel(VolumeUpgrade upgrade) { return state.volumeLevel(upgrade.ordinal()); }
 
     /** Durée d'une plongée : 12 s, et 3 s de plus par niveau. */
     public double volumeDiveSeconds() {
@@ -751,9 +640,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Éclats du volume que donne chaque boule cueillie : 1, et 1 de plus par niveau. */
-    public double volumeValue() {
-        return (1 + volumeLevel(VolumeUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double volumeValue() { return (1 + volumeLevel(VolumeUpgrade.VALUE)) * hadronBoost(Hadron.OMEGA); }
 
     /** Secondes entre deux boules : 1,5, ×0,85 par niveau. */
     public double volumeSpawnSeconds() {
@@ -761,9 +648,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Boules présentes à la fois, au plus : 4, et 1 de plus par niveau (vingt au plus). */
-    public int volumeMaxBalls() {
-        return VOLUME_MAX_BALLS + volumeLevel(VolumeUpgrade.COUNT);
-    }
+    public int volumeMaxBalls() { return VOLUME_MAX_BALLS + volumeLevel(VolumeUpgrade.COUNT); }
 
     /** Rayon d'une boule : 0,025, +20 % par niveau (quinze niveaux : ×4, 0,1). Plus grosse, elle se vise mieux. */
     public double volumeBallRadius() {
@@ -771,29 +656,19 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Vrai pendant une plongée : le joueur est au centre du cube. */
-    public boolean isInVolume() {
-        return inVolume;
-    }
+    public boolean isInVolume() { return inVolume; }
 
     /** Secondes qu'il reste avant que le cube rejette le joueur ; 0 hors du cube. */
-    public double volumeTimeLeft() {
-        return inVolume ? volumeTimeLeft : 0;
-    }
+    public double volumeTimeLeft() { return inVolume ? volumeTimeLeft : 0; }
 
     /** Les boules du cube, dans l'ordre où elles sont apparues. */
-    public java.util.List<VolumeBall> volumeBalls() {
-        return java.util.Collections.unmodifiableList(volumeBalls);
-    }
+    public List<VolumeBall> volumeBalls() { return Collections.unmodifiableList(volumeBalls); }
 
     /** Boules cueillies depuis le lancement : l'interface y voit celles de la dernière image. */
-    public long volumeCollected() {
-        return volumeCollected;
-    }
+    public long volumeCollected() { return volumeCollected; }
 
     /** Plongées commencées depuis le lancement. */
-    public long volumeDives() {
-        return volumeDives;
-    }
+    public long volumeDives() { return volumeDives; }
 
     /**
      * Plonge dans le cube : le minuteur part de la durée d'une plongée, et le cube vide reçoit aussitôt sa
@@ -823,7 +698,7 @@ public abstract class GameUniverse extends GameAtoms {
      * qu'il en manque, et le minuteur descend ; à zéro, le cube rejette le joueur.
      */
     void runVolume(double dt) {
-        // Version 0.163 : la plongée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert. D'un coup,
+        // La plongée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert. D'un coup,
         // un pas de 10 s (une absence rejouée) laissait expirer la plongée avant de replonger, et le volume rapportait
         // moitié moins en absence.
         if (dt > PLANE_AUTO_STEP && isVolumeAutomatic() && isVolumeOpen()) {
@@ -834,7 +709,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     private void runVolumeStep(double dt) {
-        // La plongée automatique (version 0.150) : elle replonge dès qu'elle sort, et vise une boule à son rythme.
+        // La plongée automatique : elle replonge dès qu'elle sort, et vise une boule à son rythme.
         if (isVolumeAutomatic() && isVolumeOpen() && dt > 0) {
             if (!inVolume) enterVolume();
             double every = volumeShotPeriod();
@@ -911,16 +786,12 @@ public abstract class GameUniverse extends GameAtoms {
      * Le temps entre deux boules cueillies par la plongée automatique (version 0.209 : celui de son palier ; 0,4 s avant,
      * pour la seule plongée d'alors).
      */
-    double volumeShotPeriod() {
-        return Double.POSITIVE_INFINITY;
-    }
+    double volumeShotPeriod() { return Double.POSITIVE_INFINITY; }
 
     private double volumeShotTimer;
 
-    /** Vrai quand la plongée automatique joue le volume (version 0.150). */
-    boolean isVolumeAutomatic() {
-        return false;
-    }
+    /** Vrai quand la plongée automatique joue le volume. */
+    boolean isVolumeAutomatic() { return false; }
 
     /** Pose une boule dans le cube : pour les essais. */
     public void addVolumeBall(double x, double y, double z) {
@@ -934,14 +805,10 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Vrai une fois le seuil du volume atteint : {@link #VOLUME_THRESHOLD} éclats du volume gagnés en tout. */
-    public boolean isVolumeThresholdReached() {
-        return state.volumeShardsEarned() >= VOLUME_THRESHOLD - 1e-9;
-    }
+    public boolean isVolumeThresholdReached() { return state.volumeShardsEarned() >= VOLUME_THRESHOLD - 1e-9; }
 
     /** Prix du prochain niveau, en éclats du volume ; infini une fois au plus haut. */
-    public double volumeCost(VolumeUpgrade upgrade) {
-        return upgrade.cost(volumeLevel(upgrade));
-    }
+    public double volumeCost(VolumeUpgrade upgrade) { return upgrade.cost(volumeLevel(upgrade)); }
 
     /** Les améliorations du volume s'achètent hors du cube, jamais pendant une plongée. */
     public boolean canBuyVolume(VolumeUpgrade upgrade) {
@@ -957,7 +824,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // La durée, quatrième dimension (version 0.134)
+    // La durée, quatrième dimension
     // ------------------------------------------------------------------
 
     /**
@@ -979,7 +846,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Les améliorations de la durée : leur prix de départ en éclats de la durée, la croissance, le plafond. Dans
-     * l'ordre de la sauvegarde : vitesse des spirales, nombre de spirales, valeur, temps au plus. Version 0.136 : chaque
+     * l'ordre de la sauvegarde : vitesse des spirales, nombre de spirales, valeur, temps au plus. Chaque
      * niveau coûte une fois de plus le prix du précédent (×3,4, ×4, ×4, ×3,2 au lieu de ×2,4, ×3, ×3, ×2,2) ; avant, les
      * trois améliorations plafonnées étaient au plus haut en trois minutes.
      */
@@ -988,14 +855,10 @@ public abstract class GameUniverse extends GameAtoms {
 
         private final Price price;
 
-        DurationUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        DurationUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Le bouton tenu, et depuis combien de secondes ; ni l'un ni l'autre ne se sauvegarde. */
@@ -1005,13 +868,9 @@ public abstract class GameUniverse extends GameAtoms {
     private double durationLastReward;
 
     /** La durée s'ouvre avec le quatrième univers : une dimension par univers. */
-    public boolean isDurationOpen() {
-        return dimensionsUnlocked() >= 4;
-    }
+    public boolean isDurationOpen() { return dimensionsUnlocked() >= 4; }
 
-    public int durationLevel(DurationUpgrade upgrade) {
-        return state.durationLevel(upgrade.ordinal());
-    }
+    public int durationLevel(DurationUpgrade upgrade) { return state.durationLevel(upgrade.ordinal()); }
 
     /** Le temps au bout duquel les spirales atteignent le centre : 6 s, et 2 s de plus par niveau. */
     public double durationMaxSeconds() {
@@ -1024,19 +883,13 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Les spirales qui avancent ensemble : 1, et une de plus par niveau. */
-    public int durationSpirals() {
-        return 1 + durationLevel(DurationUpgrade.COUNT);
-    }
+    public int durationSpirals() { return 1 + durationLevel(DurationUpgrade.COUNT); }
 
     /** Ce que vaut le premier tour d'une spirale ; le n-ième vaut n fois autant. */
-    public double durationValue() {
-        return (1 + durationLevel(DurationUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double durationValue() { return (1 + durationLevel(DurationUpgrade.VALUE)) * hadronBoost(Hadron.OMEGA); }
 
     /** Les tours d'une spirale entière, du bord au centre. */
-    public double durationTurnsMax() {
-        return durationTurnsPerSecond() * durationMaxSeconds();
-    }
+    public double durationTurnsMax() { return durationTurnsPerSecond() * durationMaxSeconds(); }
 
     /** Ce que donne un relâchement après {@code seconds} secondes tenues : chaque spirale, (n² + n) ÷ 2 fois la valeur pour n tours. */
     public double durationRewardFor(double seconds) {
@@ -1044,13 +897,11 @@ public abstract class GameUniverse extends GameAtoms {
         return durationSpirals() * durationValue() * (turns * turns + turns) / 2;
     }
 
-    public boolean isDurationHeld() {
-        return durationHeld;
-    }
+    public boolean isDurationHeld() { return durationHeld; }
 
     /** Depuis combien de secondes le bouton est tenu, sans dépasser le temps au plus. */
     public double durationHeldSeconds() {
-        // Version 0.209 : l'appui automatique compte aussi son attente avant l'appui suivant ; le bouton, lui, est au plus plein.
+        // L'appui automatique compte aussi son attente avant l'appui suivant ; le bouton, lui, est au plus plein.
         return durationHeld ? Math.min(durationMaxSeconds(), durationHeldSeconds) : 0;
     }
 
@@ -1060,18 +911,12 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Ce que donnerait un relâchement maintenant. */
-    public double durationPending() {
-        return durationHeld ? durationRewardFor(durationHeldSeconds) : 0;
-    }
+    public double durationPending() { return durationHeld ? durationRewardFor(durationHeldSeconds) : 0; }
 
     /** Les relâchements qui ont donné des éclats, et ce qu'a donné le dernier : pour la fenêtre. */
-    public long durationReleases() {
-        return durationReleases;
-    }
+    public long durationReleases() { return durationReleases; }
 
-    public double durationLastReward() {
-        return durationLastReward;
-    }
+    public double durationLastReward() { return durationLastReward; }
 
     /** Le bouton est enfoncé : les spirales repartent du bord. Faux si la dimension est fermée ou déjà tenue. */
     public boolean holdDuration() {
@@ -1104,13 +949,13 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Le temps passe pour le bouton tenu, jusqu'au temps au plus. */
     void runDuration(double dt) {
-        // L'appui automatique (version 0.150) : tenu jusqu'au centre, relâché, repris, autant de fois que le temps le permet.
+        // L'appui automatique : tenu jusqu'au centre, relâché, repris, autant de fois que le temps le permet.
         if (isDurationAutomatic() && isDurationOpen() && dt > 0) {
             if (!durationHeld) {
                 durationHeld = true;
                 durationHeldSeconds = 0;
             }
-            // Version 0.209 : entre deux appuis, le temps d'une action de son palier (presque rien pour le dernier). Le temps
+            // Entre deux appuis, le temps d'une action de son palier (presque rien pour le dernier). Le temps
             // tenu compte ce délai : un tour dure le temps au plus, plus ce délai, et ne paie que le temps au plus.
             double max = durationMaxSeconds(), delay = durationPressDelay(), lap = max + delay, total = durationHeldSeconds + dt;
             long cycles = (long) Math.floor(total / lap + 1e-9);
@@ -1134,29 +979,21 @@ public abstract class GameUniverse extends GameAtoms {
         durationHeldSeconds = Math.min(durationMaxSeconds(), durationHeldSeconds + dt);
     }
 
-    /** Vrai quand l'appui automatique joue la durée (version 0.150). */
-    boolean isDurationAutomatic() {
-        return false;
-    }
+    /** Vrai quand l'appui automatique joue la durée. */
+    boolean isDurationAutomatic() { return false; }
 
-    /** Le temps entre un relâcher et l'appui suivant de l'appui automatique (version 0.209) : celui de son palier. */
-    double durationPressDelay() {
-        return 0;
-    }
+    /** Le temps entre un relâcher et l'appui suivant de l'appui automatique : celui de son palier. */
+    double durationPressDelay() { return 0; }
 
     /** Vrai une fois le seuil de la durée atteint : {@link #DURATION_THRESHOLD} éclats de la durée gagnés en tout. */
-    public boolean isDurationThresholdReached() {
-        return state.durationShardsEarned() >= DURATION_THRESHOLD - 1e-9;
-    }
+    public boolean isDurationThresholdReached() { return state.durationShardsEarned() >= DURATION_THRESHOLD - 1e-9; }
 
     /** Prix du prochain niveau, en éclats de la durée ; infini une fois au plus haut. */
-    public double durationCost(DurationUpgrade upgrade) {
-        return upgrade.cost(durationLevel(upgrade));
-    }
+    public double durationCost(DurationUpgrade upgrade) { return upgrade.cost(durationLevel(upgrade)); }
 
     /**
      * Les améliorations de la durée s'achètent bouton relâché : les spirales ne changent pas en cours de route. Sauf
-     * pendant l'appui automatique (version 0.150), qui ne relâche jamais : elles valent alors dès le cycle en cours.
+     * pendant l'appui automatique, qui ne relâche jamais : elles valent alors dès le cycle en cours.
      */
     public boolean canBuyDuration(DurationUpgrade upgrade) {
         return isDurationOpen() && (!durationHeld || isDurationAutomatic()) && durationLevel(upgrade) < upgrade.max()
@@ -1171,25 +1008,23 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // La graine qui germe (version 0.103)
+    // La graine qui germe
     // ------------------------------------------------------------------
 
     /**
      * Vrai si la graine peut être arrosée : l'univers est formé (il n'y a qu'une graine, la sienne) et elle n'est pas
-     * encore l'arbre-monde. Version 0.139 : les seuils des dimensions ne la retiennent plus (de la 0.103 à la 0.138, il
+     * encore l'arbre-monde. Les seuils des dimensions ne la retiennent plus (de la 0.103 à la 0.138, il
      * fallait l'objectif de la dimension 1 pour la faire germer, puis le seuil de la dimension de chaque palier) ; ils
      * ne donnent plus que le rond vert de leur dimension.
      */
-    public boolean canTendSeed() {
-        return isUniverseFormed() && seedStage() < SEED_STAGES;
-    }
+    public boolean canTendSeed() { return isUniverseFormed() && seedStage() < SEED_STAGES; }
 
-    /** Arrosages qui font du germe une brindille (version 0.106) : c'est elle qui ouvre le deuxième univers. */
+    /** Arrosages qui font du germe une brindille : c'est elle qui ouvre le deuxième univers. */
     public static final long SEED_TWIG_WATERINGS = 30;
 
     /**
-     * Les paliers de la graine (version 0.120), de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N, et dès le
-     * quatrième des bulles naissent dans l'arbre. Version 0.179 : chaque palier demande ses propres arrosages
+     * Les paliers de la graine, de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N, et dès le
+     * quatrième des bulles naissent dans l'arbre. Chaque palier demande ses propres arrosages
      * ({@link #SEED_STAGE_STEPS}), de plus en plus, au lieu de trente de plus à chaque fois (300 en tout : l'arbre-monde
      * venait en cinq minutes d'arrosoir, et rien de ce qui se gagne dans les dimensions ne servait à y arriver). À
      * l'arrosoir seul (un arrosage par seconde), le bonsaï demande un quart d'heure, le jeune arbre trois heures et
@@ -1198,11 +1033,11 @@ public abstract class GameUniverse extends GameAtoms {
      */
     public static final int SEED_STAGES = 11;
 
-    /** Arrosages que demande chaque palier de 2 à 11, en plus du précédent (version 0.179). */
+    /** Arrosages que demande chaque palier de 2 à 11, en plus du précédent. */
     static final long[] SEED_STAGE_STEPS = {30, 60, 900, 2_700, 5_400, 10_800, 16_200, 21_600, 32_400, 43_200};
 
     /** Le nom de chaque palier, du premier au onzième. */
-    public static final java.util.List<String> SEED_STAGE_NAMES = java.util.List.of("la graine", "la tige", "la graine craquelée",
+    public static final List<String> SEED_STAGE_NAMES = List.of("la graine", "la tige", "la graine craquelée",
             "la graine brisée", "le bonsaï", "l'arbuste", "le jeune arbre", "l'arbre mûr", "l'arbre ancien", "l'arbre géant",
             "l'arbre-monde");
 
@@ -1221,18 +1056,16 @@ public abstract class GameUniverse extends GameAtoms {
         return stage;
     }
 
-    /** Paliers d'avance que la graine peut prendre sur les univers formés (version 0.179). */
+    /** Paliers d'avance que la graine peut prendre sur les univers formés. */
     public static final int SEED_STAGES_AHEAD = 2;
 
     /**
-     * Le palier le plus haut que la graine peut atteindre : deux de plus que les univers formés (version 0.179). Les
+     * Le palier le plus haut que la graine peut atteindre : deux de plus que les univers formés. Les
      * arrosages font venir la prochaine phase de l'arbre plus tôt, pas plus loin : la mesure de la 0.179 sans ce plafond
      * donnait toutes les bulles au Speedrunner dès l'univers 4, et des univers de 2 h 26 à partir du cinquième. Les
      * arrosages versés au-delà restent comptés pour les paliers suivants.
      */
-    public int seedStageCap() {
-        return Math.min(SEED_STAGES, universes() + SEED_STAGES_AHEAD);
-    }
+    public int seedStageCap() { return Math.min(SEED_STAGES, universes() + SEED_STAGES_AHEAD); }
 
     /** Vrai si la graine a atteint le palier que les univers formés lui permettent : elle attend l'univers suivant. */
     public boolean isSeedStageCapped() {
@@ -1240,12 +1073,10 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Vrai une fois le germe devenu brindille : la graine a au moins son deuxième palier. */
-    public boolean isSeedTwig() {
-        return seedStage() >= 2;
-    }
+    public boolean isSeedTwig() { return seedStage() >= 2; }
 
     /**
-     * Vrai si l'univers suivant peut s'ouvrir depuis la page Univers. Version 0.120 : l'univers N attend le palier N
+     * Vrai si l'univers suivant peut s'ouvrir depuis la page Univers. L'univers N attend le palier N
      * de la graine (la tige pour le deuxième, la graine craquelée pour le troisième…).
      */
     public boolean canOpenNextUniverse() {
@@ -1254,26 +1085,20 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Le palier de la graine qu'attend l'univers suivant : 2 pour le deuxième, 3 pour le troisième… */
-    public int nextUniverseStage() {
-        return Math.min(SEED_STAGES, state.seedUniversesOpened() + 2);
-    }
+    public int nextUniverseStage() { return Math.min(SEED_STAGES, state.seedUniversesOpened() + 2); }
 
     /**
-     * Vrai si la brindille doit ouvrir le deuxième univers maintenant (version 0.109) : elle est là, l'univers
+     * Vrai si la brindille doit ouvrir le deuxième univers maintenant : elle est là, l'univers
      * est formé, aucune partie n'est en cours, et elle ne l'a pas déjà ouvert. Le nombre d'univers n'y entre
      * pas : l'outil d'essai « +1 univers » (pour ouvrir le plan) ne l'empêche plus.
      */
-    public boolean twigOpensUniverse() {
-        return canOpenNextUniverse() && !state.twigOpened();
-    }
+    public boolean twigOpensUniverse() { return canOpenNextUniverse() && !state.twigOpened(); }
 
     /** Ouvre le deuxième univers si la brindille le demande ; vrai si c'est fait. */
-    public boolean openUniverseFromTwig() {
-        return twigOpensUniverse() && startNextUniverse();
-    }
+    public boolean openUniverseFromTwig() { return twigOpensUniverse() && startNextUniverse(); }
 
     // ------------------------------------------------------------------
-    // L'arrosoir (version 0.137)
+    // L'arrosoir
     // ------------------------------------------------------------------
 
     /** Arrosages par seconde que donne l'arrosoir penché sur la graine. */
@@ -1284,14 +1109,10 @@ public abstract class GameUniverse extends GameAtoms {
     private double wateringPoured;
 
     /** Vrai une fois l'arrosoir débloqué. */
-    public boolean isWateringCanUnlocked() {
-        return state.wateringCan();
-    }
+    public boolean isWateringCanUnlocked() { return state.wateringCan(); }
 
     /** L'arrosoir se débloque dès que la graine existe, c'est-à-dire dès le premier univers formé ; il est gratuit. */
-    public boolean canUnlockWateringCan() {
-        return isUniverseFormed() && !state.wateringCan();
-    }
+    public boolean canUnlockWateringCan() { return isUniverseFormed() && !state.wateringCan(); }
 
     /** Débloque l'arrosoir, posé sur son étagère. */
     public boolean unlockWateringCan() {
@@ -1311,17 +1132,13 @@ public abstract class GameUniverse extends GameAtoms {
         watering = next;
     }
 
-    public boolean isWatering() {
-        return watering;
-    }
+    public boolean isWatering() { return watering; }
 
     /** La part de l'arrosage en cours déjà versée, de 0 à 1. */
-    public double wateringPoured() {
-        return watering ? wateringPoured : 0;
-    }
+    public double wateringPoured() { return watering ? wateringPoured : 0; }
 
     /**
-     * L'arrosoir tenu et le tuyau (version 0.139) versent pendant {@code dt} secondes : un arrosage à chaque arrosage
+     * L'arrosoir tenu et le tuyau versent pendant {@code dt} secondes : un arrosage à chaque arrosage
      * plein, tant que la graine l'accepte. Le tuyau verse seul, sans qu'on le tienne.
      */
     void runWatering(double dt) {
@@ -1355,7 +1172,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Le premier arrosage fait germer la graine ; les suivants arrosent son germe, qui grandit, et chacun compte pour
-     * {@link #seedSoilFactor()} grâce à la terre fertile (version 0.139). Faux si fermé.
+     * {@link #seedSoilFactor()} grâce à la terre fertile. Faux si fermé.
      */
     public boolean tendSeed() {
         if (!canTendSeed()) return false;
@@ -1365,11 +1182,11 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // Les bulles de l'arbre (version 0.142)
+    // Les bulles de l'arbre
     // ------------------------------------------------------------------
 
     /**
-     * Les bulles de l'arbre (version 0.142, réseau complet à la 0.143) : un réseau d'améliorations posé sur l'arbre de la
+     * Les bulles de l'arbre (réseau complet à la 0.143) : un réseau d'améliorations posé sur l'arbre de la
      * graine, payé avec l'énergie du vide accumulée. Au palier qui ouvre l'univers 4 (la fin de la dimension 3), une
      * bulle naît à la base, sur la graine ; chaque palier suivant en ajoute, reliées aux bulles d'avant, jusqu'à
      * l'arbre-monde : 1, 2, 3, 2, 2, 2, 4 puis 3 (dont une dans les racines, sous la graine). Une bulle s'ouvre quand une
@@ -1379,24 +1196,22 @@ public abstract class GameUniverse extends GameAtoms {
      * <p>L'ordre des bulles est celui de la sauvegarde (un bit par bulle) : les nouvelles s'ajoutent à la fin.
      */
     public enum TreeBubble {
-        // Les prix (version 0.166) : les bulles qui naissent à un palier de la graine coûtent ensemble environ 1,4 fois
+        // Les prix : les bulles qui naissent à un palier de la graine coûtent ensemble environ 1,4 fois
         // l'énergie du vide que le Speedrunner a gardée à la formation de l'univers d'avant (mesuré sur la partie de
         // référence, graine 201). Il ne peut pas toutes les prendre d'un coup : il choisit, et garde pour la suite. Avant,
         // environ ×1,5 par palier à partir de 1 000 : à l'univers 5, l'énergie gardée valait déjà cent fois les prix.
-        // Les effets (version 0.148) ; les bulles qui se rachètent coûtent 2,5 fois plus à chaque niveau (version 0.166).
-        SEED(4, "Bulle de la graine", 5_200, 1,
-                "+1 place de maturation des astres par dimension ouverte"),
-        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 10_400, 5,
-                "×2 sur l'énergie du vide gagnée, par niveau", 0),
+        // Les effets ; les bulles qui se rachètent coûtent 2,5 fois plus à chaque niveau.
+        SEED(4, "Bulle de la graine", 5_200, 1, "+1 place de maturation des astres par dimension ouverte"),
+        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 10_400, 5, "×2 sur l'énergie du vide gagnée, par niveau", 0),
         LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 10_400, 1,
                 "Les automatismes agissent sans délai et achètent tout ce qu'ils peuvent", 0),
-        // Version 0.176 : le gain de la 0.175 passe de l'arbre mûr à l'arbuste, à gauche (GameCollider.crossingGain) ;
-        // version 0.177 : le premier univers formé ne compte plus.
+        // Le gain de la 0.175 passe de l'arbre mûr à l'arbuste, à gauche (GameCollider.crossingGain) ;
+        // Le premier univers formé ne compte plus.
         CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 21_400, 1,
                 "Collisionneur ouvert dès le début de l'univers ; il gagne 20 % d'énergie et de hadrons par univers formé après le premier", 1),
         CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 21_400, 1,
                 "L'onglet des hadrons se propose dans le collisionneur, comme le vide", 1, 2),
-        // Version 0.167 : elle se rachète cinq fois, un niveau de Persistance offert par niveau.
+        // Elle se rachète cinq fois, un niveau de Persistance offert par niveau.
         CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 21_400, 5,
                 "Un niveau de Persistance dès le début par niveau, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
         YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 32_100, 1,
@@ -1409,8 +1224,7 @@ public abstract class GameUniverse extends GameAtoms {
                 "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
         ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 7_900, 1,
                 "Les hadrons traversent les univers : jamais remis à zéro", 6, 8),
-        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 7_900, 1,
-                "Les astres n'ont plus besoin de mûrir", 7, 9),
+        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 7_900, 1, "Les astres n'ont plus besoin de mûrir", 7, 9),
         GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 12_100, 5,
                 "5 % de l'énergie du vide gagnée vont aussi, chaque seconde, au cumul des bulles, par niveau", 10),
         GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 12_100, 1,
@@ -1420,7 +1234,7 @@ public abstract class GameUniverse extends GameAtoms {
         GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 12_100, 1,
                 "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
         ROOTS(11, "Bulle des racines", 69_300, 1,
-                // Version 0.173 : deux lignes de 56 caractères au plus dans l'arbre (205 caractères en 0.169, qui débordaient) ;
+                // Deux lignes de 56 caractères au plus dans l'arbre (205 caractères en 0.169, qui débordaient) ;
                 // le jalon des racines est détaillé dans les paliers des hadrons.
                 "Le défi final : un palier par dimension, les dix finissent la partie ; les gluons l'abaissent jusqu'à moitié",
                 0, 13, 15),
@@ -1450,44 +1264,32 @@ public abstract class GameUniverse extends GameAtoms {
         }
 
         /** Combien de fois elle s'achète : 1, ou 5 pour les trois qui se rachètent (version 0.148 ; l'arbuste à droite depuis la 0.167). */
-        public int maxLevel() {
-            return maxLevel;
-        }
+        public int maxLevel() { return maxLevel; }
 
-        /** Ce qu'elle fait, en une phrase (version 0.148) ; « à venir » pour celles qui attendent leur onglet. */
-        public String effect() {
-            return effect;
-        }
+        /** Ce qu'elle fait, en une phrase ; « à venir » pour celles qui attendent leur onglet. */
+        public String effect() { return effect; }
 
         /** Le palier de la graine où elle naît. */
-        public int stage() {
-            return stage;
-        }
+        public int stage() { return stage; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Son prix, en énergie du vide accumulée : celui du premier niveau. */
-        public double cost() {
-            return cost;
-        }
+        public double cost() { return cost; }
 
         /** Le prix du niveau suivant quand elle en a déjà {@code level} : ×{@link #LEVEL_GROWTH} par niveau. */
-        public double costAt(int level) {
-            return cost * Math.pow(LEVEL_GROWTH, Math.max(0, level));
-        }
+        public double costAt(int level) { return cost * Math.pow(LEVEL_GROWTH, Math.max(0, level)); }
 
         /** Les bulles d'avant auxquelles elle est reliée ; aucune pour celle de la base. */
-        public java.util.List<TreeBubble> below() {
-            java.util.List<TreeBubble> list = new java.util.ArrayList<>();
+        public List<TreeBubble> below() {
+            List<TreeBubble> list = new ArrayList<>();
             for (int index : below) list.add(values()[index]);
             return list;
         }
 
         /** Toutes les bulles reliées à elle : celles d'avant, et celles d'après qui la nomment. */
-        public java.util.List<TreeBubble> links() {
-            java.util.List<TreeBubble> list = new java.util.ArrayList<>(below());
+        public List<TreeBubble> links() {
+            List<TreeBubble> list = new ArrayList<>(below());
             for (TreeBubble other : values()) if (other.below().contains(this)) list.add(other);
             return list;
         }
@@ -1497,37 +1299,27 @@ public abstract class GameUniverse extends GameAtoms {
      * L'énergie du vide qu'on peut dépenser : ce qu'il restait à la formation de chaque univers, additionné, moins ce
      * que les bulles ont déjà coûté.
      */
-    public double voidAvailable() {
-        return Math.max(0, state.voidAccumulated() - state.voidSpent());
-    }
+    public double voidAvailable() { return Math.max(0, state.voidAccumulated() - state.voidSpent()); }
 
     /** Vrai si la bulle est née : l'univers formé, la graine à son palier. */
-    public boolean isTreeBubbleShown(TreeBubble bubble) {
-        return isUniverseFormed() && seedStage() >= bubble.stage;
-    }
+    public boolean isTreeBubbleShown(TreeBubble bubble) { return isUniverseFormed() && seedStage() >= bubble.stage; }
 
-    public boolean isTreeBubbleBought(TreeBubble bubble) {
-        return state.treeBubbleBought(bubble.ordinal());
-    }
+    public boolean isTreeBubbleBought(TreeBubble bubble) { return state.treeBubbleBought(bubble.ordinal()); }
 
-    /** Le niveau de la bulle (version 0.148) : 0 pas achetée ; jusqu'à {@link TreeBubble#maxLevel()}. */
+    /** Le niveau de la bulle : 0 pas achetée ; jusqu'à {@link TreeBubble#maxLevel()}. */
     public int treeBubbleLevel(TreeBubble bubble) {
         return Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
     }
 
     /** Vrai quand la bulle est à son dernier niveau. */
-    public boolean isTreeBubbleMaxed(TreeBubble bubble) {
-        return treeBubbleLevel(bubble) >= bubble.maxLevel();
-    }
+    public boolean isTreeBubbleMaxed(TreeBubble bubble) { return treeBubbleLevel(bubble) >= bubble.maxLevel(); }
 
     /** Le prix de son prochain niveau, en énergie du vide accumulée. */
-    public double treeBubbleCost(TreeBubble bubble) {
-        return bubble.costAt(treeBubbleLevel(bubble));
-    }
+    public double treeBubbleCost(TreeBubble bubble) { return bubble.costAt(treeBubbleLevel(bubble)); }
 
     /** Les bulles nées : pour l'affichage. */
-    public java.util.List<TreeBubble> treeBubblesShown() {
-        java.util.List<TreeBubble> shown = new java.util.ArrayList<>();
+    public List<TreeBubble> treeBubblesShown() {
+        List<TreeBubble> shown = new ArrayList<>();
         for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleShown(bubble)) shown.add(bubble);
         return shown;
     }
@@ -1556,29 +1348,28 @@ public abstract class GameUniverse extends GameAtoms {
         return true;
     }
 
-    /** Ce qu'une bulle change tout de suite, à son achat (version 0.148) : rien par défaut. */
+    /** Ce qu'une bulle change tout de suite, à son achat : rien par défaut. */
     void bubbleBought(TreeBubble bubble) {
         switch (bubble) {
             // Le vide s'ouvre pour de bon : la suite le garde (state.startUniverse).
             case GIANT_LEFT_LOW -> state.setVoidOpen(true);
             // Plus de maturation : les astres qui mûrissaient sont mûrs.
             case ANCIENT_RIGHT -> {
-                for (String id : java.util.List.copyOf(state.maturing().keySet())) state.setMaturing(id, 0);
+                for (String id : List.copyOf(state.maturing().keySet())) state.setMaturing(id, 0);
             }
             default -> { }
         }
     }
 
     // ------------------------------------------------------------------
-    // Les améliorations de la graine et le chrono (version 0.139)
+    // Les améliorations de la graine et le chrono
     // ------------------------------------------------------------------
 
     /**
-     * Le nom de la ressource de chaque dimension (version 0.139), ses éclats : les segments de la ligne, les facettes
-     * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
-     * pas encore.
+     * Le nom de la ressource de chaque dimension, ses éclats : les segments de la ligne, les facettes du plan, les
+     * sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent pas encore.
      */
-    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes", "étincelles", "repères", "reflets", "fragments");
+    private static final List<String> DIMENSION_RESOURCES = List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes", "étincelles", "repères", "reflets", "fragments");
 
     /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
     public static String dimensionResourceName(int number) {
@@ -1624,7 +1415,7 @@ public abstract class GameUniverse extends GameAtoms {
      * Les améliorations de la graine, payées avec la ressource d'une dimension : quatre pour l'arrosage et l'étagère,
      * quatre pour le chrono, une par dimension dans chaque groupe. Dans l'ordre de la sauvegarde.
      *
-     * <p>Les prix (version 0.179) se mesurent en temps de jeu de leur dimension : le seuil d'une dimension vaut un quart
+     * <p>Les prix se mesurent en temps de jeu de leur dimension : le seuil d'une dimension vaut un quart
      * d'heure de jeu appliqué ({@link #dimensionThreshold(int)}), et chaque amélioration coûte au premier niveau
      * {@link #SEED_PRICE_SHARE} de ce seuil (trois minutes), puis {@link #SEED_PRICE_GROWTH} fois plus à chaque niveau ;
      * un achat unique (l'étage du chrono, la bulle des racines) coûte {@link #SEED_SINGLE_SHARE} du seuil. Avant, les
@@ -1651,33 +1442,33 @@ public abstract class GameUniverse extends GameAtoms {
         CHRONO_SPEED(3, "Accélération du chrono", 8, true),
         /** Instants : il perd moins à grande vitesse. */
         CHRONO_LOSS(4, "Pertes du chrono", 15, true),
-        /** Nœuds de la boucle (version 0.153) : le rond de croissance dure plus longtemps, +10 s par niveau. */
+        /** Nœuds de la boucle : le rond de croissance dure plus longtemps, +10 s par niveau. */
         BLOOM_DURATION(5, "Durée du rond de croissance", 15, false),
         /** Nœuds : le rond de croissance accélère davantage l'arrosage, +10 points par niveau. */
         BLOOM_POWER(5, "Force du rond de croissance", 20, false),
-        /** Ondes de la brane (version 0.154) : la lumière astrale, +20 % d'arrosage par seconde de l'arrosoir et du tuyau, par niveau. */
+        /** Ondes de la brane : la lumière astrale, +20 % d'arrosage par seconde de l'arrosoir et du tuyau, par niveau. */
         ASTRAL_LIGHT(6, "Lumière astrale", 20, false),
-        /** Étincelles du clicker (version 0.155) : le beau temps dure plus longtemps, +10 s par niveau. */
+        /** Étincelles du clicker : le beau temps dure plus longtemps, +10 s par niveau. */
         WEATHER_SUN(7, "Beau temps plus long", 15, false),
         /** Étincelles : les orages passent plus vite, −3 s par niveau. */
         WEATHER_STORM(7, "Orages plus courts", 8, false),
         /** Étincelles : le beau temps arrose davantage, +10 points par niveau. */
         WEATHER_POWER(7, "Soleil plus fort", 20, false),
         /**
-         * Repères de la grille (version 0.156) : la graine profonde, qui multiplie tout l'arrosage par √(log10 E), E
+         * Repères de la grille : la graine profonde, qui multiplie tout l'arrosage par √(log10 E), E
          * l'énergie du vide récupérée ; un dixième de l'effet par niveau.
          */
         DEEP_SEED(8, "Graine profonde", 10, false),
-        /** Reflets du miroir (version 0.157) : les saisons, chaque arrosage remplit le chrono de 0,2 s par niveau, selon la saison. */
+        /** Reflets du miroir : les saisons, chaque arrosage remplit le chrono de 0,2 s par niveau, selon la saison. */
         SEASONS(9, "Saisons", 15, true),
-        /** Fragments du mélange (version 0.158) : ouvre la bulle des racines, sous la graine. Une fois. */
+        /** Fragments du mélange : ouvre la bulle des racines, sous la graine. Une fois. */
         ROOT_BUBBLE(10, "Bulle des racines", 1, false);
 
-        /** Le premier niveau d'une amélioration : un cinquième du seuil de sa dimension, trois minutes de jeu (version 0.179). */
+        /** Le premier niveau d'une amélioration : un cinquième du seuil de sa dimension, trois minutes de jeu. */
         public static final double SEED_PRICE_SHARE = 0.2;
-        /** Ce par quoi le prix est multiplié à chaque niveau (version 0.179). */
+        /** Ce par quoi le prix est multiplié à chaque niveau. */
         public static final double SEED_PRICE_GROWTH = 1.6;
-        /** Un achat unique : un tiers du seuil de sa dimension, cinq minutes de jeu (version 0.179). */
+        /** Un achat unique : un tiers du seuil de sa dimension, cinq minutes de jeu. */
         public static final double SEED_SINGLE_SHARE = 1.0 / 3;
 
         private final int dimension;
@@ -1695,28 +1486,18 @@ public abstract class GameUniverse extends GameAtoms {
         }
 
         /** La dimension dont la ressource la paie. */
-        public int dimension() {
-            return dimension;
-        }
+        public int dimension() { return dimension; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
 
         /** Vrai pour celles du chrono, qui attendent son étage. */
-        public boolean chrono() {
-            return chrono;
-        }
+        public boolean chrono() { return chrono; }
     }
 
-    public int seedUpgradeLevel(SeedUpgrade upgrade) {
-        return state.seedUpgradeLevel(upgrade.ordinal());
-    }
+    public int seedUpgradeLevel(SeedUpgrade upgrade) { return state.seedUpgradeLevel(upgrade.ordinal()); }
 
     /** Prix du prochain niveau, dans la ressource de sa dimension ; infini une fois au plus haut. */
     public double seedUpgradeCost(SeedUpgrade upgrade) {
@@ -1751,52 +1532,40 @@ public abstract class GameUniverse extends GameAtoms {
         return WATERING_CAN_PER_SECOND * (1 + seedUpgradeLevel(SeedUpgrade.WATERING)) * wateringBoost();
     }
 
-    /** Ce qui accélère l'arrosage pour un temps (version 0.153) : le rond de croissance ; 1 sans lui. */
-    public double wateringBoost() {
-        return 1;
-    }
+    /** Ce qui accélère l'arrosage pour un temps : le rond de croissance ; 1 sans lui. */
+    public double wateringBoost() { return 1; }
 
-    /** Ondes de la brane à gagner pour son seuil (version 0.154). */
+    /** Ondes de la brane à gagner pour son seuil. */
     public static final double BRANE_THRESHOLD = 5_000;
 
-    /** Étincelles du clicker à gagner pour son seuil (version 0.155). */
+    /** Étincelles du clicker à gagner pour son seuil. */
     public static final double CLICKER_THRESHOLD = 5_000;
 
-    /** Repères de la grille à gagner pour son seuil (version 0.156). */
+    /** Repères de la grille à gagner pour son seuil. */
     public static final double GRID_THRESHOLD = 5_000;
 
-    /** Reflets du miroir à gagner pour son seuil (version 0.157). */
+    /** Reflets du miroir à gagner pour son seuil. */
     public static final double MIRROR_THRESHOLD = 5_000;
 
-    /** Fragments du mélange à gagner pour son seuil (version 0.158). */
+    /** Fragments du mélange à gagner pour son seuil. */
     public static final double MIX_THRESHOLD = 5_000;
 
-    /** Nœuds de la boucle à gagner pour son seuil (version 0.153) : un quart d'heure de jeu appliqué environ. */
+    /** Nœuds de la boucle à gagner pour son seuil : un quart d'heure de jeu appliqué environ. */
     public static final double LOOP_THRESHOLD = 5_000;
 
     /** Vrai une fois le seuil de la boucle atteint : {@link #LOOP_THRESHOLD} nœuds gagnés en tout. */
-    public boolean isLoopThresholdReached() {
-        return state.loopShardsEarned() >= LOOP_THRESHOLD - 1e-9;
-    }
+    public boolean isLoopThresholdReached() { return state.loopShardsEarned() >= LOOP_THRESHOLD - 1e-9; }
 
     /** Ce que verse le tuyau, en part de ce que verse l'arrosoir : 10 % par niveau, 0 sans tuyau. */
-    public double hoseShare() {
-        return 0.1 * seedUpgradeLevel(SeedUpgrade.HOSE);
-    }
+    public double hoseShare() { return 0.1 * seedUpgradeLevel(SeedUpgrade.HOSE); }
 
     /** Arrosages par seconde du tuyau, qui verse seul. */
-    public double hoseRate() {
-        return hoseShare() * wateringCanRate();
-    }
+    public double hoseRate() { return hoseShare() * wateringCanRate(); }
 
-    public boolean hasHose() {
-        return seedUpgradeLevel(SeedUpgrade.HOSE) > 0;
-    }
+    public boolean hasHose() { return seedUpgradeLevel(SeedUpgrade.HOSE) > 0; }
 
     /** Ce que compte chaque arrosage grâce à la terre fertile : 1, puis un de plus par niveau (version 0.179 : ×2 par niveau avant). */
-    public long seedSoilFactor() {
-        return 1L + seedUpgradeLevel(SeedUpgrade.SOIL);
-    }
+    public long seedSoilFactor() { return 1L + seedUpgradeLevel(SeedUpgrade.SOIL); }
 
     /** Le tuyau verse seul : la part déjà versée de son prochain arrosage, qui ne se sauvegarde pas. */
     private double hosePoured;
@@ -1808,24 +1577,16 @@ public abstract class GameUniverse extends GameAtoms {
     /** Ce que perd le chrono par point d'accélération au-delà de ×1 : 10 %, ×0,85 par niveau de pertes, 90 % au plus. */
     public static final double CHRONO_LOSS_STEP = 0.1, CHRONO_LOSS_CUT = 0.85, CHRONO_LOSS_MAX = 0.9;
 
-    public boolean isChronoUnlocked() {
-        return seedUpgradeLevel(SeedUpgrade.CHRONO) > 0;
-    }
+    public boolean isChronoUnlocked() { return seedUpgradeLevel(SeedUpgrade.CHRONO) > 0; }
 
     /** Secondes gardées par seconde : 0,1, et 0,1 de plus par niveau de remplissage. */
-    public double chronoFillRate() {
-        return CHRONO_FILL * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_FILL));
-    }
+    public double chronoFillRate() { return CHRONO_FILL * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_FILL)); }
 
     /** Le temps que garde le chrono au plus : 5 minutes, et 5 de plus par niveau de réserve. */
-    public double chronoCapacity() {
-        return CHRONO_CAPACITY * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_CAPACITY));
-    }
+    public double chronoCapacity() { return CHRONO_CAPACITY * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_CAPACITY)); }
 
     /** L'accélération la plus forte : ×2, et +1 par niveau. */
-    public double chronoMaxSpeed() {
-        return CHRONO_MAX_SPEED + seedUpgradeLevel(SeedUpgrade.CHRONO_SPEED);
-    }
+    public double chronoMaxSpeed() { return CHRONO_MAX_SPEED + seedUpgradeLevel(SeedUpgrade.CHRONO_SPEED); }
 
     /** La part perdue du temps du chrono à l'accélération {@code speed} : plus on va vite, plus on perd. */
     public double chronoLoss(double speed) {
@@ -1834,14 +1595,10 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Le temps gardé dans le chrono, en secondes. */
-    public double chronoStored() {
-        return state.chronoStored();
-    }
+    public double chronoStored() { return state.chronoStored(); }
 
     /** L'accélération choisie, de ×1 (arrêté) à {@link #chronoMaxSpeed()}. */
-    public double chronoSpeed() {
-        return Math.max(1, Math.min(chronoMaxSpeed(), state.chronoSpeed()));
-    }
+    public double chronoSpeed() { return Math.max(1, Math.min(chronoMaxSpeed(), state.chronoSpeed())); }
 
     /** Règle l'accélération, entre ×1 et le plus fort ; ×1 l'arrête. */
     public void setChronoSpeed(double speed) {
@@ -1879,9 +1636,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Outil d'essai : de l'énergie du vide en plus. */
-    public void testAddVoidEnergy(BigNum amount) {
-        state.setVoidEnergy(state.voidEnergy().add(amount));
-    }
+    public void testAddVoidEnergy(BigNum amount) { state.setVoidEnergy(state.voidEnergy().add(amount)); }
 
     /** Outil d'essai : la partie secondaire revient à son début (un seul univers, rien en réserve). */
     public void testResetUniverses() {
@@ -1911,7 +1666,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.setHadronsOpen(false);
         state.setHadronsPrice(0);
         state.clearDimensionAutomations();
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) state.setHadrons(hadron, 0);
+        for (Hadron hadron : Hadron.values()) state.setHadrons(hadron, 0);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
@@ -1948,16 +1703,14 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Vrai si cette échelle du cosmos est formée. */
     public boolean hasCosmos(Cosmos scale) {
-        // L'univers reste formé après la remise à zéro qui l'accompagne (version 0.083), quand le cosmos repart de rien.
-        // Pendant la partie du deuxième univers (version 0.087), seul compte ce que cette partie a formé.
+        // L'univers reste formé après la remise à zéro qui l'accompagne, quand le cosmos repart de rien.
+        // Pendant la partie du deuxième univers, seul compte ce que cette partie a formé.
         if (scale == Cosmos.UNIVERSE && state.universeFormed() && !state.replaying()) return true;
         return state.cosmosLevel() > scale.ordinal();
     }
 
     /** Nombre d'échelles du cosmos formées : 0 avant la galaxie, 3 une fois l'univers formé. */
-    public int cosmosFormed() {
-        return state.cosmosLevel();
-    }
+    public int cosmosFormed() { return state.cosmosLevel(); }
 
     /** La prochaine échelle du cosmos à former, ou {@code null} une fois l'univers formé. */
     public Cosmos nextCosmos() {
@@ -1973,10 +1726,9 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Vrai si cette échelle peut être formée maintenant : la précédente l'est, elle ne l'est pas
-     * encore, et ce qu'elle demande est réuni. La galaxie demande tous les astres
-     * ({@link #canFormGalaxy()}) ; les suivantes, assez de matière rassemblée dans chaque état
-     * ({@link Cosmos#matter()}).
+     * Vrai si cette échelle peut être formée maintenant : la précédente l'est, elle ne l'est pas encore, et ce qu'elle
+     * demande est réuni. La galaxie demande tous les astres ({@link #canFormGalaxy()}) ; les suivantes, assez de
+     * matière rassemblée dans chaque état ({@link Cosmos#matter()}).
      */
     public boolean canFormCosmos(Cosmos scale) {
         if (scale == Cosmos.GALAXY) return canFormGalaxy();
@@ -1993,7 +1745,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Temps de jeu qu'il faut laisser à l'échelle d'avant pour se rassembler avant de former l'amas,
-     * puis l'univers (version 0.073) : deux heures chacun depuis la version 0.125 (45 minutes avant). Un joueur qui réunit la matière plus vite
+     * puis l'univers : deux heures chacun depuis la version 0.125 (45 minutes avant). Un joueur qui réunit la matière plus vite
      * attend ; l'infatigable, qui met déjà près d'une heure à chaque échelle, ne le voit pas.
      */
     public static final double COSMOS_SETTLE_SECONDS = 120 * 60;
@@ -2001,13 +1753,13 @@ public abstract class GameUniverse extends GameAtoms {
     /** Secondes de jeu qu'il reste avant que cette échelle puisse se former, 0 si le délai est passé. */
     public double cosmosSettleRemaining(Cosmos scale) {
         if (scale == Cosmos.GALAXY || !hasCosmos(scale.previous())) return 0;
-        // Version 0.126 : la date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
+        // La date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
         double since = state.stats().reachedThisUniverseAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
         if (Double.isNaN(since)) return 0;
         return Math.max(0, since + COSMOS_SETTLE_SECONDS * settleShare() - state.timePlayed());
     }
 
-    private final Map<Molecule.State, Integer> sortsByState = new java.util.EnumMap<>(Molecule.State.class);
+    private final Map<Molecule.State, Integer> sortsByState = new EnumMap<>(Molecule.State.class);
     int sortsByStateVersion = -1;
 
     /** Nombre de sortes de molécules rassemblées dans cet état : la variété que demandent l'amas de galaxies et l'univers ({@link Cosmos#sorts()}). */
@@ -2039,14 +1791,14 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Ce qui manque encore à cette échelle du cosmos (version 0.168), en mots, une condition par ligne : pour la galaxie,
+     * Ce qui manque encore à cette échelle du cosmos, en mots, une condition par ligne : pour la galaxie,
      * chaque astre pas formé ou qui mûrit encore, et les systèmes solaires complets ; pour l'amas et l'univers, l'échelle
      * d'avant, puis chaque état de la matière dont la quantité rassemblée ou la variété ne suffit pas. Vide si tout est
      * réuni. Les nombres qui bougent (minutes de maturation, quantités) sont entre parenthèses, à la fin. Le délai de
      * rassemblement n'en est pas une condition.
      */
-    public java.util.List<String> cosmosMissing(Cosmos scale) {
-        java.util.List<String> missing = new java.util.ArrayList<>();
+    public List<String> cosmosMissing(Cosmos scale) {
+        List<String> missing = new ArrayList<>();
         if (scale == Cosmos.GALAXY) {
             if (hasGalaxy()) return missing;
             for (idle.core.sky.Body body : bodies.values()) {
@@ -2097,7 +1849,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // Le deuxième univers (version 0.087)
+    // Le deuxième univers
     // ------------------------------------------------------------------
 
     /** Fusions du deuxième univers qu'il faut pour ouvrir l'onglet Skins. */
@@ -2127,34 +1879,30 @@ public abstract class GameUniverse extends GameAtoms {
      * Vrai dans le deuxième univers et au-delà : un univers est déjà formé. C'est là que s'ouvre
      * tout ce que la liste des idées range sous « tout se débloque lors du deuxième univers ».
      */
-    public boolean isSecondUniverse() {
-        return state.universeFormed();
-    }
+    public boolean isSecondUniverse() { return state.universeFormed(); }
 
     /** Vrai pendant la partie qui mène à l'univers suivant : les anciens onglets et leurs paliers sont revenus. */
-    public boolean isReplaying() {
-        return state.universeFormed() && state.replaying();
-    }
+    public boolean isReplaying() { return state.universeFormed() && state.replaying(); }
 
     /** Vrai si l'on peut rouvrir les paliers pour jouer l'univers suivant. */
     public boolean canStartNextUniverse() {
-        // Version 0.110 : un univers atteint par l'échelle du cosmos seule (outil d'essai, ancienne partie) compte aussi.
+        // Un univers atteint par l'échelle du cosmos seule (outil d'essai, ancienne partie) compte aussi.
         return isUniverseFormed() && !state.replaying();
     }
 
     /**
-     * Rouvre les paliers (version 0.087) : les anciens onglets reviennent, pour une partie neuve, celle
+     * Rouvre les paliers : les anciens onglets reviennent, pour une partie neuve, celle
      * de l'univers suivant. La partie a déjà été remise à zéro par la formation de l'univers. Former
      * l'univers à la fin de cette partie crée l'univers suivant, avec une remise à zéro et une graine de plus.
      */
     public boolean startNextUniverse() {
         if (!canStartNextUniverse()) return false;
-        // Version 0.108 : les trois actes repartent vraiment de zéro, même si quelque chose s'est joué depuis la
+        // Les trois actes repartent vraiment de zéro, même si quelque chose s'est joué depuis la
         // formation de l'univers (les anciens onglets montrés, une partie d'avant). La partie secondaire reste :
         // univers, graine, dimensions, skins, succès et temps de jeu.
         boolean twig = isSeedTwig();
         boolean bySeed = canOpenNextUniverse();
-        // Version 0.169 : une bulle qui garde, achetée depuis la formation, garde sa part pour cet univers-ci.
+        // Une bulle qui garde, achetée depuis la formation, garde sa part pour cet univers-ci.
         state.startUniverseKeeping();
         forgetDerived();
         state.setReplaying(true);
@@ -2164,40 +1912,32 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Fusions faites depuis que le dernier univers s'est formé. */
-    public long fusionsSinceUniverse() {
-        return Math.max(0, state.stats().fusions() - state.fusionsAtUniverse());
-    }
+    public long fusionsSinceUniverse() { return Math.max(0, state.stats().fusions() - state.fusionsAtUniverse()); }
 
     /** Vrai une fois l'onglet Skins ouvert : cinq fusions dans le deuxième univers. */
-    public boolean isSkinsUnlocked() {
-        return state.skinsOpen();
-    }
+    public boolean isSkinsUnlocked() { return state.skinsOpen(); }
 
     /** Vrai si ce skin est débloqué. */
-    public boolean hasSkin(idle.core.universe.Skin skin) {
-        return skin.isFree() || state.unlockedSkins().contains(skin.id());
-    }
+    public boolean hasSkin(Skin skin) { return skin.isFree() || state.unlockedSkins().contains(skin.id()); }
 
-    /** Nombre de skins débloqués, les skins libres compris (version 0.192). */
-    public int skinsUnlocked() {
-        return state.skinsUnlockedCount(false);
-    }
+    /** Nombre de skins débloqués, les skins libres compris. */
+    public int skinsUnlocked() { return state.skinsUnlockedCount(false); }
 
     /**
-     * Version 0.192 : les skins débloqués qui comptent pour le bonus, sans les libres. Version 0.209 : tous, sans plafond
+     * Les skins débloqués qui comptent pour le bonus, sans les libres. Tous, sans plafond
      * (cent au plus de la 0.192 à la 0.208) ; depuis la 0.206 ils s'étalent jusqu'au onzième univers.
      */
     public int skinsCounted() {
-        // Version 0.202 : le compte se garde tant que les skins débloqués ne changent pas (il se relit à chaque fusion).
+        // Le compte se garde tant que les skins débloqués ne changent pas (il se relit à chaque fusion).
         return state.skinsUnlockedCount(true);
     }
 
     /**
-     * Débloque un skin ; vrai s'il ne l'était pas. Version 0.206 : un skin attend son univers
+     * Débloque un skin ; vrai s'il ne l'était pas. Un skin attend son univers
      * ({@link idle.core.universe.Skin#minUniverses()}) en plus de sa condition, pour que la collection s'étale jusqu'à la
      * fin de la partie ; une sauvegarde qui l'avait déjà le garde.
      */
-    public boolean unlockSkin(idle.core.universe.Skin skin) {
+    public boolean unlockSkin(Skin skin) {
         if (hasSkin(skin) || universes() < skin.minUniverses()) return false;
         state.unlockSkin(skin.id());
         moleculeBonusesVersion = -1;
@@ -2205,31 +1945,25 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Le skin choisi pour ce visuel, ou {@code null} pour l'apparence classique. */
-    public idle.core.universe.Skin chosenSkin(idle.core.universe.SkinVisual visual) {
-        idle.core.universe.Skin skin = idle.core.universe.Skin.byId(state.chosenSkins().get(visual.name()));
+    public Skin chosenSkin(SkinVisual visual) {
+        Skin skin = Skin.byId(state.chosenSkins().get(visual.name()));
         return skin != null && skin.visual() == visual && hasSkin(skin) ? skin : null;
     }
 
     /** Choisit un skin débloqué pour son visuel ; {@code null} revient à l'apparence classique de ce visuel. */
-    public boolean chooseSkin(idle.core.universe.SkinVisual visual, idle.core.universe.Skin skin) {
+    public boolean chooseSkin(SkinVisual visual, Skin skin) {
         if (skin != null && (skin.visual() != visual || !hasSkin(skin))) return false;
         state.chooseSkin(visual.name(), skin == null ? null : skin.id());
         return true;
     }
 
     /** Ce que les skins débloqués multiplient, sur toutes les ressources d'en dessous de l'univers : +2 % par skin compté ({@link #skinsCounted()}). */
-    public double skinBoost() {
-        return 1 + idle.core.universe.Skin.BONUS * skinsCounted();
-    }
+    public double skinBoost() { return 1 + Skin.BONUS * skinsCounted(); }
 
-    public boolean isRegimeUnlocked() {
-        return state.regimeOpen();
-    }
+    public boolean isRegimeUnlocked() { return state.regimeOpen(); }
 
     /** Vrai si le régime rapide peut être lancé : ouvert, ni en cours ni au repos. */
-    public boolean canStartRegime() {
-        return isRegimeUnlocked() && state.regimeLeft() <= 0 && state.regimeRest() <= 0;
-    }
+    public boolean canStartRegime() { return isRegimeUnlocked() && state.regimeLeft() <= 0 && state.regimeRest() <= 0; }
 
     /** Lance le régime rapide : +15 % de cadence pendant 20 s, puis 40 s de repos. Un geste à la main, jamais automatique. */
     public boolean startRegime() {
@@ -2239,13 +1973,9 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** La cadence du régime rapide : ×1,15 pendant qu'il dure. */
-    public double regimeMultiplier() {
-        return state.regimeLeft() > 0 ? 1 + REGIME_GAIN : 1;
-    }
+    public double regimeMultiplier() { return state.regimeLeft() > 0 ? 1 + REGIME_GAIN : 1; }
 
-    public boolean isSynergyUnlocked() {
-        return state.synergyOpen();
-    }
+    public boolean isSynergyUnlocked() { return state.synergyOpen(); }
 
     /** La synergie par rang : +0,5 % au plus à chaque générateur, selon les autres rangs possédés dans le cycle. */
     public double synergyMultiplier() {
@@ -2254,15 +1984,13 @@ public abstract class GameUniverse extends GameAtoms {
         return 1 + SYNERGY_MAX * Math.min(1, others / (double) (SYNERGY_GENERATORS - 1));
     }
 
-    /** Vrai une fois la prime de cycle parfait ouverte : son succès (version 0.174), et la Persistance achetée. */
+    /** Vrai une fois la prime de cycle parfait ouverte : son succès, et la Persistance achetée. */
     public boolean isPerfectCycleUnlocked() {
-        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_PERFECT) && keepsUpgradesOnFusion();
+        return isSecondUniverse() && universeStep(Achievements.UNIVERSE_PERFECT) && keepsUpgradesOnFusion();
     }
 
     /** Ce que la prime de cycle parfait multiplie dans les particules, pendant qu'elle dure : elle ne se cumule pas. */
-    public double perfectCycleMultiplier() {
-        return state.perfectLeft() > 0 ? 1 + PERFECT_GAIN : 1;
-    }
+    public double perfectCycleMultiplier() { return state.perfectLeft() > 0 ? 1 + PERFECT_GAIN : 1; }
 
     void notePerfectCycle(boolean capped) {
         if (!isPerfectCycleUnlocked()) return;
@@ -2277,27 +2005,27 @@ public abstract class GameUniverse extends GameAtoms {
         }
     }
 
-    /** Vrai une fois le petit arbre du cycle ouvert : son succès (version 0.174), et un Big Bang dans cette partie. */
+    /** Vrai une fois le petit arbre du cycle ouvert : son succès, et un Big Bang dans cette partie. */
     public boolean isCycleChoiceUnlocked() {
-        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
+        return isSecondUniverse() && universeStep(Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
     }
 
     /** Le choix du petit arbre pour ce cycle, ou {@code null}. */
-    public idle.core.universe.CycleChoice cycleChoice() {
+    public CycleChoice cycleChoice() {
         if (!isCycleChoiceUnlocked() || state.cycleChoice() == null) return null;
-        return Enums.parse(idle.core.universe.CycleChoice.class, state.cycleChoice());
+        return Enums.parse(CycleChoice.class, state.cycleChoice());
     }
 
     /** Fait le choix du cycle : un seul, jusqu'au prochain Big Bang. */
-    public boolean chooseCycle(idle.core.universe.CycleChoice choice) {
+    public boolean chooseCycle(CycleChoice choice) {
         if (!isCycleChoiceUnlocked() || choice == null || cycleChoice() != null) return false;
         state.setCycleChoice(choice.name());
         return true;
     }
 
-    /** Vrai une fois la famille préférée ouverte : son succès (version 0.174), et la synthèse ciblée. */
+    /** Vrai une fois la famille préférée ouverte : son succès, et la synthèse ciblée. */
     public boolean isFamilyPreferenceUnlocked() {
-        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_PREFERENCE) && isTargetedSynthesisUnlocked();
+        return isSecondUniverse() && universeStep(Achievements.UNIVERSE_PREFERENCE) && isTargetedSynthesisUnlocked();
     }
 
     /** La famille préférée, ou {@code null}. */
@@ -2323,8 +2051,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Éléments gratuits à choisir maintenant : un tous les dix éléments découverts, dans le deuxième univers. */
     public int freeElementsAvailable() {
-        // Version 0.174 : ils s'ouvrent par leur succès, dix éléments découverts dans un nouvel univers.
-        if (!isSecondUniverse() || !universeStep(idle.core.achievements.Achievements.UNIVERSE_FREE)) return 0;
+        // Ils s'ouvrent par leur succès, dix éléments découverts dans un nouvel univers.
+        if (!isSecondUniverse() || !universeStep(Achievements.UNIVERSE_FREE)) return 0;
         return Math.max(0, discoveredElements() / FREE_ELEMENT_EVERY - state.freeElementsUsed());
     }
 
@@ -2344,13 +2072,11 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Outil d'essai : compte des fusions de plus dans les statistiques, sans rien changer d'autre. */
-    public void testAddFusions(int count) {
-        for (int i = 0; i < count; i++) state.stats().noteFusion(BigNum.ONE, 1);
-    }
+    public void testAddFusions(int count) { for (int i = 0; i < count; i++) state.stats().noteFusion(BigNum.ONE, 1); }
 
     /** Outil d'essai : débloque tous les skins, ou les reverrouille tous. */
     public void testAllSkins(boolean unlocked) {
-        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+        for (Skin skin : Skin.values()) {
             if (unlocked) state.unlockSkin(skin.id());
             else state.lockSkin(skin.id());
         }
@@ -2360,19 +2086,19 @@ public abstract class GameUniverse extends GameAtoms {
     /** Ce qui s'ouvre et s'écoule dans le deuxième univers, à chaque instant. */
     void runSecondUniverse(double dt) {
         if (!isSecondUniverse()) return;
-        // Version 0.174 : chacune s'ouvre par son succès du deuxième univers (cinq fusions, trois et dix générateurs).
-        if (!state.skinsOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_SKINS)) state.setSkinsOpen(true);
-        if (!state.regimeOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_REGIME)) state.setRegimeOpen(true);
-        if (!state.synergyOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_SYNERGY)) state.setSynergyOpen(true);
+        // Chacune s'ouvre par son succès du deuxième univers (cinq fusions, trois et dix générateurs).
+        if (!state.skinsOpen() && universeStep(Achievements.UNIVERSE_SKINS)) state.setSkinsOpen(true);
+        if (!state.regimeOpen() && universeStep(Achievements.UNIVERSE_REGIME)) state.setRegimeOpen(true);
+        if (!state.synergyOpen() && universeStep(Achievements.UNIVERSE_SYNERGY)) state.setSynergyOpen(true);
         if (dt <= 0) return;
         // Le régime rapide et la prime de cycle parfait s'écoulent avec la production qu'ils multiplient :
-        // voir Game#runTimedBonuses (version 0.126).
+        // voir Game#runTimedBonuses.
         noteSkinUnlocks();
         runTrial(dt);
     }
 
     // ------------------------------------------------------------------
-    // Les skins à obtenir (version 0.088)
+    // Les skins à obtenir
     // ------------------------------------------------------------------
 
     /** Le record de reconstruction qui donne le skin « Éclair » : de la fusion au dixième générateur en une minute au plus. */
@@ -2382,15 +2108,13 @@ public abstract class GameUniverse extends GameAtoms {
     /** Atomes créés qu'il faut pour la recherche sur le noyau dense, et le prix de ses quatre paliers, en atomes. */
     public static final BigNum DENSE_UNLOCK_ATOMS = BigNum.of(1, 6);
     public static final BigNum[] DENSE_COSTS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 5), BigNum.of(1, 8)};
-    private static final idle.core.universe.Skin[] DENSE_SKINS = {idle.core.universe.Skin.ATOM_DENSE, idle.core.universe.Skin.TABLE_LEAD,
-            idle.core.universe.Skin.ATOM_STELLAR, idle.core.universe.Skin.TABLE_GOLD};
+    private static final Skin[] DENSE_SKINS = {Skin.ATOM_DENSE, Skin.TABLE_LEAD, Skin.ATOM_STELLAR, Skin.TABLE_GOLD};
     /** Les paliers de la matière noire (gagnée dans le deuxième univers) et leurs skins. */
     private static final BigNum[] DARK_TIERS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 4), BigNum.of(1, 5)};
-    private static final idle.core.universe.Skin[] DARK_SKINS = {idle.core.universe.Skin.DARK_OBSIDIAN, idle.core.universe.Skin.DARK_VORTEX,
-            idle.core.universe.Skin.DARK_NEBULA, idle.core.universe.Skin.DARK_PULSAR};
+    private static final Skin[] DARK_SKINS = {Skin.DARK_OBSIDIAN, Skin.DARK_VORTEX, Skin.DARK_NEBULA, Skin.DARK_PULSAR};
     /** Les paliers du Big Bang (Big Bangs du deuxième univers) et leurs skins. */
     private static final int[] BANG_TIERS = {1, 3};
-    private static final idle.core.universe.Skin[] BANG_SKINS = {idle.core.universe.Skin.BANG_AURORA, idle.core.universe.Skin.BANG_SUPERNOVA};
+    private static final Skin[] BANG_SKINS = {Skin.BANG_AURORA, Skin.BANG_SUPERNOVA};
 
     /** Les paliers de la matière noire atteints, de 0 à 4. */
     public int darkSkinTiers() {
@@ -2406,9 +2130,9 @@ public abstract class GameUniverse extends GameAtoms {
         return tiers;
     }
 
-    /** Les essences de l'arbre gagnées (version 0.185) : une par univers formé à partir du quatrième, huit au plus. */
+    /** Les essences de l'arbre gagnées : une par univers formé à partir du quatrième, huit au plus. */
     public int treeSkinsEarned() {
-        return Math.max(0, Math.min(idle.core.universe.Skin.TREES.length, universes() - idle.core.universe.Skin.FIRST_TREE_UNIVERSE + 1));
+        return Math.max(0, Math.min(Skin.TREES.length, universes() - Skin.FIRST_TREE_UNIVERSE + 1));
     }
 
     /** Les skins des paliers et du record se débloquent seuls, dès que l'onglet Skins est ouvert. */
@@ -2416,153 +2140,153 @@ public abstract class GameUniverse extends GameAtoms {
         if (!isSkinsUnlocked()) return;
         for (int i = 0; i < darkSkinTiers(); i++) unlockSkin(DARK_SKINS[i]);
         for (int i = 0; i < bangSkinTiers(); i++) unlockSkin(BANG_SKINS[i]);
-        // Version 0.185 : une essence de l'arbre par univers formé, à partir du quatrième.
-        for (int i = 0; i < treeSkinsEarned(); i++) unlockSkin(idle.core.universe.Skin.TREES[i]);
-        // Version 0.187 : le skin de chaque mini-jeu, au seuil de sa dimension.
+        // Une essence de l'arbre par univers formé, à partir du quatrième.
+        for (int i = 0; i < treeSkinsEarned(); i++) unlockSkin(Skin.TREES[i]);
+        // Le skin de chaque mini-jeu, au seuil de sa dimension.
         for (int n = 1; n <= MAX_DIMENSIONS; n++) {
-            if (isDimensionThresholdReached(n)) unlockSkin(idle.core.universe.Skin.DIMENSION_SKINS[n - 1]);
+            if (isDimensionThresholdReached(n)) unlockSkin(Skin.DIMENSION_SKINS[n - 1]);
         }
-        // Version 0.188 : les molécules.
-        if (moleculeKindsCreated() >= 50) unlockSkin(idle.core.universe.Skin.MOLECULE_SPACE_FILLING);
-        if (moleculeKindsCreated() >= molecules().size()) unlockSkin(idle.core.universe.Skin.MOLECULE_SKELETON);
-        if (substancesFormed() >= 20) unlockSkin(idle.core.universe.Skin.MOLECULE_PEARLS);
-        if (moleculesCreated() >= 1_000) unlockSkin(idle.core.universe.Skin.MOLECULE_BRICKS);
-        // Version 0.189 : les cadres de l'avatar, un par titre.
-        if (hasTitle(idle.core.profile.Title.ALCHEMIST)) unlockSkin(idle.core.universe.Skin.FRAME_ROUND);
-        if (hasTitle(idle.core.profile.Title.TABLE_READER)) unlockSkin(idle.core.universe.Skin.FRAME_HEXAGON);
-        if (hasTitle(idle.core.profile.Title.CHALLENGER)) unlockSkin(idle.core.universe.Skin.FRAME_SHIELD);
-        if (hasTitle(idle.core.profile.Title.BANG_MAKER)) unlockSkin(idle.core.universe.Skin.FRAME_BAROQUE);
-        if (hasTitle(idle.core.profile.Title.COMET_CHASER)) unlockSkin(idle.core.universe.Skin.FRAME_STAMP);
-        if (hasTitle(idle.core.profile.Title.UNIVERSE_CREATOR)) unlockSkin(idle.core.universe.Skin.FRAME_POLAROID);
-        // Version 0.190 : le chrome.
-        if (state.timePlayed() >= 3600) unlockSkin(idle.core.universe.Skin.AMBIENT_PAPER);
-        if (discoveredElements() >= 50) unlockSkin(idle.core.universe.Skin.AMBIENT_SLATE);
-        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.AMBIENT_NIGHT);
-        if (state.explosions() >= 100) unlockSkin(idle.core.universe.Skin.AMBIENT_TERMINAL);
-        if (assembliesFormed() >= 10) unlockSkin(idle.core.universe.Skin.AMBIENT_BLUEPRINT);
-        if (isBigBangUnlocked()) unlockSkin(idle.core.universe.Skin.TABS_BINDER);
-        if (state.timePlayed() >= 10 * 3600) unlockSkin(idle.core.universe.Skin.TABS_BUTTONS);
-        if (universes() >= 1) unlockSkin(idle.core.universe.Skin.TABS_DOTS);
-        if (universes() >= 2) unlockSkin(idle.core.universe.Skin.TABS_RIBBONS);
-        if (state.stats().fusions() >= 100) unlockSkin(idle.core.universe.Skin.CARD_INDEX);
-        if (hasSkin(idle.core.universe.Skin.BANG_CRYSTAL)) unlockSkin(idle.core.universe.Skin.CARD_GLASS);
-        if (baseChallengesCompleted() >= 10) unlockSkin(idle.core.universe.Skin.CARD_PLAYING);
-        if (state.probeRuns() >= 10) unlockSkin(idle.core.universe.Skin.CARD_TAG);
-        // Version 0.191 : des skins de plus pour les huit visuels d'origine.
+        // Les molécules.
+        if (moleculeKindsCreated() >= 50) unlockSkin(Skin.MOLECULE_SPACE_FILLING);
+        if (moleculeKindsCreated() >= molecules().size()) unlockSkin(Skin.MOLECULE_SKELETON);
+        if (substancesFormed() >= 20) unlockSkin(Skin.MOLECULE_PEARLS);
+        if (moleculesCreated() >= 1_000) unlockSkin(Skin.MOLECULE_BRICKS);
+        // Les cadres de l'avatar, un par titre.
+        if (hasTitle(Title.ALCHEMIST)) unlockSkin(Skin.FRAME_ROUND);
+        if (hasTitle(Title.TABLE_READER)) unlockSkin(Skin.FRAME_HEXAGON);
+        if (hasTitle(Title.CHALLENGER)) unlockSkin(Skin.FRAME_SHIELD);
+        if (hasTitle(Title.BANG_MAKER)) unlockSkin(Skin.FRAME_BAROQUE);
+        if (hasTitle(Title.COMET_CHASER)) unlockSkin(Skin.FRAME_STAMP);
+        if (hasTitle(Title.UNIVERSE_CREATOR)) unlockSkin(Skin.FRAME_POLAROID);
+        // Le chrome.
+        if (state.timePlayed() >= 3600) unlockSkin(Skin.AMBIENT_PAPER);
+        if (discoveredElements() >= 50) unlockSkin(Skin.AMBIENT_SLATE);
+        if (state.hasGalaxy()) unlockSkin(Skin.AMBIENT_NIGHT);
+        if (state.explosions() >= 100) unlockSkin(Skin.AMBIENT_TERMINAL);
+        if (assembliesFormed() >= 10) unlockSkin(Skin.AMBIENT_BLUEPRINT);
+        if (isBigBangUnlocked()) unlockSkin(Skin.TABS_BINDER);
+        if (state.timePlayed() >= 10 * 3600) unlockSkin(Skin.TABS_BUTTONS);
+        if (universes() >= 1) unlockSkin(Skin.TABS_DOTS);
+        if (universes() >= 2) unlockSkin(Skin.TABS_RIBBONS);
+        if (state.stats().fusions() >= 100) unlockSkin(Skin.CARD_INDEX);
+        if (hasSkin(Skin.BANG_CRYSTAL)) unlockSkin(Skin.CARD_GLASS);
+        if (baseChallengesCompleted() >= 10) unlockSkin(Skin.CARD_PLAYING);
+        if (state.probeRuns() >= 10) unlockSkin(Skin.CARD_TAG);
+        // Des skins de plus pour les huit visuels d'origine.
         long fusions = state.stats().fusions();
-        if (fusions >= 100) unlockSkin(idle.core.universe.Skin.FUSION_EMBER);
-        if (fusions >= 1_000) unlockSkin(idle.core.universe.Skin.FUSION_INK);
-        if (generatorCount() >= 100) unlockSkin(idle.core.universe.Skin.FUSION_SWARM);
-        if (fusions >= 10_000) unlockSkin(idle.core.universe.Skin.FUSION_CLOCK);
-        if (hasSkin(idle.core.universe.Skin.FUSION_PRISM)) unlockSkin(idle.core.universe.Skin.FUSION_GLASS);
-        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= 30) unlockSkin(idle.core.universe.Skin.FUSION_PIXEL);
-        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(idle.core.universe.Skin.ATOM_CHALK);
-        if (state.totalAtoms().gte(BigNum.of(1_000))) unlockSkin(idle.core.universe.Skin.ATOM_CLOUD);
-        if (isPeriodicTableComplete()) unlockSkin(idle.core.universe.Skin.ATOM_RINGS);
-        if (state.synthesisCount() >= 1_000) unlockSkin(idle.core.universe.Skin.ATOM_GEARS);
-        if (discoveredElements() >= 100) unlockSkin(idle.core.universe.Skin.ATOM_STAINED);
-        if (discoveredElements() >= 50) unlockSkin(idle.core.universe.Skin.TABLE_WOOD);
-        if (state.synthesisCount() >= 10_000) unlockSkin(idle.core.universe.Skin.TABLE_CRYSTAL);
-        if (state.completedChallenges().contains("challenge_rust")) unlockSkin(idle.core.universe.Skin.TABLE_RUST);
-        if (hasSkin(idle.core.universe.Skin.COLLIDER_NEON)) unlockSkin(idle.core.universe.Skin.TABLE_NEON);
-        if (state.probeRuns() >= 10) unlockSkin(idle.core.universe.Skin.TABLE_MAP);
-        if (discoveredElements() >= 1) unlockSkin(idle.core.universe.Skin.TABLE_TINY);
+        if (fusions >= 100) unlockSkin(Skin.FUSION_EMBER);
+        if (fusions >= 1_000) unlockSkin(Skin.FUSION_INK);
+        if (generatorCount() >= 100) unlockSkin(Skin.FUSION_SWARM);
+        if (fusions >= 10_000) unlockSkin(Skin.FUSION_CLOCK);
+        if (hasSkin(Skin.FUSION_PRISM)) unlockSkin(Skin.FUSION_GLASS);
+        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= 30) unlockSkin(Skin.FUSION_PIXEL);
+        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(Skin.ATOM_CHALK);
+        if (state.totalAtoms().gte(BigNum.of(1_000))) unlockSkin(Skin.ATOM_CLOUD);
+        if (isPeriodicTableComplete()) unlockSkin(Skin.ATOM_RINGS);
+        if (state.synthesisCount() >= 1_000) unlockSkin(Skin.ATOM_GEARS);
+        if (discoveredElements() >= 100) unlockSkin(Skin.ATOM_STAINED);
+        if (discoveredElements() >= 50) unlockSkin(Skin.TABLE_WOOD);
+        if (state.synthesisCount() >= 10_000) unlockSkin(Skin.TABLE_CRYSTAL);
+        if (state.completedChallenges().contains("challenge_rust")) unlockSkin(Skin.TABLE_RUST);
+        if (hasSkin(Skin.COLLIDER_NEON)) unlockSkin(Skin.TABLE_NEON);
+        if (state.probeRuns() >= 10) unlockSkin(Skin.TABLE_MAP);
+        if (discoveredElements() >= 1) unlockSkin(Skin.TABLE_TINY);
         int explosions = state.explosions();
-        if (explosions >= 25) unlockSkin(idle.core.universe.Skin.DARK_MERCURY);
-        if (explosions >= 10) unlockSkin(idle.core.universe.Skin.DARK_HOLE);
-        if (explosions >= 200) unlockSkin(idle.core.universe.Skin.DARK_KNOT);
-        if (explosions >= 500) unlockSkin(idle.core.universe.Skin.DARK_LANTERN);
-        if (explosions >= 50) unlockSkin(idle.core.universe.Skin.DARK_SNOW);
-        if (explosions >= 1_000) unlockSkin(idle.core.universe.Skin.DARK_HOURGLASS);
-        if (state.bigBangs() >= 5) unlockSkin(idle.core.universe.Skin.BANG_INK);
-        if (solarSystemsComplete() >= 3) unlockSkin(idle.core.universe.Skin.BANG_STAINED);
-        if (state.hasBody("ocean_planet")) unlockSkin(idle.core.universe.Skin.BANG_ABYSS);
-        if (state.bigBangs() >= 10) unlockSkin(idle.core.universe.Skin.BANG_ORIGAMI);
-        if (state.cometsCaught() >= 25) unlockSkin(idle.core.universe.Skin.BANG_MAP);
-        if (state.bigBangs() >= 20) unlockSkin(idle.core.universe.Skin.BANG_NEON);
-        if (state.cometsCaught() >= 50) unlockSkin(idle.core.universe.Skin.BEAM_COMET);
-        if (state.collisionRuns() >= 1_000) unlockSkin(idle.core.universe.Skin.BEAM_INK);
-        if (state.collisionRuns() >= 10_000) unlockSkin(idle.core.universe.Skin.BEAM_LASER);
-        if (state.collisionRuns() >= 100) unlockSkin(idle.core.universe.Skin.BEAM_FIREFLIES);
-        if (colliderGeneratorsBoughtTotal() >= 10) unlockSkin(idle.core.universe.Skin.COLLIDER_WOOD);
-        if (colliderGeneratorsBoughtTotal() >= 100) unlockSkin(idle.core.universe.Skin.COLLIDER_CIRCUIT);
-        if (colliderGeneratorsBoughtTotal() >= 1_000) unlockSkin(idle.core.universe.Skin.COLLIDER_STADIUM);
-        if (hasSkin(idle.core.universe.Skin.COLLIDER_ICE)) unlockSkin(idle.core.universe.Skin.COLLIDER_MOBIUS);
-        // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau.
-        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(idle.core.universe.Skin.ICONS_CHALK);
-        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.ICONS_PIXEL);
-        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.ICONS_CONSTELLATION);
-        if (hasBubble(TreeBubble.LEAVES_RIGHT)) unlockSkin(idle.core.universe.Skin.ICONS_EMOJI);
-        if (hasAchievement("step_fusions_100")) unlockSkin(idle.core.universe.Skin.SIGNS_RUNES);
-        if (hasAchievement("step_set")) unlockSkin(idle.core.universe.Skin.SIGNS_SHAPES);
-        if (hasAchievement("step_explosions")) unlockSkin(idle.core.universe.Skin.SIGNS_LETTERS);
+        if (explosions >= 25) unlockSkin(Skin.DARK_MERCURY);
+        if (explosions >= 10) unlockSkin(Skin.DARK_HOLE);
+        if (explosions >= 200) unlockSkin(Skin.DARK_KNOT);
+        if (explosions >= 500) unlockSkin(Skin.DARK_LANTERN);
+        if (explosions >= 50) unlockSkin(Skin.DARK_SNOW);
+        if (explosions >= 1_000) unlockSkin(Skin.DARK_HOURGLASS);
+        if (state.bigBangs() >= 5) unlockSkin(Skin.BANG_INK);
+        if (solarSystemsComplete() >= 3) unlockSkin(Skin.BANG_STAINED);
+        if (state.hasBody("ocean_planet")) unlockSkin(Skin.BANG_ABYSS);
+        if (state.bigBangs() >= 10) unlockSkin(Skin.BANG_ORIGAMI);
+        if (state.cometsCaught() >= 25) unlockSkin(Skin.BANG_MAP);
+        if (state.bigBangs() >= 20) unlockSkin(Skin.BANG_NEON);
+        if (state.cometsCaught() >= 50) unlockSkin(Skin.BEAM_COMET);
+        if (state.collisionRuns() >= 1_000) unlockSkin(Skin.BEAM_INK);
+        if (state.collisionRuns() >= 10_000) unlockSkin(Skin.BEAM_LASER);
+        if (state.collisionRuns() >= 100) unlockSkin(Skin.BEAM_FIREFLIES);
+        if (colliderGeneratorsBoughtTotal() >= 10) unlockSkin(Skin.COLLIDER_WOOD);
+        if (colliderGeneratorsBoughtTotal() >= 100) unlockSkin(Skin.COLLIDER_CIRCUIT);
+        if (colliderGeneratorsBoughtTotal() >= 1_000) unlockSkin(Skin.COLLIDER_STADIUM);
+        if (hasSkin(Skin.COLLIDER_ICE)) unlockSkin(Skin.COLLIDER_MOBIUS);
+        // Les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau.
+        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(Skin.ICONS_CHALK);
+        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= REBUILD_FAST_SECONDS) unlockSkin(Skin.ICONS_PIXEL);
+        if (state.hasGalaxy()) unlockSkin(Skin.ICONS_CONSTELLATION);
+        if (hasBubble(TreeBubble.LEAVES_RIGHT)) unlockSkin(Skin.ICONS_EMOJI);
+        if (hasAchievement("step_fusions_100")) unlockSkin(Skin.SIGNS_RUNES);
+        if (hasAchievement("step_set")) unlockSkin(Skin.SIGNS_SHAPES);
+        if (hasAchievement("step_explosions")) unlockSkin(Skin.SIGNS_LETTERS);
         int substances = substancesFormed();
-        if (substances >= 20) unlockSkin(idle.core.universe.Skin.MATTER_LETTERS);
-        if (substances >= 50) unlockSkin(idle.core.universe.Skin.MATTER_DROPS);
-        if (substances >= molecules().size()) unlockSkin(idle.core.universe.Skin.MATTER_ALCHEMY);
+        if (substances >= 20) unlockSkin(Skin.MATTER_LETTERS);
+        if (substances >= 50) unlockSkin(Skin.MATTER_DROPS);
+        if (substances >= molecules().size()) unlockSkin(Skin.MATTER_ALCHEMY);
         double played = state.timePlayed();
-        if (played >= 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_PARCHMENT);
-        if (played >= 5 * 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_POSTIT);
-        if (played >= 10 * 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_TERMINAL);
+        if (played >= 3600) unlockSkin(Skin.TOOLTIP_PARCHMENT);
+        if (played >= 5 * 3600) unlockSkin(Skin.TOOLTIP_POSTIT);
+        if (played >= 10 * 3600) unlockSkin(Skin.TOOLTIP_TERMINAL);
         BigNum particlesCreated = state.stats().particlesCreated();
-        for (int i = 0; i < idle.core.universe.Skin.DUSTS.length; i++) {
-            int exponent = idle.core.universe.Skin.FIRST_DUST_EXPONENT + i * idle.core.universe.Skin.DUST_EXPONENT_STEP;
-            if (particlesCreated.gte(BigNum.of(1, exponent))) unlockSkin(idle.core.universe.Skin.DUSTS[i]);
+        for (int i = 0; i < Skin.DUSTS.length; i++) {
+            int exponent = Skin.FIRST_DUST_EXPONENT + i * Skin.DUST_EXPONENT_STEP;
+            if (particlesCreated.gte(BigNum.of(1, exponent))) unlockSkin(Skin.DUSTS[i]);
         }
-        if (fusions >= 100) unlockSkin(idle.core.universe.Skin.GENERATORS_SWIRL);
-        if (fusions >= 1_000) unlockSkin(idle.core.universe.Skin.GENERATORS_SUCTION);
-        if (hasSkin(idle.core.universe.Skin.FUSION_FLASH)) unlockSkin(idle.core.universe.Skin.GENERATORS_SHATTER);
-        if (completedSets() >= 1) unlockSkin(idle.core.universe.Skin.PAGE_MEDALS);
-        if (state.synthesisCount() >= 100) unlockSkin(idle.core.universe.Skin.PAGE_CRUCIBLE);
-        if (familiesOwned() >= idle.core.elements.ElementCategory.values().length) unlockSkin(idle.core.universe.Skin.PAGE_SPECTRUM);
-        // Version 0.193 : la matière noire hors de la boule : l'échelle et la règle, l'arbre, les défis.
-        if (explosions >= 10) unlockSkin(idle.core.universe.Skin.RULER_WOOD);
-        if (explosions >= 20) unlockSkin(idle.core.universe.Skin.RULER_ARCHITECT);
-        if (hasAchievement("step_landmarks")) unlockSkin(idle.core.universe.Skin.RULER_CELESTIAL);
-        if (darkCellsBought() >= 30) unlockSkin(idle.core.universe.Skin.DARK_TREE_ROOTS);
-        if (darkLevelsBought() >= 100) unlockSkin(idle.core.universe.Skin.DARK_TREE_CIRCUIT);
-        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.DARK_TREE_CONSTELLATION);
-        if (darkBranchesOpened() >= idle.core.darkmatter.DarkUpgrade.Branch.values().length) unlockSkin(idle.core.universe.Skin.DARK_TREE_METRO);
+        if (fusions >= 100) unlockSkin(Skin.GENERATORS_SWIRL);
+        if (fusions >= 1_000) unlockSkin(Skin.GENERATORS_SUCTION);
+        if (hasSkin(Skin.FUSION_FLASH)) unlockSkin(Skin.GENERATORS_SHATTER);
+        if (completedSets() >= 1) unlockSkin(Skin.PAGE_MEDALS);
+        if (state.synthesisCount() >= 100) unlockSkin(Skin.PAGE_CRUCIBLE);
+        if (familiesOwned() >= ElementCategory.values().length) unlockSkin(Skin.PAGE_SPECTRUM);
+        // La matière noire hors de la boule : l'échelle et la règle, l'arbre, les défis.
+        if (explosions >= 10) unlockSkin(Skin.RULER_WOOD);
+        if (explosions >= 20) unlockSkin(Skin.RULER_ARCHITECT);
+        if (hasAchievement("step_landmarks")) unlockSkin(Skin.RULER_CELESTIAL);
+        if (darkCellsBought() >= 30) unlockSkin(Skin.DARK_TREE_ROOTS);
+        if (darkLevelsBought() >= 100) unlockSkin(Skin.DARK_TREE_CIRCUIT);
+        if (state.hasGalaxy()) unlockSkin(Skin.DARK_TREE_CONSTELLATION);
+        if (darkBranchesOpened() >= idle.core.darkmatter.DarkUpgrade.Branch.values().length) unlockSkin(Skin.DARK_TREE_METRO);
         int challengesDone = state.completedChallenges().size();
-        if (challengesDone >= 3) unlockSkin(idle.core.universe.Skin.CHALLENGES_TAROT);
-        if (challengesDone >= 6) unlockSkin(idle.core.universe.Skin.CHALLENGES_WANTED);
-        if (baseChallengesCompleted() >= idle.core.darkmatter.Challenges.DEFAULT.size()) unlockSkin(idle.core.universe.Skin.CHALLENGES_SEALS);
-        // Version 0.194 : le Big Bang au-delà des molécules : les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes.
-        if (substances >= 5) unlockSkin(idle.core.universe.Skin.CLUMPS_MINERALS);
-        if (substances >= 20) unlockSkin(idle.core.universe.Skin.CLUMPS_NEON);
-        if (substances >= 50) unlockSkin(idle.core.universe.Skin.CLUMPS_PASTEL);
-        for (int i = 0; i < idle.core.universe.Skin.BLOCKS.length; i++) {
-            if (assembliesFormed() >= idle.core.universe.Skin.BLOCKS_FORMED[i]) unlockSkin(idle.core.universe.Skin.BLOCKS[i]);
+        if (challengesDone >= 3) unlockSkin(Skin.CHALLENGES_TAROT);
+        if (challengesDone >= 6) unlockSkin(Skin.CHALLENGES_WANTED);
+        if (baseChallengesCompleted() >= Challenges.DEFAULT.size()) unlockSkin(Skin.CHALLENGES_SEALS);
+        // Le Big Bang au-delà des molécules : les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes.
+        if (substances >= 5) unlockSkin(Skin.CLUMPS_MINERALS);
+        if (substances >= 20) unlockSkin(Skin.CLUMPS_NEON);
+        if (substances >= 50) unlockSkin(Skin.CLUMPS_PASTEL);
+        for (int i = 0; i < Skin.BLOCKS.length; i++) {
+            if (assembliesFormed() >= Skin.BLOCKS_FORMED[i]) unlockSkin(Skin.BLOCKS[i]);
         }
         long gas = gatheredInState(Molecule.State.GAS);
-        if (gas >= 1_000) unlockSkin(idle.core.universe.Skin.GAS_HAZE);
-        if (gas >= 10_000) unlockSkin(idle.core.universe.Skin.GAS_SMOKE);
-        if (gas >= 100_000) unlockSkin(idle.core.universe.Skin.GAS_AURORA);
-        if (bodiesFormed() >= 15) unlockSkin(idle.core.universe.Skin.SKY_PLATE);
-        if (bodiesFormed() >= 25) unlockSkin(idle.core.universe.Skin.SKY_MOBILE);
-        if (bodiesFormed() >= 35) unlockSkin(idle.core.universe.Skin.SKY_SHOWCASE);
+        if (gas >= 1_000) unlockSkin(Skin.GAS_HAZE);
+        if (gas >= 10_000) unlockSkin(Skin.GAS_SMOKE);
+        if (gas >= 100_000) unlockSkin(Skin.GAS_AURORA);
+        if (bodiesFormed() >= 15) unlockSkin(Skin.SKY_PLATE);
+        if (bodiesFormed() >= 25) unlockSkin(Skin.SKY_MOBILE);
+        if (bodiesFormed() >= 35) unlockSkin(Skin.SKY_SHOWCASE);
         // La galaxie et l'amas de l'univers en cours, ou un univers déjà formé, qui les a eus : le premier skin ; les suivants, un par univers formé.
         int formedUniverses = universes();
-        if (state.hasGalaxy() || formedUniverses >= 1) unlockSkin(idle.core.universe.Skin.GALAXIES[0]);
-        if (state.cosmosLevel() >= 2 || formedUniverses >= 1) unlockSkin(idle.core.universe.Skin.CLUSTERS[0]);
-        for (int i = 1; i < idle.core.universe.Skin.GALAXIES.length; i++) {
-            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.GALAXIES[i]);
+        if (state.hasGalaxy() || formedUniverses >= 1) unlockSkin(Skin.GALAXIES[0]);
+        if (state.cosmosLevel() >= 2 || formedUniverses >= 1) unlockSkin(Skin.CLUSTERS[0]);
+        for (int i = 1; i < Skin.GALAXIES.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(Skin.GALAXIES[i]);
         }
-        for (int i = 1; i < idle.core.universe.Skin.CLUSTERS.length; i++) {
-            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.CLUSTERS[i]);
+        for (int i = 1; i < Skin.CLUSTERS.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(Skin.CLUSTERS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.WEBS.length; i++) {
-            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.WEBS[i]);
+        for (int i = 0; i < Skin.WEBS.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(Skin.WEBS[i]);
         }
-        if (solarSystemsComplete() >= 1) unlockSkin(idle.core.universe.Skin.SYSTEM_ORRERY);
-        if (solarSystemsComplete() >= 2) unlockSkin(idle.core.universe.Skin.SYSTEM_CRAYON);
-        if (solarSystemsComplete() >= 3) unlockSkin(idle.core.universe.Skin.SYSTEM_RADAR);
-        for (int i = 0; i < idle.core.universe.Skin.PROBES.length; i++) {
-            if (state.probeRuns() >= idle.core.universe.Skin.PROBE_RUNS[i]) unlockSkin(idle.core.universe.Skin.PROBES[i]);
+        if (solarSystemsComplete() >= 1) unlockSkin(Skin.SYSTEM_ORRERY);
+        if (solarSystemsComplete() >= 2) unlockSkin(Skin.SYSTEM_CRAYON);
+        if (solarSystemsComplete() >= 3) unlockSkin(Skin.SYSTEM_RADAR);
+        for (int i = 0; i < Skin.PROBES.length; i++) {
+            if (state.probeRuns() >= Skin.PROBE_RUNS[i]) unlockSkin(Skin.PROBES[i]);
         }
-        // Version 0.186 : les skins des astres, par le nombre d'astres formés dans l'univers en cours.
-        for (int i = 0; i < idle.core.universe.Skin.BODIES.length; i++) {
-            if (bodiesFormed() >= idle.core.universe.Skin.BODIES_FORMED[i]) unlockSkin(idle.core.universe.Skin.BODIES[i]);
+        // Les skins des astres, par le nombre d'astres formés dans l'univers en cours.
+        for (int i = 0; i < Skin.BODIES.length; i++) {
+            if (bodiesFormed() >= Skin.BODIES_FORMED[i]) unlockSkin(Skin.BODIES[i]);
         }
         noteColliderHadronVoidSkins();
         noteUniverseSkins();
@@ -2574,62 +2298,62 @@ public abstract class GameUniverse extends GameAtoms {
             double time = state.timeSinceFusion();
             state.setRebuildPending(false);
             if (state.rebuildRecord() <= 0 || time < state.rebuildRecord()) state.setRebuildRecord(time);
-            if (time <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.FUSION_FLASH);
+            if (time <= REBUILD_FAST_SECONDS) unlockSkin(Skin.FUSION_FLASH);
         }
     }
 
     /**
-     * Version 0.195 : les skins du reste du collisionneur, des hadrons et du vide. Le détecteur suit les collisions, les
+     * Les skins du reste du collisionneur, des hadrons et du vide. Le détecteur suit les collisions, les
      * éclairs les croisements, les étincelles trois épreuves du collisionneur, l'envol des quarks et les quarks de la
      * liaison les hadrons liés (le Puzzle : chaque sorte au moins une fois), les gluons leur compte, le fond des hadrons
      * trois paliers de gluons, l'écume le vide ouvert puis le plus haut niveau d'une amélioration du vide, les paires
      * celles nées depuis l'ouverture de la fenêtre, le trou noir du vide les univers qu'il compte une fois ouvert.
      */
     private void noteColliderHadronVoidSkins() {
-        for (int i = 0; i < idle.core.universe.Skin.DETECTORS.length; i++) {
-            if (state.collisionRuns() >= idle.core.universe.Skin.DETECTOR_COLLISIONS[i]) unlockSkin(idle.core.universe.Skin.DETECTORS[i]);
+        for (int i = 0; i < Skin.DETECTORS.length; i++) {
+            if (state.collisionRuns() >= Skin.DETECTOR_COLLISIONS[i]) unlockSkin(Skin.DETECTORS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.LIGHTNINGS.length; i++) {
-            if (state.colliderCrossings() >= idle.core.universe.Skin.LIGHTNING_CROSSINGS[i]) unlockSkin(idle.core.universe.Skin.LIGHTNINGS[i]);
+        for (int i = 0; i < Skin.LIGHTNINGS.length; i++) {
+            if (state.colliderCrossings() >= Skin.LIGHTNING_CROSSINGS[i]) unlockSkin(Skin.LIGHTNINGS[i]);
         }
-        if (isTrialCompleted(idle.core.universe.Trial.DETECTOR)) unlockSkin(idle.core.universe.Skin.SPARKS_PETALS);
-        if (isTrialCompleted(idle.core.universe.Trial.NO_OVERHEAT)) unlockSkin(idle.core.universe.Skin.SPARKS_CONFETTI);
-        if (isTrialCompleted(idle.core.universe.Trial.FULL_CHARGE)) unlockSkin(idle.core.universe.Skin.SPARKS_EMBERS);
+        if (isTrialCompleted(Trial.DETECTOR)) unlockSkin(Skin.SPARKS_PETALS);
+        if (isTrialCompleted(Trial.NO_OVERHEAT)) unlockSkin(Skin.SPARKS_CONFETTI);
+        if (isTrialCompleted(Trial.FULL_CHARGE)) unlockSkin(Skin.SPARKS_EMBERS);
         long hadrons = hadronsMade();
-        for (int i = 0; i < idle.core.universe.Skin.QUARK_FLIGHTS.length; i++) {
-            if (hadrons >= idle.core.universe.Skin.QUARK_FLIGHT_HADRONS[i]) unlockSkin(idle.core.universe.Skin.QUARK_FLIGHTS[i]);
+        for (int i = 0; i < Skin.QUARK_FLIGHTS.length; i++) {
+            if (hadrons >= Skin.QUARK_FLIGHT_HADRONS[i]) unlockSkin(Skin.QUARK_FLIGHTS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.QUARK_SKINS.length; i++) {
-            if (hadrons >= idle.core.universe.Skin.QUARK_SKIN_HADRONS[i]) unlockSkin(idle.core.universe.Skin.QUARK_SKINS[i]);
+        for (int i = 0; i < Skin.QUARK_SKINS.length; i++) {
+            if (hadrons >= Skin.QUARK_SKIN_HADRONS[i]) unlockSkin(Skin.QUARK_SKINS[i]);
         }
         boolean everyKind = true;
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) if (state.hadrons(hadron) <= 0) everyKind = false;
-        if (everyKind) unlockSkin(idle.core.universe.Skin.QUARKS_PUZZLE);
+        for (Hadron hadron : Hadron.values()) if (state.hadrons(hadron) <= 0) everyKind = false;
+        if (everyKind) unlockSkin(Skin.QUARKS_PUZZLE);
         long gluons = gluons();
-        for (int i = 0; i < idle.core.universe.Skin.GLUON_SKINS.length; i++) {
-            if (gluons >= idle.core.universe.Skin.GLUON_SKIN_GLUONS[i]) unlockSkin(idle.core.universe.Skin.GLUON_SKINS[i]);
+        for (int i = 0; i < Skin.GLUON_SKINS.length; i++) {
+            if (gluons >= Skin.GLUON_SKIN_GLUONS[i]) unlockSkin(Skin.GLUON_SKINS[i]);
         }
-        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.UPGRADES)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_BLACKBOARD);
-        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.AUTOMATIONS)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_LAB);
-        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.ELEMENTS)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_STORM);
+        if (isGluonMilestoneReached(GluonMilestone.UPGRADES)) unlockSkin(Skin.HADRON_BACK_BLACKBOARD);
+        if (isGluonMilestoneReached(GluonMilestone.AUTOMATIONS)) unlockSkin(Skin.HADRON_BACK_LAB);
+        if (isGluonMilestoneReached(GluonMilestone.ELEMENTS)) unlockSkin(Skin.HADRON_BACK_STORM);
         if (isVoidUnlocked()) {
-            unlockSkin(idle.core.universe.Skin.FOAMS[0]);
+            unlockSkin(Skin.FOAMS[0]);
             int highest = 0;
             for (VoidUpgrade upgrade : VoidUpgrade.values()) highest = Math.max(highest, voidLevel(upgrade));
-            for (int i = 1; i < idle.core.universe.Skin.FOAMS.length; i++) if (highest >= i) unlockSkin(idle.core.universe.Skin.FOAMS[i]);
+            for (int i = 1; i < Skin.FOAMS.length; i++) if (highest >= i) unlockSkin(Skin.FOAMS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.PAIR_SKINS.length; i++) {
-            if (voidPairsBorn() >= idle.core.universe.Skin.PAIR_SKIN_BORN[i]) unlockSkin(idle.core.universe.Skin.PAIR_SKINS[i]);
+        for (int i = 0; i < Skin.PAIR_SKINS.length; i++) {
+            if (voidPairsBorn() >= Skin.PAIR_SKIN_BORN[i]) unlockSkin(Skin.PAIR_SKINS[i]);
         }
         if (isVoidUnlocked() && state.voidHoleOpen()) {
-            for (int i = 0; i < idle.core.universe.Skin.VOID_HOLES.length; i++) {
-                if (voidHoleUniverses() >= i + 1) unlockSkin(idle.core.universe.Skin.VOID_HOLES[i]);
+            for (int i = 0; i < Skin.VOID_HOLES.length; i++) {
+                if (voidHoleUniverses() >= i + 1) unlockSkin(Skin.VOID_HOLES[i]);
             }
         }
     }
 
     /**
-     * Version 0.196 : les skins de l'univers. Les bulles suivent les univers formés (une par univers, du premier au troisième),
+     * Les skins de l'univers. Les bulles suivent les univers formés (une par univers, du premier au troisième),
      * la naissance et le lancement les univers à partir du cinquième, les liens à partir du septième ; la graine ses paliers ;
      * l'arrosoir les arrosages de la graine en cours, le tuyau et la terre fertile achetés ; l'étagère l'étage du chrono
      * acheté et les univers formés à partir du troisième ; le tuyau ses niveaux ; le chrono plein, puis les univers formés ;
@@ -2638,57 +2362,57 @@ public abstract class GameUniverse extends GameAtoms {
      */
     private void noteUniverseSkins() {
         int formed = universes();
-        for (int i = 0; i < idle.core.universe.Skin.UNIVERSE_BUBBLES.length; i++) {
-            if (formed >= i + 1) unlockSkin(idle.core.universe.Skin.UNIVERSE_BUBBLES[i]);
+        for (int i = 0; i < Skin.UNIVERSE_BUBBLES.length; i++) {
+            if (formed >= i + 1) unlockSkin(Skin.UNIVERSE_BUBBLES[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.BIRTHS.length; i++) {
-            if (formed >= idle.core.universe.Skin.FIRST_BIRTH_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.BIRTHS[i]);
+        for (int i = 0; i < Skin.BIRTHS.length; i++) {
+            if (formed >= Skin.FIRST_BIRTH_UNIVERSE + i) unlockSkin(Skin.BIRTHS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.LINKS.length; i++) {
-            if (formed >= idle.core.universe.Skin.FIRST_LINKS_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.LINKS[i]);
+        for (int i = 0; i < Skin.LINKS.length; i++) {
+            if (formed >= Skin.FIRST_LINKS_UNIVERSE + i) unlockSkin(Skin.LINKS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.LAUNCHES.length; i++) {
-            if (formed >= idle.core.universe.Skin.FIRST_LAUNCH_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.LAUNCHES[i]);
+        for (int i = 0; i < Skin.LAUNCHES.length; i++) {
+            if (formed >= Skin.FIRST_LAUNCH_UNIVERSE + i) unlockSkin(Skin.LAUNCHES[i]);
         }
         if (isUniverseFormed()) {
             int stage = seedStage();
-            for (int i = 0; i < idle.core.universe.Skin.SEEDS.length; i++) {
-                if (stage >= i + 1) unlockSkin(idle.core.universe.Skin.SEEDS[i]);
+            for (int i = 0; i < Skin.SEEDS.length; i++) {
+                if (stage >= i + 1) unlockSkin(Skin.SEEDS[i]);
             }
         }
-        for (int i = 0; i < idle.core.universe.Skin.CANS.length; i++) {
-            if (state.seedWaterings() >= idle.core.universe.Skin.CAN_WATERINGS[i]) unlockSkin(idle.core.universe.Skin.CANS[i]);
+        for (int i = 0; i < Skin.CANS.length; i++) {
+            if (state.seedWaterings() >= Skin.CAN_WATERINGS[i]) unlockSkin(Skin.CANS[i]);
         }
-        if (hasHose()) unlockSkin(idle.core.universe.Skin.CAN_BEAK);
-        if (seedUpgradeLevel(SeedUpgrade.SOIL) > 0) unlockSkin(idle.core.universe.Skin.CAN_SHELL);
+        if (hasHose()) unlockSkin(Skin.CAN_BEAK);
+        if (seedUpgradeLevel(SeedUpgrade.SOIL) > 0) unlockSkin(Skin.CAN_SHELL);
         if (isChronoUnlocked()) {
-            for (int i = 0; i < idle.core.universe.Skin.SHELVES.length; i++) {
-                if (formed >= idle.core.universe.Skin.FIRST_SHELF_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.SHELVES[i]);
+            for (int i = 0; i < Skin.SHELVES.length; i++) {
+                if (formed >= Skin.FIRST_SHELF_UNIVERSE + i) unlockSkin(Skin.SHELVES[i]);
             }
             if (chronoStored() >= chronoCapacity() - 1e-6) {
-                unlockSkin(idle.core.universe.Skin.CHRONOS[0]);
-                for (int i = 1; i < idle.core.universe.Skin.CHRONOS.length; i++) {
-                    if (formed >= idle.core.universe.Skin.FIRST_CHRONO_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.CHRONOS[i]);
+                unlockSkin(Skin.CHRONOS[0]);
+                for (int i = 1; i < Skin.CHRONOS.length; i++) {
+                    if (formed >= Skin.FIRST_CHRONO_UNIVERSE + i - 1) unlockSkin(Skin.CHRONOS[i]);
                 }
             }
         }
         int hose = seedUpgradeLevel(SeedUpgrade.HOSE);
-        for (int i = 0; i < idle.core.universe.Skin.HOSES.length; i++) {
-            if (hose >= idle.core.universe.Skin.HOSE_LEVELS[i]) unlockSkin(idle.core.universe.Skin.HOSES[i]);
+        for (int i = 0; i < Skin.HOSES.length; i++) {
+            if (hose >= Skin.HOSE_LEVELS[i]) unlockSkin(Skin.HOSES[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.RINGS.length; i++) {
-            if (bloomsCaught() >= idle.core.universe.Skin.RING_CAUGHT[i]) unlockSkin(idle.core.universe.Skin.RINGS[i]);
+        for (int i = 0; i < Skin.RINGS.length; i++) {
+            if (bloomsCaught() >= Skin.RING_CAUGHT[i]) unlockSkin(Skin.RINGS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.WEATHERS.length; i++) {
-            if (storms() >= idle.core.universe.Skin.WEATHER_STORMS[i]) unlockSkin(idle.core.universe.Skin.WEATHERS[i]);
+        for (int i = 0; i < Skin.WEATHERS.length; i++) {
+            if (storms() >= Skin.WEATHER_STORMS[i]) unlockSkin(Skin.WEATHERS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.SEASON_SKINS.length; i++) {
-            if (seasonCycles() >= i + 1) unlockSkin(idle.core.universe.Skin.SEASON_SKINS[i]);
+        for (int i = 0; i < Skin.SEASON_SKINS.length; i++) {
+            if (seasonCycles() >= i + 1) unlockSkin(Skin.SEASON_SKINS[i]);
         }
     }
 
     /**
-     * Version 0.197 : les skins de l'arbre au-delà de ses essences, de ses bulles, de la carte des dimensions, du défi
+     * Les skins de l'arbre au-delà de ses essences, de ses bulles, de la carte des dimensions, du défi
      * final et des cadres des mini-jeux. Les saisons figées suivent les saisons débloquées puis les univers formés ; les
      * arbres de fantaisie le nombre de paliers de la graine dont une bulle est achetée ; les sols les paliers de la
      * graine ; les bulles et leurs liens le nombre de bulles achetées ; la carte et les cadres les dimensions ouvertes ;
@@ -2697,148 +2421,144 @@ public abstract class GameUniverse extends GameAtoms {
     private void noteTreeAndDimensionSkins() {
         int formed = universes();
         if (areSeasonsUnlocked()) {
-            for (int i = 0; i < idle.core.universe.Skin.TREE_SEASONS.length; i++) {
-                if (formed >= idle.core.universe.Skin.FIRST_TREE_SEASON_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.TREE_SEASONS[i]);
+            for (int i = 0; i < Skin.TREE_SEASONS.length; i++) {
+                if (formed >= Skin.FIRST_TREE_SEASON_UNIVERSE + i) unlockSkin(Skin.TREE_SEASONS[i]);
             }
         }
         int stages = treeBubbleStagesBought();
-        for (int i = 0; i < idle.core.universe.Skin.TREE_FANTASIES.length; i++) {
-            if (stages >= i + 1) unlockSkin(idle.core.universe.Skin.TREE_FANTASIES[i]);
+        for (int i = 0; i < Skin.TREE_FANTASIES.length; i++) {
+            if (stages >= i + 1) unlockSkin(Skin.TREE_FANTASIES[i]);
         }
         if (isUniverseFormed()) {
             int stage = seedStage();
-            for (int i = 0; i < idle.core.universe.Skin.GROUNDS.length; i++) {
-                if (stage >= idle.core.universe.Skin.FIRST_GROUND_STAGE + i) unlockSkin(idle.core.universe.Skin.GROUNDS[i]);
+            for (int i = 0; i < Skin.GROUNDS.length; i++) {
+                if (stage >= Skin.FIRST_GROUND_STAGE + i) unlockSkin(Skin.GROUNDS[i]);
             }
         }
         int bubbles = treeBubblesBought();
-        for (int i = 0; i < idle.core.universe.Skin.TREE_BUBBLE_SKINS.length; i++) {
-            if (bubbles >= idle.core.universe.Skin.TREE_BUBBLE_COUNTS[i]) unlockSkin(idle.core.universe.Skin.TREE_BUBBLE_SKINS[i]);
+        for (int i = 0; i < Skin.TREE_BUBBLE_SKINS.length; i++) {
+            if (bubbles >= Skin.TREE_BUBBLE_COUNTS[i]) unlockSkin(Skin.TREE_BUBBLE_SKINS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.BUBBLE_LINK_SKINS.length; i++) {
-            if (bubbles >= idle.core.universe.Skin.BUBBLE_LINK_COUNTS[i]) unlockSkin(idle.core.universe.Skin.BUBBLE_LINK_SKINS[i]);
+        for (int i = 0; i < Skin.BUBBLE_LINK_SKINS.length; i++) {
+            if (bubbles >= Skin.BUBBLE_LINK_COUNTS[i]) unlockSkin(Skin.BUBBLE_LINK_SKINS[i]);
         }
         int dimensions = dimensionsUnlocked();
-        for (int i = 0; i < idle.core.universe.Skin.MAPS.length; i++) {
-            if (dimensions >= idle.core.universe.Skin.MAP_DIMENSIONS[i]) unlockSkin(idle.core.universe.Skin.MAPS[i]);
+        for (int i = 0; i < Skin.MAPS.length; i++) {
+            if (dimensions >= Skin.MAP_DIMENSIONS[i]) unlockSkin(Skin.MAPS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.FRAMES.length; i++) {
-            if (dimensions >= idle.core.universe.Skin.FRAME_DIMENSIONS[i]) unlockSkin(idle.core.universe.Skin.FRAMES[i]);
+        for (int i = 0; i < Skin.FRAMES.length; i++) {
+            if (dimensions >= Skin.FRAME_DIMENSIONS[i]) unlockSkin(Skin.FRAMES[i]);
         }
         if (state.gameFinished()) {
-            unlockSkin(idle.core.universe.Skin.FINALES[0]);
-            for (int i = 1; i < idle.core.universe.Skin.FINALES.length; i++) {
-                if (formed >= idle.core.universe.Skin.FIRST_FINALE_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.FINALES[i]);
+            unlockSkin(Skin.FINALES[0]);
+            for (int i = 1; i < Skin.FINALES.length; i++) {
+                if (formed >= Skin.FIRST_FINALE_UNIVERSE + i - 1) unlockSkin(Skin.FINALES[i]);
             }
         }
     }
 
     /**
-     * Version 0.198 : les skins du profil, des succès et des statistiques. Les styles des avatars, les tuiles des succès et
+     * Les skins du profil, des succès et des statistiques. Les styles des avatars, les tuiles des succès et
      * les succès non obtenus suivent les succès obtenus ; les albums les entrées trouvées puis les albums complets ; les
      * courbes les heures de jeu ; la frise les univers formés. La palette des courbes est libre.
      */
     private void noteProfileAndStatsSkins() {
-        for (int i = 0; i < idle.core.universe.Skin.AVATAR_STYLES.length; i++) {
-            if (achievementsReach(idle.core.universe.Skin.AVATAR_STYLE_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.AVATAR_STYLES[i]);
+        for (int i = 0; i < Skin.AVATAR_STYLES.length; i++) {
+            if (achievementsReach(Skin.AVATAR_STYLE_ACHIEVEMENTS[i])) unlockSkin(Skin.AVATAR_STYLES[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.TILES.length; i++) {
-            if (achievementsReach(idle.core.universe.Skin.TILE_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.TILES[i]);
+        for (int i = 0; i < Skin.TILES.length; i++) {
+            if (achievementsReach(Skin.TILE_ACHIEVEMENTS[i])) unlockSkin(Skin.TILES[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.LOCKED_SKINS.length; i++) {
-            if (achievementsReach(idle.core.universe.Skin.LOCKED_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.LOCKED_SKINS[i]);
+        for (int i = 0; i < Skin.LOCKED_SKINS.length; i++) {
+            if (achievementsReach(Skin.LOCKED_ACHIEVEMENTS[i])) unlockSkin(Skin.LOCKED_SKINS[i]);
         }
-        if (albumEntriesFound() >= idle.core.universe.Skin.ALBUM_ENTRIES) unlockSkin(idle.core.universe.Skin.ALBUMS[0]);
+        if (albumEntriesFound() >= Skin.ALBUM_ENTRIES) unlockSkin(Skin.ALBUMS[0]);
         int complete = albumsComplete();
-        for (int i = 1; i < idle.core.universe.Skin.ALBUMS.length; i++) {
-            if (complete >= i) unlockSkin(idle.core.universe.Skin.ALBUMS[i]);
+        for (int i = 1; i < Skin.ALBUMS.length; i++) {
+            if (complete >= i) unlockSkin(Skin.ALBUMS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.CHARTS.length; i++) {
-            if (state.timePlayed() >= idle.core.universe.Skin.CHART_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.CHARTS[i]);
+        for (int i = 0; i < Skin.CHARTS.length; i++) {
+            if (state.timePlayed() >= Skin.CHART_HOURS[i] * 3600.0) unlockSkin(Skin.CHARTS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.TIMELINES.length; i++) {
-            if (universes() >= idle.core.universe.Skin.TIMELINE_UNIVERSES[i]) unlockSkin(idle.core.universe.Skin.TIMELINES[i]);
+        for (int i = 0; i < Skin.TIMELINES.length; i++) {
+            if (universes() >= Skin.TIMELINE_UNIVERSES[i]) unlockSkin(Skin.TIMELINES[i]);
         }
     }
 
     /**
-     * Version 0.199 : les skins de la fenêtre autour du jeu. Les notifications suivent celles reçues depuis l'ouverture du
+     * Les skins de la fenêtre autour du jeu. Les notifications suivent celles reçues depuis l'ouverture du
      * jeu ({@link #noteNotificationsShown}), les panneaux les heures de jeu, la transition les univers formés, l'écran de
      * fin et le bouton de démarrage la partie finie puis les univers formés, le curseur un succès d'un onglet chacun.
      */
     private void noteWindowSkins() {
-        for (int i = 0; i < idle.core.universe.Skin.TOASTS.length; i++) {
-            if (notificationsShown >= idle.core.universe.Skin.TOAST_NOTIFICATIONS[i]) unlockSkin(idle.core.universe.Skin.TOASTS[i]);
+        for (int i = 0; i < Skin.TOASTS.length; i++) {
+            if (notificationsShown >= Skin.TOAST_NOTIFICATIONS[i]) unlockSkin(Skin.TOASTS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.PANELS.length; i++) {
-            if (state.timePlayed() >= idle.core.universe.Skin.PANEL_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.PANELS[i]);
+        for (int i = 0; i < Skin.PANELS.length; i++) {
+            if (state.timePlayed() >= Skin.PANEL_HOURS[i] * 3600.0) unlockSkin(Skin.PANELS[i]);
         }
         int formed = universes();
-        for (int i = 0; i < idle.core.universe.Skin.TRANSITIONS.length; i++) {
-            if (formed >= i + 1) unlockSkin(idle.core.universe.Skin.TRANSITIONS[i]);
+        for (int i = 0; i < Skin.TRANSITIONS.length; i++) {
+            if (formed >= i + 1) unlockSkin(Skin.TRANSITIONS[i]);
         }
         if (state.gameFinished()) {
-            unlockSkin(idle.core.universe.Skin.ENDINGS[0]);
-            for (int i = 1; i < idle.core.universe.Skin.ENDINGS.length; i++) {
-                if (formed >= idle.core.universe.Skin.FIRST_ENDING_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.ENDINGS[i]);
+            unlockSkin(Skin.ENDINGS[0]);
+            for (int i = 1; i < Skin.ENDINGS.length; i++) {
+                if (formed >= Skin.FIRST_ENDING_UNIVERSE + i - 1) unlockSkin(Skin.ENDINGS[i]);
             }
-            unlockSkin(idle.core.universe.Skin.START_BUTTONS[0]);
-            for (int i = 1; i < idle.core.universe.Skin.START_BUTTONS.length; i++) {
-                if (formed >= idle.core.universe.Skin.FIRST_START_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.START_BUTTONS[i]);
+            unlockSkin(Skin.START_BUTTONS[0]);
+            for (int i = 1; i < Skin.START_BUTTONS.length; i++) {
+                if (formed >= Skin.FIRST_START_UNIVERSE + i - 1) unlockSkin(Skin.START_BUTTONS[i]);
             }
         }
-        for (int i = 0; i < idle.core.universe.Skin.CURSORS.length; i++) {
-            if (hasAchievement(idle.core.universe.Skin.CURSOR_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.CURSORS[i]);
+        for (int i = 0; i < Skin.CURSORS.length; i++) {
+            if (hasAchievement(Skin.CURSOR_ACHIEVEMENTS[i])) unlockSkin(Skin.CURSORS[i]);
         }
     }
 
     /**
-     * Version 0.200 : les skins des sons. Les banques suivent les heures de jeu (le silence partiel est libre), le son du
+     * Les skins des sons. Les banques suivent les heures de jeu (le silence partiel est libre), le son du
      * Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers formés.
      */
     private void noteSoundSkins() {
-        for (int i = 0; i < idle.core.universe.Skin.SOUND_BANKS.length; i++) {
-            if (state.timePlayed() >= idle.core.universe.Skin.SOUND_BANK_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.SOUND_BANKS[i]);
+        for (int i = 0; i < Skin.SOUND_BANKS.length; i++) {
+            if (state.timePlayed() >= Skin.SOUND_BANK_HOURS[i] * 3600.0) unlockSkin(Skin.SOUND_BANKS[i]);
         }
-        for (int i = 0; i < idle.core.universe.Skin.BANG_SOUNDS.length; i++) {
-            if (state.bigBangs() >= idle.core.universe.Skin.BANG_SOUND_BANGS[i]) unlockSkin(idle.core.universe.Skin.BANG_SOUNDS[i]);
+        for (int i = 0; i < Skin.BANG_SOUNDS.length; i++) {
+            if (state.bigBangs() >= Skin.BANG_SOUND_BANGS[i]) unlockSkin(Skin.BANG_SOUNDS[i]);
         }
         if (isDimensionThresholdReached(5)) {
-            unlockSkin(idle.core.universe.Skin.METRONOMES[0]);
-            for (int i = 1; i < idle.core.universe.Skin.METRONOMES.length; i++) {
-                if (universes() >= idle.core.universe.Skin.FIRST_METRONOME_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.METRONOMES[i]);
+            unlockSkin(Skin.METRONOMES[0]);
+            for (int i = 1; i < Skin.METRONOMES.length; i++) {
+                if (universes() >= Skin.FIRST_METRONOME_UNIVERSE + i - 1) unlockSkin(Skin.METRONOMES[i]);
             }
         }
     }
 
-    /** Les notifications affichées depuis l'ouverture du jeu (version 0.199), comptées par la fenêtre ; non sauvegardées. */
+    /** Les notifications affichées depuis l'ouverture du jeu, comptées par la fenêtre ; non sauvegardées. */
     private int notificationsShown;
 
     /**
-     * La fenêtre dit combien de notifications elle a affichées depuis l'ouverture du jeu (version 0.199) : les skins des
+     * La fenêtre dit combien de notifications elle a affichées depuis l'ouverture du jeu : les skins des
      * notifications s'en débloquent au pas suivant. Le compte ne descend jamais et n'est pas sauvegardé.
      */
-    public void noteNotificationsShown(int total) {
-        notificationsShown = Math.max(notificationsShown, total);
-    }
+    public void noteNotificationsShown(int total) { notificationsShown = Math.max(notificationsShown, total); }
 
-    /** Les notifications affichées depuis l'ouverture du jeu (version 0.199). */
-    public int notificationsShown() {
-        return notificationsShown;
-    }
+    /** Les notifications affichées depuis l'ouverture du jeu. */
+    public int notificationsShown() { return notificationsShown; }
 
-    /** Vrai si {@code needed} succès du catalogue sont obtenus ; {@link idle.core.universe.Skin#ALL_ACHIEVEMENTS} les demande tous (version 0.198). */
+    /** Vrai si {@code needed} succès du catalogue sont obtenus ; {@link idle.core.universe.Skin#ALL_ACHIEVEMENTS} les demande tous. */
     private boolean achievementsReach(int needed) {
-        if (needed == idle.core.universe.Skin.ALL_ACHIEVEMENTS) return !achievements().isEmpty() && achievementCount() >= achievements().size();
+        if (needed == Skin.ALL_ACHIEVEMENTS) return !achievements().isEmpty() && achievementCount() >= achievements().size();
         return achievementCount() >= needed;
     }
 
-    /** Les entrées trouvées dans les quatre albums du profil, ensemble (version 0.198). */
+    /** Les entrées trouvées dans les quatre albums du profil, ensemble. */
     public int albumEntriesFound() {
         return state.foundMolecules().size() + state.foundSubstances().size() + state.foundAssemblies().size() + state.foundBodies().size();
     }
 
-    /** Les albums du profil complets (version 0.198), de 0 à 4 : les molécules, les sortes rassemblées, les assemblages, les astres. */
+    /** Les albums du profil complets, de 0 à 4 : les molécules, les sortes rassemblées, les assemblages, les astres. */
     public int albumsComplete() {
         int sorts = 0;
         for (Molecule molecule : molecules()) if (molecule.hasState()) sorts++;
@@ -2854,37 +2574,37 @@ public abstract class GameUniverse extends GameAtoms {
         return catalog > 0 && found.size() >= catalog;
     }
 
-    /** Les bulles de l'arbre achetées (version 0.197), niveaux à part : de 0 à {@code TreeBubble.values().length}. */
+    /** Les bulles de l'arbre achetées, niveaux à part : de 0 à {@code TreeBubble.values().length}. */
     public int treeBubblesBought() {
         int bought = 0;
         for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleBought(bubble)) bought++;
         return bought;
     }
 
-    /** Les paliers de la graine dont une bulle au moins est achetée (version 0.197) : de 0 à 8. */
+    /** Les paliers de la graine dont une bulle au moins est achetée : de 0 à 8. */
     public int treeBubbleStagesBought() {
-        java.util.Set<Integer> stages = new java.util.HashSet<>();
+        Set<Integer> stages = new HashSet<>();
         for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleBought(bubble)) stages.add(bubble.stage());
         return stages.size();
     }
 
-    /** Les cases de l'arbre de matière noire achetées au moins une fois, liaisons comprises (version 0.193). */
+    /** Les cases de l'arbre de matière noire achetées au moins une fois, liaisons comprises. */
     public int darkCellsBought() {
         int bought = 0;
         for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) if (state.darkLevelOf(dark.id()) > 0) bought++;
         return bought;
     }
 
-    /** Les niveaux achetés dans l'arbre de matière noire, toutes cases confondues (version 0.193). */
+    /** Les niveaux achetés dans l'arbre de matière noire, toutes cases confondues. */
     public int darkLevelsBought() {
         int levels = 0;
         for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) levels += state.darkLevelOf(dark.id());
         return levels;
     }
 
-    /** Les branches de l'arbre de matière noire dont une case au moins est achetée (version 0.193), liaisons à part. */
+    /** Les branches de l'arbre de matière noire dont une case au moins est achetée, liaisons à part. */
     public int darkBranchesOpened() {
-        java.util.EnumSet<idle.core.darkmatter.DarkUpgrade.Branch> opened = java.util.EnumSet.noneOf(idle.core.darkmatter.DarkUpgrade.Branch.class);
+        EnumSet<idle.core.darkmatter.DarkUpgrade.Branch> opened = EnumSet.noneOf(idle.core.darkmatter.DarkUpgrade.Branch.class);
         for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) {
             if (!dark.isLink() && state.darkLevelOf(dark.id()) > 0) opened.add(dark.branch());
         }
@@ -2892,14 +2612,10 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Le record de reconstruction, en secondes ; 0 sans record. */
-    public double rebuildRecord() {
-        return state.rebuildRecord();
-    }
+    public double rebuildRecord() { return state.rebuildRecord(); }
 
     /** Vrai si la recherche « Fusion prismatique » est faite. */
-    public boolean hasPrismResearch() {
-        return state.researches().contains("prism");
-    }
+    public boolean hasPrismResearch() { return state.researches().contains("prism"); }
 
     public boolean canBuyPrismResearch() {
         return isSkinsUnlocked() && !hasPrismResearch() && state.particles().gte(PRISM_COST);
@@ -2911,7 +2627,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.setParticles(state.particles().subtract(PRISM_COST).max(BigNum.ZERO));
         state.stats().addParticlesSpent(PRISM_COST);
         state.addResearch("prism");
-        unlockSkin(idle.core.universe.Skin.FUSION_PRISM);
+        unlockSkin(Skin.FUSION_PRISM);
         return true;
     }
 
@@ -2919,9 +2635,7 @@ public abstract class GameUniverse extends GameAtoms {
      * Vrai une fois la recherche sur le noyau dense ouverte : son succès (version 0.174 : un million d'atomes créés et une
      * explosion dans un nouvel univers ; avant, le million suffisait, et elle s'ouvrait avec l'onglet Skins).
      */
-    public boolean isDenseResearchUnlocked() {
-        return isSkinsUnlocked() && universeStep(idle.core.achievements.Achievements.UNIVERSE_DENSE);
-    }
+    public boolean isDenseResearchUnlocked() { return isSkinsUnlocked() && universeStep(Achievements.UNIVERSE_DENSE); }
 
     /** Paliers de la recherche sur le noyau dense déjà faits, de 0 à 4. */
     public int denseTiers() {
@@ -2947,50 +2661,46 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** L'épreuve en cours, ou {@code null}. */
-    public idle.core.universe.Trial activeTrial() {
+    public Trial activeTrial() {
         if (state.activeTrial() == null) return null;
-        return Enums.parse(idle.core.universe.Trial.class, state.activeTrial());
+        return Enums.parse(Trial.class, state.activeTrial());
     }
 
     /** Vrai pendant cette épreuve. */
-    public boolean inTrial(idle.core.universe.Trial trial) {
-        return trial.name().equals(state.activeTrial());
-    }
+    public boolean inTrial(Trial trial) { return trial.name().equals(state.activeTrial()); }
 
     /** Vrai si cette épreuve a déjà été réussie. */
-    public boolean isTrialCompleted(idle.core.universe.Trial trial) {
-        return state.completedTrials().contains(trial.name());
-    }
+    public boolean isTrialCompleted(Trial trial) { return state.completedTrials().contains(trial.name()); }
 
     /** Vrai si cette épreuve est ouverte : l'onglet Skins, et ce qu'elle demande. */
-    public boolean isTrialUnlocked(idle.core.universe.Trial trial) {
+    public boolean isTrialUnlocked(Trial trial) {
         if (!isSkinsUnlocked()) return false;
-        // Version 0.174 : les épreuves s'ouvrent par les succès du deuxième univers (la première explosion, le
+        // Les épreuves s'ouvrent par les succès du deuxième univers (la première explosion, le
         // collisionneur rouvert, le premier Big Bang), puis selon ce qu'elles demandent dans la partie.
         return switch (trial) {
-            case LONE_GENERATOR -> universeStep(idle.core.achievements.Achievements.UNIVERSE_TRIALS) && state.explosions() > 0;
-            case SOFT_CONTRACTION -> universeStep(idle.core.achievements.Achievements.UNIVERSE_TRIALS) && isDarkMatterUnlocked();
-            case COLD_BANG -> universeStep(idle.core.achievements.Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
-            case DETECTOR -> universeStep(idle.core.achievements.Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked()
+            case LONE_GENERATOR -> universeStep(Achievements.UNIVERSE_TRIALS) && state.explosions() > 0;
+            case SOFT_CONTRACTION -> universeStep(Achievements.UNIVERSE_TRIALS) && isDarkMatterUnlocked();
+            case COLD_BANG -> universeStep(Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
+            case DETECTOR -> universeStep(Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked()
                     && colliderUpgradeLevel(ColliderUpgrade.WINDOW) >= 3;
-            case NO_OVERHEAT, FULL_CHARGE, LONE_COLLIDER -> universeStep(idle.core.achievements.Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked();
+            case NO_OVERHEAT, FULL_CHARGE, LONE_COLLIDER -> universeStep(Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked();
         };
     }
 
     /** Vrai si l'épreuve peut commencer : ouverte, aucune autre en cours, et pour le premier générateur, un seul générateur. */
-    public boolean canStartTrial(idle.core.universe.Trial trial) {
+    public boolean canStartTrial(Trial trial) {
         if (!isTrialUnlocked(trial) || activeTrial() != null) return false;
-        return trial != idle.core.universe.Trial.LONE_GENERATOR || generatorCount() == 1;
+        return trial != Trial.LONE_GENERATOR || generatorCount() == 1;
     }
 
     /** Commence une épreuve. */
-    public boolean startTrial(idle.core.universe.Trial trial) {
+    public boolean startTrial(Trial trial) {
         if (!canStartTrial(trial)) return false;
         state.setActiveTrial(trial.name());
         state.setTrialStart(state.timePlayed());
         state.setTrialCount(0);
-        state.setTrialBase(trial == idle.core.universe.Trial.FULL_CHARGE
-                ? colliderEnergyProduced() + colliderEnergyPerSecond() * idle.core.universe.Trial.FULL_CHARGE_SECONDS : 0);
+        state.setTrialBase(trial == Trial.FULL_CHARGE
+                ? colliderEnergyProduced() + colliderEnergyPerSecond() * Trial.FULL_CHARGE_SECONDS : 0);
         return true;
     }
 
@@ -3003,7 +2713,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Secondes qu'il reste à l'épreuve en cours ; l'infini sans limite, 0 sans épreuve. */
     public double trialLeft() {
-        idle.core.universe.Trial trial = activeTrial();
+        Trial trial = activeTrial();
         if (trial == null) return 0;
         if (trial.seconds() <= 0) return Double.POSITIVE_INFINITY;
         return Math.max(0, trial.seconds() - (state.timePlayed() - state.trialStart()));
@@ -3011,10 +2721,10 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Où en est l'épreuve en cours, de 0 à 1. */
     public double trialProgress() {
-        idle.core.universe.Trial trial = activeTrial();
+        Trial trial = activeTrial();
         if (trial == null) return 0;
         return switch (trial) {
-            case LONE_GENERATOR -> Math.min(1, Math.max(0, state.particles().log10() / idle.core.universe.Trial.LONE_GOAL_LOG10));
+            case LONE_GENERATOR -> Math.min(1, Math.max(0, state.particles().log10() / Trial.LONE_GOAL_LOG10));
             case SOFT_CONTRACTION, COLD_BANG -> 0;
             case FULL_CHARGE -> state.trialBase() <= 0 ? 0 : Math.min(1, colliderEnergyProduced() / state.trialBase());
             default -> Math.min(1, state.trialCount() / (double) trial.goal());
@@ -3023,35 +2733,33 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Ce que la contraction douce ajoute aux atomes de chaque fusion : +5 % par fusion du cycle, ×2 au plus. */
     public double contractionAtomsMultiplier() {
-        if (!inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) return 1;
-        return Math.min(idle.core.universe.Trial.CONTRACTION_MAX, 1 + idle.core.universe.Trial.CONTRACTION_FUSION_GAIN * state.trialCount());
+        if (!inTrial(Trial.SOFT_CONTRACTION)) return 1;
+        return Math.min(Trial.CONTRACTION_MAX, 1 + Trial.CONTRACTION_FUSION_GAIN * state.trialCount());
     }
 
     void completeTrial() {
-        idle.core.universe.Trial trial = activeTrial();
+        Trial trial = activeTrial();
         if (trial == null) return;
         state.setActiveTrial(null);
         state.addCompletedTrial(trial.name());
         unlockSkin(trial.skin());
     }
 
-    void failTrial() {
-        state.setActiveTrial(null);
-    }
+    void failTrial() { state.setActiveTrial(null); }
 
     /** L'épreuve en cours : sa contrainte au fil du temps, son but, sa limite. */
     private void runTrial(double dt) {
-        idle.core.universe.Trial trial = activeTrial();
+        Trial trial = activeTrial();
         if (trial == null) return;
-        if (trial == idle.core.universe.Trial.SOFT_CONTRACTION && dt > 0) {
-            state.setParticles(state.particles().multiply(Math.pow(1 - idle.core.universe.Trial.CONTRACTION_LOSS, dt / idle.core.universe.Trial.CONTRACTION_EVERY)));
+        if (trial == Trial.SOFT_CONTRACTION && dt > 0) {
+            state.setParticles(state.particles().multiply(Math.pow(1 - Trial.CONTRACTION_LOSS, dt / Trial.CONTRACTION_EVERY)));
         }
-        if (trial == idle.core.universe.Trial.NO_OVERHEAT && state.overheatLeft() > 0) {
+        if (trial == Trial.NO_OVERHEAT && state.overheatLeft() > 0) {
             failTrial();
             return;
         }
         boolean done = switch (trial) {
-            case LONE_GENERATOR -> state.particles().log10() >= idle.core.universe.Trial.LONE_GOAL_LOG10;
+            case LONE_GENERATOR -> state.particles().log10() >= Trial.LONE_GOAL_LOG10;
             case SOFT_CONTRACTION, COLD_BANG -> false;
             case FULL_CHARGE -> state.trialBase() > 0 && colliderEnergyProduced() >= state.trialBase();
             default -> state.trialCount() >= trial.goal();
@@ -3064,19 +2772,19 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Le guide de transition (version 0.127) : ce que fera la prochaine remise à zéro de l'univers, avec les chiffres
+     * Le guide de transition : ce que fera la prochaine remise à zéro de l'univers, avec les chiffres
      * de la partie en cours. Il suit {@link GameState#startUniverse()} : ce qu'elle garde, il le dit gardé, et
      * {@code TransitionTest} le vérifie.
      *
      * @param launching vrai pour « Lancer l'univers » ({@link #startNextUniverse()}), faux pour la formation de l'univers
      */
-    public idle.core.universe.UniverseTransition universeTransition(boolean launching) {
-        java.util.List<String> lost = new java.util.ArrayList<>();
+    public UniverseTransition universeTransition(boolean launching) {
+        List<String> lost = new ArrayList<>();
         if (launching) {
             lost.add("Ce qui s'est joué dans les trois actes depuis la formation de l'univers : tout repart du premier générateur.");
         } else {
             lost.add("Particules, atomes, éléments, améliorations et automatismes.");
-            // Les bulles de l'arbre (version 0.148) en gardent une part : elle est dite gardée plus bas.
+            // Les bulles de l'arbre en gardent une part : elle est dite gardée plus bas.
             if (!hasBubble(TreeBubble.MATURE_RIGHT)) {
                 lost.add("Matière noire, son arbre et ses défis (" + state.completedChallenges().size() + " réussis).");
             }
@@ -3087,11 +2795,11 @@ public abstract class GameUniverse extends GameAtoms {
             lost.add(hasBubble(TreeBubble.MATURE_LEFT) ? "Les sondes."
                     : "Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
             lost.add("Les plans suivis de l'arbre et des systèmes (leurs codes sauvegardés, eux, restent).");
-            // Les hadrons (version 0.149) : repris, sauf avec la bulle de l'arbre ancien, à gauche.
+            // Les hadrons : repris, sauf avec la bulle de l'arbre ancien, à gauche.
             if (state.hadronsOpen() && !hasBubble(TreeBubble.ANCIENT_LEFT)) {
                 lost.add("Les hadrons (" + hadronCount() + " assemblés) et leur onglet, à rouvrir dans le collisionneur.");
             }
-            // Le vide (version 0.129) : sa réserve repart de zéro, ce qu'il en reste rejoint le cumul.
+            // Le vide : sa réserve repart de zéro, ce qu'il en reste rejoint le cumul.
             if (state.voidOpen() && !hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
                 lost.add("Le vide, son trou noir et ses améliorations : les " + wholeText(state.voidEnergy())
                         + " d'énergie du vide qui restent s'ajoutent au cumul.");
@@ -3103,9 +2811,9 @@ public abstract class GameUniverse extends GameAtoms {
             lost.add("Ce qui s'ouvre en cours de partie : régime rapide, synergie, choix de cycle, famille préférée, "
                     + "éléments offerts.");
         }
-        idle.core.universe.Trial trial = activeTrial();
+        Trial trial = activeTrial();
         if (trial != null) lost.add("L'épreuve en cours, « " + trial.label() + " » : elle s'arrête sans être réussie.");
-        java.util.List<String> kept = new java.util.ArrayList<>();
+        List<String> kept = new ArrayList<>();
         kept.add("Les succès (" + achievementCount() + "), les records des étapes, le temps de jeu et les statistiques.");
         // La partie secondaire n'existe qu'une fois un univers formé : à la toute première formation, elle est à venir.
         boolean secondary = state.universeFormed();
@@ -3113,8 +2821,7 @@ public abstract class GameUniverse extends GameAtoms {
             kept.add("Les graines d'univers (" + wholeText(state.universeSeeds()) + ") et le cumul du vide ("
                     + wholeText(BigNum.of(state.voidAccumulated() + (!launching && state.voidOpen() ? state.voidEnergy().toDouble() : 0)))
                     + ").");
-            // Version 0.128 : le volume traverse les univers lui aussi.
-            // Version 0.134 : la durée traverse les univers elle aussi.
+            // Le volume traverse les univers lui aussi. La durée traverse les univers elle aussi.
             kept.add(dimensionsUnlocked() >= 10 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker, de la grille, du miroir et du mélange, et leurs améliorations."
                     : dimensionsUnlocked() >= 9 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker, de la grille et du miroir, et leurs améliorations."
                     : dimensionsUnlocked() >= 8 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker et de la grille, et leurs améliorations."
@@ -3124,8 +2831,7 @@ public abstract class GameUniverse extends GameAtoms {
                     : isDurationOpen() ? "Les dimensions : éclats de la ligne, du plan, du volume et de la durée, et leurs améliorations."
                     : isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
                     : "Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
-            kept.add("La graine : palier " + seedStage() + ", et ses arrosages."
-                    + (launching && canOpenNextUniverse()
+            kept.add("La graine : palier " + seedStage() + ", et ses arrosages." + (launching && canOpenNextUniverse()
                     ? " L'univers d'après demandera le palier " + Math.min(SEED_STAGES, nextUniverseStage() + 1) + "."
                     : ""));
             kept.add("Les skins (" + state.unlockedSkins().size() + " débloqués) et ceux que vous avez choisis.");
@@ -3133,8 +2839,8 @@ public abstract class GameUniverse extends GameAtoms {
                     + ") et les recherches (" + state.researches().size() + ").");
         }
         kept.add("Vos réglages de jeu, les codes de plan sauvegardés et les fenêtres d'explication déjà vues.");
-        // Les bulles de l'arbre qui font traverser les univers (version 0.148), comme GameState#startUniverse.
-        // L'automatisation des dimensions (version 0.150) traverse toujours les univers.
+        // Les bulles de l'arbre qui font traverser les univers, comme GameState#startUniverse.
+        // L'automatisation des dimensions traverse toujours les univers.
         if (!state.dimensionAutomations().isEmpty()) {
             kept.add("Les automatismes des dimensions (" + state.dimensionAutomations().size() + " achetés).");
         }
@@ -3153,12 +2859,12 @@ public abstract class GameUniverse extends GameAtoms {
         if (hasBubble(TreeBubble.GIANT_RIGHT_LOW)) {
             kept.add("Les défis du Big Bang réussis (" + state.completedBangChallenges().size() + "), grâce à la bulle du géant de droite.");
         }
-        // Version 0.169 : ce que la formation a mis de côté attend les bulles qui gardent, jusqu'au lancement.
+        // Ce que la formation a mis de côté attend les bulles qui gardent, jusqu'au lancement.
         if (launching && state.isHoldingForBubbles()) {
             kept.add("Mis de côté à la formation : une bulle qui garde (collisionneur, vide, matière noire, hadrons, défis du Big Bang), "
                     + "achetée avant de lancer, garde encore sa part de l'univers formé.");
         }
-        java.util.List<String> gained = new java.util.ArrayList<>();
+        List<String> gained = new ArrayList<>();
         if (launching) {
             gained.add("Une partie neuve, celle de l'univers suivant : les trois actes reviennent.");
         } else {
@@ -3168,13 +2874,13 @@ public abstract class GameUniverse extends GameAtoms {
             gained.add("Un univers de plus : la matière noire des explosions et sa croissance ×"
                     + (universes() + 2) + " pour la suite, au lieu de ×" + (universes() + 1) + ".");
         }
-        return new idle.core.universe.UniverseTransition(launching, lost, kept, gained);
+        return new UniverseTransition(launching, lost, kept, gained);
     }
 
-    /** Les hadrons assemblés, toutes sortes (version 0.149), pour le guide. */
+    /** Les hadrons assemblés, toutes sortes, pour le guide. */
     private long hadronCount() {
         long total = 0;
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) total += state.hadrons(hadron);
+        for (Hadron hadron : Hadron.values()) total += state.hadrons(hadron);
         return total;
     }
 
@@ -3187,13 +2893,12 @@ public abstract class GameUniverse extends GameAtoms {
         return value.toString();
     }
 
-    /** Graines d'univers que donne la formation de l'univers (version 0.083). */
+    /** Graines d'univers que donne la formation de l'univers. */
     public static final int SEEDS_PER_UNIVERSE = 1;
 
     /**
-     * L'univers se forme (version 0.083) : tout ce qui y a mené est remis à zéro
-     * ({@link GameState#startUniverse()}), et le joueur reçoit {@link #SEEDS_PER_UNIVERSE} graine
-     * d'univers. Les succès gagnés par la formation sont relevés avant.
+     * L'univers se forme : tout ce qui y a mené est remis à zéro ({@link GameState#startUniverse()}), et le joueur
+     * reçoit {@link #SEEDS_PER_UNIVERSE} graine d'univers. Les succès gagnés par la formation sont relevés avant.
      */
     private void formUniverse() {
         checkAchievements();
@@ -3203,20 +2908,20 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** La remise à zéro de l'univers, son bilan relevé avant, et sa graine. */
     void resetForUniverse() {
-        // Un univers de plus (version 0.087) : celui-ci était déjà formé, la partie rejouée en forme un autre.
+        // Un univers de plus : celui-ci était déjà formé, la partie rejouée en forme un autre.
         boolean another = state.universeFormed();
         state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
-        // Le vide (version 0.129) : ce qu'il en reste à la formation s'ajoute au cumul, gardé d'un univers à l'autre.
+        // Le vide : ce qu'il en reste à la formation s'ajoute au cumul, gardé d'un univers à l'autre.
         if (state.voidOpen()) {
-            // Version 0.152 : l'énergie que le vide gardé (bulle du géant de gauche, en bas) apportait d'un univers d'avant
+            // L'énergie que le vide gardé (bulle du géant de gauche, en bas) apportait d'un univers d'avant
             // est déjà dans le cumul ; seule celle gagnée depuis s'y ajoute. Elle était comptée à chaque formation.
             double stock = state.voidEnergy().toDouble();
             state.noteVoidHistory(String.valueOf(another ? 2 + state.extraUniverses() : 1), Math.max(0, stock - state.voidCarried()));
             state.setVoidCarried(hasBubble(TreeBubble.GIANT_LEFT_LOW) ? stock : 0);
         }
-        // Version 0.168 : l'univers formé entre au journal des univers, avec ses étapes, avant leur remise à zéro.
+        // L'univers formé entre au journal des univers, avec ses étapes, avant leur remise à zéro.
         state.stats().archiveUniverse(another ? 2 + state.extraUniverses() : 1, state.timePlayed());
-        // Version 0.169 : ce que les bulles peuvent garder attend le lancement de l'univers suivant.
+        // Ce que les bulles peuvent garder attend le lancement de l'univers suivant.
         state.startUniverseHolding();
         if (another) state.setExtraUniverses(state.extraUniverses() + 1);
         state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));

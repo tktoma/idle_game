@@ -1,8 +1,7 @@
 import static org.junit.jupiter.api.Assertions.*;
 
 import idle.core.Game;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,9 +16,7 @@ class BotsExtendedValidationTest {
         return Bots.load(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"), seed);
     }
 
-    private static Game fresh(long seed) {
-        return Bots.fresh(seed);
-    }
+    private static Game fresh(long seed) { return Bots.fresh(seed); }
 
     @Test
     void troisBotsJouentDepuisZeroAvecGrainesDistinctes(@TempDir Path out) throws Exception {
@@ -29,10 +26,8 @@ class BotsExtendedValidationTest {
             Game game = fresh(seed);
             new AdvancedLab(game, 20, modes[i], seed)
                     .runLab(3, out.resolve(modes[i]));
-            assertTrue(game.state().stats().fusions() > 0,
-                    modes[i] + " : aucune fusion apres trois heures simulees");
-            assertTrue(game.state().timePlayed() >= 3 * 3600,
-                    modes[i] + " : horloge simulee incorrecte");
+            assertTrue(game.state().stats().fusions() > 0, modes[i] + " : aucune fusion apres trois heures simulees");
+            assertTrue(game.state().timePlayed() >= 3 * 3600, modes[i] + " : horloge simulee incorrecte");
         }
     }
 

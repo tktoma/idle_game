@@ -1,20 +1,21 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+import idle.core.universe.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.universe.UniverseTransition;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.127 : le guide de transition entre univers dit vrai. Chaque test lit le guide, fait la vraie remise à
+ * Le guide de transition entre univers dit vrai. Chaque test lit le guide, fait la vraie remise à
  * zéro, puis vérifie que ce qu'il annonce perdu l'est, et que ce qu'il annonce gardé l'est.
  */
 class TransitionTest {
-
     private static boolean mentions(List<String> lines, String words) {
         return lines.stream().anyMatch(line -> line.contains(words));
     }
@@ -79,7 +80,7 @@ class TransitionTest {
         game.state().noteVoidHistory("1", 1250);
         game.state().setDimensionShards(42);
         game.state().setLineSpeedLevel(2);
-        game.state().unlockSkin(idle.core.universe.Skin.values()[0].id());
+        game.state().unlockSkin(Skin.values()[0].id());
         UniverseTransition guide = game.universeTransition(true);
         assertTrue(guide.launching());
         assertTrue(mentions(guide.kept(), "graines d'univers (3)"));
@@ -94,7 +95,7 @@ class TransitionTest {
         assertEquals(1250, game.state().voidAccumulated(), 1e-9);
         assertEquals(42, game.state().dimensionShards(), 1e-9);
         assertEquals(2, game.state().lineSpeedLevel());
-        assertTrue(game.state().unlockedSkins().contains(idle.core.universe.Skin.values()[0].id()));
+        assertTrue(game.state().unlockedSkins().contains(Skin.values()[0].id()));
         assertTrue(game.isReplaying(), "une partie neuve, celle de l'univers suivant");
     }
 }

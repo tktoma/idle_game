@@ -1,12 +1,12 @@
 package idle.ui.common;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javafx.geometry.Pos;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 /**
  * Une grille de tuiles de même taille : autant de colonnes que la largeur le permet, toutes de
@@ -17,7 +17,6 @@ import javafx.scene.layout.VBox;
  * ({@link #show(Region, boolean)}) ne laisse pas de trou : les suivantes se resserrent.
  */
 public final class TileGrid extends VBox {
-
     /**
      * Marge qu'il faut avoir en plus pour gagner une colonne. Sans elle, une barre de défilement
      * qui apparaît puis disparaît ferait hésiter la grille entre deux nombres de colonnes.
@@ -27,7 +26,7 @@ public final class TileGrid extends VBox {
     private final List<Region> tiles = new ArrayList<>();
     /** Les tuiles dans l'ordre où elles ont été ajoutées : celui que {@link #unsort()} rétablit. */
     private final List<Region> added = new ArrayList<>();
-    private final java.util.Set<Region> hidden = new java.util.HashSet<>();
+    private final Set<Region> hidden = new HashSet<>();
     private final double tileWidth;
     private final int maxColumns;
     private final double gap;
@@ -60,7 +59,7 @@ public final class TileGrid extends VBox {
     }
 
     /** Range les tuiles dans un autre ordre, jusqu'au prochain tri ou à {@link #unsort()}. À égalité, l'ordre d'ajout est gardé. */
-    public void sort(java.util.Comparator<Region> order) {
+    public void sort(Comparator<Region> order) {
         tiles.clear();
         tiles.addAll(added);
         tiles.sort(order);
@@ -92,9 +91,7 @@ public final class TileGrid extends VBox {
     }
 
     /** Nombre de colonnes actuel : pour les vérifications. */
-    public int columns() {
-        return columns;
-    }
+    public int columns() { return columns; }
 
     /** Choisit le nombre de colonnes qui tient dans {@code width}. */
     private void fit(double width) {
@@ -109,9 +106,7 @@ public final class TileGrid extends VBox {
         }
     }
 
-    private int clamp(int value) {
-        return Math.max(1, Math.min(maxColumns, value));
-    }
+    private int clamp(int value) { return Math.max(1, Math.min(maxColumns, value)); }
 
     /** Refait les rangées : une {@link HBox} par rangée, complétée de cases vides pour garder les largeurs. */
     private void arrange() {

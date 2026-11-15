@@ -1,6 +1,11 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
+import java.util.Arrays;
+import java.util.List;
+import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,17 +18,12 @@ import idle.ui.Version;
 import idle.ui.automation.DimensionAutomationPane;
 import idle.ui.common.Card;
 import idle.ui.pages.StatsPage;
-import java.util.List;
 import javafx.scene.Scene;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.ScrollEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.159 : le mélange refait, sous Xvfb. Un seul mini-jeu, sur une arène, qui mêle étape par étape les
+ * Le mélange refait, sous Xvfb. Un seul mini-jeu, sur une arène, qui mêle étape par étape les
  * mécaniques des autres dimensions : l'étape, sa barre et « Mêler la dimension suivante » ; la ligne à l'étape 1 ; puis,
  * étape par étape (posée par {@code setMixStage}), le point mené à la souris et au clavier, la profondeur (molette, A et
  * E), la charge (bouton droit, barre d'espace), le rythme, l'onde, les clics, le trésor et les paires du miroir. Les
@@ -31,11 +31,8 @@ import org.junit.jupiter.api.Test;
  * section dans l'automatisation (69 automatismes), ses lignes dans les statistiques et sa note de version.
  */
 class MelangePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au dixième univers : le mélange est ouvert, à l'étape 1. */
     private static Game tenth() {
@@ -72,7 +69,7 @@ class MelangePageTest {
         return game.mixShardList().stream().noneMatch(shard -> shard.id() == id);
     }
 
-    private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type, double[] at, MouseButton button) {
+    private static MouseEvent mouse(EventType<MouseEvent> type, double[] at, MouseButton button) {
         boolean down = type != MouseEvent.MOUSE_RELEASED;
         return new MouseEvent(type, at[0], at[1], at[0], at[1], button, 1, false, false, false, false,
                 down && button == MouseButton.PRIMARY, false, down && button == MouseButton.SECONDARY, false, false, false, null);
@@ -262,9 +259,9 @@ class MelangePageTest {
             Game game = tenth();
             DimensionWindow window = window(game);
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 10);
+            FxTestSupport.openDimensionAutomations(game, 10);
             game.state().setMirrorShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.MIX_AUTO);
+            FxTestSupport.buyPlay(game, DimensionAutomation.MIX_AUTO);
             game.state().setMixStageEarned(game.mixStageGoal());
             run(game, window, 0.5);
             assertEquals("automatique", window.autoBadgeText());
@@ -309,14 +306,14 @@ class MelangePageTest {
         FxTestSupport.fx(() -> {
             Game game = tenth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 10);
+            FxTestSupport.openDimensionAutomations(game, 10);
             game.state().setMirrorShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
             pane.refresh();
             assertTrue(pane.sectionShown(10));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 10);
-            idle.ui.FxTestSupport.fillDimension(game, 10, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 10);
+            FxTestSupport.fillDimension(game, 10, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.MIX_AUTO_5S);
             assertEquals(Card.State.READY, play.state());
@@ -324,9 +321,9 @@ class MelangePageTest {
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIX_AUTO_5S));
             assertEquals(105, DimensionAutomation.values().length);
-            assertEquals(16, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count(),
+            assertEquals(16, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count(),
                     "seize automatismes pour le mélange");
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

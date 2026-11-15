@@ -1,37 +1,33 @@
 package idle.ui.pages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
 import java.nio.file.Path;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.189 : les cadres de l'avatar ({@link SkinVisual#AVATAR_FRAME}) sous Xvfb. Chaque cadre se dessine autour de
+ * Les cadres de l'avatar ({@link SkinVisual#AVATAR_FRAME}) sous Xvfb. Chaque cadre se dessine autour de
  * chaque avatar du jeu et d'une image importée, aux deux tailles du profil ; le Classique revient avec {@code null} ; et
  * l'onglet Profil met le cadre choisi sur l'avatar de l'en-tête et l'aperçu de l'image, pas sur la galerie.
  */
 class AvatarFrameTest {
-
     @TempDir
     Path data;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Les six cadres, dans l'ordre du catalogue. */
-    private static java.util.List<Skin> frames() {
-        java.util.List<Skin> frames = new java.util.ArrayList<>();
+    private static List<Skin> frames() {
+        List<Skin> frames = new ArrayList<>();
         for (Skin skin : Skin.values()) if (skin.visual() == SkinVisual.AVATAR_FRAME) frames.add(skin);
         return frames;
     }

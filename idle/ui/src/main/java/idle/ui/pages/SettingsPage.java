@@ -1,53 +1,57 @@
 package idle.ui.pages;
 
 import idle.core.math.BigNum;
+import idle.core.Game;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import idle.ui.GameApp;
+import idle.ui.Goals;
+import idle.ui.Notice;
+import idle.ui.Readiness;
 import idle.ui.Settings;
 import idle.ui.Shortcuts;
+import idle.ui.SoundKind;
 import idle.ui.Version;
 import idle.ui.common.Detail;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.geometry.*;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.063 en six
- * sous-onglets ({@link Section}).
+ * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.063 en six sous-onglets ({@link
+ * Section}).
  * <ul>
- *   <li><b>Affichage</b> : la notation des grands nombres (dont trois à débloquer), le thème (dont
- *       cinq à débloquer), la taille de l'interface et de la fenêtre, la disposition des onglets ;</li>
- *   <li><b>Notifications et signes</b> (version 0.146) : les notifications par catégorie, les morceaux de la ligne
- *       d'objectif (chrono compris), les signes d'état des cartes et les pastilles des onglets par sorte ;</li>
- *   <li><b>Effets et sons</b> : les effets visuels, ensemble ou un par un, les images par seconde, les sons ;</li>
- *   <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, les records ;</li>
- *   <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail, les touches des cercles de la boucle
- *       (version 0.153) ;</li>
- *   <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le
- *       rapport de bug, la version du jeu et ses notes.</li>
- * </ul>
- * Un thème ou une notation à débloquer ({@link idle.ui.Cosmetic}) montre, tant qu'il est fermé, un
- * cadenas et un indice ; une fois ouvert, ce qu'il fallait faire.
- * Chaque réglage s'applique tout de suite. Les règles du jeu ne changent pas : les réglages sont
- * dans {@link Settings}, pas dans core.
+ * <li><b>Affichage</b> : la notation des grands nombres (dont trois à débloquer), le thème (dont cinq à débloquer), la
+ * taille de l'interface et de la fenêtre, la disposition des onglets ;</li>
+ * <li><b>Notifications et signes</b> : les notifications par catégorie, les morceaux de la ligne d'objectif (chrono
+ * compris), les signes d'état des cartes et les pastilles des onglets par sorte ;</li>
+ * <li><b>Effets et sons</b> : les effets visuels, ensemble ou un par un, les images par seconde, les sons ;</li>
+ * <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, les records ;</li>
+ * <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail, les touches des cercles de la boucle
+ * ;</li>
+ * <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le rapport de bug, la
+ * version du jeu et ses notes.</li>
+ * </ul> Un thème ou une notation à débloquer ({@link idle.ui.Cosmetic}) montre, tant qu'il est fermé, un cadenas et un
+ * indice ; une fois ouvert, ce qu'il fallait faire. Chaque réglage s'applique tout de suite. Les règles du jeu ne
+ * changent pas : les réglages sont dans {@link Settings}, pas dans core.
  *
- * <p>Comme partout dans le jeu, les explications ne s'affichent qu'en mode détails
- * ({@link Detail}) : le reste du temps, chaque réglage tient en un titre et un bouton.
+ * <p>Comme partout dans le jeu, les explications ne s'affichent qu'en mode détails ({@link Detail}) : le reste du
+ * temps, chaque réglage tient en un titre et un bouton.
  */
 public final class SettingsPage extends VBox {
-
-    /** Les sous-onglets des réglages (version 0.063). */
+    /** Les sous-onglets des réglages. */
     public enum Section {
         DISPLAY("Affichage"),
         /** Version 0.146 : les notifications, l'objectif et les signes d'état, réunis et réglés par catégorie. */
@@ -59,13 +63,9 @@ public final class SettingsPage extends VBox {
 
         private final String label;
 
-        Section(String label) {
-            this.label = label;
-        }
+        Section(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     private static final String SETTINGS_COLOR = "#d6dde6";
@@ -104,10 +104,10 @@ public final class SettingsPage extends VBox {
         /** Remplace la partie en cours par celle du presse-papiers. */
         String pasteImport();
 
-        /** Ce que contient la partie du presse-papiers, sans rien changer (version 0.127) ; ou pourquoi elle ne se lit pas. */
+        /** Ce que contient la partie du presse-papiers, sans rien changer ; ou pourquoi elle ne se lit pas. */
         String previewImport();
 
-        /** Le nombre de points de reprise nommés (version 0.127). */
+        /** Le nombre de points de reprise nommés. */
         int checkpointSlots();
 
         /** Ce que contient ce point de reprise, en une ligne ; « vide » s'il n'y a rien. Le numéro 0 est la mise de côté. */
@@ -137,7 +137,7 @@ public final class SettingsPage extends VBox {
 
     private final Settings settings;
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    private final javafx.scene.layout.FlowPane subTabs = new javafx.scene.layout.FlowPane();
+    private final FlowPane subTabs = new FlowPane();
     private final Map<Section, Button> sectionTabs = new EnumMap<>(Section.class);
     private final Map<Section, VBox> sections = new EnumMap<>(Section.class);
     private Section selected = Section.DISPLAY;
@@ -147,14 +147,14 @@ public final class SettingsPage extends VBox {
     /** L'indice du dernier thème fermé cliqué, ou rien. */
     private String themeHint = "";
     private String notationHint = "";
-    private static final long LOCKED_THEMES = java.util.Arrays.stream(Settings.Theme.values()).filter(t -> t.unlock() != null).count();
-    private static final long LOCKED_NOTATIONS = java.util.Arrays.stream(Settings.Notation.values()).filter(n -> n.unlock() != null).count();
+    private static final long LOCKED_THEMES = Arrays.stream(Settings.Theme.values()).filter(t -> t.unlock() != null).count();
+    private static final long LOCKED_NOTATIONS = Arrays.stream(Settings.Notation.values()).filter(n -> n.unlock() != null).count();
     private final Label notationNote = new Label();
     private final Map<Settings.Effect, Button> effectButtons = new EnumMap<>(Settings.Effect.class);
-    /** Les catégories de sons (version 0.213), une par bouton : gardée ou coupée. */
-    private final Map<idle.ui.SoundKind, Button> soundKindButtons = new EnumMap<>(idle.ui.SoundKind.class);
-    private final javafx.scene.layout.FlowPane soundKindRow = new javafx.scene.layout.FlowPane(8, 8);
-    private final javafx.scene.layout.FlowPane effectRow = new javafx.scene.layout.FlowPane(8, 8);
+    /** Les catégories de sons, une par bouton : gardée ou coupée. */
+    private final Map<SoundKind, Button> soundKindButtons = new EnumMap<>(SoundKind.class);
+    private final FlowPane soundKindRow = new FlowPane(8, 8);
+    private final FlowPane effectRow = new FlowPane(8, 8);
     private final Map<Settings.SaveDelay, Button> saveDelayButtons = new EnumMap<>(Settings.SaveDelay.class);
     private final Button offlineButton = new Button();
     private final Runnable onReset;
@@ -169,8 +169,8 @@ public final class SettingsPage extends VBox {
     private final Label saveNote = new Label();
     /** Secondes restantes pour confirmer l'import ; 0 quand il n'est pas demandé. */
     private double importArmed = 0;
-    /** Les points de reprise (version 0.127) : un nom à donner, et une ligne par emplacement. */
-    private final javafx.scene.control.TextField checkpointName = new javafx.scene.control.TextField();
+    /** Les points de reprise : un nom à donner, et une ligne par emplacement. */
+    private final TextField checkpointName = new TextField();
     private final List<Label> checkpointLabels = new ArrayList<>();
     private final List<Button> checkpointSave = new ArrayList<>();
     private final List<Button> checkpointLoad = new ArrayList<>();
@@ -191,16 +191,16 @@ public final class SettingsPage extends VBox {
     private final Map<Settings.Theme, Button> themeButtons = new EnumMap<>(Settings.Theme.class);
     private final Map<Settings.Scale, Button> scaleButtons = new EnumMap<>(Settings.Scale.class);
     private final Map<Settings.WindowSize, Button> sizeButtons = new EnumMap<>(Settings.WindowSize.class);
-    private java.util.function.Consumer<Settings.WindowSize> windowSize = size -> { };
-    private java.util.function.Predicate<Settings.WindowSize> sizeFits = size -> true;
-    private java.util.function.Supplier<Settings.WindowSize> sizeNow = () -> null;
+    private Consumer<Settings.WindowSize> windowSize = size -> { };
+    private Predicate<Settings.WindowSize> sizeFits = size -> true;
+    private Supplier<Settings.WindowSize> sizeNow = () -> null;
     private final Button notificationsButton = new Button();
     private final Button goalButton = new Button();
     private final Button signsButton = new Button();
-    /** Les catégories de la section « Notifications et signes » (version 0.146) : un bouton par catégorie. */
-    private final Map<idle.ui.Notice, Button> noticeButtons = new EnumMap<>(idle.ui.Notice.class);
-    private final Map<idle.ui.Goals.Part, Button> goalPartButtons = new EnumMap<>(idle.ui.Goals.Part.class);
-    private final Map<idle.ui.Readiness.Kind, Button> dotButtons = new EnumMap<>(idle.ui.Readiness.Kind.class);
+    /** Les catégories de la section « Notifications et signes » : un bouton par catégorie. */
+    private final Map<Notice, Button> noticeButtons = new EnumMap<>(Notice.class);
+    private final Map<Goals.Part, Button> goalPartButtons = new EnumMap<>(Goals.Part.class);
+    private final Map<Readiness.Kind, Button> dotButtons = new EnumMap<>(Readiness.Kind.class);
     private final Button allNoticesButton = new Button("Toutes affichées");
     private final Button noNoticesButton = new Button("Toutes coupées");
     private final Button skyEventsButton = new Button();
@@ -218,12 +218,12 @@ public final class SettingsPage extends VBox {
     private final Button quieterButton = new Button("−");
     private final Button louderButton = new Button("+");
     private final Label volumeLabel = new Label();
-    /** La musique de fond (version 0.210) : son interrupteur et son volume, sur leur ligne. */
+    /** La musique de fond : son interrupteur et son volume, sur leur ligne. */
     private final Button musicButton = new Button();
     private final Button musicQuieterButton = new Button("−");
     private final Button musicLouderButton = new Button("+");
     private final Label musicVolumeLabel = new Label();
-    private final java.util.Map<Settings.FrameRate, Button> frameRateButtons = new java.util.EnumMap<>(Settings.FrameRate.class);
+    private final Map<Settings.FrameRate, Button> frameRateButtons = new EnumMap<>(Settings.FrameRate.class);
     private final Button energyButton = new Button();
     /** Joue un son d'essai au volume réglé : branché par la fenêtre, qui possède les sons. */
     private Runnable soundTest = () -> { };
@@ -241,7 +241,7 @@ public final class SettingsPage extends VBox {
      * cercle de la boucle qu'elle attend.
      */
     private Shortcuts.Action capturingAction = null;
-    /** Le cercle de la boucle dont la page attend la nouvelle touche (version 0.153), ou −1. */
+    /** Le cercle de la boucle dont la page attend la nouvelle touche, ou −1. */
     private int capturingRing = -1;
     /** Une ligne par cercle de la boucle : le bouton qui porte sa touche. */
     private final List<Button> loopKeyButtons = new ArrayList<>();
@@ -295,7 +295,7 @@ public final class SettingsPage extends VBox {
         use(Section.DISPLAY);
 
         // Notation des grands nombres : un bouton par notation, celui choisi est éclairé.
-        javafx.scene.layout.FlowPane notationFlow = new javafx.scene.layout.FlowPane(8, 8);
+        FlowPane notationFlow = new FlowPane(8, 8);
         notationFlow.setAlignment(Pos.CENTER);
         notationFlow.setMaxWidth(640);
         choiceRow(notationFlow, Settings.Notation.values(), Settings.Notation::label, notation -> {
@@ -310,7 +310,7 @@ public final class SettingsPage extends VBox {
         note(notationNote);
 
         // Le thème et la taille : ils s'appliquent tout de suite à toute la fenêtre.
-        javafx.scene.layout.FlowPane themes = new javafx.scene.layout.FlowPane(8, 8);
+        FlowPane themes = new FlowPane(8, 8);
         themes.setAlignment(Pos.CENTER);
         themes.setMaxWidth(640);
         choiceRow(themes, Settings.Theme.values(), Settings.Theme::label, theme -> {
@@ -336,8 +336,8 @@ public final class SettingsPage extends VBox {
         block("Taille de l'interface", "Agrandit ou réduit tout ensemble : les textes, les boutons et les dessins.");
         target.getChildren().add(scales);
 
-        // Les formats de fenêtre (version 0.092) : un clic redimensionne et recentre la fenêtre.
-        javafx.scene.layout.FlowPane sizes = new javafx.scene.layout.FlowPane(8, 8);
+        // Les formats de fenêtre : un clic redimensionne et recentre la fenêtre.
+        FlowPane sizes = new FlowPane(8, 8);
         sizes.setAlignment(Pos.CENTER);
         sizes.setMaxWidth(760);
         // Le receveur se branche après (setWindowSize) : on le relit au clic.
@@ -346,7 +346,7 @@ public final class SettingsPage extends VBox {
                 + "mais pas en dessous d'une taille où tout reste utilisable ; cette limite grandit avec la taille de l'interface.");
         target.getChildren().add(sizes);
 
-        // Version 0.146 : les notifications, l'objectif et les signes d'état ont leur sous-onglet, et chacun se règle par
+        // Les notifications, l'objectif et les signes d'état ont leur sous-onglet, et chacun se règle par
         // catégorie sous son grand interrupteur, comme les effets visuels.
         use(Section.NOTICES);
         block("Notifications", "Un message de quelques secondes, en bas à droite, quand il se passe quelque chose. Le grand "
@@ -358,18 +358,18 @@ public final class SettingsPage extends VBox {
             refresh();
         });
         target.getChildren().add(notificationsButton);
-        target.getChildren().add(categoryRow(idle.ui.Notice.values(), idle.ui.Notice::label,
+        target.getChildren().add(categoryRow(Notice.values(), Notice::label,
                 kind -> settings.setNotice(kind, !settings.noticeChosen(kind)), noticeButtons));
         for (Button all : new Button[] {allNoticesButton, noNoticesButton}) {
             all.setFocusTraversable(false);
             all.setStyle(OFF_STYLE);
         }
         allNoticesButton.setOnAction(event -> {
-            for (idle.ui.Notice kind : idle.ui.Notice.values()) settings.setNotice(kind, true);
+            for (Notice kind : Notice.values()) settings.setNotice(kind, true);
             refresh();
         });
         noNoticesButton.setOnAction(event -> {
-            for (idle.ui.Notice kind : idle.ui.Notice.values()) settings.setNotice(kind, false);
+            for (Notice kind : Notice.values()) settings.setNotice(kind, false);
             refresh();
         });
         HBox allRow = new HBox(8, allNoticesButton, noNoticesButton);
@@ -384,7 +384,7 @@ public final class SettingsPage extends VBox {
             refresh();
         });
         target.getChildren().add(goalButton);
-        target.getChildren().add(categoryRow(idle.ui.Goals.Part.values(), idle.ui.Goals.Part::label,
+        target.getChildren().add(categoryRow(Goals.Part.values(), Goals.Part::label,
                 part -> settings.setGoalPart(part, !settings.goalPartChosen(part)), goalPartButtons));
 
         block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
@@ -399,7 +399,7 @@ public final class SettingsPage extends VBox {
         block("Pastilles des onglets", "Un ● au bout du nom d'un onglet ou d'un sous-onglet dit que quelque chose y attend : "
                 + "une case de l'arbre, un défi, un astre à former, une comète… Chaque sorte se cache à part ; cachée, elle "
                 + "ne s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.");
-        target.getChildren().add(categoryRow(idle.ui.Readiness.Kind.values(), idle.ui.Readiness.Kind::label,
+        target.getChildren().add(categoryRow(Readiness.Kind.values(), Readiness.Kind::label,
                 kind -> settings.setDot(kind, !settings.dot(kind)), dotButtons));
 
         use(Section.DISPLAY);
@@ -489,7 +489,7 @@ public final class SettingsPage extends VBox {
         note(new Label("Les sons à garder, un par un :"));
         soundKindRow.setAlignment(Pos.CENTER);
         soundKindRow.setMaxWidth(640);
-        choiceRow(soundKindRow, idle.ui.SoundKind.values(), idle.ui.SoundKind::label,
+        choiceRow(soundKindRow, SoundKind.values(), SoundKind::label,
                 kind -> settings.setSoundKind(kind, !settings.soundKind(kind)), soundKindButtons, true);
         target.getChildren().add(soundKindRow);
 
@@ -611,14 +611,14 @@ public final class SettingsPage extends VBox {
         target.getChildren().add(detailRow);
         note(detailKeyNote);
 
-        // Version 0.153 : une touche par cercle de la boucle, la cinquième dimension.
+        // Une touche par cercle de la boucle, la cinquième dimension.
         block("Touches de la boucle", "Dans la fenêtre de la boucle, la cinquième dimension, chaque cercle se joue d'un clic "
                 + "ou de sa touche, jusqu'à sept. Elles ne servent que fenêtre de la boucle ouverte : une touche peut être "
                 + "à la fois celle d'un cercle et celle d'un raccourci, qui attend que la fenêtre se ferme. Deux cercles ne "
                 + "peuvent pas partager une touche, ni prendre la touche de détail.");
         VBox loopKeyList = new VBox(4);
         loopKeyList.setAlignment(Pos.CENTER);
-        for (int ring = 0; ring < idle.core.Game.MAX_RINGS; ring++) {
+        for (int ring = 0; ring < Game.MAX_RINGS; ring++) {
             int number = ring;
             Label name = new Label("Cercle " + (ring + 1) + (ring == 0 ? " (le premier, dehors)" : ""));
             name.setStyle("-fx-font-size: 13px; -fx-text-fill: #b7c4d2;");
@@ -684,7 +684,7 @@ public final class SettingsPage extends VBox {
                 saveMessage = saves.pasteImport();
             } else {
                 // Le presse-papiers a changé depuis l'aperçu : on montre le nouveau, et c'est lui que le clic suivant importe.
-                // Version 0.127 : le premier clic montre ce que contient le presse-papiers, le second l'importe.
+                // Le premier clic montre ce que contient le presse-papiers, le second l'importe.
                 importPreview = saves.previewImport();
                 saveMessage = importPreview;
                 importArmed = importPreview.startsWith("Rien") ? 0 : RESET_CONFIRM_SECONDS;
@@ -827,14 +827,10 @@ public final class SettingsPage extends VBox {
     }
 
     /** Les blocs qui suivent vont dans ce sous-onglet. */
-    private void use(Section section) {
-        target = sections.get(section);
-    }
+    private void use(Section section) { target = sections.get(section); }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public javafx.scene.layout.FlowPane subTabs() {
-        return subTabs;
-    }
+    public FlowPane subTabs() { return subTabs; }
 
     /** Affiche un sous-onglet, et cache les autres. */
     public void select(Section section) {
@@ -847,9 +843,7 @@ public final class SettingsPage extends VBox {
     }
 
     /** Le sous-onglet affiché. */
-    public Section selected() {
-        return selected;
-    }
+    public Section selected() { return selected; }
 
     /** Titre et explication d'un réglage ; l'explication n'apparaît qu'en mode détails. */
     private void block(String name, String explanation) {
@@ -870,7 +864,7 @@ public final class SettingsPage extends VBox {
         refresh();
     }
 
-    /** Le volume de la musique (version 0.210) : elle joue déjà, le changement s'entend sans essai. */
+    /** Le volume de la musique : elle joue déjà, le changement s'entend sans essai. */
     private void changeMusicVolume(int step) {
         settings.setMusicVolume(settings.musicVolume() + step);
         refresh();
@@ -882,9 +876,7 @@ public final class SettingsPage extends VBox {
     }
 
     /** Vrai tant que la page attend la prochaine touche du clavier pour en faire la touche de détail. */
-    public boolean isCapturing() {
-        return capturing;
-    }
+    public boolean isCapturing() { return capturing; }
 
     /**
      * La touche pressée pendant que la page en attendait une, pour la touche de détail, pour un raccourci ou pour un
@@ -952,12 +944,11 @@ public final class SettingsPage extends VBox {
     }
 
     /**
-     * Une rangée de catégories (version 0.146) : un bouton par catégorie, qui la montre ou la coupe, puis recopie la page.
+     * Une rangée de catégories : un bouton par catégorie, qui la montre ou la coupe, puis recopie la page.
      * Comme les effets visuels : « ✓ » ou « ✗ » devant son nom.
      */
-    private <E> javafx.scene.layout.FlowPane categoryRow(E[] values, java.util.function.Function<E, String> label,
-            java.util.function.Consumer<E> flip, Map<E, Button> buttons) {
-        javafx.scene.layout.FlowPane row = new javafx.scene.layout.FlowPane(8, 8);
+    private <E> FlowPane categoryRow(E[] values, Function<E, String> label, Consumer<E> flip, Map<E, Button> buttons) {
+        FlowPane row = new FlowPane(8, 8);
         row.setAlignment(Pos.CENTER);
         row.setMaxWidth(720);
         choiceRow(row, values, label, flip, buttons, true);
@@ -982,8 +973,8 @@ public final class SettingsPage extends VBox {
      * Une rangée de choix : un bouton par valeur, qui l'applique puis recopie la page. {@code focusless} retire les
      * boutons du parcours au clavier. Leurs couleurs (celui qui est choisi est éclairé) se posent dans {@link #refresh()}.
      */
-    private <E> void choiceRow(javafx.scene.layout.Pane row, E[] values, java.util.function.Function<E, String> label,
-            java.util.function.Consumer<E> choose, Map<E, Button> buttons, boolean focusless) {
+    private <E> void choiceRow(Pane row, E[] values, Function<E, String> label,
+            Consumer<E> choose, Map<E, Button> buttons, boolean focusless) {
         for (E value : values) {
             Button button = new Button(label.apply(value));
             if (focusless) button.setFocusTraversable(false);
@@ -1082,7 +1073,7 @@ public final class SettingsPage extends VBox {
         toggle(notificationsButton, settings.notifications(), "Notifications : affichées", "Notifications : coupées");
         toggle(goalButton, settings.showGoal(), "Objectif : affiché", "Objectif : caché");
         toggle(signsButton, settings.stateSigns(), "Signes d'état : affichés", "Signes d'état : cachés");
-        // Les catégories (version 0.146) : éclairées si elles s'affichent, grisées sous un grand interrupteur coupé.
+        // Les catégories : éclairées si elles s'affichent, grisées sous un grand interrupteur coupé.
         noticeButtons.forEach((kind, button) -> category(button, kind.label(), kind.detail(), settings.noticeChosen(kind),
                 settings.notifications()));
         allNoticesButton.setDisable(!settings.notifications());
@@ -1146,8 +1137,7 @@ public final class SettingsPage extends VBox {
             explanation.setManaged(Detail.shown());
         }
         toggle(pauseButton, settings.paused(), "En pause : cliquer pour reprendre", "Mettre en pause");
-        resetButton.setText(resetArmed > 0
-                ? "Cliquer encore pour tout effacer (" + (int) Math.ceil(resetArmed) + " s)"
+        resetButton.setText(resetArmed > 0 ? "Cliquer encore pour tout effacer (" + (int) Math.ceil(resetArmed) + " s)"
                 : "Recommencer de zéro");
         resetButton.setStyle(resetArmed > 0 ? DANGER_ARMED_STYLE : DANGER_STYLE);
         saveStatus.setText(saves.status());
@@ -1185,7 +1175,7 @@ public final class SettingsPage extends VBox {
             return;
         }
         if (button.getTooltip() != null && text.equals(button.getTooltip().getText())) return;
-        javafx.scene.control.Tooltip tooltip = new javafx.scene.control.Tooltip(text);
+        Tooltip tooltip = new Tooltip(text);
         tooltip.setWrapText(true);
         tooltip.setMaxWidth(360);
         button.setTooltip(tooltip);
@@ -1199,29 +1189,14 @@ public final class SettingsPage extends VBox {
     }
 
     /**
-     * Ce que font les boutons des formats de fenêtre (version 0.092) : redimensionner, dire si un format
+     * Ce que font les boutons des formats de fenêtre : redimensionner, dire si un format
      * tient sur l'écran, et lequel est en cours.
      */
-    public void setWindowSizes(java.util.function.Consumer<Settings.WindowSize> apply,
-            java.util.function.Predicate<Settings.WindowSize> fits, java.util.function.Supplier<Settings.WindowSize> current) {
+    public void setWindowSizes(Consumer<Settings.WindowSize> apply,
+            Predicate<Settings.WindowSize> fits, Supplier<Settings.WindowSize> current) {
         windowSize = apply;
         sizeFits = fits;
         sizeNow = current;
         refresh();
-    }
-
-    /** Le bouton de la touche du cercle {@code ring} de la boucle : pour les vérifications. */
-    public Button loopKeyButton(int ring) {
-        return loopKeyButtons.get(ring);
-    }
-
-    /** Ce que la page dit sous les touches de la boucle (vide sans souci) : pour les vérifications. */
-    public String loopKeyNoteText() {
-        return loopKeyNote.getText();
-    }
-
-    /** Le bouton d'un format de fenêtre : pour les vérifications. */
-    public Button sizeButton(Settings.WindowSize size) {
-        return sizeButtons.get(size);
     }
 }

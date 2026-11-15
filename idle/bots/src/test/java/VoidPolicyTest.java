@@ -1,8 +1,9 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.*;
+import idle.core.collider.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.math.BigNum;
 import java.util.Random;
@@ -10,10 +11,7 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.133 : les bots jouent le vide du troisième univers, chacun à sa façon, et rien avant. */
 class VoidPolicyTest {
-
-    private static Game fresh() {
-        return Bots.fresh(42);
-    }
+    private static Game fresh() { return Bots.fresh(42); }
 
     /** Le troisième univers, juste après son premier Big Bang : le vide se propose, et le collisionneur peut le payer. */
     private static Game thirdUniverse() {
@@ -29,10 +27,10 @@ class VoidPolicyTest {
 
     @Test
     void leVideSOuvrePendantQueLaGalaxieAttendLeCollisionneur() {
-        // Version 0.174 : essayé puis écarté, le vide fermé pendant cette attente allongeait la partie du Speedrunner.
+        // Essayé puis écarté, le vide fermé pendant cette attente allongeait la partie du Speedrunner.
         Game game = thirdUniverse();
         game.state().setColliderEnergyProduced(1e12);
-        assertTrue(game.colliderEnergyProduced() < idle.core.GameCollider.SUPERMASSIVE_ENERGY, "la galaxie attend");
+        assertTrue(game.colliderEnergyProduced() < GameCollider.SUPERMASSIVE_ENERGY, "la galaxie attend");
         VoidPolicy expert = new VoidPolicy(VoidPolicy.Style.EXPERT, new NoRandom());
         expert.play(game);
         assertTrue(game.isVoidUnlocked(), "ouvert sans attendre le trou noir supermassif");
@@ -56,9 +54,7 @@ class VoidPolicyTest {
         private static final long serialVersionUID = 1L;
 
         @Override
-        protected int next(int bits) {
-            throw new AssertionError("aucun hasard ne devait être tiré");
-        }
+        protected int next(int bits) { throw new AssertionError("aucun hasard ne devait être tiré"); }
     }
 
     @Test
@@ -130,7 +126,7 @@ class VoidPolicyTest {
     @Test
     void lesAutomatesDuCollisionneurAttendentAussiPuisRepartent() {
         Game game = thirdUniverse();
-        var auto = idle.core.collider.ColliderUpgrade.automationOf(idle.core.collider.ColliderGenerator.values()[0]);
+        var auto = ColliderUpgrade.automationOf(ColliderGenerator.values()[0]);
         game.state().setColliderUpgradeLevel(auto, 1);
         assertTrue(game.isColliderAutomationRunning(auto));
         RobotCosmosPlanner bot = new RobotCosmosPlanner(game, 20);

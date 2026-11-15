@@ -2,15 +2,11 @@ package idle.ui.universe;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
 
 /**
- * Les skins de l'établi de la graine (version 0.196), dessinés à côté de {@link SeedView} : l'arrosoir, l'étagère, le tuyau
+ * Les skins de l'établi de la graine, dessinés à côté de {@link SeedView} : l'arrosoir, l'étagère, le tuyau
  * et le chrono, un visuel chacun.
  * <ul>
  * <li>L'arrosoir : « Théière » (une panse ronde, son couvercle à bouton, une anse en boucle et un bec courbe), « Pichet »
@@ -30,7 +26,6 @@ import javafx.scene.shape.StrokeLineCap;
  * </ul>
  */
 final class ToolsSkinArt {
-
     private static final Color PORCELAIN = Color.web("#f0ece4");
     private static final Color PORCELAIN_BLUE = Color.web("#4a78b8");
     private static final Color STONEWARE = Color.web("#a8835a");
@@ -196,7 +191,7 @@ final class ToolsSkinArt {
     }
 
     /**
-     * Le coquillage. Version 0.203 : une conque couchée, sa spire à gauche et son canal qui s'effile vers la droite jusqu'au
+     * Le coquillage. Une conque couchée, sa spire à gauche et son canal qui s'effile vers la droite jusqu'au
      * point où l'arrosoir verse : l'eau sort du bout du canal. Avant, un éventail ouvert vers le haut, dont le bord
      * s'arrêtait à mi-chemin : l'eau naissait en l'air, à côté de lui, sous une flaque flottante.
      */
@@ -368,7 +363,7 @@ final class ToolsSkinArt {
                 g.fillOval(tip[0] + s * 0.3, tip[1] - s * 0.14, s * 0.2, s * 0.2);
             }
             case HOSE_FOUNTAIN -> {
-                // Version 0.203 : la conduite de pierre mène à une borne, dont le bec de bronze finit à la lance : le jet
+                // La conduite de pierre mène à une borne, dont le bec de bronze finit à la lance : le jet
                 // en sort et retombe au pied de la plante. Avant, une vasque posée là : l'eau partait de son bord, de côté,
                 // sans rien pour la pousser.
                 g.setStroke(STONE);

@@ -1,18 +1,15 @@
 import idle.core.history.Photo;
 import idle.core.Multipliers;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * La page HTML du bot analyste (version 0.161) : un seul fichier, sans rien à télécharger, lisible dans n'importe quel
+ * La page HTML du bot analyste : un seul fichier, sans rien à télécharger, lisible dans n'importe quel
  * navigateur. En haut, le résultat ; puis les paliers (avec ce que l'estimation annonçait), les « et si » (version
- * 0.162), les courbes des grandeurs, le classement des achats par rentabilité (version 0.162), les achats (filtrables,
+ * 0.162), les courbes des grandeurs, le classement des achats par rentabilité, les achats (filtrables,
  * triables par poids) et tout le journal, filtrable par sorte.
  */
 final class AnalyseRapport {
-
     private AnalyseRapport() {}
 
     private static String esc(String s) {
@@ -60,7 +57,7 @@ final class AnalyseRapport {
             h.append("</div>");
         }
 
-        // Version 0.164 : les illogismes, juste après le résultat.
+        // Les illogismes, juste après le résultat.
         illogismes(h, bot.illogismes);
 
         // La frise et les résumés.
@@ -83,7 +80,7 @@ final class AnalyseRapport {
         charges(h, j);
         horsUnivers(h, j);
 
-        // Version 0.162 : les « et si ».
+        // Les « et si ».
         if (!j.etsi.isEmpty()) {
             h.append("<h2>Et si on jouait à un autre rythme</h2><p class=sub>À chaque palier principal, la suite jouée sur des copies de la partie "
                     + "jusqu'au palier suivant : par le bot (une décision toutes les 5 s), par un joueur qui passe une fois par minute, et par un "
@@ -114,7 +111,7 @@ final class AnalyseRapport {
         // Les achats : regroupés par chose achetée (la liste complète est dans achats.csv), puis les plus lourds.
         record Somme(String groupe, String chose, String paye, long fois, double quantite, double montantLog, double premier, double dernier,
                 double poids) {}
-        java.util.Map<String, Somme> sommes = new java.util.LinkedHashMap<>();
+        Map<String, Somme> sommes = new LinkedHashMap<>();
         for (AnalyseJournal.Achat a : j.achats) {
             String key = a.groupe() + "|" + a.chose() + "|" + a.paye();
             Somme old = sommes.get(key);
@@ -128,7 +125,7 @@ final class AnalyseRapport {
                         old.poids() + a.poidsMax()));
             }
         }
-        // Version 0.162 : le classement par rentabilité.
+        // Le classement par rentabilité.
         List<AnalyseJournal.Classement> classement = j.classement().stream().filter(c -> Double.isFinite(c.rentabilite())).toList();
         if (!classement.isEmpty()) {
             h.append("<h2>Classement des achats par rentabilité</h2><p class=sub>Pour chaque chose achetée : le temps de production qu'elle a "
@@ -230,7 +227,7 @@ final class AnalyseRapport {
                 double x0 = left + (w - left - right) * start / fin, x1 = left + (w - left - right) * end / fin;
                 h.append(String.format(Locale.ROOT, "<rect x=%.1f y=40 width=%.1f height=26 fill=\"%s\" opacity=.18 />", x0, Math.max(1, x1 - x0),
                         u % 2 == 0 ? "#2f8f5b" : "#2f6fdb"));
-                // Version 0.163 : les univers rapides de la fin se suivent de près ; une étiquette seulement s'il y a la place.
+                // Les univers rapides de la fin se suivent de près ; une étiquette seulement s'il y a la place.
                 if (x0 - lastLabel >= 34) {
                     h.append(String.format(Locale.ROOT, "<text x=%.1f y=80>u%d</text>", x0 + 2, u));
                     lastLabel = x0;
@@ -304,7 +301,7 @@ final class AnalyseRapport {
     }
 
     /**
-     * Version 0.166 : univers par univers, la durée, le temps réel et en ligne (un joueur absent), et les décisions par
+     * Univers par univers, la durée, le temps réel et en ligne (un joueur absent), et les décisions par
      * heure : toutes, et celles qui font gagner au moins une seconde vers un palier.
      */
     private static void charges(StringBuilder h, AnalyseJournal j) {

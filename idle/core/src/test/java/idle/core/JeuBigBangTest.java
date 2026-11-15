@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.collider.ColliderUpgrade;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,22 +11,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.Challenge;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : le Big Bang et l'expansion de la matière.
- */
+/** Les règles du jeu : le Big Bang et l'expansion de la matière. */
 class JeuBigBangTest extends GameTestSupport {
-
-
     @Nested
     class BigBang {
-
         /** Le vrai jeu, démarré, avec ses catalogues complets. */
         private Game fullGame() {
             Game game = GameTestSupport.realGame();
@@ -298,7 +294,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.state().setDarkLevel("dark_gravity", 1);
             game.state().setDarkLevel("dark_harvest", 1);
             game.state().setDarkLevel("link_elements", 1);
-            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.SUPERPOSITION, 1);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION, 1);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertEquals(1, game.darkLevelOf("dark_gravity"));
@@ -431,7 +427,6 @@ class JeuBigBangTest extends GameTestSupport {
 
     @Nested
     class ExpansionDeLaMatiere {
-
         private Game game(int bigBangs) {
             Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, bigBangs);

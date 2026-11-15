@@ -42,7 +42,7 @@ new Profile(23,"Forgetful","Des pauses et oublis fréquents",180,3600,1200,.55,.
 new Profile(24,"ReturningVeteran","Expert mais seulement 15 min / 3 h",60,10800,900,1,1,1,1,1,0,"returning")
 };
 /**
- * La façon de jouer le deuxième univers de chaque profil, dans l'ordre de {@link #PROFILES} (version 0.131) : choix de
+ * La façon de jouer le deuxième univers de chaque profil, dans l'ordre de {@link #PROFILES} : choix de
  * cycle (null : au hasard), chance de relancer le régime rapide, de faire le choix de cycle, ce qu'il fait de la famille
  * préférée, chance de prendre les éléments offerts, et lequel.
  */
@@ -73,7 +73,7 @@ style(CycleChoice.SYNTHESIS, .20, .50,NextUniversePolicy.Family.NONE,   .50,Next
 style(CycleChoice.RESERVE,  1.00,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), // 24 ReturningVeteran : l'expert, peu présent
 };
 /**
- * La façon de jouer le vide (troisième univers) de chaque profil, dans l'ordre de {@link #PROFILES} (version 0.133) :
+ * La façon de jouer le vide (troisième univers) de chaque profil, dans l'ordre de {@link #PROFILES} :
  * chance de l'ouvrir dès qu'il est payable, part laissée au vide, plan d'achat, chance d'y passer pour acheter,
  * chance de nourrir le trou noir.
  */
@@ -104,7 +104,7 @@ vstyle( .40, .25,VoidPolicy.Plan.CHEAPEST, .40, .30), // 23 Forgetful : oublie s
 vstyle(1.00, .50,VoidPolicy.Plan.BEST,    1.00,1.00), // 24 ReturningVeteran : l'expert, peu présent
 };
 /**
- * Les choix de jeu des trois actes de chaque profil, dans l'ordre de {@link #PROFILES} (version 0.135) : suit l'ordre
+ * Les choix de jeu des trois actes de chaque profil, dans l'ordre de {@link #PROFILES} : suit l'ordre
  * d'achat du modèle, l'arbre de matière noire au mieux, tente les défis de Big Bang, règle ses sondes sur son absence.
  */
 static final EarlyStyle[] EARLY_STYLES = {
@@ -133,7 +133,7 @@ early(true, true, true, true ), // 22 WeekendPlayer
 early(false,false,false,false), // 23 Forgetful : oublie l'ordre et les sondes
 early(true, true, true, true ), // 24 ReturningVeteran : l'expert, peu présent
 };
-/** La façon de jouer l'arbre (univers 4 et suivants) d'un profil (version 0.152). */
+/** La façon de jouer l'arbre (univers 4 et suivants) d'un profil. */
 static UniverseTreePolicy.Style treeStyle(Profile p,EarlyStyle early){
 if(p.id()==1)return UniverseTreePolicy.Style.EXPERT;
 return new UniverseTreePolicy.Style(p.planning(),early.opening()?UniverseTreePolicy.Plan.BEST:UniverseTreePolicy.Plan.CHEAPEST);
@@ -160,16 +160,16 @@ double nextGuardSampleAt=ProfileProgressGuard.SAMPLE_SECONDS;
 IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
 super(game,decisionStep);this.p=profile;this.rng=new Random(seed ^ (profile.id*11939L));
 this.skyRng=new Random(seed ^ (profile.id*7907L) ^ 0x5c1L);
-// Version 0.131 : chaque profil joue le deuxième univers à sa façon, avec son propre hasard.
+// Chaque profil joue le deuxième univers à sa façon, avec son propre hasard.
 this.nextUniverse=new NextUniversePolicy(STYLES[profile.id-1],new Random(seed ^ (profile.id*3571L) ^ 0x2b2L));
-// Version 0.135 : ses choix dans les trois actes de chaque univers.
+// Ses choix dans les trois actes de chaque univers.
 this.earlyStyle=EARLY_STYLES[profile.id-1];
-// Version 0.133 : et le vide du troisième univers, à sa façon aussi.
+// Et le vide du troisième univers, à sa façon aussi.
 this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (profile.id*6151L) ^ 0x701dL));
-// Version 0.152 : l'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
+// L'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
 // avec leur sens de l'organisation, et suivent l'ordre de l'expert s'ils suivent l'ordre d'achat du modèle.
 this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^ (profile.id*9173L) ^ 0x7ee1L));
-// Version 0.209 : un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
+// Un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
 this.tree.occasionalHandSeconds=profile.actionEverySeconds();
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
@@ -203,7 +203,7 @@ planningActions++;
 if(p.bias().equals("collect") || p.bias().equals("random")){
 int max=p.bias().equals("collect")?12:8;
 int count=0;
-// Version 0.135 : hors de la liste, seulement avec de l'espace à revendre. Avant, le collectionneur remplissait tout
+// Hors de la liste, seulement avec de l'espace à revendre. Avant, le collectionneur remplissait tout
 // l'espace de molécules hors recette : dès le premier astre, la liste n'avait plus la place de créer les siennes
 // (un amas glacé attendu 150 h, sans fin).
 for(Molecule m:g.molecules()){
@@ -244,14 +244,14 @@ if(p.cycleSeconds()==0)return true;
 return (wallSeconds % p.cycleSeconds()) < p.onlineSeconds();
 }
 private static String fmt(double d){return String.format(Locale.ROOT,"%.4f",d);}
-/** Version 0.161 : vrai pour une partie d'essai (l'estimation de l'analyste), qui n'écrit rien et n'a pas de garde-fou. */
+/** Vrai pour une partie d'essai (l'estimation de l'analyste), qui n'écrit rien et n'a pas de garde-fou. */
 boolean quiet=false;
 private void event(String what){
 if(quiet)return;
 System.out.printf(Locale.ROOT,"EVENT,%d,%s,%s,wall_h=%.4f,game_h=%.4f,bb=%d,bodies=%d,cosmos=%d%n",p.id(),p.name(),what,wallSeconds/3600,g.state().timePlayed()/3600,g.bigBangs(),g.bodiesFormed(),RobotCosmosPlanner.cosmosStage(g));
 }
 /*
- * Version 0.161 : la boucle de jeu se découpe en pas ({@link #stepOnce()}), pour que le bot analyste joue pas à pas,
+ * La boucle de jeu se découpe en pas ({@link #stepOnce()}), pour que le bot analyste joue pas à pas,
  * regarde ce que chaque décision a fait, et lance des parties d'essai. Deux crochets, vides ici, l'encadrent :
  * {@link #beforeDecisions()} juste avant les décisions du pas, {@link #afterStep(boolean)} une fois le pas joué.
  */
@@ -259,7 +259,7 @@ double actionInterval, nextActionAt;
 int stepIndex;
 StringBuilder logs;
 /**
- * Version 0.167 : la touche M tenue (« tout acheter avec les particules », que le jeu répète tant qu'elle est tenue). Les
+ * La touche M tenue (« tout acheter avec les particules », que le jeu répète tant qu'elle est tenue). Les
  * automatismes n'achètent plus qu'un niveau par action, ou leur lot : le joueur attentif tient M entre deux décisions.
  * Seuls les profils qui décident au moins toutes les {@link #HOLD_MAX_ACTION_SECONDS} secondes la tiennent ; le pas de
  * jeu se coupe alors en morceaux de {@link #HOLD_STEP} seconde, avec un « tout acheter » après chacun (le jeu le répète
@@ -268,19 +268,19 @@ StringBuilder logs;
  */
 static final double HOLD_STEP=0.5;
 /**
- * Version 0.206 : le morceau de pas des profils qui tiennent M sans décider vite (plus de 5 s entre deux décisions : le
+ * Le morceau de pas des profils qui tiennent M sans décider vite (plus de 5 s entre deux décisions : le
  * Speedrunner des audits). Mesuré sur le premier univers : 0,5 s → 25 h 05 ; 1 s → 26 h 27 ; 1,5 s → 24 h 48 ; 2 s → 24 h 58 ;
  * 3 s → 26 h 42 ; 5 s → 28 h 42 ; 10 s → 33 h 10. À 2 s, le calcul coûte quatre fois moins de pas qu'à 0,5 s pour la même heure
  * d'arrivée. -Didle.pasM=0.5 le règle.
  */
 static final double HOLD_STEP_SLOW=Double.parseDouble(System.getProperty("idle.pasM","2"));
 double holdStep(){return p.actionEverySeconds()<=5?HOLD_STEP:HOLD_STEP_SLOW;}
-// Version 0.206 : la limite passe de 5 à 20 s. Tenir une touche ne demande pas de décider vite : le Speedrunner des audits
+// La limite passe de 5 à 20 s. Tenir une touche ne demande pas de décider vite : le Speedrunner des audits
 // (une décision toutes les 20 s, attention entière) la tient lui aussi, et son premier univers se forme en 25 h au lieu de
 // 35 h. -Didle.appuiM=5 rend la partie d'avant.
 static final int HOLD_MAX_ACTION_SECONDS=Integer.getInteger("idle.appuiM",20);
 /**
- * Vrai si ce profil tient la touche M en ce moment. Version 0.206 : il la lâche une fois l'amas formé. Mesuré
+ * Vrai si ce profil tient la touche M en ce moment. Il la lâche une fois l'amas formé. Mesuré
  * (AnalyseArrets, appui_m, deux hasards) : la lâcher au 8e Big Bang retarde l'univers de 18 min, à la galaxie de 10 min, à
  * l'amas d'une minute ; après, le pas de jeu n'est plus coupé en demi-secondes et le calcul s'allège.
  */
@@ -289,10 +289,10 @@ boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && 
 static final boolean LACHER_M=!Boolean.getBoolean("idle.sansLacherM");
 /** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
 private void tickHoldingBuyAll(double dt){
-// Version 0.209 : la main dans les dimensions joue aussi sans la touche M (avant, seulement avec elle, jusqu'à l'amas).
+// La main dans les dimensions joue aussi sans la touche M (avant, seulement avec elle, jusqu'à l'amas).
 if(!holdsBuyAll() || !g.isStarted()){if(g.isStarted())tree.tick(g,dt);g.tick(dt);return;}
 double left=dt;
-// Version 0.179 : le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
+// Le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
 while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
@@ -323,7 +323,7 @@ nextActionAt+=actionInterval;
 if(rng.nextDouble()>=p.attention())continue;
 actions++;
 if(g.isCometVisible() && rng.nextDouble()<p.skyAttention() && !sansJouer("cometes"))g.catchComet();
-// Version 0.131 : l'anomalie du ciel, selon l'attention au ciel du profil.
+// L'anomalie du ciel, selon l'attention au ciel du profil.
 if(g.skyEvent()!=null && !skyEventsOff() && skyRng.nextDouble()<p.skyAttention() && !sansJouer("anomalies"))catchSkyEvent();
 if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention() && !sansJouer("impulsions")){
       int charges=g.pulseCharges();
@@ -338,8 +338,8 @@ if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention() && !sansJouer("impul
         }else g.pulse();
       }
     }
-// Version 0.167 : celui qui ne tient pas M l'appuie une fois à chaque décision (un achat « max » en particules).
-// Version 0.202 : rien pendant la sobriété (sans fusion, les générateurs s'empilaient : le skin Essaim, 100 générateurs, tombait
+// Celui qui ne tient pas M l'appuie une fois à chaque décision (un achat « max » en particules).
+// Rien pendant la sobriété (sans fusion, les générateurs s'empilaient : le skin Essaim, 100 générateurs, tombait
 // à l'univers 3 et pas sans elle, et décalait l'univers 4).
 if(!holdsBuyAll() && g.isStarted() && !sobriety)g.buyAllWithParticles();
 if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
@@ -349,14 +349,14 @@ probes();cosmos();resourceLoop();
 nextActionAt=Math.max(nextActionAt,wallSeconds+Math.min(actionInterval,dt));
 }
 // Les jalons de chaque univers sont annoncés ; BB8at, galaxyAt, clusterAt et universeAt gardent ceux du premier.
-// Version 0.130 : la fin des deux premiers actes de chaque univers (première explosion, premier Big Bang).
+// La fin des deux premiers actes de chaque univers (première explosion, premier Big Bang).
 if(lastExplosions==0 && g.state().explosions()>0 && g.bigBangs()==0)event("EXPLOSION1");
 if(lastBang==0 && g.bigBangs()>0)event("BB1");
 if(lastBang<Bots.LAST_BIG_BANG && g.bigBangs()>=Bots.LAST_BIG_BANG){if(first8<0)first8=i;event("BB8");}
 if(lastCosmos<1 && RobotCosmosPlanner.cosmosStage(g)>=1){if(galaxy<0)galaxy=i;event("GALAXY");}
 if(lastCosmos<2 && RobotCosmosPlanner.cosmosStage(g)>=2){if(cluster<0)cluster=i;event("CLUSTER");}
 if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){if(universe<0)universe=i;event("UNIVERSE");}
-// Version 0.130 : l'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
+// L'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
 boolean done=universeProgress();
 if(launchedNextUniverse)event("NEXT_UNIVERSE");
 lastBang=g.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(g);lastExplosions=g.state().explosions();

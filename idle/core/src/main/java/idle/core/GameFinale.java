@@ -1,21 +1,22 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.universe.DimensionAutomation;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
 /**
- * Le défi final (version 0.160), que la bulle des racines ouvre : un palier à atteindre dans chacune des dix
+ * Le défi final, que la bulle des racines ouvre : un palier à atteindre dans chacune des dix
  * dimensions, en ressource gagnée en tout. La progression vers chaque palier se compte en puissances de dix, de 0 à 1 :
  * log10(1 + gagné) / log10(1 + palier). Quand les dix paliers sont atteints, la partie est finie : l'interface le
  * montre par une animation, puis l'écran de fin.
  */
 public abstract class GameFinale extends GameMix {
-
-    /** Le prix du prochain niveau de l'amélioration de ce rang dans cette dimension (version 0.209) : pour la réserve des automatismes. */
+    /** Le prix du prochain niveau de l'amélioration de ce rang dans cette dimension : pour la réserve des automatismes. */
     @Override
     double dimensionUpgradeCost(int dimension, int index) {
         return switch (dimension) {
@@ -47,17 +48,13 @@ public abstract class GameFinale extends GameMix {
         100 * BRANE_THRESHOLD, 100 * CLICKER_THRESHOLD, 100 * GRID_THRESHOLD, 100 * MIRROR_THRESHOLD, 1e7};
 
     /** Vrai une fois la bulle des racines achetée : les paliers s'affichent. */
-    public boolean isFinalChallengeOpen() {
-        return isTreeBubbleBought(TreeBubble.ROOTS);
-    }
+    public boolean isFinalChallengeOpen() { return isTreeBubbleBought(TreeBubble.ROOTS); }
 
     /** Le palier de la dimension {@code dimension} (1 à 10), en ressource gagnée en tout. */
-    public static double finalGoal(int dimension) {
-        return FINAL_GOALS[dimension - 1];
-    }
+    public static double finalGoal(int dimension) { return FINAL_GOALS[dimension - 1]; }
 
     /**
-     * Le jalon des racines (version 0.169) : dix paliers de gluons, comptés une fois la bulle des racines achetée. Chacun
+     * Le jalon des racines : dix paliers de gluons, comptés une fois la bulle des racines achetée. Chacun
      * abaisse les paliers du défi final de 2^(1/10) (environ −7 %) : ÷2 avec les dix. Les huit premiers suivent les
      * gluons de la fin de partie ; les deux derniers rejoignent les grands paliers de gluons (150 000 et 400 000), longs
      * à atteindre. Un plus, jamais nécessaire : le défi final se finit sans lui.
@@ -121,16 +118,14 @@ public abstract class GameFinale extends GameMix {
     }
 
     /** Vrai une fois la partie finie : noté au premier pas où les dix paliers sont atteints, et sauvegardé. */
-    public boolean isGameFinished() {
-        return state.gameFinished();
-    }
+    public boolean isGameFinished() { return state.gameFinished(); }
 
-    /** Le pas des relevés des moments de la partie secondaire (version 0.168), en secondes de jeu. */
+    /** Le pas des relevés des moments de la partie secondaire, en secondes de jeu. */
     static final double MOMENTS_EVERY = 1;
     private double momentsTimer = MOMENTS_EVERY;
 
     /**
-     * Relève, au plus une fois par seconde de jeu, les moments de la partie secondaire (version 0.168) : chaque dimension
+     * Relève, au plus une fois par seconde de jeu, les moments de la partie secondaire : chaque dimension
      * ouverte, son premier automatisme, son seuil, son palier final ; les paliers de la graine ; le défi final ouvert ; la
      * fin. Ils ne servent qu'à l'onglet Statistiques.
      */
@@ -145,7 +140,7 @@ public abstract class GameFinale extends GameMix {
             if (isDimensionThresholdReached(d)) stats.noteMoment("dimension." + d + ".seuil", t);
             if (isFinalTierReached(d)) stats.noteMoment("dimension." + d + ".final", t);
         }
-        for (idle.core.universe.DimensionAutomation automation : idle.core.universe.DimensionAutomation.values()) {
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (ownsDimensionAutomation(automation)) stats.noteMoment("dimension." + automation.dimension() + ".automatisme", t);
         }
         for (int stage = 1; stage <= Math.min(SEED_STAGES, seedStage()); stage++) stats.noteMoment("graine." + stage, t);
@@ -155,7 +150,7 @@ public abstract class GameFinale extends GameMix {
     }
 
     /**
-     * La fenêtre de la dimension {@code number} est restée ouverte {@code seconds} secondes (version 0.168) : le temps où
+     * La fenêtre de la dimension {@code number} est restée ouverte {@code seconds} secondes : le temps où
      * le joueur l'a jouée, pour l'onglet Statistiques.
      */
     public void noteDimensionPlayed(int number, double seconds) {
@@ -163,7 +158,5 @@ public abstract class GameFinale extends GameMix {
     }
 
     /** Note la fin de la partie, une fois. */
-    void runFinale() {
-        if (!state.gameFinished() && isFinalChallengeComplete()) state.setGameFinished(true);
-    }
+    void runFinale() { if (!state.gameFinished() && isFinalChallengeComplete()) state.setGameFinished(true); }
 }

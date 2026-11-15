@@ -2,12 +2,7 @@ package idle.ui;
 
 import idle.core.Game;
 import java.time.LocalTime;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 /**
  * Le journal des événements : les cent dernières annonces du jeu, avec l'heure et le temps de jeu
@@ -19,7 +14,6 @@ import java.util.WeakHashMap;
  * « Journal » du profil qui le montre (version 0.147 ; avant, une sous-page des statistiques).
  */
 public final class EventLog {
-
     /** Nombre d'annonces gardées : au-delà, les plus anciennes s'effacent. */
     public static final int CAPACITY = 100;
     private static final Map<Game, EventLog> SHARED = new WeakHashMap<>();
@@ -62,18 +56,12 @@ public final class EventLog {
     }
 
     /** Les annonces gardées, de la plus récente à la plus ancienne. */
-    public List<Entry> entries() {
-        return new ArrayList<>(entries);
-    }
+    public List<Entry> entries() { return new ArrayList<>(entries); }
 
-    public int size() {
-        return entries.size();
-    }
+    public int size() { return entries.size(); }
 
     /** Change à chaque annonce : la page ne se recompose que lorsqu'il a bougé. */
-    public int version() {
-        return version;
-    }
+    public int version() { return version; }
 
     /** Vide le journal : la partie vient d'être remplacée ou remise à zéro. */
     public void clear() {

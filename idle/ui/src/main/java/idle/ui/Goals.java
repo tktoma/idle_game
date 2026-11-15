@@ -1,26 +1,25 @@
 package idle.ui;
 
-import idle.core.Game;
-import idle.core.GameStats;
-import idle.core.Resource;
+import idle.core.*;
+import idle.core.history.Pace;
+import idle.ui.common.*;
+import java.util.*;
+import java.util.function.Predicate;
+import idle.core.state.GameStats;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import idle.ui.common.Format;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
 
 /**
  * Le prochain grand pas de la partie, en une phrase, et le temps qu'il demande quand le jeu peut
  * l'estimer. Sert à la ligne d'objectif sous les onglets et à l'onglet Statistiques.
  */
 public final class Goals {
-
     /**
-     * Les morceaux de la ligne d'objectif (version 0.146), que les réglages montrent ou cachent un par un. Le chrono garde
+     * Les morceaux de la ligne d'objectif, que les réglages montrent ou cachent un par un. Le chrono garde
      * son propre réglage, d'avant ({@code Settings.chrono}).
      */
     public enum Part {
@@ -39,22 +38,18 @@ public final class Goals {
             this.detail = detail;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
-        public String detail() {
-            return detail;
-        }
+        public String detail() { return detail; }
     }
 
     /**
-     * La ligne d'objectif, morceau par morceau (version 0.146) : l'objectif et son temps estimé, le prochain Big Bang, le
-     * troisième acte, le chrono, la prochaine étape au rythme du moment (version 0.165) ; seuls ceux que {@code shown} garde. Ce qui reste se suit, séparé par des barres ; vide
+     * La ligne d'objectif, morceau par morceau : l'objectif et son temps estimé, le prochain Big Bang, le
+     * troisième acte, le chrono, la prochaine étape au rythme du moment ; seuls ceux que {@code shown} garde. Ce qui reste se suit, séparé par des barres ; vide
      * si rien ne reste.
      */
-    public static String line(Game game, java.util.function.Predicate<Part> shown, idle.core.history.Pace pace) {
-        java.util.List<String> parts = new java.util.ArrayList<>();
+    public static String line(Game game, Predicate<Part> shown, Pace pace) {
+        List<String> parts = new ArrayList<>();
         if (shown.test(Part.GOAL)) parts.add("Objectif : " + (shown.test(Part.ESTIMATE) ? withEstimate(game, game.stats()) : next(game)));
         // Entre les deux, l'avancée du prochain Big Bang : ses conditions, sans ouvrir l'arbre.
         String bang = shown.test(Part.BIG_BANG) ? NextReset.bigBangProgress(game) : "";
@@ -62,12 +57,12 @@ public final class Goals {
         // Après un premier Big Bang, deux objectifs se suivent de front : celui de la partie, et celui du troisième acte.
         String act = shown.test(Part.ACT) ? act(game) : "";
         if (!act.isEmpty()) {
-            parts.add(game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) ? "Quatrième acte : la suite viendra" : "Troisième acte : " + act);
+            parts.add(game.hasCosmos(Cosmos.UNIVERSE) ? "Quatrième acte : la suite viendra" : "Troisième acte : " + act);
         }
         // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
         String chrono = shown.test(Part.CHRONO) ? chrono(game) : "";
         if (!chrono.isEmpty()) parts.add(chrono);
-        // Version 0.165 : la prochaine étape et le temps qu'elle demande, quand le rythme permet de l'estimer.
+        // La prochaine étape et le temps qu'elle demande, quand le rythme permet de l'estimer.
         String next = shown.test(Part.PACE) ? pace(pace) : "";
         if (!next.isEmpty()) parts.add(next);
         return String.join("   |   ", parts);
@@ -122,10 +117,9 @@ public final class Goals {
     }
 
     /**
-     * Le prochain pas du troisième acte, celui qui s'ouvre au premier Big Bang et que ni l'explosion
-     * ni le Big Bang n'effacent : une première molécule, un
-     * premier rassemblement, un premier assemblage, le prochain astre, la galaxie, l'amas de galaxies, l'univers. Vide avant le
-     * premier Big Bang.
+     * Le prochain pas du troisième acte, celui qui s'ouvre au premier Big Bang et que ni l'explosion ni le Big Bang
+     * n'effacent : une première molécule, un premier rassemblement, un premier assemblage, le prochain astre, la
+     * galaxie, l'amas de galaxies, l'univers. Vide avant le premier Big Bang.
      */
     public static String act(Game game) {
         if (!game.isBigBangUnlocked()) return "";
@@ -134,22 +128,22 @@ public final class Goals {
         if (game.canFormCosmos(scale)) return "former " + scale.phrase();
         // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
         if (scale != Cosmos.GALAXY) {
-            // Toute la matière est là, mais l'échelle d'avant se rassemble encore (version 0.073).
+            // Toute la matière est là, mais l'échelle d'avant se rassemble encore.
             double settle = game.cosmosSettleRemaining(scale);
             if (settle > 0 && game.cosmosConditionsMet(scale) == game.cosmosConditions(scale)) {
                 return "attendre que " + scale.previous().phrase() + " se rassemble pour former " + scale.phrase()
                         + " (encore " + (long) Math.ceil(settle / 60) + " min)";
             }
-            // L'état le plus en retard (version 0.068) : c'est lui qu'il faut pousser.
+            // L'état le plus en retard : c'est lui qu'il faut pousser.
             Molecule.State behind = null;
             double worst = 1;
-            for (java.util.Map.Entry<Molecule.State, Integer> need : game.cosmosMatter(scale).entrySet()) {
+            for (Map.Entry<Molecule.State, Integer> need : game.cosmosMatter(scale).entrySet()) {
                 double share = (double) game.gatheredInState(need.getKey()) / need.getValue();
                 if (share < worst) { worst = share; behind = need.getKey(); }
             }
             return "réunir la matière de " + scale.phrase() + " (" + game.cosmosConditionsMet(scale) + "/"
                     + game.cosmosConditions(scale) + " conditions"
-                    + (behind == null ? "" : ", le plus en retard : " + idle.ui.common.MatterText.plural(behind) + " " + Math.round(worst * 100) + " %")
+                    + (behind == null ? "" : ", le plus en retard : " + MatterText.plural(behind) + " " + Math.round(worst * 100) + " %")
                     + ")" + spaceWait(game);
         }
         if (game.moleculesCreated() == 0) {
@@ -225,7 +219,7 @@ public final class Goals {
     }
 
     /** « Premier Big Bang dans 1 h 20 environ » ; vide sans étape à venir ou sans estimation. */
-    static String pace(idle.core.history.Pace pace) {
+    static String pace(Pace pace) {
         if (pace == null || pace.step() == null) return "";
         double left = pace.secondsLeft();
         return Double.isNaN(left) ? "" : pace.step().label() + " dans " + about(left);
@@ -234,8 +228,8 @@ public final class Goals {
     /** « un amas rocheux », « une comète glacée », « le Soleil » : le nom d'un astre avec son article. */
     public static String article(String name) {
         if (name.equals("Soleil")) return "le Soleil";
-        String lower = name.toLowerCase(java.util.Locale.ROOT);
-        // Version 0.126 : les nébuleuses aussi (« une nébuleuse planétaire », pas « un »).
+        String lower = name.toLowerCase(Locale.ROOT);
+        // Les nébuleuses aussi (« une nébuleuse planétaire », pas « un »).
         boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")
                 || lower.startsWith("géante") || lower.startsWith("naine") || lower.startsWith("étoile")
                 || lower.startsWith("nébuleuse");

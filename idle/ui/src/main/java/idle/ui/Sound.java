@@ -1,48 +1,41 @@
 package idle.ui;
 
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineEvent;
+import java.util.*;
+import idle.core.universe.Skin;
+import java.util.function.*;
+import java.util.concurrent.*;
+import javax.sound.sampled.*;
 
 /**
- * Les sons du jeu, tous synthétisés à la volée : aucun fichier. Chaque son est une courte somme
- * de sinusoïdes (et d'un peu de bruit pour les explosions) sous une enveloppe, calculée une fois
- * puis rejouée au volume du moment.
+ * Les sons du jeu, tous synthétisés à la volée : aucun fichier. Chaque son est une courte somme de sinusoïdes (et d'un
+ * peu de bruit pour les explosions) sous une enveloppe, calculée une fois puis rejouée au volume du moment.
  *
- * <p>Les sons suivent les annonces ({@link Notifier}) : un succès, un élément nouveau, une
- * explosion, un Big Bang… Pour ne pas assourdir quand les automatismes enchaînent tout, un
- * même son ne revient pas avant {@link #SAME_CUE_GAP} secondes, deux sons ne se suivent pas à
- * moins de {@link #ANY_CUE_GAP} secondes, et d'une fournée d'annonces seul le son le plus
- * important est joué.
+ * <p>Les sons suivent les annonces ({@link Notifier}) : un succès, un élément nouveau, une explosion, un Big Bang… Pour
+ * ne pas assourdir quand les automatismes enchaînent tout, un même son ne revient pas avant {@link #SAME_CUE_GAP}
+ * secondes, deux sons ne se suivent pas à moins de {@link #ANY_CUE_GAP} secondes, et d'une fournée d'annonces seul le
+ * son le plus important est joué.
  *
- * <p>Le métronome de la boucle (version 0.153) a son tic à part ({@link #beat(int)}) : il bat en rythme, plusieurs
- * fois par seconde, sans attendre ni retarder les sons des annonces.
+ * <p>Le métronome de la boucle a son tic à part ({@link #beat(int)}) : il bat en rythme, plusieurs fois par seconde,
+ * sans attendre ni retarder les sons des annonces.
  *
- * <p>Version 0.200 : les skins des sons ({@link SoundBanks}) changent le timbre de tous les sons (la banque), celui du
- * Big Bang et le tic du métronome, toujours sans fichier audio.
+ * <p>Les skins des sons ({@link SoundBanks}) changent le timbre de tous les sons (la banque), celui du Big Bang et le
+ * tic du métronome, toujours sans fichier audio.
  *
- * <p>Version 0.210 : des sons pour les moments qui n'en avaient pas (univers formé, palier du défi final, skin débloqué,
- * défi qui s'ouvre ou commence, matière noire, jalons), et des sons d'interface qui ne passent pas par les annonces :
- * l'achat ou l'interrupteur d'une carte ({@link #click(Cue, int)}) et le geste du joueur dans le mini-jeu d'une dimension
- * ({@link #gesture(int, int)}), un timbre par dimension. Ceux-là ne comptent pas dans le rythme des annonces, comme le
+ * <p>Des sons pour les moments qui n'en avaient pas (univers formé, palier du défi final, skin débloqué, défi qui
+ * s'ouvre ou commence, matière noire, jalons), et des sons d'interface qui ne passent pas par les annonces : l'achat ou
+ * l'interrupteur d'une carte ({@link #click(Cue, int)}) et le geste du joueur dans le mini-jeu d'une dimension ({@link
+ * #gesture(int, int)}), un timbre par dimension. Ceux-là ne comptent pas dans le rythme des annonces, comme le
  * métronome. La musique de fond est à part ({@link Music}).
  *
- * <p>Version 0.213 : des bruitages pour ce qui se passe en jouant, relevés image par image ({@link SoundEvents}) : une
- * particule créée, une fusion, une collision, des hadrons, le vide, la graine (arrosage et palier), un point gagné dans
- * une dimension, un clic sur un bouton, un changement d'onglet. Chaque son appartient à une catégorie ({@link SoundKind}),
- * que les réglages gardent ou coupent.
+ * <p>Des bruitages pour ce qui se passe en jouant, relevés image par image ({@link SoundEvents}) : une particule créée,
+ * une fusion, une collision, des hadrons, le vide, la graine (arrosage et palier), un point gagné dans une dimension,
+ * un clic sur un bouton, un changement d'onglet. Chaque son appartient à une catégorie ({@link SoundKind}), que les
+ * réglages gardent ou coupent.
  *
- * <p>Sans carte son, ou si le système refuse la sortie audio, le jeu reste muet sans erreur :
- * le premier échec coupe les sons jusqu'à la fermeture.
+ * <p>Sans carte son, ou si le système refuse la sortie audio, le jeu reste muet sans erreur : le premier échec coupe
+ * les sons jusqu'à la fermeture.
  */
 final class Sound {
-
     /** Un son, du plus important au moins important : l'ordre décide lequel jouer d'une fournée. */
     enum Cue {
         BIG_BANG,
@@ -55,7 +48,7 @@ final class Sound {
         SKIN,
         /** Version 0.210 : un défi qui s'ouvre ou qui commence. */
         CHALLENGE,
-        /** Version 0.210 : la matière noire (Noyaux sombres à portée, un automatisme de matière noire, un palier de taille). */
+        /** La matière noire (Noyaux sombres à portée, un automatisme de matière noire, un palier de taille). */
         DARK,
         COMET, ELEMENT,
         /** Version 0.210 : un jalon (du cosmos, des gluons, des racines, un ensemble, un titre, le premier atome). */
@@ -65,19 +58,17 @@ final class Sound {
         PURCHASE,
         /** Version 0.210 : une carte qui s'allume ou s'éteint ; aucune annonce ne le joue. */
         TOGGLE,
-        /** Version 0.213 : une particule créée, un atome (une fusion), une collision, des hadrons, une paire du vide. */
+        /** Une particule créée, un atome (une fusion), une collision, des hadrons, une paire du vide. */
         PARTICLE, ATOM, COLLISION, HADRON, VOID,
         /** Version 0.213 : un palier de la graine, un arrosage. */
         SEED, WATER,
         /** Version 0.213 : un clic sur un bouton, un changement d'onglet. */
         CLICK, TAB,
-        /** Le tic du métronome de la boucle (version 0.153) : aucune annonce ne le joue. */
+        /** Le tic du métronome de la boucle : aucune annonce ne le joue. */
         BEAT;
 
         /** Vrai pour les sons d'interface et les bruitages : ils ne comptent pas dans le rythme des annonces, qui ne les retarde pas. */
-        boolean isInterface() {
-            return ordinal() >= PURCHASE.ordinal();
-        }
+        boolean isInterface() { return ordinal() >= PURCHASE.ordinal(); }
 
         /** Le temps, en secondes, avant que ce son d'interface ne revienne : les bruitages qui se répètent sans cesse attendent plus. */
         double gap() {
@@ -114,23 +105,19 @@ final class Sound {
     }
 
     /** Les catégories gardées : toutes au départ ; les réglages branchent les leurs. */
-    private java.util.function.Predicate<SoundKind> allowed = kind -> true;
+    private Predicate<SoundKind> allowed = kind -> true;
 
-    /** Branche les catégories gardées (version 0.213) ; {@code null} : toutes. */
-    void setAllowed(java.util.function.Predicate<SoundKind> allowed) {
-        this.allowed = allowed == null ? kind -> true : allowed;
-    }
+    /** Branche les catégories gardées ; {@code null} : toutes. */
+    void setAllowed(Predicate<SoundKind> allowed) { this.allowed = allowed == null ? kind -> true : allowed; }
 
-    private boolean allowed(Cue cue) {
-        return cue.kind() == null || allowed.test(cue.kind());
-    }
+    private boolean allowed(Cue cue) { return cue.kind() == null || allowed.test(cue.kind()); }
 
     static final double SAME_CUE_GAP = 0.8;
     static final double ANY_CUE_GAP = 0.12;
     /** Deux tics du métronome ne se suivent pas à moins de ce temps, en secondes : deux zones collées n'en font qu'un. */
     static final double BEAT_GAP = 0.05;
     /**
-     * Version 0.210 : deux sons d'interface pareils (un achat, un geste dans la même dimension) ne se suivent pas à moins de
+     * Deux sons d'interface pareils (un achat, un geste dans la même dimension) ne se suivent pas à moins de
      * ce temps : assez court pour suivre des clics rapides, assez long pour qu'un clic tenu ne fasse pas un bourdon.
      */
     static final double INTERFACE_GAP = 0.07;
@@ -141,15 +128,15 @@ final class Sound {
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
 
     private final Map<Cue, short[]> samples = new EnumMap<>(Cue.class);
-    /** Les skins des sons choisis (version 0.200) : la banque, le son du Big Bang, le tic du métronome ; {@code null} = Classique. */
-    private idle.core.universe.Skin bank, bangSkin, metronomeSkin;
+    /** Les skins des sons choisis : la banque, le son du Big Bang, le tic du métronome ; {@code null} = Classique. */
+    private Skin bank, bangSkin, metronomeSkin;
     private final Map<Cue, Long> lastPlayed = new EnumMap<>(Cue.class);
     private long lastAny = Long.MIN_VALUE / 2;
     private volatile boolean broken = false;
     /** Le fil des sons, créé au premier son ; visible des essais pour attendre sa fin. */
     ExecutorService player;
     /** Où partent les échantillons : la sortie audio, ou un relevé pour les essais. */
-    java.util.function.Consumer<byte[]> sink = this::output;
+    Consumer<byte[]> sink = this::output;
 
     /** Le son d'une annonce, ou {@code null} si elle n'en a pas. */
     static Cue cueOf(String text) {
@@ -207,7 +194,7 @@ final class Sound {
         Long last = lastPlayed.get(cue);
         if (last != null && now - last < SAME_CUE_GAP * 1e9) return false;
         short[] sound = samples.computeIfAbsent(cue, this::synthesizeSkinned);
-        // Le silence partiel (version 0.200) : un son vide ne part pas et ne compte pas dans le rythme.
+        // Le silence partiel : un son vide ne part pas et ne compte pas dans le rythme.
         if (sound.length == 0) return false;
         lastAny = now;
         lastPlayed.put(cue, now);
@@ -216,10 +203,10 @@ final class Sound {
     }
 
     /**
-     * Les skins des sons (version 0.200) : la banque change le timbre de tous les sons, le son du Big Bang et le tic du
+     * Les skins des sons : la banque change le timbre de tous les sons, le son du Big Bang et le tic du
      * métronome ont le leur. Les sons déjà calculés sont oubliés quand le choix change.
      */
-    void setSkins(idle.core.universe.Skin bank, idle.core.universe.Skin bang, idle.core.universe.Skin metronome) {
+    void setSkins(Skin bank, Skin bang, Skin metronome) {
         if (bank == this.bank && bang == this.bangSkin && metronome == this.metronomeSkin) return;
         this.bank = bank;
         this.bangSkin = bang;
@@ -227,21 +214,17 @@ final class Sound {
         samples.clear();
     }
 
-    /** Un son dans les skins choisis (version 0.200) : {@link SoundBanks} les connaît, le Classique reste {@link #synthesize(Cue)}. */
-    private short[] synthesizeSkinned(Cue cue) {
-        return SoundBanks.synthesize(cue, bank, bangSkin, metronomeSkin);
-    }
+    /** Un son dans les skins choisis : {@link SoundBanks} les connaît, le Classique reste {@link #synthesize(Cue)}. */
+    private short[] synthesizeSkinned(Cue cue) { return SoundBanks.synthesize(cue, bank, bangSkin, metronomeSkin); }
 
     /**
      * Le tic du métronome de la boucle, au volume réglé : il ne compte pas dans le rythme des annonces, qui ne le retarde
      * pas et qu'il ne retarde pas. Vrai s'il est parti.
      */
-    boolean beat(int volume) {
-        return click(Cue.BEAT, volume);
-    }
+    boolean beat(int volume) { return click(Cue.BEAT, volume); }
 
     /**
-     * Un son d'interface (version 0.210) : l'achat ou l'interrupteur d'une carte, le tic du métronome, et depuis la 0.213
+     * Un son d'interface : l'achat ou l'interrupteur d'une carte, le tic du métronome, et depuis la 0.213
      * les bruitages. Hors du rythme des annonces ; le même ne revient pas avant son écart ({@link Cue#gap()}). Vrai s'il est parti.
      */
     boolean click(Cue cue, int volume) {
@@ -261,12 +244,12 @@ final class Sound {
     private final long[] lastGesture = new long[11];
 
     /**
-     * Le geste du joueur dans le mini-jeu de la dimension {@code dimension} (version 0.210) : un tir dans le volume, un
+     * Le geste du joueur dans le mini-jeu de la dimension {@code dimension} : un tir dans le volume, un
      * clic sur la surface, un sondage de la grille… Plus doux que les annonces, hors de leur rythme ; le silence partiel le
      * coupe, comme tout ce qui n'est pas le Big Bang. Vrai s'il est parti.
      */
     boolean gesture(int dimension, int volume) {
-        if (broken || volume <= 0 || dimension < 1 || dimension > 10 || bank == idle.core.universe.Skin.SOUND_SILENCE) return false;
+        if (broken || volume <= 0 || dimension < 1 || dimension > 10 || bank == Skin.SOUND_SILENCE) return false;
         if (!allowed.test(SoundKind.DIMENSIONS)) return false;
         long now = System.nanoTime();
         if (lastGesture[dimension] != 0 && now - lastGesture[dimension] < INTERFACE_GAP * 1e9) return false;
@@ -283,11 +266,11 @@ final class Sound {
     static final double GAIN_GAP = 0.15;
 
     /**
-     * Un point gagné dans la dimension {@code dimension} (version 0.213), dont la fenêtre est ouverte : une note claire, plus
+     * Un point gagné dans la dimension {@code dimension}, dont la fenêtre est ouverte : une note claire, plus
      * haute d'une dimension à la suivante, sur la gamme pentatonique. Doux comme les gestes. Vrai s'il est parti.
      */
     boolean gain(int dimension, int volume) {
-        if (broken || volume <= 0 || dimension < 1 || dimension > 10 || bank == idle.core.universe.Skin.SOUND_SILENCE) return false;
+        if (broken || volume <= 0 || dimension < 1 || dimension > 10 || bank == Skin.SOUND_SILENCE) return false;
         if (!allowed.test(SoundKind.DIMENSIONS)) return false;
         long now = System.nanoTime();
         if (lastGain[dimension] != 0 && now - lastGain[dimension] < GAIN_GAP * 1e9) return false;
@@ -319,7 +302,7 @@ final class Sound {
     }
 
     /**
-     * Version 0.203 : fait entendre un son tout de suite, même s'il vient d'être joué : l'aperçu d'un skin de son que le
+     * Fait entendre un son tout de suite, même s'il vient d'être joué : l'aperçu d'un skin de son que le
      * joueur vient de choisir (la banque, le Big Bang, le tic du métronome). Vrai s'il est parti.
      */
     boolean preview(Cue cue, int volume) {
@@ -335,7 +318,7 @@ final class Sound {
         play(Cue.ACHIEVEMENT, volume);
     }
 
-    /** Le son du geste dans une dimension (version 0.210), court et sans saturation : chacun rappelle son mini-jeu. */
+    /** Le son du geste dans une dimension, court et sans saturation : chacun rappelle son mini-jeu. */
     static short[] synthesizeGesture(int dimension) {
         return switch (dimension) {
             // Le plan : un éclat ramassé, une bulle qui monte.
@@ -362,16 +345,12 @@ final class Sound {
     }
 
     /** Vrai tant que la sortie audio n'a pas échoué. */
-    boolean available() {
-        return !broken;
-    }
+    boolean available() { return !broken; }
 
     private void output(byte[] pcm) {
         try {
             Clip clip = AudioSystem.getClip();
-            clip.addLineListener(event -> {
-                if (event.getType() == LineEvent.Type.STOP) clip.close();
-            });
+            clip.addLineListener(event -> { if (event.getType() == LineEvent.Type.STOP) clip.close(); });
             clip.open(FORMAT, pcm, 0, pcm.length);
             clip.start();
         } catch (Exception | LinkageError noAudio) {
@@ -415,7 +394,7 @@ final class Sound {
             case ELEMENT -> render(0.6, t -> envelope(t, 0.004, 0.6) * (0.5 * sine(880, t) + 0.25 * sine(880 * 2.76, t) * Math.exp(-t * 5)));
             // Un petit bip doux.
             case LEVEL -> render(0.18, t -> envelope(t, 0.005, 0.18) * 0.45 * sine(1046.5, t));
-            // Version 0.210 : un accord parfait qui s'élargit, la quinte et l'octave par-dessus, sur une basse qui tient.
+            // Un accord parfait qui s'élargit, la quinte et l'octave par-dessus, sur une basse qui tient.
             case UNIVERSE -> render(2.4, t -> envelope(t, 0.15, 2.4) * (0.25 * sine(130.8, t) + 0.12 * sine(261.6, t))
                     + notes(t, 0.18, 2.4, 523.25, 659.25, 783.99, 1046.5));
             // Une fanfare de deux notes, la seconde à la quinte, sur un écho grave.
@@ -478,9 +457,7 @@ final class Sound {
         return rest * rest;
     }
 
-    static double sine(double frequency, double t) {
-        return Math.sin(2 * Math.PI * frequency * t);
-    }
+    static double sine(double frequency, double t) { return Math.sin(2 * Math.PI * frequency * t); }
 
     /** Un bruit déterministe : le même son à chaque fois. */
     static double noise(double t) {

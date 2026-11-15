@@ -1,21 +1,17 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.util.List;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Le rythme du jeu : le tempo qui a ramené la première explosion de vingt-quatre heures à trois,
@@ -23,7 +19,6 @@ import org.junit.jupiter.api.Test;
  * synthèse. Les durées elles-mêmes sont gardées par les essais de simulation de {@link JeuDefisTest}.
  */
 class RythmeTest {
-
     private static final Upgrade TENFOLD = new Upgrade("tenfold", "×10", Resource.PARTICLES,
             BigNum.ONE, 1, Upgrade.NO_LIMIT, new Effect.MultiplySpeed(10));
     private static final Upgrade SPEED = new Upgrade("speed", "Vitesse", Resource.PARTICLES,
@@ -62,13 +57,10 @@ class RythmeTest {
         return game;
     }
 
-    private static void rich(Game game) {
-        game.state().setAtoms(game.atomCap());
-    }
+    private static void rich(Game game) { game.state().setAtoms(game.atomCap()); }
 
     @Nested
     class Tempo {
-
         @Test
         void laVitesseDeDepartEstCelleDAvantMultiplieeParLeTempo() {
             assertEquals(0.25 * Game.TEMPO, Game.BASE_SPEED.toDouble(), 1e-12);
@@ -98,7 +90,6 @@ class RythmeTest {
 
     @Nested
     class AchatGroupeDesGenerateurs {
-
         /** La bulle du bonsaï, à droite : les automatismes agissent sans délai, et celui des générateurs achète « max ». */
         private Game instant(Game game) {
             game.state().setTreeBubbleBought(GameUniverse.TreeBubble.LEAVES_RIGHT.ordinal(), true);
@@ -107,7 +98,7 @@ class RythmeTest {
 
         @Test
         void sansLaBulleUneActionAcheteUnSeulGenerateur() {
-            // Version 0.167 : avant, une action prenait tous les générateurs payables, bulle ou pas.
+            // Avant, une action prenait tous les générateurs payables, bulle ou pas.
             Game game = automated();
             assertFalse(game.buysInBulk(AUTO_GEN));
             game.state().setParticles(BigNum.of(1e9));
@@ -201,7 +192,6 @@ class RythmeTest {
 
     @Nested
     class GardeFouDuHasard {
-
         /** Tout le tableau connu en un exemplaire, sauf le fer. */
         private Game allButIron(long seed) {
             Game game = chemist(seed);

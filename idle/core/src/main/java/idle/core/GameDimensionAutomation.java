@@ -1,35 +1,35 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
 /**
- * L'automatisation des dimensions (version 0.150), que les paliers de la graine et les univers ouvrent dimension par
+ * L'automatisation des dimensions, que les paliers de la graine et les univers ouvrent dimension par
  * dimension (version 0.182 ; la bulle du sommet de l'arbre-monde avant) : des automatismes
  * qui jouent les dimensions à la place du joueur et achètent leurs améliorations ({@link DimensionAutomation}). Ils
  * s'achètent l'un après l'autre dans chaque dimension, avec la ressource de la dimension (version 0.209 ; avant, ceux de
  * la ligne en graines d'univers, ceux de chaque dimension suivante avec la ressource de la précédente). Achetés, ils
  * traversent les univers, comme les dimensions ; chacun se coupe à part, et « Tout couper » les arrête tous.
  *
- * <p>Version 0.209 : ceux qui jouent viennent en dernier, en cinq paliers de cadence ; le plus rapide en marche joue
+ * <p>Ceux qui jouent viennent en dernier, en cinq paliers de cadence ; le plus rapide en marche joue
  * ({@link #dimensionPlayPeriod}). Ceux qui achètent gardent de quoi payer l'automatisme suivant de leur dimension
  * ({@link #dimensionAutomationReserve}).
  */
 public abstract class GameDimensionAutomation extends GameHadrons {
-
     GameDimensionAutomation(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
 
     /**
-     * Version 0.182 : les automatismes de la dimension n s'ouvrent quand la graine a atteint le palier n + 2 (le palier
+     * Les automatismes de la dimension n s'ouvrent quand la graine a atteint le palier n + 2 (le palier
      * {@link GameUniverse#SEED_STAGES} au plus) et que n + 1 univers sont formés : ceux de la ligne au bonsaï et au deuxième univers,
      * ceux du plan au cinquième palier et au troisième univers, et ainsi de suite jusqu'au mélange, à l'arbre-monde et au
      * onzième univers. Avant, la bulle du sommet de l'arbre-monde les ouvrait tous d'un coup ; elle fait maintenant
@@ -37,7 +37,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
      */
     public static final int AUTOMATION_STAGE_AHEAD = 2;
 
-    /** Ce que la bulle du sommet de l'arbre-monde retire du prix des automatismes des dimensions (version 0.182). */
+    /** Ce que la bulle du sommet de l'arbre-monde retire du prix des automatismes des dimensions. */
     public static final double SUMMIT_DISCOUNT = 0.5;
 
     /** Le palier de la graine qu'il faut pour les automatismes de cette dimension : n + 2, l'arbre-monde au plus. */
@@ -46,9 +46,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     /** Les univers formés qu'il faut pour les automatismes de cette dimension : n + 1. */
-    public static int dimensionAutomationUniverses(int dimension) {
-        return dimension + 1;
-    }
+    public static int dimensionAutomationUniverses(int dimension) { return dimension + 1; }
 
     /** Vrai si les automatismes de cette dimension sont ouverts : le palier de la graine et les univers y sont. */
     public boolean isDimensionAutomationOpen(int dimension) {
@@ -57,9 +55,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     /** Vrai si les automatismes d'au moins une dimension sont ouverts : le sous-onglet existe. */
-    public boolean isDimensionAutomationUnlocked() {
-        return isDimensionAutomationOpen(1);
-    }
+    public boolean isDimensionAutomationUnlocked() { return isDimensionAutomationOpen(1); }
 
     public boolean ownsDimensionAutomation(DimensionAutomation automation) {
         return state.dimensionAutomations().contains(automation.name());
@@ -72,12 +68,12 @@ public abstract class GameDimensionAutomation extends GameHadrons {
                 && (previous == null || ownsDimensionAutomation(previous));
     }
 
-    /** Son prix : celui du catalogue, moitié prix avec la bulle du sommet de l'arbre-monde (version 0.182). */
+    /** Son prix : celui du catalogue, moitié prix avec la bulle du sommet de l'arbre-monde. */
     public double dimensionAutomationCost(DimensionAutomation automation) {
         return automation.cost() * (hasBubble(TreeBubble.SUMMIT) ? SUMMIT_DISCOUNT : 1);
     }
 
-    /** Ce que le joueur a pour le payer : la ressource de sa dimension (version 0.209). */
+    /** Ce que le joueur a pour le payer : la ressource de sa dimension. */
     public double dimensionAutomationBalance(DimensionAutomation automation) {
         return dimensionResource(automation.paidWith());
     }
@@ -87,7 +83,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         return dimensionResourceName(automation.paidWith());
     }
 
-    /** Le prochain automatisme à acheter dans cette dimension (version 0.209) : le premier pas encore acheté, ou {@code null}. */
+    /** Le prochain automatisme à acheter dans cette dimension : le premier pas encore acheté, ou {@code null}. */
     public DimensionAutomation nextDimensionAutomation(int dimension) {
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.dimension() == dimension && !ownsDimensionAutomation(automation)) return automation;
@@ -96,7 +92,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     /**
-     * Ce que ceux qui achètent laissent dans la réserve de leur dimension (version 0.209) : le prix de l'automatisme
+     * Ce que ceux qui achètent laissent dans la réserve de leur dimension : le prix de l'automatisme
      * suivant, s'il est ouvert. Sans cela, ils dépenseraient tout dès qu'une amélioration est payable, et les paliers qui
      * jouent, en dernier et les plus chers, ne se paieraient jamais.
      */
@@ -137,13 +133,11 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     /** Les automatismes achetés, toutes dimensions. */
-    public int dimensionAutomationsOwned() {
-        return state.dimensionAutomations().size();
-    }
+    public int dimensionAutomationsOwned() { return state.dimensionAutomations().size(); }
 
     /**
      * Ceux qui achètent : chacun prend son amélioration tant qu'elle est payable (cent fois par pas au plus), sans entamer
-     * ce qu'il faut pour l'automatisme suivant de sa dimension (version 0.209, {@link #dimensionAutomationReserve}).
+     * ce qu'il faut pour l'automatisme suivant de sa dimension ({@link #dimensionAutomationReserve}).
      */
     void runDimensionAutomation() {
         if (state.dimensionAutomations().isEmpty()) return;
@@ -163,10 +157,10 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         }
     }
 
-    /** Le prix du prochain niveau de l'amélioration de ce rang dans cette dimension (version 0.209) ; l'infini au plus haut. */
+    /** Le prix du prochain niveau de l'amélioration de ce rang dans cette dimension ; l'infini au plus haut. */
     abstract double dimensionUpgradeCost(int dimension, int index);
 
-    /** Le prix du prochain niveau de l'amélioration qu'achète cet automatisme (version 0.209) ; l'infini pour celui qui joue. */
+    /** Le prix du prochain niveau de l'amélioration qu'achète cet automatisme ; l'infini pour celui qui joue. */
     public double dimensionUpgradeCost(DimensionAutomation automation) {
         return automation.kind() == DimensionAutomation.Kind.UPGRADE ? dimensionUpgradeCost(automation.dimension(), automation.upgrade())
                 : Double.POSITIVE_INFINITY;
@@ -181,7 +175,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     /**
-     * Le temps entre deux actions de celui qui joue cette dimension (version 0.209) : celui du palier le plus rapide qui
+     * Le temps entre deux actions de celui qui joue cette dimension : celui du palier le plus rapide qui
      * tourne, ou celui du joueur qu'un bot imite ({@link #playDimensionByHand}) ; l'infini si personne ne la joue. Aucune
      * bulle ni la matière noire n'y touchent.
      */
@@ -195,12 +189,12 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         return period;
     }
 
-    /** Vrai si quelqu'un joue cette dimension : un palier qui tourne, ou la main d'un bot (version 0.209). */
+    /** Vrai si quelqu'un joue cette dimension : un palier qui tourne, ou la main d'un bot. */
     public boolean isDimensionPlayed(int dimension) {
         return dimensionPlayPeriod(dimension) < Double.POSITIVE_INFINITY;
     }
 
-    /** Le palier le plus rapide qui joue cette dimension et tourne, ou {@code null} (version 0.209) : pour les textes. */
+    /** Le palier le plus rapide qui joue cette dimension et tourne, ou {@code null} : pour les textes. */
     public DimensionAutomation dimensionPlayTier(int dimension) {
         DimensionAutomation fastest = null;
         for (DimensionAutomation automation : DimensionAutomation.values()) {
@@ -211,17 +205,15 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         return fastest;
     }
 
-    /** Vrai si un palier de celui qui joue cette dimension tourne (version 0.209) : pour les textes de la fenêtre. */
-    public boolean isDimensionAutoPlayed(int dimension) {
-        return dimensionPlayTier(dimension) != null;
-    }
+    /** Vrai si un palier de celui qui joue cette dimension tourne : pour les textes de la fenêtre. */
+    public boolean isDimensionAutoPlayed(int dimension) { return dimensionPlayTier(dimension) != null; }
 
     /** La dimension que joue la main d'un bot, 0 pour aucune, et son temps entre deux actions : jamais sauvegardés. */
     private int handDimension;
     private double handPeriod = Double.POSITIVE_INFINITY;
 
     /**
-     * Version 0.209 : un bot joue cette dimension à la main, une action toutes les {@code period} secondes, avec ce que
+     * Un bot joue cette dimension à la main, une action toutes les {@code period} secondes, avec ce que
      * ferait l'automatisme qui la joue ; 0 ou une période infinie arrête. Une seule à la fois, comme un joueur. Pour les
      * bots seulement : l'interface n'y passe jamais, le joueur joue avec la souris, et rien n'en est sauvegardé.
      */
@@ -231,10 +223,8 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         handPeriod = stop ? Double.POSITIVE_INFINITY : Math.max(DimensionAutomation.INSTANT_PERIOD, period);
     }
 
-    /** La dimension que joue la main d'un bot, 0 pour aucune (version 0.209). */
-    public int dimensionPlayedByHand() {
-        return handDimension;
-    }
+    /** La dimension que joue la main d'un bot, 0 pour aucune. */
+    public int dimensionPlayedByHand() { return handDimension; }
 
     private boolean buyDimensionUpgrade(DimensionAutomation automation) {
         int index = automation.upgrade();
@@ -253,30 +243,28 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         };
     }
 
-    /** Achète l'amélioration de la boucle de ce rang (version 0.153, la boucle est un étage plus haut). */
+    /** Achète l'amélioration de la boucle de ce rang (la boucle est un étage plus haut). */
     abstract boolean buyLoopUpgrade(int index);
 
-    /** Achète l'amélioration de la brane de ce rang (version 0.154). */
+    /** Achète l'amélioration de la brane de ce rang. */
     abstract boolean buyBraneUpgrade(int index);
 
-    /** Achète l'amélioration du clicker de ce rang (version 0.155). */
+    /** Achète l'amélioration du clicker de ce rang. */
     abstract boolean buyClickerUpgrade(int index);
 
-    /** Achète l'amélioration de la grille de ce rang (version 0.156). */
+    /** Achète l'amélioration de la grille de ce rang. */
     abstract boolean buyGridUpgrade(int index);
 
-    /** Achète l'amélioration du miroir de ce rang (version 0.157). */
+    /** Achète l'amélioration du miroir de ce rang. */
     abstract boolean buyMirrorUpgrade(int index);
 
-    /** Achète l'amélioration du mélange de ce rang (version 0.158). */
+    /** Achète l'amélioration du mélange de ce rang. */
     abstract boolean buyMixUpgrade(int index);
 
     @Override
-    boolean isPlaneAutomatic() {
-        return isDimensionPlayed(2);
-    }
+    boolean isPlaneAutomatic() { return isDimensionPlayed(2); }
 
-    /** Ce qui reste avant que la visée reprenne sa direction (version 0.209), et la direction tenue entre deux. */
+    /** Ce qui reste avant que la visée reprenne sa direction, et la direction tenue entre deux. */
     private double planeAimWait;
     private double[] planeAim;
 
@@ -313,22 +301,14 @@ public abstract class GameDimensionAutomation extends GameHadrons {
     }
 
     @Override
-    boolean isVolumeAutomatic() {
-        return isDimensionPlayed(3);
-    }
+    boolean isVolumeAutomatic() { return isDimensionPlayed(3); }
 
     @Override
-    double volumeShotPeriod() {
-        return dimensionPlayPeriod(3);
-    }
+    double volumeShotPeriod() { return dimensionPlayPeriod(3); }
 
     @Override
-    boolean isDurationAutomatic() {
-        return isDimensionPlayed(4);
-    }
+    boolean isDurationAutomatic() { return isDimensionPlayed(4); }
 
     @Override
-    double durationPressDelay() {
-        return dimensionPlayPeriod(4);
-    }
+    double durationPressDelay() { return dimensionPlayPeriod(4); }
 }

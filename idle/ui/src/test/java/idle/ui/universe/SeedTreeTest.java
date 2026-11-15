@@ -5,33 +5,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.ui.FxTestSupport;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.canvas.*;
+import org.junit.jupiter.api.*;
 
 /**
- * L'arbre de la graine dessiné palier par palier (versions 0.120 à 0.143), sous Xvfb : du bonsaï (palier 5) à
+ * L'arbre de la graine dessiné palier par palier, sous Xvfb : du bonsaï (palier 5) à
  * l'arbre-monde (palier 11), chaque palier dessine un arbre plus haut, au feuillage posé au-dessus du pied, qui
  * grandit pendant le passage ; l'intensité des effets monte de 0 au palier 4 à 1 à l'arbre-monde.
  *
  * <p>Le centre du feuillage que rend {@link SeedTree#draw} est celui des touffes de feuilles dessinées (depuis la
  * version 0.121) : pas exactement sur l'axe du pied ni à 72 % de la hauteur. Mesuré à la 0.145 : à moins de 0,18 rayon
  * de l'axe, et entre 0,81 et 1,23 fois la hauteur de l'arbre au-dessus du pied (le bonsaï porte ses plateaux au-dessus
- * de son tronc, l'arbuste s'étale plus bas). Les bulles de l'arbre (version 0.142) s'y posent. Le test le vérifie ainsi.
+ * de son tronc, l'arbuste s'étale plus bas). Les bulles de l'arbre s'y posent. Le test le vérifie ainsi.
  */
 class SeedTreeTest {
-
     private static final double W = 800, H = 600, BASE_X = 400, BASE_Y = 560;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
-    private static GraphicsContext canvas() {
-        return new Canvas(W, H).getGraphicsContext2D();
-    }
+    private static GraphicsContext canvas() { return new Canvas(W, H).getGraphicsContext2D(); }
 
     @Test
     void chaquePalierDessineUnArbreAuFeuillagePoseAuDessusDuPied() {

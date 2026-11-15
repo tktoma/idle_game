@@ -1,13 +1,11 @@
 import idle.core.Game;
 import idle.core.bigbang.BangChallenge;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.universe.CycleChoice;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Ce que les bots font en plus à partir du deuxième univers (version 0.130), par-dessus {@link FirstUniversePolicy}
+ * Ce que les bots font en plus à partir du deuxième univers, par-dessus {@link FirstUniversePolicy}
  * et {@link RobotCosmosPlanner}, qui restent la base des trois actes. Une seule classe pour tous les bots : le bot
  * V2, les 24 profils et l'audit depuis zéro l'appellent par {@link RobotCosmosPlanner#resourceLoop()}.
  *
@@ -21,7 +19,6 @@ import java.util.Map;
  * ({@link #launchNext}), sans attendre le palier de la graine qu'un joueur doit atteindre.
  */
 final class NextUniversePolicy {
-
     /**
      * Le choix de cycle du joueur expert. Mesuré en version 0.130 sur le deuxième univers, depuis
      * {@code checkpoint_universe1_speedrunner.save} : écarts dans le bruit, la fusion la plus régulière. Remesuré en
@@ -56,7 +53,7 @@ final class NextUniversePolicy {
     }
 
     /**
-     * La façon de jouer le deuxième univers d'un profil (version 0.131). Le régime rapide, geste répété, se joue à
+     * La façon de jouer le deuxième univers d'un profil. Le régime rapide, geste répété, se joue à
      * chaque décision où il est prêt, avec sa chance. Le choix de cycle et les éléments offerts se jouent une fois par
      * occasion : le joueur qui n'y pense pas laisse passer tout le cycle (jusqu'au Big Bang suivant), ou la fournée
      * d'éléments (jusqu'aux dix éléments découverts suivants).
@@ -75,39 +72,33 @@ final class NextUniversePolicy {
 
     private final Style style;
     private final CycleChoice cycle;
-    private final java.util.Random random;
+    private final Random random;
     private int familyDisagreements = 0;
     /** L'occasion de choix de cycle et la fournée d'éléments offerts déjà tranchées (on n'y revient pas). */
     private long cycleOccasion = -1, freeOccasion = -1;
     int regimes = 0, cycles = 0, families = 0, freeElements = 0;
 
-    NextUniversePolicy() {
-        this(Style.EXPERT, new java.util.Random(0));
-    }
+    NextUniversePolicy() { this(Style.EXPERT, new Random(0)); }
 
     /** L'expert, avec ce choix de cycle-là, quelle que soit la propriété {@code idle.cycle} : pour les essais. */
     NextUniversePolicy(CycleChoice cycle) {
-        this(new Style(cycle, 1, 1, Family.FOLLOW, 1, Pick.NEEDED), new java.util.Random(0), false);
+        this(new Style(cycle, 1, 1, Family.FOLLOW, 1, Pick.NEEDED), new Random(0), false);
     }
 
     /**
      * @param style  la façon de jouer du profil
      * @param random son propre hasard : les gestes du deuxième univers ne déplacent pas les tirages du profil
      */
-    NextUniversePolicy(Style style, java.util.Random random) {
-        this(style, random, true);
-    }
+    NextUniversePolicy(Style style, Random random) { this(style, random, true); }
 
-    private NextUniversePolicy(Style style, java.util.Random random, boolean configurable) {
+    private NextUniversePolicy(Style style, Random random, boolean configurable) {
         this.style = style;
         CycleChoice forced = configurable ? configuredCycle() : null;
         this.cycle = forced != null ? forced : style.cycle();
         this.random = random;
     }
 
-    Style style() {
-        return style;
-    }
+    Style style() { return style; }
 
     /** Vrai avec cette chance ; ne tire rien quand elle vaut 0 ou 1, pour que l'expert ne consomme aucun hasard. */
     private boolean chance(double p) {
@@ -127,9 +118,7 @@ final class NextUniversePolicy {
     }
 
     /** Le choix de cycle du profil, ou {@code null} quand il le tire au hasard. */
-    CycleChoice cycle() {
-        return cycle;
-    }
+    CycleChoice cycle() { return cycle; }
 
     /** Vrai une fois {@code target} univers formés, hors de la partie qui mène au suivant. */
     static boolean reached(Game game, int target) {
@@ -150,9 +139,7 @@ final class NextUniversePolicy {
      * Vrai pour mesurer l'univers 2 sans ses nouveautés (propriété {@code idle.sansNouveautesUnivers2}) : les bots
      * rejouent alors les trois actes comme dans le premier univers.
      */
-    static boolean disabled() {
-        return Boolean.getBoolean("idle.sansNouveautesUnivers2");
-    }
+    static boolean disabled() { return Boolean.getBoolean("idle.sansNouveautesUnivers2"); }
 
     /** Les gestes du deuxième univers, à chaque décision, selon la façon de jouer du profil ; rien dans le premier. */
     int play(Game game) {
@@ -181,7 +168,7 @@ final class NextUniversePolicy {
             freeOccasion = freeNow;
             if (chance(style.freeCare())) done += claimFreeElements(game);
         }
-        // Version 0.174 : les deux recherches de l'onglet Skins (le noyau dense, payé en atomes, et le prisme, en
+        // Les deux recherches de l'onglet Skins (le noyau dense, payé en atomes, et le prisme, en
         // particules), dès qu'elles se paient. Chaque skin donne +2 % ; avant, aucun bot ne les achetait.
         if ((game.canBuyDenseTier() || game.canBuyPrismResearch()) && chance(style.freeCare())) {
             while (game.canBuyDenseTier() && game.buyDenseTier()) done++;
@@ -248,7 +235,7 @@ final class NextUniversePolicy {
     }
 
     private int randomUndiscovered(Game game) {
-        java.util.List<Integer> left = new java.util.ArrayList<>();
+        List<Integer> left = new ArrayList<>();
         for (var element : PeriodicTable.ELEMENTS) if (game.elementCount(element.number()) == 0) left.add(element.number());
         return left.isEmpty() ? -1 : left.get(random.nextInt(left.size()));
     }

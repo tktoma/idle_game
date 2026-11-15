@@ -3,14 +3,12 @@ package idle.ui;
 import java.util.List;
 
 /**
- * Le numéro de version du jeu et ses notes : ce qui a changé, version après version, de la plus
- * récente à la plus ancienne. Affichés au bas des réglages ({@link SettingsPage}) et joints au
- * rapport de bug ({@link BugReport}).
+ * Le numéro de version du jeu et ses notes : ce qui a changé, version après version, de la plus récente à la plus
+ * ancienne. Affichés au bas des réglages ({@link SettingsPage}) et joints au rapport de bug ({@link BugReport}).
  *
  * <p>À chaque livraison : ajouter une entrée en tête de {@link #NOTES}, et {@link #CURRENT} suit.
  */
 public final class Version {
-
     /**
      * Une version et ce qu'elle a apporté.
      *
@@ -23,6 +21,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.215", "Un code plus court et mieux rangé", List.of(
+                    "Rien ne change en jeu : les parties se jouent à l'identique, au même rythme. Le code du jeu a perdu "
+                            + "environ 8 000 lignes sur 149 000 (méthodes inutilisées retirées, commentaires sans l'historique "
+                            + "des versions, mise en page resserrée), et l'état de la partie a son propre paquet.",
+                    "Les anciennes sauvegardes se relisent comme avant.")),
             new Note("0.214", "Un jeu un peu plus léger", List.of(
                     "Un pas de jeu en partie avancée prend 12 % de temps en moins, et l'onglet des particules calcule la "
                             + "production une fois par image au lieu de trois. Rien ne change dans les calculs : une partie se joue "

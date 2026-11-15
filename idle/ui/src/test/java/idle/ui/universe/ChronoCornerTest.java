@@ -9,16 +9,12 @@ import idle.core.GameUniverse.SeedUpgrade;
 import idle.ui.FxTestSupport;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
-/** Version 0.182 : le chrono hors de la sous-page Graine, une fois son étage acheté ; version 0.203 : une ligne rangée, plus une carte flottante. */
+/** Le chrono hors de la sous-page Graine, une fois son étage acheté ; version 0.203 : une ligne rangée, plus une carte flottante. */
 class ChronoCornerTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @Test
     void laCarteApparaitAvecLEtageHorsDeLaSousPageGraineEtRegleLeChrono() {

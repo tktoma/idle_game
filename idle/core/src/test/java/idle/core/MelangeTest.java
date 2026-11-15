@@ -1,5 +1,9 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.profile.Title;
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,12 +17,11 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.159 : le mélange refait. Un seul mini-jeu qui mêle, étape par étape, les mécaniques des dimensions : la
+ * Le mélange refait. Un seul mini-jeu qui mêle, étape par étape, les mécaniques des dimensions : la
  * ligne d'abord, puis le plan, le volume… jusqu'au miroir. Chaque étape gagnée ouvre la suivante et remet à zéro les
  * améliorations du mélange. Et la dernière amélioration de la graine, qui ouvre la bulle des racines.
  */
 class MelangeTest {
-
     private static Game stage(int stage) {
         Game game = GameTestSupport.universe(10);
         game.state().setMixStage(stage);
@@ -226,7 +229,7 @@ class MelangeTest {
         early.state().setMixStageEarned(1_000);
         early.tick(0.05);
         assertEquals(2, early.mixStage(), "il passe à l'étape suivante");
-        assertEquals(16, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count());
+        assertEquals(16, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count());
         assertEquals(10, DimensionAutomation.MIX_AUTO.paidWith(), "payés en fragments du mélange (version 0.209)");
     }
 
@@ -253,7 +256,7 @@ class MelangeTest {
         game.state().setMixStageEarned(12);
         assertTrue(game.isDimensionThresholdReached(10));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.MIX_MASTER));
+        assertTrue(game.hasTitle(Title.MIX_MASTER));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.mixLevel(MixUpgrade.GAIN.ordinal()));
         assertEquals(4, back.mixStage());

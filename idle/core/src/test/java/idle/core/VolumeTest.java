@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,12 +12,10 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.128 : le volume, troisième dimension. On plonge dans le cube, on regarde depuis son centre, on cueille
- * les boules qui y apparaissent ; le cube rejette le joueur à la fin du minuteur, et les améliorations s'achètent
- * dehors.
+ * Le volume, troisième dimension. On plonge dans le cube, on regarde depuis son centre, on cueille les boules qui y
+ * apparaissent ; le cube rejette le joueur à la fin du minuteur, et les améliorations s'achètent dehors.
  */
 class VolumeTest {
-
     /** Une partie au troisième univers : la troisième dimension est ouverte. */
     private static Game third() {
         Game game = GameTestSupport.realGame();

@@ -1,16 +1,17 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.math.BigNum;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * La grille, huitième dimension (version 0.156, revue à la 0.157) : une énorme grille de {@value #GRID_CELLS} cases
+ * La grille, huitième dimension (revue à la 0.157) : une énorme grille de {@value #GRID_CELLS} cases
  * sur {@value #GRID_CELLS} sur {@value #GRID_CELLS}, où un point est caché au hasard. Le joueur a un essai par point
  * caché : il choisit une case, et plus elle est proche du point, plus il gagne de repères (la ressource). S'il tombe
  * sur la case même, il le trouve : le gain est multiplié. Dans les deux cas, le point se cache ailleurs pour l'essai
@@ -24,7 +25,6 @@ import java.util.random.RandomGenerator;
  * l'arrosage par la racine carrée de la puissance de dix de l'énergie du vide récupérée.
  */
 public abstract class GameGrid extends GameClicker {
-
     GameGrid(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -42,19 +42,15 @@ public abstract class GameGrid extends GameClicker {
         POINTS(30, 3.5, 6),
         /** La proximité compte davantage : +1 au multiplicateur par niveau. */
         PROXIMITY(10, 2.8, 20),
-        /** Un essai de plus par point caché (version 0.157) : 4 au plus. */
+        /** Un essai de plus par point caché : 4 au plus. */
         ATTEMPTS(60, 8, 3);
 
         private final Price price;
 
-        GridUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        GridUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Un point caché, en coordonnées de 0 à {@value #GRID_SIZE} (la case se lit de ses coordonnées). */
@@ -66,7 +62,7 @@ public abstract class GameGrid extends GameClicker {
 
     /**
      * Ce qu'a donné un essai : la case, la distance au point visé (en cases), s'il l'a trouvé, le gain, et les essais
-     * qu'il reste sur ce point (0 : il s'est caché ailleurs), et le numéro du point visé (version 0.158) : l'interface
+     * qu'il reste sur ce point (0 : il s'est caché ailleurs), et le numéro du point visé : l'interface
      * n'y garde que les essais des points encore cachés là, et efface les couleurs des anciens.
      */
     public record GridProbe(int i, int j, int k, double distance, boolean found, double gain, int triesLeft, long pointId) {
@@ -86,7 +82,7 @@ public abstract class GameGrid extends GameClicker {
     /** L'attente après chaque essai, en secondes. */
     public static final double GRID_COOLDOWN = 0.5;
 
-    private final java.util.Random gridRandom = new java.util.Random(8);
+    private final Random gridRandom = new Random(8);
     private final List<GridPoint> gridPoints = new ArrayList<>();
     /** Les essais qu'il reste sur chaque point, dans l'ordre de {@link #gridPoints}. */
     private final List<Integer> gridTries = new ArrayList<>();
@@ -98,18 +94,12 @@ public abstract class GameGrid extends GameClicker {
     private long gridProbes, gridFound, gridAutoProbes;
 
     /** Vrai dès que la huitième dimension est ouverte : au huitième univers. */
-    public boolean isGridOpen() {
-        return dimensionsUnlocked() >= 8;
-    }
+    public boolean isGridOpen() { return dimensionsUnlocked() >= 8; }
 
-    public int gridLevel(GridUpgrade upgrade) {
-        return state.gridLevel(upgrade.ordinal());
-    }
+    public int gridLevel(GridUpgrade upgrade) { return state.gridLevel(upgrade.ordinal()); }
 
     /** Le nombre de cases par côté : 1 000, ×0,7 par niveau de réduction, 2 au moins. */
-    public int gridDivisions() {
-        return cellsAt(gridLevel(GridUpgrade.DIVISION));
-    }
+    public int gridDivisions() { return cellsAt(gridLevel(GridUpgrade.DIVISION)); }
 
     /** Le nombre de cases par côté au niveau de réduction {@code level}. */
     public static int cellsAt(int level) {
@@ -117,9 +107,7 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Les essais par point caché : 1, et un de plus par niveau. */
-    public int gridAttempts() {
-        return 1 + gridLevel(GridUpgrade.ATTEMPTS);
-    }
+    public int gridAttempts() { return 1 + gridLevel(GridUpgrade.ATTEMPTS); }
 
     /** Le numéro du point {@code index} : il change quand le point se cache ailleurs. */
     public long gridPointId(int index) {
@@ -140,19 +128,13 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Le côté d'une case. */
-    public double gridCellSize() {
-        return GRID_SIZE / gridDivisions();
-    }
+    public double gridCellSize() { return GRID_SIZE / gridDivisions(); }
 
     /** Les points cachés à la fois. */
-    public int gridPointCount() {
-        return 1 + gridLevel(GridUpgrade.POINTS);
-    }
+    public int gridPointCount() { return 1 + gridLevel(GridUpgrade.POINTS); }
 
     /** Ce que donne un essai, avant la proximité : 1, plus 1 par niveau de gain, et le bonus des omégas. */
-    public double gridValue() {
-        return (1 + gridLevel(GridUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double gridValue() { return (1 + gridLevel(GridUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA); }
 
     public double gridProximityStep() {
         return GRID_PROXIMITY + GRID_PROXIMITY_STEP * gridLevel(GridUpgrade.PROXIMITY);
@@ -168,9 +150,7 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Ce que la grille montre : 0 rien, 1 la distance, 2 la couche, 3 la colonne aussi. */
-    public int gridReveal() {
-        return gridLevel(GridUpgrade.REVEAL);
-    }
+    public int gridReveal() { return gridLevel(GridUpgrade.REVEAL); }
 
     /** Les points cachés : l'interface n'en montre que ce que {@link #gridReveal()} permet. */
     public List<GridPoint> gridPoints() {
@@ -179,9 +159,7 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Le centre de la case (i, j, k), sur un axe. */
-    public double gridCenter(int index) {
-        return (index + 0.5) * gridCellSize();
-    }
+    public double gridCenter(int index) { return (index + 0.5) * gridCellSize(); }
 
     /** La case d'une coordonnée, sur un axe. */
     public int gridCell(double coordinate) {
@@ -209,30 +187,18 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Le dernier essai, ou {@code null}. */
-    public GridProbe gridLastProbe() {
-        return gridLast;
-    }
+    public GridProbe gridLastProbe() { return gridLast; }
 
     /** Ce qu'il reste à attendre avant le prochain essai. */
-    public double gridWait() {
-        return Math.max(0, gridWait);
-    }
+    public double gridWait() { return Math.max(0, gridWait); }
 
-    public long gridProbes() {
-        return gridProbes;
-    }
+    public long gridProbes() { return gridProbes; }
 
-    public long gridFound() {
-        return gridFound;
-    }
+    public long gridFound() { return gridFound; }
 
-    public long gridAutoProbes() {
-        return gridAutoProbes;
-    }
+    public long gridAutoProbes() { return gridAutoProbes; }
 
-    public boolean canProbeGrid() {
-        return isGridOpen() && gridWait <= 0;
-    }
+    public boolean canProbeGrid() { return isGridOpen() && gridWait <= 0; }
 
     /**
      * Un essai sur la case (i, j, k) : il vise le point le plus proche et gagne selon la distance ; tombé sur la case du
@@ -328,14 +294,10 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /** Vrai quand l'automatisme de la grille joue (automatisation des dimensions, version 0.156). */
-    boolean isGridAutomatic() {
-        return isDimensionPlayed(8);
-    }
+    boolean isGridAutomatic() { return isDimensionPlayed(8); }
 
     /** Prix du prochain niveau, en repères ; infini une fois au plus haut. */
-    public double gridCost(GridUpgrade upgrade) {
-        return upgrade.cost(gridLevel(upgrade));
-    }
+    public double gridCost(GridUpgrade upgrade) { return upgrade.cost(gridLevel(upgrade)); }
 
     public boolean canBuyGrid(GridUpgrade upgrade) {
         return isGridOpen() && gridLevel(upgrade) < upgrade.max() && state.gridShards() >= gridCost(upgrade) - 1e-9;
@@ -349,17 +311,15 @@ public abstract class GameGrid extends GameClicker {
     }
 
     @Override
-    boolean buyGridUpgrade(int index) {
-        return buyGrid(GridUpgrade.values()[index]);
-    }
+    boolean buyGridUpgrade(int index) { return buyGrid(GridUpgrade.values()[index]); }
 
     // ------------------------------------------------------------------
     // La graine profonde
     // ------------------------------------------------------------------
 
     /** L'énergie du vide récupérée : le cumul des univers passés, et ce qu'il reste dans celui-ci. */
-    public idle.core.math.BigNum recoveredVoidEnergy() {
-        idle.core.math.BigNum total = idle.core.math.BigNum.of(Math.max(0, voidAccumulated()));
+    public BigNum recoveredVoidEnergy() {
+        BigNum total = BigNum.of(Math.max(0, voidAccumulated()));
         return state.voidOpen() ? total.add(voidEnergy()) : total;
     }
 
@@ -368,8 +328,8 @@ public abstract class GameGrid extends GameClicker {
      * récupérée, √(log10 E) ; 1 au moins.
      */
     public double deepSeedFull() {
-        idle.core.math.BigNum energy = recoveredVoidEnergy();
-        double power = energy.compareTo(idle.core.math.BigNum.ONE) > 0 ? energy.log10() : 0;
+        BigNum energy = recoveredVoidEnergy();
+        double power = energy.compareTo(BigNum.ONE) > 0 ? energy.log10() : 0;
         return Math.max(1, Math.sqrt(power));
     }
 
@@ -381,7 +341,5 @@ public abstract class GameGrid extends GameClicker {
 
     /** Tout l'arrosage, multiplié par la graine profonde. */
     @Override
-    public double wateringBoost() {
-        return super.wateringBoost() * deepSeed();
-    }
+    public double wateringBoost() { return super.wateringBoost() * deepSeed(); }
 }

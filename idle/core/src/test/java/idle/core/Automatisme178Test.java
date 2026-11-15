@@ -5,12 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import java.util.List;
-import java.util.Map;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -20,7 +17,6 @@ import org.junit.jupiter.api.Test;
  * puis les amas confiés, servis à tour de rôle.
  */
 class Automatisme178Test {
-
     /** Après huit Big Bangs, tout ouvert, beaucoup d'espace et deux cents exemplaires de chaque élément. */
     private static Game prepared() {
         Game game = GameTestSupport.realGame();

@@ -2,16 +2,13 @@ package idle.ui;
 
 import idle.core.universe.Skin;
 import javafx.geometry.Pos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContentDisplay;
+import javafx.scene.canvas.*;
+import javafx.scene.control.*;
 import javafx.scene.paint.Color;
 
 /**
- * Les quatre skins du bouton de démarrage (version 0.199), à côté de {@link GameAppWindow#showStartButton} : un style
- * et une petite icône dessinée au code, posée à gauche du texte. Le classique ne passe pas ici et garde son style au
- * caractère près.
+ * Les quatre skins du bouton de démarrage, à côté de {@link GameAppWindow#showStartButton} : un style et une petite
+ * icône dessinée au code, posée à gauche du texte. Le classique ne passe pas ici et garde son style au caractère près.
  * <ul>
  * <li>« Interrupteur » : une pastille grise, un interrupteur à bascule dont le levier est encore sur « arrêt » ;</li>
  * <li>« Graine qu'on plante » : terre brune, une graine d'où sort une pousse ;</li>
@@ -20,7 +17,6 @@ import javafx.scene.paint.Color;
  * </ul>
  */
 final class StartButtonArt {
-
     static final double ICON = 30;
 
     private StartButtonArt() {

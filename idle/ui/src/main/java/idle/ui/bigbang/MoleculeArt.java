@@ -12,58 +12,47 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
  * Le dessin d'une molécule en boules et bâtons, tiré de sa seule formule.
  *
- * <p>Ce n'est pas sa vraie géométrie : le jeu ne connaît que le nombre d'atomes de chaque
- * élément. Les atomes sont posés sur un pavage en triangles, en spirale depuis le centre : d'abord
- * les éléments les moins nombreux et les plus lourds (le soufre de H₂SO₄ se retrouve au milieu),
- * puis les autres, et les hydrogènes en dernier, à la périphérie. Deux atomes voisins sur le
- * pavage sont reliés ; un hydrogène ne l'est qu'à un seul voisin. Le résultat se lit comme une
- * molécule, et deux formules différentes donnent deux dessins différents.
+ * <p>Ce n'est pas sa vraie géométrie : le jeu ne connaît que le nombre d'atomes de chaque élément. Les atomes sont
+ * posés sur un pavage en triangles, en spirale depuis le centre : d'abord les éléments les moins nombreux et les plus
+ * lourds (le soufre de H₂SO₄ se retrouve au milieu), puis les autres, et les hydrogènes en dernier, à la périphérie.
+ * Deux atomes voisins sur le pavage sont reliés ; un hydrogène ne l'est qu'à un seul voisin. Le résultat se lit comme
+ * une molécule, et deux formules différentes donnent deux dessins différents.
  *
- * <p>Les couleurs sont celles des modèles de chimie pour les éléments courants (hydrogène blanc,
- * carbone gris, azote bleu, oxygène rouge, soufre jaune, halogènes verts) ; les autres prennent la
- * couleur de leur famille dans le tableau périodique. Un atome assez grand porte son symbole,
- * sauf le carbone et l'hydrogène.
+ * <p>Les couleurs sont celles des modèles de chimie pour les éléments courants (hydrogène blanc, carbone gris, azote
+ * bleu, oxygène rouge, soufre jaune, halogènes verts) ; les autres prennent la couleur de leur famille dans le tableau
+ * périodique. Un atome assez grand porte son symbole, sauf le carbone et l'hydrogène.
  *
- * <p>La mise en place d'une molécule est calculée une fois ({@link #of(Molecule)}), puis dessinée
- * à l'échelle, à l'endroit et sous l'angle voulus ({@link Shape#draw}).
+ * <p>La mise en place d'une molécule est calculée une fois ({@link #of(Molecule)}), puis dessinée à l'échelle, à
+ * l'endroit et sous l'angle voulus ({@link Shape#draw}).
  *
- * <p>Version 0.188 : les quatre skins des molécules ({@link SkinVisual#MOLECULE}) redessinent les
- * mêmes positions autrement, sans toucher à la mise en place ni à l'emprise que lisent les vues.
- * « Boules pleines » ({@link Skin#MOLECULE_SPACE_FILLING}) gonfle chaque atome en une sphère de
- * rayon ×{@link #FILLING} qui recouvre ses voisines, ombrée d'un dégradé clair en haut à gauche et
- * cernée de sombre, sans bâtons, dessinées du cœur vers la périphérie ; l'échelle est réduite pour
- * que l'ensemble ne déborde pas de plus de {@link #OVERFLOW} du cercle demandé. « Traits »
- * ({@link Skin#MOLECULE_SKELETON}) ne garde que les liaisons, en traits fins de la couleur
- * dominante (le modèle ne connaît pas les liaisons doubles : elles sont toutes simples), avec aux
- * sommets la lettre du symbole en police à chasse fixe, blanche à ombre sombre, dès
- * {@link #LETTERS_FROM} pixels de rayon, et un petit point en dessous. « Perles »
- * ({@link Skin#MOLECULE_PEARLS}) fait de chaque atome une perle nacrée (couleur très éclaircie,
- * reflet blanc décalé, bord irisé de deux teintes voisines) sur une légère ombre portée, reliée
- * par un fil d'un pixel. « Lego » ({@link Skin#MOLECULE_BRICKS}) pose à chaque atome une brique
- * carrée vue de trois quarts, face avant de la couleur saturée, dessus plus clair avec deux tenons,
- * côté droit plus sombre, cernée de noir ; les briques ne tournent pas et se touchent, la plus liée
- * au centre, dessinées de l'arrière-plan vers l'avant. Les dégradés et couleurs dérivées sont
- * calculés une fois par molécule, par couleur d'atome, à la mise en place ({@link Looks}) : rien
- * n'est alloué au dessin au-delà de ce que fait le Classique.
+ * <p>Les quatre skins des molécules ({@link SkinVisual#MOLECULE}) redessinent les mêmes positions autrement, sans
+ * toucher à la mise en place ni à l'emprise que lisent les vues. « Boules pleines » ({@link
+ * Skin#MOLECULE_SPACE_FILLING}) gonfle chaque atome en une sphère de rayon ×{@link #FILLING} qui recouvre ses voisines,
+ * ombrée d'un dégradé clair en haut à gauche et cernée de sombre, sans bâtons, dessinées du cœur vers la périphérie ;
+ * l'échelle est réduite pour que l'ensemble ne déborde pas de plus de {@link #OVERFLOW} du cercle demandé. « Traits »
+ * ({@link Skin#MOLECULE_SKELETON}) ne garde que les liaisons, en traits fins de la couleur dominante (le modèle ne
+ * connaît pas les liaisons doubles : elles sont toutes simples), avec aux sommets la lettre du symbole en police à
+ * chasse fixe, blanche à ombre sombre, dès {@link #LETTERS_FROM} pixels de rayon, et un petit point en dessous. «
+ * Perles » ({@link Skin#MOLECULE_PEARLS}) fait de chaque atome une perle nacrée (couleur très éclaircie, reflet blanc
+ * décalé, bord irisé de deux teintes voisines) sur une légère ombre portée, reliée par un fil d'un pixel. « Lego »
+ * ({@link Skin#MOLECULE_BRICKS}) pose à chaque atome une brique carrée vue de trois quarts, face avant de la couleur
+ * saturée, dessus plus clair avec deux tenons, côté droit plus sombre, cernée de noir ; les briques ne tournent pas et
+ * se touchent, la plus liée au centre, dessinées de l'arrière-plan vers l'avant. Les dégradés et couleurs dérivées sont
+ * calculés une fois par molécule, par couleur d'atome, à la mise en place ({@link Looks}) : rien n'est alloué au dessin
+ * au-delà de ce que fait le Classique.
  *
- * <p>Version 0.194 : la palette des molécules ({@link MoleculePaletteArt}, {@link SkinVisual#MOLECULE_PALETTE})
- * change la couleur des atomes sous toutes ces formes. Elle est fixée pour tout le jeu ({@link #setPalette}) ; une
- * mise en place est calculée par molécule et par palette, et {@link #of(Molecule)} rend celle de la palette en cours,
- * dominant compris. Les vues qui gardent des mises en place les redemandent quand la palette change ({@link #palette()}).
+ * <p>La palette des molécules ({@link MoleculePaletteArt}, {@link SkinVisual#MOLECULE_PALETTE}) change la couleur des
+ * atomes sous toutes ces formes. Elle est fixée pour tout le jeu ({@link #setPalette}) ; une mise en place est calculée
+ * par molécule et par palette, et {@link #of(Molecule)} rend celle de la palette en cours, dominant compris. Les vues
+ * qui gardent des mises en place les redemandent quand la palette change ({@link #palette()}).
  */
 final class MoleculeArt {
-
     /** Un atome placé : sa position et son rayon, en pas du pavage, sa couleur et son symbole. */
     record Atom(double x, double y, double radius, Color color, String symbol, boolean labelled) {}
 
@@ -105,16 +94,15 @@ final class MoleculeArt {
             Map.entry("Se", "#ffb85c"));
 
     private static final Map<String, Shape> SHAPES = new HashMap<>();
-    /** La palette des molécules choisie (version 0.194) : {@code null} pour les couleurs CPK du Classique. */
+    /** La palette des molécules choisie : {@code null} pour les couleurs CPK du Classique. */
     private static Skin palette;
     /** Les places du pavage, en spirale depuis le centre : assez pour la plus grosse molécule du catalogue. */
     private static final List<double[]> SITES = sites(6);
 
     /**
-     * Ce que les skins ont précalculé pour une molécule : les dégradés et couleurs dérivées de chaque
-     * couleur d'atome ({@code palette[atome]} dit laquelle), les emprises des dessins qui dépassent
-     * les boules, et les tampons que le dessin réutilise d'une image à l'autre (positions à l'écran,
-     * ordre de profondeur) pour ne rien allouer.
+     * Ce que les skins ont précalculé pour une molécule : les dégradés et couleurs dérivées de chaque couleur d'atome
+     * ({@code palette[atome]} dit laquelle), les emprises des dessins qui dépassent les boules, et les tampons que le
+     * dessin réutilise d'une image à l'autre (positions à l'écran, ordre de profondeur) pour ne rien allouer.
      */
     static final class Looks {
         final int[] palette;
@@ -188,9 +176,7 @@ final class MoleculeArt {
         }
 
         /** Le côté de la brique d'un atome, en pas du pavage. */
-        static double brickSide(Atom atom) {
-            return Math.min(1, atom.radius() * BRICK_SIDE_PER_RADIUS);
-        }
+        static double brickSide(Atom atom) { return Math.min(1, atom.radius() * BRICK_SIDE_PER_RADIUS); }
     }
 
     /**
@@ -198,7 +184,6 @@ final class MoleculeArt {
      * cercle qui la contient, en pas du pavage ; {@code looks} est ce que les skins y ont précalculé.
      */
     record Shape(List<Atom> atoms, List<Bond> bonds, double extent, Color dominant, Looks looks) {
-
         /**
          * Dessine la molécule centrée en ({@code cx}, {@code cy}), dans un cercle de {@code radius}
          * pixels, tournée de {@code angle} radians, en boules et bâtons : le dessin classique.
@@ -208,11 +193,10 @@ final class MoleculeArt {
         }
 
         /**
-         * Dessine la molécule centrée en ({@code cx}, {@code cy}), dans un cercle de {@code radius}
-         * pixels, tournée de {@code angle} radians, dans le skin des molécules {@code skin}
-         * ({@code null} ou un skin d'un autre visuel : le Classique). Trop petite pour qu'on y
-         * distingue quoi que ce soit, elle se réduit à un point de sa couleur dominante, quel que
-         * soit le skin.
+         * Dessine la molécule centrée en ({@code cx}, {@code cy}), dans un cercle de {@code radius} pixels, tournée de
+         * {@code angle} radians, dans le skin des molécules {@code skin} ({@code null} ou un skin d'un autre visuel :
+         * le Classique). Trop petite pour qu'on y distingue quoi que ce soit, elle se réduit à un point de sa couleur
+         * dominante, quel que soit le skin.
          */
         void draw(GraphicsContext g, double cx, double cy, double radius, double angle, Skin skin) {
             double scale = radius / extent;
@@ -400,23 +384,17 @@ final class MoleculeArt {
         }
 
         /** La profondeur d'un atome à l'écran pour les briques : plus il est bas et à droite, plus il est devant. */
-        private double depth(int index) {
-            return looks.screenY[index] + 0.5 * looks.screenX[index];
-        }
+        private double depth(int index) { return looks.screenY[index] + 0.5 * looks.screenX[index]; }
     }
 
     /**
      * La police des symboles à cette taille. À un instant donné, tous les atomes d'une même sorte
      * ont la même taille à l'écran : une police est donc demandée une fois, puis reprise.
      */
-    private static Font label(double size) {
-        return font(LABELS, "System", size);
-    }
+    private static Font label(double size) { return font(LABELS, "System", size); }
 
     /** La police à chasse fixe des lettres du skin « Traits », à cette taille, reprise de même. */
-    private static Font mono(double size) {
-        return font(MONO, "Monospaced", size);
-    }
+    private static Font mono(double size) { return font(MONO, "Monospaced", size); }
 
     private static Font font(Map<Double, Font> cache, String family, double size) {
         Double key = size;
@@ -438,15 +416,11 @@ final class MoleculeArt {
         return SHAPES.computeIfAbsent(tones == null ? molecule.id() : molecule.id() + "|" + tones.id(), id -> layout(molecule, tones));
     }
 
-    /** Fixe la palette des molécules (version 0.194) : {@code null}, ou un skin d'un autre visuel, rend les couleurs du Classique. */
-    static void setPalette(Skin skin) {
-        palette = MoleculePaletteArt.draws(skin) ? skin : null;
-    }
+    /** Fixe la palette des molécules : {@code null}, ou un skin d'un autre visuel, rend les couleurs du Classique. */
+    static void setPalette(Skin skin) { palette = MoleculePaletteArt.draws(skin) ? skin : null; }
 
     /** La palette des molécules en cours : {@code null} pour le Classique. */
-    static Skin palette() {
-        return palette;
-    }
+    static Skin palette() { return palette; }
 
     private static Shape layout(Molecule molecule, Skin tones) {
         // Les éléments dans l'ordre où ils prennent place : les hydrogènes en dernier, et avant eux

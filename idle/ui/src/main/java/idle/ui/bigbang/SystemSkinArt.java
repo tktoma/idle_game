@@ -4,14 +4,11 @@ import idle.core.sky.Body;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les skins du dessin d'un système solaire (version 0.194, {@link SkinVisual#SYSTEM}, {@link SystemView}) :
+ * Les skins du dessin d'un système solaire ({@link SkinVisual#SYSTEM}, {@link SystemView}) :
  * le fond, les orbites, l'étoile et les planètes.
  * <ul>
  *   <li>« Orrery » ({@link Skin#SYSTEM_ORRERY}) : un fond de bois sombre, des orbites en cercles de laiton,
@@ -24,7 +21,6 @@ import javafx.scene.shape.StrokeLineCap;
  * </ul>
  */
 final class SystemSkinArt {
-
     private static final Color WOOD = Color.web("#1e1510");
     private static final Color BRASS = Color.web("#d6b25a");
     private static final Color BRASS_DARK = Color.web("#7a5a1e");
@@ -46,9 +42,7 @@ final class SystemSkinArt {
     private SystemSkinArt() {}
 
     /** Vrai si ce skin habille les systèmes : {@code null} ou un autre visuel, c'est le Classique. */
-    static boolean draws(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.SYSTEM;
-    }
+    static boolean draws(Skin skin) { return skin != null && skin.visual() == SkinVisual.SYSTEM; }
 
     /** La couleur des textes principaux (noms des planètes). */
     static Color text(Skin skin) {

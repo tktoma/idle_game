@@ -5,35 +5,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.common.Card;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.190 : les skins du chrome sous Xvfb. Chaque skin de carte se montre dans chaque état sans exception, chaque
+ * Les skins du chrome sous Xvfb. Chaque skin de carte se montre dans chaque état sans exception, chaque
  * skin d'onglet donne un style dans les deux dispositions, chaque fond se dessine à deux tailles ; et sans skin, le style
  * d'un onglet et celui d'une carte sont, au caractère près, ceux d'avant la version 0.190.
  */
 class ChromeSkinsTest {
-
     private static final String ACCENT = "#9fd0ff";
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
-    void classic() {
-        Card.setSkin(null);
-    }
+    void classic() { Card.setSkin(null); }
 
     /** Les skins d'un visuel, dans l'ordre du catalogue. */
     private static List<Skin> skinsOf(SkinVisual visual) {

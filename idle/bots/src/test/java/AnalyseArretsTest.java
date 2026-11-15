@@ -1,23 +1,20 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.204 : l'outil qui mesure à partir de quand une chose ne sert plus ({@link AnalyseArrets}). Ici, sans rejouer
+ * L'outil qui mesure à partir de quand une chose ne sert plus ({@link AnalyseArrets}). Ici, sans rejouer
  * de partie longue : les familles de coupures, la lecture des écarts, et le fait qu'une coupure tient vraiment (un
  * automatisme coupé ne se rallume pas sous le bot, une mécanique coupée n'est plus jouée, une suite rejouée sans coupure
  * depuis un jalon repart du même état).
  */
 class AnalyseArretsTest {
-
     @Test
     void lesFamillesCouvrentToutCeQuiSAllumeEtSAchete() {
         Game catalogue = Bots.fresh(201);
@@ -35,7 +32,7 @@ class AnalyseArretsTest {
         for (AnalyseArrets.Coupure c : automatismes) assertTrue(c.sans().isEmpty());
     }
 
-    /** Version 0.207 : les huit lots couvrent chaque automatisme, amélioration, achat d'arbre et dimension une seule fois. */
+    /** Les huit lots couvrent chaque automatisme, amélioration, achat d'arbre et dimension une seule fois. */
     @Test
     void lesLotsCouvrentToutSansRienCompterDeuxFois() {
         Game catalogue = Bots.fresh(201);
@@ -96,7 +93,7 @@ class AnalyseArretsTest {
     @Test
     void unAutomatismeCoupeNeSeRallumePasSousLeBot() throws Exception {
         // Une partie avancée, où le bot tient ses automatismes allumés.
-        Game game = Bots.load(java.nio.file.Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save"), 201);
+        Game game = Bots.load(Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save"), 201);
         IdleProfiles24 bot = new IdleProfiles24(game, IdleProfiles24.PROFILES[0], 201, 20);
         bot.quiet = true;
         bot.begin();
@@ -117,7 +114,7 @@ class AnalyseArretsTest {
 
     @Test
     void uneMecaniqueCoupeeNEstPlusJouee() throws Exception {
-        Game game = Bots.load(java.nio.file.Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save"), 201);
+        Game game = Bots.load(Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save"), 201);
         IdleProfiles24 bot = new IdleProfiles24(game, IdleProfiles24.PROFILES[0], 201, 20);
         bot.quiet = true;
         assertFalse(bot.sansJouer("collisionneur"));

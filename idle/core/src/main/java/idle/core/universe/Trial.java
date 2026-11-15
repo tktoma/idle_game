@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les épreuves du deuxième univers (version 0.088) : facultatives, une à la fois, et leur seul gain
+ * Les épreuves du deuxième univers : facultatives, une à la fois, et leur seul gain
  * est un skin. Chacune dit sa contrainte et son but ; une épreuve à durée limitée échoue au bout de
  * son temps, les autres attendent leur but tant qu'on ne les abandonne pas.
  *
@@ -56,27 +56,17 @@ public enum Trial {
         this.goal = goal;
     }
 
-    public Skin skin() {
-        return skin;
-    }
+    public Skin skin() { return skin; }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
-    public String rule() {
-        return rule;
-    }
+    public String rule() { return rule; }
 
     /** Sa durée en secondes de jeu, 0 sans limite. */
-    public double seconds() {
-        return seconds;
-    }
+    public double seconds() { return seconds; }
 
     /** Le nombre à atteindre, 0 quand le but n'est pas un compte. */
-    public int goal() {
-        return goal;
-    }
+    public int goal() { return goal; }
 
     /** Vrai pour les épreuves du collisionneur. */
     public boolean isCollider() {

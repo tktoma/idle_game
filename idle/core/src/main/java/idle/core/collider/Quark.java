@@ -19,12 +19,8 @@ public enum Quark {
     }
 
     /** « étrange », pour « quark étrange ». */
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** La lettre du quark : u, d, s, c, b, t. */
-    public String symbol() {
-        return symbol;
-    }
+    public String symbol() { return symbol; }
 }

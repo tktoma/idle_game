@@ -7,7 +7,7 @@ import javafx.scene.shape.ArcType;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Les skins de l'échelle des grandeurs (version 0.193), dessinés à côté de {@link DarkMatterView} pour la garder
+ * Les skins de l'échelle des grandeurs, dessinés à côté de {@link DarkMatterView} pour la garder
  * lisible : la règle graduée en bas à gauche, et les cercles des objets connus.
  * <ul>
  * <li>« Règle de bois » : une latte brune au grain visible, dix graduations gravées, le texte brûlé au fer ;</li>
@@ -17,7 +17,6 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  */
 final class RulerSkinArt {
-
     private static final Color WOOD = Color.web("#8a6440");
     private static final Color WOOD_GRAIN = Color.web("#6e4c2e");
     private static final Color WOOD_EDGE = Color.web("#4a3018");
@@ -37,9 +36,7 @@ final class RulerSkinArt {
     }
 
     /** Vrai pour les skins qui redessinent la règle elle-même : le bois et le plastique ; les repères célestes la laissent. */
-    static boolean drawsRuler(Skin ruler) {
-        return ruler == Skin.RULER_WOOD || ruler == Skin.RULER_ARCHITECT;
-    }
+    static boolean drawsRuler(Skin ruler) { return ruler == Skin.RULER_WOOD || ruler == Skin.RULER_ARCHITECT; }
 
     /**
      * La règle sous un skin : de {@code x} à {@code x + length}, centrée sur {@code y}, avec son texte au-dessus.

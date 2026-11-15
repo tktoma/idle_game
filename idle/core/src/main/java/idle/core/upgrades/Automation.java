@@ -22,7 +22,6 @@ import idle.core.math.BigNum;
  */
 public record Automation(String id, String name, Kind kind, BigNum cost, String upgradeId,
                          double baseInterval, int maxSpeedLevel, BigNum speedBaseCost, double speedCostGrowth) {
-
     /** Ce que fait un automatisme. */
     public enum Kind {
         /** Achète une amélioration dès que possible. */
@@ -78,9 +77,7 @@ public record Automation(String id, String name, Kind kind, BigNum cost, String 
     }
 
     /** Délai entre deux actions à un niveau de cadence donné, en secondes, avant les bonus des éléments. */
-    public double intervalAt(int speedLevel) {
-        return baseInterval / Math.pow(2, Math.min(speedLevel, maxSpeedLevel));
-    }
+    public double intervalAt(int speedLevel) { return baseInterval / Math.pow(2, Math.min(speedLevel, maxSpeedLevel)); }
 
     /** Prix du prochain niveau de cadence quand on en possède déjà {@code speedLevel}. */
     public BigNum speedCostAt(int speedLevel) {

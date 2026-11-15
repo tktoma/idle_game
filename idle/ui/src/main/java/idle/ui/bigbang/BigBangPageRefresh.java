@@ -1,6 +1,8 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.Resource;
+import idle.core.darkmatter.Challenges;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
@@ -18,29 +20,24 @@ import idle.ui.common.Format;
 import idle.ui.common.MatterText;
 import idle.ui.probes.ProbesPane;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import javafx.geometry.Pos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 
-/**
- * La page du Big Bang : la mise à jour des paliers, des améliorations, des états de la matière et des assemblages.
- */
+/** La page du Big Bang : la mise à jour des paliers, des améliorations, des états de la matière et des assemblages. */
 public abstract class BigBangPageRefresh extends BigBangPageControls {
-
-    BigBangPageRefresh(Game game) {
-        super(game);
-    }
+    BigBangPageRefresh(Game game) { super(game); }
 
     // Ce que fournissent les parties suivantes.
     abstract void refreshMolecules();
     abstract void refreshExpansion();
-
 
     /** Recopie l'état du jeu dans les textes. */
     public void refresh() {
@@ -53,7 +50,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         long created = game.moleculesCreated();
         moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
         expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.Kind.COMET, Readiness.of(game).comet()));
-        // Version 0.124 : le point dit qu'un palier ouvert peut se payer.
+        // Le point dit qu'un palier ouvert peut se payer.
         boolean canPay = false;
         for (BigBangMilestone milestone : game.bigBangMilestones()) canPay |= game.canBuyBigBangMilestone(milestone);
         milestonesTab.setText("Paliers (" + game.bigBangMilestonesReached() + "/" + game.bigBangMilestones().size() + ")"
@@ -148,10 +145,10 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                 detail.append(milestoneDetail(effect));
             }
             int missing = milestone.bigBangs() - count;
-            String unit = milestone.resource() == idle.core.Resource.ATOMS ? " atomes" : " particules";
-            String price = idle.ui.common.Format.amount(milestone.price()) + unit;
+            String unit = milestone.resource() == Resource.ATOMS ? " atomes" : " particules";
+            String price = Format.amount(milestone.price()) + unit;
             String toPay = game.canBuyBigBangMilestone(milestone) ? "Payer : " + price
-                    : "À payer : " + price + " (" + idle.ui.common.Format.amount(game.milestoneBalance(milestone)) + unit + " en main)";
+                    : "À payer : " + price + " (" + Format.amount(game.milestoneBalance(milestone)) + unit + " en main)";
             Card.State state = reached ? Card.State.DONE : open ? (game.canBuyBigBangMilestone(milestone) ? Card.State.READY : Card.State.WAITING)
                     : coming ? Card.State.WAITING : Card.State.LOCKED;
             card.show(state, rank(milestone.bigBangs()) + " Big Bang", reached ? "acquis" : "", milestone.name(), line.toString(),
@@ -168,14 +165,10 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
     }
 
     /** Ce qu'une création ajoute à un amas de {@code count} molécules, avec les paliers atteints. */
-    private int drawnAt(int count) {
-        return 1 + (int) Math.floor(game.accretionFactor() * Math.sqrt(count) + 1e-9);
-    }
+    private int drawnAt(int count) { return 1 + (int) Math.floor(game.accretionFactor() * Math.sqrt(count) + 1e-9); }
 
     /** « 1er », « 2e », « 3e ». */
-    private static String rank(int number) {
-        return number == 1 ? "1er" : number + "e";
-    }
+    private static String rank(int number) { return number == 1 ? "1er" : number + "e"; }
 
     /** Ce que donne un palier, en quelques mots : « Espace par seconde ×2 ». */
     public static String milestoneLine(BigBangMilestone.Effect effect) {
@@ -238,7 +231,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                     + "récompense se réclame d'un clic. Les échantillons paient les améliorations des sondes ; tout traverse le Big Bang.";
             case BigBangMilestone.KeepChallenges keep -> "Dès ce Big Bang-là, et à tous les suivants, les défis réussis "
                     + "traversent le Big Bang : ils restent réussis, avec leurs récompenses, et la condition « les "
-                    + idle.core.darkmatter.Challenges.DEFAULT.size() + " défis réussis » du Big Bang suivant est déjà remplie. Rien n'empêche de les "
+                    + Challenges.DEFAULT.size() + " défis réussis » du Big Bang suivant est déjà remplie. Rien n'empêche de les "
                     + "rejouer pour leur temps.";
             case BigBangMilestone.KeepDarkTree keep -> "Dès ce Big Bang-là, et à tous les suivants, l'arbre de matière noire "
                     + "reste en place : ses cases, ses automatismes et leurs réglages. Le Big Bang ne reprend plus que la "
@@ -588,13 +581,13 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         // Trois rangées de grains, dont les couleurs suivent les proportions de l'assemblage, mêlées d'une façon fixe.
         int columns = 13;
         int rows = 3;
-        java.util.List<Color> grains = new java.util.ArrayList<>();
+        List<Color> grains = new ArrayList<>();
         for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
             Color color = MoleculeArt.of(game.molecule(ingredient.getKey())).dominant();
             int share = Math.max(1, (int) Math.round(columns * rows * ingredient.getValue() / (double) assembly.size()));
             for (int grain = 0; grain < share; grain++) grains.add(color);
         }
-        java.util.Collections.shuffle(grains, new java.util.Random(assembly.id().hashCode()));
+        Collections.shuffle(grains, new Random(assembly.id().hashCode()));
         double[] xs = new double[4];
         double[] ys = new double[4];
         for (int row = 0; row < rows; row++) {
@@ -613,9 +606,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
     }
 
     /** Le titre d'un lieu de rassemblement : « Gaz ». */
-    public static String placeTitle(Molecule.State matter) {
-        return MatterText.title(matter);
-    }
+    public static String placeTitle(Molecule.State matter) { return MatterText.title(matter); }
 
     /** Le lieu d'un état, dans une phrase : « le lieu des gaz ». */
     private static String placeName(Molecule.State matter) {

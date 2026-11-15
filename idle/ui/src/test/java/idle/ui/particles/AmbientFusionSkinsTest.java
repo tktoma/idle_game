@@ -5,27 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.animation.ParallelTransition;
 import javafx.util.Duration;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.192 : les skins du fond animé des particules et de la fusion des générateurs, sous Xvfb. Chaque fond se
+ * Les skins du fond animé des particules et de la fusion des générateurs, sous Xvfb. Chaque fond se
  * dessine à deux tailles, à production nulle et forte, sans exception ; « Silence » ne dessine rien ; chaque skin de
  * fusion déplace les générateurs vers le centre et les y laisse à la taille voulue, par un autre chemin que le classique.
  */
 class AmbientFusionSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

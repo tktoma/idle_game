@@ -1,18 +1,12 @@
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Le journal du bot analyste (version 0.161) : tout ce qu'il a fait et vu, horodaté à la seconde de jeu. Il s'écrit en
+ * Le journal du bot analyste : tout ce qu'il a fait et vu, horodaté à la seconde de jeu. Il s'écrit en
  * texte brut (journal.txt), en tableaux pour un tableur (achats.csv, paliers.csv, estimations.csv, et depuis la 0.162
  * classement.csv et etsi.csv) et sert de matière à la page HTML du rapport ({@link AnalyseRapport}).
  */
 final class AnalyseJournal {
-
     /** Ce qu'est une ligne du journal. */
     enum Sorte {
         PALIER("Palier"), ACHAT("Achat"), OBTENU("Obtenu"), CHOIX("Choix"), AUTOMATISME("Automatisme"), DEFI("Défi"),
@@ -20,9 +14,7 @@ final class AnalyseJournal {
 
         final String label;
 
-        Sorte(String label) {
-            this.label = label;
-        }
+        Sorte(String label) { this.label = label; }
     }
 
     /** Une ligne : quand (en secondes de jeu), quoi, et le détail. */
@@ -31,28 +23,23 @@ final class AnalyseJournal {
     /**
      * Un achat : quand, quoi, combien de niveaux, ce qu'il a coûté (la ressource, le montant, sa part de la réserve), son
      * poids sur chaque grandeur (en ordres de grandeur), et le temps qu'il fait gagner selon l'estimation du moment.
-     * Version 0.162 : sa rentabilité. {@code coutSecondes} est le temps de production qu'il a coûté (le montant divisé par
+     * Sa rentabilité. {@code coutSecondes} est le temps de production qu'il a coûté (le montant divisé par
      * ce que la ressource rapportait par seconde à ce moment) ; {@code rentabilite} est le temps gagné divisé par ce coût
      * (au-dessus de 1, l'achat rend plus de temps qu'il n'en a coûté). NaN quand l'un des deux est inconnu.
      */
     record Achat(double t, int univers, String groupe, String chose, double quantite, String paye, String montant,
             double part, double montantLog, String poids, double poidsMax, double gainSecondes, double coutSecondes, double rentabilite) {
-
         /** Ce qui a été acheté, en une ligne : « Amélioration — Couplage ». */
-        String quoi() {
-            return groupe + (chose.isEmpty() ? "" : " — " + chose);
-        }
+        String quoi() { return groupe + (chose.isEmpty() ? "" : " — " + chose); }
     }
 
     /**
-     * Version 0.162 : le classement d'une chose achetée sur toute la partie. Combien de fois, le temps de production
+     * Le classement d'une chose achetée sur toute la partie. Combien de fois, le temps de production
      * qu'elle a coûté en tout, le temps qu'elle a fait gagner en tout, et le rapport des deux (les achats sans coût ou
      * sans gain connus ne comptent pas dans les sommes).
      */
     record Classement(String quoi, int achats, double coutSecondes, double gainSecondes) {
-        double rentabilite() {
-            return coutSecondes > 0 ? gainSecondes / coutSecondes : Double.NaN;
-        }
+        double rentabilite() { return coutSecondes > 0 ? gainSecondes / coutSecondes : Double.NaN; }
     }
 
     /**
@@ -65,7 +52,7 @@ final class AnalyseJournal {
 
     /**
      * Un palier atteint : quand, lequel, le temps depuis le précédent, et le moment que la dernière estimation annonçait
-     * (NaN sans). Version 0.166 : le temps réel, le temps en ligne et le temps de jeu compté hors ligne à ce moment
+     * (NaN sans). Le temps réel, le temps en ligne et le temps de jeu compté hors ligne à ce moment
      * (NaN si inconnus), et sa cause.
      */
     record Palier(double t, int univers, String nom, double depuis, double annonce, double reel, double enLigne, double horsLigne, String cause) {
@@ -74,7 +61,7 @@ final class AnalyseJournal {
         }
     }
 
-    /** Un choix de façon de jouer (version 0.162) : quand, pour quel palier, laquelle, et le temps de chacune (en secondes, −1 : pas atteint). */
+    /** Un choix de façon de jouer : quand, pour quel palier, laquelle, et le temps de chacune (en secondes, −1 : pas atteint). */
     record Choix(double t, String vise, String retenue, List<String> temps) {}
 
     /** Une estimation : quand, le palier visé, le temps estimé (négatif : au-delà de l'horizon), le goulot. */
@@ -96,9 +83,7 @@ final class AnalyseJournal {
         lignes.add(new Ligne(t, univers, sorte, titre, List.copyOf(details)));
     }
 
-    void ajoute(double t, int univers, Sorte sorte, String titre) {
-        ajoute(t, univers, sorte, titre, List.of());
-    }
+    void ajoute(double t, int univers, Sorte sorte, String titre) { ajoute(t, univers, sorte, titre, List.of()); }
 
     /** 82:45:13 : des heures (au-delà de 24), des minutes et des secondes. */
     static String chrono(double seconds) {
@@ -138,18 +123,14 @@ final class AnalyseJournal {
     }
 
     /**
-     * La charge de décisions d'un univers (version 0.166) : sa durée, les décisions (les pas où le bot a acheté quelque
+     * La charge de décisions d'un univers : sa durée, les décisions (les pas où le bot a acheté quelque
      * chose, un lot comptant pour une), les décisions utiles (celles dont les achats font gagner au moins une seconde
      * vers un palier), et le temps réel, en ligne et hors ligne qu'il a pris (NaN si inconnus).
      */
     record Charge(int univers, double duree, int decisions, int utiles, double reel, double enLigne) {
-        double parHeure() {
-            return duree > 0 ? decisions / (duree / 3600) : Double.NaN;
-        }
+        double parHeure() { return duree > 0 ? decisions / (duree / 3600) : Double.NaN; }
 
-        double utilesParHeure() {
-            return duree > 0 ? utiles / (duree / 3600) : Double.NaN;
-        }
+        double utilesParHeure() { return duree > 0 ? utiles / (duree / 3600) : Double.NaN; }
     }
 
     /** La charge de décisions, univers par univers : de la formation du précédent à la sienne (ou au dernier palier). */
@@ -180,9 +161,7 @@ final class AnalyseJournal {
         return out;
     }
 
-    private static String csv(String value) {
-        return "\"" + String.valueOf(value).replace("\"", "\"\"") + "\"";
-    }
+    private static String csv(String value) { return "\"" + String.valueOf(value).replace("\"", "\"\"") + "\""; }
 
     void ecrire(Path dossier) throws Exception {
         Files.createDirectories(dossier);

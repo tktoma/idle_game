@@ -9,7 +9,7 @@ import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 
 /**
- * Les timbres des skins des sons (version 0.200), synthétisés comme le Classique : quelques formes d'onde (sinus, carré,
+ * Les timbres des skins des sons, synthétisés comme le Classique : quelques formes d'onde (sinus, carré,
  * dents de scie), des enveloppes et un bruit lissé, sans fichier audio.
  *
  * <p>La banque de sons change le timbre de tous les sons : « Bois » (xylophone et claves), « Verre » (carillon),
@@ -17,11 +17,10 @@ import idle.ui.Sound.Cue;
  * les Big Bangs sonnent). Le son du Big Bang (« Carillon géant », « Souffle de vent », « Orgue ») et le tic du métronome
  * (« Bois », « Métal », « Goutte d'eau », « Battement de cœur ») ont chacun leur skin, qui passe devant la banque.
  *
- * <p>Version 0.210 : les nouveaux sons (univers, défi final, skin, défi, matière noire, jalon, achat, interrupteur) prennent
+ * <p>Les nouveaux sons (univers, défi final, skin, défi, matière noire, jalon, achat, interrupteur) prennent
  * la voix de chaque banque ; les gestes dans les dimensions gardent leur timbre, que seul le silence partiel coupe.
  */
 final class SoundBanks {
-
     /** Une voix : l'amplitude d'une note de cette fréquence, {@code t} secondes après son départ, pour une note de cette durée. */
     private interface Voice {
         double tone(double frequency, double t, double length);
@@ -195,7 +194,7 @@ final class SoundBanks {
             case COMET -> render(0.7, t -> sequence(t, step / 2, 0.7, voice, 1760, 2093, 2637, 2093, 1760));
             case ELEMENT -> render(0.6, t -> voice.tone(880, t, 0.6));
             case LEVEL -> render(0.18, t -> voice.tone(1046.5, t, 0.18));
-            // Version 0.210 : les nouveaux sons, aux notes du Classique, dans la voix de la banque.
+            // Les nouveaux sons, aux notes du Classique, dans la voix de la banque.
             case UNIVERSE -> render(2.2, t -> 0.8 * voice.tone(130.8, t, 2.2) + sequence(t, step * 1.5, 2.2, voice, 523.25, 659.25, 783.99, 1046.5));
             case FINALE -> render(1.0, t -> sequence(t, step * 1.4, 1.0, voice, 587.33, 880));
             case SKIN -> render(0.5, t -> sequence(t, step / 2, 0.5, voice, 1567.98, 1975.53, 2349.32));
@@ -204,7 +203,7 @@ final class SoundBanks {
             case MILESTONE -> render(0.45, t -> voice.tone(784, t, 0.45) + 0.7 * voice.tone(1174.7, t, 0.45));
             case PURCHASE -> render(0.08, t -> voice.tone(1760, t, 0.08));
             case TOGGLE -> render(0.06, t -> voice.tone(523.25, t, 0.06));
-            // Version 0.213 : les bruitages, aux notes du Classique, dans la voix de la banque.
+            // Les bruitages, aux notes du Classique, dans la voix de la banque.
             case PARTICLE -> render(0.06, t -> 0.6 * voice.tone(2349.3, t, 0.06));
             case ATOM -> render(0.14, t -> sequence(t, 0.05, 0.14, voice, 600, 900));
             case COLLISION -> render(0.25, t -> voice.tone(1200, t, 0.25) + 0.5 * voice.tone(1797, t, 0.25));
@@ -230,9 +229,7 @@ final class SoundBanks {
     }
 
     /** Une onde carrée. */
-    private static double square(double frequency, double t) {
-        return sine(frequency, t) >= 0 ? 1 : -1;
-    }
+    private static double square(double frequency, double t) { return sine(frequency, t) >= 0 ? 1 : -1; }
 
     /** Une dent de scie approchée : six harmoniques en amplitudes 1/n. */
     private static double saw(double frequency, double t) {
@@ -250,9 +247,7 @@ final class SoundBanks {
     }
 
     /** Un vent : un bruit lissé, deux octaves de bruit de valeur interpolé, loin du bruit blanc. */
-    private static double wind(double t) {
-        return 0.7 * smooth(t, 300) + 0.4 * smooth(t, 1100);
-    }
+    private static double wind(double t) { return 0.7 * smooth(t, 300) + 0.4 * smooth(t, 1100); }
 
     /** Un bruit de valeur : le bruit tiré sur une grille de {@code grid} points par seconde, interpolé en douceur entre deux. */
     private static double smooth(double t, double grid) {

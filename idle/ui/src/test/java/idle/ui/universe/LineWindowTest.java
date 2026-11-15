@@ -7,19 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.ui.FxTestSupport;
 import javafx.scene.input.KeyCode;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * La fenêtre de la ligne (dimension 1), sous Xvfb : son titre et ses textes, les traits qui s'allument quand une boule
  * les touche, les boutons des cinq améliorations ; elle ne prend ni les touches ni les clics, la ligne se joue seule.
  */
 class LineWindowTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au premier univers formé : la ligne est ouverte, la boule au départ, sans segment. */
     private static Game first() {

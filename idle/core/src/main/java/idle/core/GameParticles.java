@@ -1,29 +1,23 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.BangAchievement;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.ElementBonuses;
-import idle.core.elements.ElementEffect;
+import idle.core.state.*;
+import idle.core.bigbang.*;
+import idle.core.collider.Hadron;
+import idle.core.probes.Probe;
+import idle.core.sky.SkyEvent;
+import idle.core.universe.*;
+
+import idle.core.achievements.*;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les particules : la production, la fusion, les améliorations, l'impulsion et la comète.
- */
+/** Les particules : la production, la fusion, les améliorations, l'impulsion et la comète. */
 public abstract class GameParticles extends GameMatterAutomation {
-
     GameParticles(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -34,9 +28,8 @@ public abstract class GameParticles extends GameMatterAutomation {
     public abstract double landmarkAtomsMultiplier();
     abstract boolean expandDarkMatter(double seconds);
 
-
     // ------------------------------------------------------------------
-    // L'impulsion : le clic du joueur actif (version 0.048)
+    // L'impulsion : le clic du joueur actif
     // ------------------------------------------------------------------
 
     /** Charges d'impulsion au plus : deux minutes d'avance, pour qui revient un instant. */
@@ -51,14 +44,10 @@ public abstract class GameParticles extends GameMatterAutomation {
      * troisième acte, c'est l'espace qui manque ; le joueur présent l'accélère d'un clic (jusqu'à
      * quatre fois plus vite en cliquant sans arrêt), celui qui laisse tourner n'y perd rien.
      */
-    public boolean isPulseUnlocked() {
-        return state.started() && isBigBangUnlocked();
-    }
+    public boolean isPulseUnlocked() { return state.started() && isBigBangUnlocked(); }
 
     /** Charges entières disponibles. */
-    public int pulseCharges() {
-        return (int) Math.floor(state.pulseCharges() + 1e-9);
-    }
+    public int pulseCharges() { return (int) Math.floor(state.pulseCharges() + 1e-9); }
 
     /** Espace que donnerait une impulsion maintenant. */
     public BigNum pulseGain() {
@@ -82,9 +71,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Impulsions données depuis le début du jeu. */
-    public long pulses() {
-        return state.pulses();
-    }
+    public long pulses() { return state.pulses(); }
 
     void refillPulses(double dt) {
         if (dt <= 0 || !isPulseUnlocked()) return;
@@ -150,19 +137,13 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Vrai tant qu'une comète traverse l'expansion et peut être saisie. */
-    public boolean isCometVisible() {
-        return isBigBangUnlocked() && state.cometVisible() > 0;
-    }
+    public boolean isCometVisible() { return isBigBangUnlocked() && state.cometVisible() > 0; }
 
     /** Secondes pendant lesquelles la comète reste encore à saisir ; 0 s'il n'y en a pas. */
-    public double cometVisibleFor() {
-        return isCometVisible() ? state.cometVisible() : 0;
-    }
+    public double cometVisibleFor() { return isCometVisible() ? state.cometVisible() : 0; }
 
     /** Secondes de jeu avant la prochaine comète ; 0 pendant qu'une comète est là, ou avant le premier Big Bang. */
-    public double cometWait() {
-        return isBigBangUnlocked() && state.cometVisible() <= 0 ? state.cometWait() : 0;
-    }
+    public double cometWait() { return isBigBangUnlocked() && state.cometVisible() <= 0 ? state.cometWait() : 0; }
 
     /**
      * Saisit la comète : son sillage multiplie l'expansion par {@link #COMET_BOOST} pendant
@@ -180,7 +161,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     // ------------------------------------------------------------------
-    // Les anomalies du ciel (version 0.127)
+    // Les anomalies du ciel
     // ------------------------------------------------------------------
 
     /** Attente entre deux anomalies du ciel, en secondes de jeu : de dix à vingt-cinq minutes. */
@@ -240,24 +221,22 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** La prochaine anomalie : une chance sur deux d'une fenêtre d'exploration quand une sonde est en vol. */
-    private idle.core.sky.SkyEvent nextSkyEvent() {
+    private SkyEvent nextSkyEvent() {
         boolean flying = state.probes().stream().anyMatch(probe -> !probe.landed());
-        return flying && skyMix(3.3) < 0.5 ? idle.core.sky.SkyEvent.EXPLORATION_WINDOW : idle.core.sky.SkyEvent.PARTICLE_WIND;
+        return flying && skyMix(3.3) < 0.5 ? SkyEvent.EXPLORATION_WINDOW : SkyEvent.PARTICLE_WIND;
     }
 
     /** L'anomalie du ciel à saisir en ce moment, ou {@code null}. */
-    public idle.core.sky.SkyEvent skyEvent() {
+    public SkyEvent skyEvent() {
         if (!isBigBangUnlocked() || state.skyEvent() == null) return null;
-        for (idle.core.sky.SkyEvent event : idle.core.sky.SkyEvent.values()) {
+        for (SkyEvent event : SkyEvent.values()) {
             if (event.name().equals(state.skyEvent())) return event;
         }
         return null;
     }
 
     /** Secondes pendant lesquelles l'anomalie reste à saisir ; 0 s'il n'y en a pas. */
-    public double skyEventVisibleFor() {
-        return skyEvent() == null ? 0 : state.skyEventVisible();
-    }
+    public double skyEventVisibleFor() { return skyEvent() == null ? 0 : state.skyEventVisible(); }
 
     /**
      * Saisit l'anomalie du ciel. Le vent de particules multiplie les particules par {@link #WIND_FACTOR} pendant
@@ -267,19 +246,19 @@ public abstract class GameParticles extends GameMatterAutomation {
      *
      * @return l'anomalie saisie, ou {@code null} s'il n'y en avait pas
      */
-    public idle.core.sky.SkyEvent catchSkyEvent() {
-        idle.core.sky.SkyEvent event = skyEvent();
+    public SkyEvent catchSkyEvent() {
+        SkyEvent event = skyEvent();
         if (event == null) return null;
         boolean explored = false;
-        if (event == idle.core.sky.SkyEvent.EXPLORATION_WINDOW) {
-            List<idle.core.probes.Probe> moved = new java.util.ArrayList<>();
-            for (idle.core.probes.Probe probe : state.probes()) {
+        if (event == SkyEvent.EXPLORATION_WINDOW) {
+            List<Probe> moved = new ArrayList<>();
+            for (Probe probe : state.probes()) {
                 if (probe.landed()) {
                     moved.add(probe);
                 } else {
                     explored = true;
                     // Jamais tout à fait zéro : l'arrivée et son butin passent par le cours normal du voyage.
-                    moved.add(new idle.core.probes.Probe(probe.destination(), probe.trip(),
+                    moved.add(new Probe(probe.destination(), probe.trip(),
                             Math.max(1e-6, probe.left() - EXPLORATION_SECONDS), probe.total(), probe.id()));
                 }
             }
@@ -290,13 +269,11 @@ public abstract class GameParticles extends GameMatterAutomation {
         state.setSkyEventVisible(0);
         state.setSkyEventsCaught(state.skyEventsCaught() + 1);
         state.setSkyEventWait(nextSkyEventWait());
-        return explored ? event : idle.core.sky.SkyEvent.PARTICLE_WIND;
+        return explored ? event : SkyEvent.PARTICLE_WIND;
     }
 
     /** Ce par quoi le vent de particules multiplie les particules en ce moment : {@link #WIND_FACTOR}, ou 1. */
-    public double windMultiplier() {
-        return state.windLeft() > 0 ? WIND_FACTOR : 1;
-    }
+    public double windMultiplier() { return state.windLeft() > 0 ? WIND_FACTOR : 1; }
 
     /** Vrai si une anomalie du ciel vient d'apparaître depuis la dernière lecture : pour l'annoncer. */
     public boolean takeSkyEventAppeared() {
@@ -306,19 +283,13 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Ce par quoi le sillage d'une comète multiplie l'expansion en ce moment : {@link #COMET_BOOST}, ou 1. */
-    public double cometBoost() {
-        return state.cometBoost() > 0 ? COMET_BOOST : 1;
-    }
+    public double cometBoost() { return state.cometBoost() > 0 ? COMET_BOOST : 1; }
 
     /** Secondes de sillage qu'il reste. */
-    public double cometBoostLeft() {
-        return state.cometBoost();
-    }
+    public double cometBoostLeft() { return state.cometBoost(); }
 
     /** Nombre de comètes saisies depuis le début du jeu. */
-    public int cometsCaught() {
-        return state.cometsCaught();
-    }
+    public int cometsCaught() { return state.cometsCaught(); }
 
     /** Vrai si une comète vient d'apparaître depuis le dernier appel : pour l'annoncer. Remis à faux à chaque lecture. */
     public boolean takeCometAppeared() {
@@ -347,9 +318,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Pour les tests de rythme : remet (ou coupe, avec 1) le premier élan, quelle que soit la propriété système. */
-    void setFirstRunPace(double pace) {
-        firstRunPace = Math.max(1, pace);
-    }
+    void setFirstRunPace(double pace) { firstRunPace = Math.max(1, pace); }
 
     /**
      * Ce par quoi la création est divisée en ce moment par le premier élan : {@link #FIRST_RUN_PACE}
@@ -364,15 +333,11 @@ public abstract class GameParticles extends GameMatterAutomation {
         return 1;
     }
 
-    /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan (version 0.095). */
-    private boolean isFirstRun() {
-        return state.stats().fusions() == 0;
-    }
+    /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan. */
+    private boolean isFirstRun() { return state.stats().fusions() == 0; }
 
     /** Vitesse d'un générateur (numéroté à partir de 0), en créations par seconde. */
-    public BigNum speed(int generator) {
-        return runningSpeed().multiply(generatorSpeedMultiplier(generator));
-    }
+    public BigNum speed(int generator) { return runningSpeed().multiply(generatorSpeedMultiplier(generator)); }
 
     /**
      * La vitesse commune qui fait vraiment tourner les générateurs : {@link #speed()}, avec le régime rapide et
@@ -388,9 +353,7 @@ public abstract class GameParticles extends GameMatterAutomation {
      * Niveaux de vitesse qui comptent pour une amélioration de vitesse : ceux achetés, plus ceux
      * offerts par l'arbre de matière noire.
      */
-    public int speedLevels(String upgradeId) {
-        return state.levelOf(upgrade(upgradeId).id()) + startingSpeedLevels();
-    }
+    public int speedLevels(String upgradeId) { return state.levelOf(upgrade(upgradeId).id()) + startingSpeedLevels(); }
 
     /** Nombre de paliers de vitesse atteints, toutes améliorations de vitesse confondues. */
     public int speedMilestones() {
@@ -427,7 +390,7 @@ public abstract class GameParticles extends GameMatterAutomation {
                 + darkMilestoneExtra();
     }
 
-    /** Ce que l'arbre ajoute au facteur de chaque palier de vitesse (version 0.073) : les voies de présence de l'élan. */
+    /** Ce que l'arbre ajoute au facteur de chaque palier de vitesse : les voies de présence de l'élan. */
     public double darkMilestoneExtra() {
         return this.<Double>darkMemo("milestoneExtra", () -> {
             double extra = 0;
@@ -472,14 +435,12 @@ public abstract class GameParticles extends GameMatterAutomation {
                 factor *= Math.pow(discount.factorPerLevel(), state.levelOf(upgrade.id()));
             }
         }
-        // Version 0.151 : les mésons B baissent le prix des générateurs.
-        return factor * Math.max(0.5, 1 - achievementBonus(Achievement.Bonus.GENERATOR_COST)) / hadronBoost(idle.core.collider.Hadron.B_MESON);
+        // Les mésons B baissent le prix des générateurs.
+        return factor * Math.max(0.5, 1 - achievementBonus(Achievement.Bonus.GENERATOR_COST)) / hadronBoost(Hadron.B_MESON);
     }
 
     /** Vrai si la fusion conserve au moins une part des améliorations payées en particules (hors générateurs). */
-    public boolean keepsUpgradesOnFusion() {
-        return fusionKeepShare() > 0;
-    }
+    public boolean keepsUpgradesOnFusion() { return fusionKeepShare() > 0; }
 
     /** La part des améliorations payées en particules que la fusion garde, de 0 à 1, selon le niveau de Persistance. */
     public double fusionKeepShare() {
@@ -495,9 +456,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         if (!state.started()) return 0;
         int count = 1 + startingGenerators();
         for (Upgrade upgrade : upgrades.values()) {
-            if (upgrade.effect() instanceof Effect.AddGenerator) {
-                count += state.levelOf(upgrade.id());
-            }
+            if (upgrade.effect() instanceof Effect.AddGenerator) count += state.levelOf(upgrade.id());
         }
         return Math.min(count, maxGeneratorCount());
     }
@@ -525,7 +484,7 @@ public abstract class GameParticles extends GameMatterAutomation {
      * l'arbre de matière noire.
      */
     public int maxGeneratorCount() {
-        // La bulle du jeune arbre, à droite (version 0.148) : plus de plafond, le prix s'en charge (bubbleGeneratorScaling).
+        // La bulle du jeune arbre, à droite : plus de plafond, le prix s'en charge (bubbleGeneratorScaling).
         if (hasBubble(GameUniverse.TreeBubble.YOUNG_RIGHT)) return BUBBLE_GENERATOR_LIMIT;
         return generatorCap();
     }
@@ -563,9 +522,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         if (catalogGenerators == 0) {
             int count = 1;
             for (Upgrade upgrade : upgrades.values()) {
-                if (upgrade.effect() instanceof Effect.AddGenerator && upgrade.hasLimit()) {
-                    count += upgrade.maxLevel();
-                }
+                if (upgrade.effect() instanceof Effect.AddGenerator && upgrade.hasLimit()) count += upgrade.maxLevel();
             }
             catalogGenerators = count;
         }
@@ -574,39 +531,33 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /**
-     * Particules obtenues à chaque création, avant les bonus propres à chaque générateur :
-     * une de base, multipliée par tous les bonus achetés, par les paliers de vitesse et par les
-     * bonus des éléments.
+     * Particules obtenues à chaque création, avant les bonus propres à chaque générateur : une de base, multipliée par
+     * tous les bonus achetés, par les paliers de vitesse et par les bonus des éléments.
      */
-    public BigNum particlesPerCreation() {
-        return particlesWith(generatorCount());
-    }
+    public BigNum particlesPerCreation() { return particlesWith(generatorCount()); }
 
     /** Particules par création s'il y avait {@code generators} générateurs : seul le couplage en dépend. */
     private BigNum particlesWith(int generators) {
         BigNum raw = rawParticlesWith(generators);
         double power = systemsPower();
-        // Le vent de particules (version 0.127) agit après les puissances : il double vraiment la création, sans
-        // s'élever avec elles.
+        // Le vent de particules agit après les puissances : il double vraiment la création, sans s'élever avec elles.
         if (power <= 0) return raw.multiply(windMultiplier());
         double base = speed().log10() + raw.log10();
         return (base > 0 ? raw.multiply(BigNum.pow10(power * base)) : raw).multiply(windMultiplier());
     }
 
     // ------------------------------------------------------------------
-    // La puissance des grands systèmes (version 0.124)
+    // La puissance des grands systèmes
     // ------------------------------------------------------------------
 
-
     /**
-     * Ce que chaque grand système ajoute, au plus, à l'exposant de la production (version 0.124) : la production
+     * Ce que chaque grand système ajoute, au plus, à l'exposant de la production : la production
      * devient {@code (vitesse × particules par création)^(1 + puissances)}. C'est ce qui donne au tableau
      * périodique, au ciel, au collisionneur et aux succès une part réelle de la production, et qui la garde quand
      * la partie grandit : une puissance pèse toujours la même part des ordres de grandeur.
      */
-    public static final double POWER_TABLE = 2.0, POWER_SKY = 4.5,
-            POWER_COLLIDER = 0.35, POWER_ACHIEVEMENTS = 0.1;
-    /** Ce qui reste de la puissance du ciel dans l'univers vide (version 0.124). */
+    public static final double POWER_TABLE = 2.0, POWER_SKY = 4.5, POWER_COLLIDER = 0.35, POWER_ACHIEVEMENTS = 0.1;
+    /** Ce qui reste de la puissance du ciel dans l'univers vide. */
     private static final double VOID_SKY_POWER = 0.5;
 
     /** Les repères de la puissance du ciel et du collisionneur. */
@@ -625,14 +576,14 @@ public abstract class GameParticles extends GameMatterAutomation {
             int distinct = 0;
             for (int count : state.elements().values()) if (count > 0) distinct++;
             double mix = TABLE_DISTINCT_WEIGHT;
-            copiesShare = mix * Math.min(1, distinct / (double) idle.core.elements.PeriodicTable.ELEMENTS.size()) + (1 - mix) * copies;
+            copiesShare = mix * Math.min(1, distinct / (double) PeriodicTable.ELEMENTS.size()) + (1 - mix) * copies;
             copiesCacheVersion = state.elementsVersion();
         }
         return POWER_TABLE * copiesShare * tableMaturity();
     }
 
     /**
-     * La part des éléments différents possédés dans le remplissage du tableau (version 0.125), le reste venant des
+     * La part des éléments différents possédés dans le remplissage du tableau, le reste venant des
      * exemplaires : un joueur qui explose dès que les 118 sont là, ou dont les molécules consomment les exemplaires,
      * garde ainsi l'essentiel de la puissance du tableau.
      */
@@ -662,7 +613,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         if (!isBigBangUnlocked()) return 0;
         double progress = bodiesMature() + assembliesFormed() / 4.0 + moleculeKindsCreated() / 40.0;
         // L'univers vide la réduit de moitié : nulle, elle faisait durer ce défi plus de huit heures.
-        double voidFactor = bangRuled(idle.core.bigbang.BangChallenge.VOID) ? VOID_SKY_POWER : 1;
+        double voidFactor = bangRuled(BangChallenge.VOID) ? VOID_SKY_POWER : 1;
         return POWER_SKY * voidFactor * Math.min(1, progress / SKY_POWER_FULL);
     }
 
@@ -674,7 +625,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /**
-     * Les succès qu'il faut pour la pleine puissance des succès (version 0.174) : les 67 du catalogue d'avant. Les 32
+     * Les succès qu'il faut pour la pleine puissance des succès : les 67 du catalogue d'avant. Les 32
      * succès ajoutés en 0.174 ne tombent pas dans le premier univers ; rapportée aux 99 du catalogue, la puissance y
      * baissait d'un tiers, et le Speedrunner formait son premier univers 37 min plus tard (26:36 au lieu de 25:59).
      */
@@ -691,10 +642,10 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /**
-     * L'essoufflement de la vitesse (version 0.124) : le prix d'un niveau au-delà de {@link #SPEED_SCALING_FROM} est
+     * L'essoufflement de la vitesse : le prix d'un niveau au-delà de {@link #SPEED_SCALING_FROM} est
      * multiplié par {@code 10^(SPEED_SCALING × (niveau − SPEED_SCALING_FROM)²)}. Sans lui, chaque niveau rapportait presque
      * ce qu'il coûtait : l'automatisme en rachetait sans fin, et tout autre multiplicateur était amplifié douze fois au profit
-     * de la vitesse. Version 0.125 : à partir de 300 niveaux (jamais atteints au premier acte), 10⁻³ au lieu de 10⁻⁵ ; à
+     * de la vitesse. À partir de 300 niveaux (jamais atteints au premier acte), 10⁻³ au lieu de 10⁻⁵ ; à
      * 10⁻⁵, le Speedrunner montait la vitesse à 150 000 niveaux.
      */
     public static final int SPEED_SCALING_FROM = 300;
@@ -707,14 +658,10 @@ public abstract class GameParticles extends GameMatterAutomation {
     static boolean powersOff = Boolean.getBoolean("idle.sansPuissances");
 
     /** Toutes les puissances ensemble. */
-    public double systemsPower() {
-        return tablePower() + skyPower() + colliderPower() + achievementPower();
-    }
+    public double systemsPower() { return tablePower() + skyPower() + colliderPower() + achievementPower(); }
 
     /** Les ordres de grandeur sur lesquels les puissances agissent en ce moment : vitesse × particules par création, sans elles. */
-    public double powerBase() {
-        return Math.max(0, speed().log10() + rawParticlesWith(generatorCount()).log10());
-    }
+    public double powerBase() { return Math.max(0, speed().log10() + rawParticlesWith(generatorCount()).log10()); }
 
     private BigNum rawParticlesWith(int generators) {
         BigNum result = BigNum.of(elementMultiplier(ElementEffect.Stat.PARTICLES))
@@ -724,7 +671,7 @@ public abstract class GameParticles extends GameMatterAutomation {
                 .multiply(moleculeBoost(Molecule.Stat.PARTICLES))
                 .multiply(speedMilestoneMultiplier())
                 .multiply(colliderParticlesMultiplier())
-                .multiply(hadronBoost(idle.core.collider.Hadron.LAMBDA))
+                .multiply(hadronBoost(Hadron.LAMBDA))
                 .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES))
                 .multiply(perfectCycleMultiplier())
                 .multiply(universeBangFactor(BANG_UNIVERSE_PARTICLES));
@@ -740,13 +687,12 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /**
-     * Multiplicateur de particules qu'apporte une amélioration à un niveau donné, dans la
-     * situation actuelle (atomes créés, temps écoulé, générateurs, éléments qui la renforcent).
-     * Vaut 1 au niveau 0, et toujours 1 pour une amélioration qui n'agit pas sur les particules
-     * par création.
+     * Multiplicateur de particules qu'apporte une amélioration à un niveau donné, dans la situation actuelle (atomes
+     * créés, temps écoulé, générateurs, éléments qui la renforcent). Vaut 1 au niveau 0, et toujours 1 pour une
+     * amélioration qui n'agit pas sur les particules par création.
      *
-     * <p>L'interface s'en sert pour afficher l'effet actuel d'une amélioration, ou ce
-     * qu'elle donnerait une fois achetée.
+     * <p>L'interface s'en sert pour afficher l'effet actuel d'une amélioration, ou ce qu'elle donnerait une fois
+     * achetée.
      */
     public BigNum particlesMultiplier(String upgradeId, int level) {
         return particlesMultiplier(upgrade(upgradeId), level, generatorCount());
@@ -768,7 +714,7 @@ public abstract class GameParticles extends GameMatterAutomation {
             case Effect.Overload overload -> BigNum.of(overload.perLevel()).pow(level);
             // Additif, pas exponentiel : chaque niveau ajoute la même part par autre générateur.
             case Effect.MultiplyByGenerators coupling ->
-                    BigNum.of(1 + coupling.perGenerator() * level * (inTrial(idle.core.universe.Trial.LONE_GENERATOR)
+                    BigNum.of(1 + coupling.perGenerator() * level * (inTrial(Trial.LONE_GENERATOR)
                             ? 2 * (generatorsPerAtom() - 1) : Math.max(0, generators - 1)));
             // Les paliers de vitesse sont comptés à part : ils tiennent compte des niveaux offerts.
             case Effect.MultiplySpeed speed -> BigNum.ONE;
@@ -782,17 +728,13 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Particules créées par seconde, tous générateurs confondus. */
-    public BigNum productionPerSecond() {
-        return production(generatorCount());
-    }
+    public BigNum productionPerSecond() { return production(generatorCount()); }
 
     /**
      * Particules créées par seconde une fois tous les générateurs débloqués : la production
      * au moment d'une fusion. C'est elle que regarde {@link #fusionYield()}.
      */
-    public BigNum productionAtFusion() {
-        return production(Math.max(generatorCount(), generatorsPerAtom()));
-    }
+    public BigNum productionAtFusion() { return production(Math.max(generatorCount(), generatorsPerAtom())); }
 
     /** Production des {@code generators} premiers générateurs, avec les bonus actuels. */
     private BigNum production(int generators) {
@@ -811,11 +753,10 @@ public abstract class GameParticles extends GameMatterAutomation {
     // ------------------------------------------------------------------
 
     /**
-     * Atomes gagnés à la prochaine fusion : {@link #ATOMS_PER_FUSION} plus ceux de l'arbre de
-     * matière noire, multipliés par le bonus des éléments, par le
-     * {@linkplain #fusionYield() rendement de fusion}, par le nombre de groupes de générateurs
-     * ({@link #fusionGroups()}) et par leur {@linkplain #fusionGroupBonus() prime}. Le résultat peut être fractionnaire : les fractions s'accumulent
-     * d'une fusion à l'autre.
+     * Atomes gagnés à la prochaine fusion : {@link #ATOMS_PER_FUSION} plus ceux de l'arbre de matière noire, multipliés
+     * par le bonus des éléments, par le {@linkplain #fusionYield() rendement de fusion}, par le nombre de groupes de
+     * générateurs ({@link #fusionGroups()}) et par leur {@linkplain #fusionGroupBonus() prime}. Le résultat peut être
+     * fractionnaire : les fractions s'accumulent d'une fusion à l'autre.
      */
     public BigNum atomsPerFusion() {
         return ATOMS_PER_FUSION.add(BigNum.of(darkAtomsPerFusion()))
@@ -828,20 +769,17 @@ public abstract class GameParticles extends GameMatterAutomation {
                 .multiply(bangAchievementMultiplier(BangAchievement.Reward.ATOMS))
                 .multiply(fusionYield())
                 .multiply(fusionGroups() * fusionGroupBonus())
-                .multiply(cycleChoice() == idle.core.universe.CycleChoice.FUSION ? 1 + idle.core.universe.CycleChoice.FUSION_GAIN : 1)
+                .multiply(cycleChoice() == CycleChoice.FUSION ? 1 + CycleChoice.FUSION_GAIN : 1)
                 .multiply(contractionAtomsMultiplier())
-                .multiply(hadronBoost(idle.core.collider.Hadron.PROTON));
+                .multiply(hadronBoost(Hadron.PROTON));
     }
 
     /**
-     * La prime de groupe : une fusion de plusieurs groupes de générateurs rapporte plus que la
-     * somme des groupes, {@link #FUSION_GROUP_BONUS} de plus par groupe au-delà du premier
-     * (×1,1 avec deux groupes, ×1,9 avec dix). C'est ce qui rend l'attente payante quand le
-     * nombre de générateurs n'est plus limité à dix.
+     * La prime de groupe : une fusion de plusieurs groupes de générateurs rapporte plus que la somme des groupes,
+     * {@link #FUSION_GROUP_BONUS} de plus par groupe au-delà du premier (×1,1 avec deux groupes, ×1,9 avec dix). C'est
+     * ce qui rend l'attente payante quand le nombre de générateurs n'est plus limité à dix.
      */
-    public double fusionGroupBonus() {
-        return 1 + fusionGroupBonusPerGroup() * (fusionGroups() - 1);
-    }
+    public double fusionGroupBonus() { return 1 + fusionGroupBonusPerGroup() * (fusionGroups() - 1); }
 
     /** Ce que chaque groupe au-delà du premier ajoute à la fusion : {@link #FUSION_GROUP_BONUS}, ou plus après le défi réussi. */
     public double fusionGroupBonusPerGroup() {
@@ -852,9 +790,7 @@ public abstract class GameParticles extends GameMatterAutomation {
      * Nombre de groupes complets de générateurs qu'une fusion consommerait maintenant : un tant
      * que leur nombre est limité, deux avec vingt générateurs, etc. Au moins un.
      */
-    public int fusionGroups() {
-        return Math.max(1, generatorCount() / generatorsPerAtom());
-    }
+    public int fusionGroups() { return Math.max(1, generatorCount() / generatorsPerAtom()); }
 
     /**
      * Ce que la production de particules ajoute aux atomes d'une fusion, grâce aux améliorations
@@ -882,34 +818,26 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /**
-     * Vrai quand tous les générateurs sont débloqués et qu'il reste de la place pour un atome :
-     * ils peuvent fusionner.
+     * Vrai quand tous les générateurs sont débloqués et qu'il reste de la place pour un atome : ils peuvent fusionner.
      */
-    public boolean canFuse() {
-        return hasAllGenerators() && !isAtomCapReached();
-    }
+    public boolean canFuse() { return hasAllGenerators() && !isAtomCapReached(); }
 
     /** Vrai quand tous les générateurs sont débloqués, que la fusion soit possible ou non. */
-    public boolean hasAllGenerators() {
-        return state.started() && generatorCount() >= generatorsPerAtom();
-    }
+    public boolean hasAllGenerators() { return state.started() && generatorCount() >= generatorsPerAtom(); }
 
     /**
      * Vrai quand le joueur possède déjà {@link #MAX_ATOMS} atomes : aucune fusion tant qu'il n'en
      * dépense pas. Toujours faux une fois le plafond levé par l'arbre de matière noire.
      */
-    public boolean isAtomCapReached() {
-        return !isAtomCapLifted() && state.atoms().gte(atomCap());
-    }
+    public boolean isAtomCapReached() { return !isAtomCapLifted() && state.atoms().gte(atomCap()); }
 
     /**
      * Fusionne tous les générateurs en un atome.
      *
-     * <p>Impossible tant qu'il manque des générateurs, ou si le joueur possède déjà
-     * {@link #MAX_ATOMS} atomes. Sinon il gagne {@link #atomsPerFusion()} et repart du début : un
-     * seul générateur, plus aucune particule, plus aucune amélioration payée en particules, sauf
-     * la part que garde Persistance ({@link #fusionKeepShare()}). Les améliorations payées
-     * en atomes sont toujours conservées.
+     * <p>Impossible tant qu'il manque des générateurs, ou si le joueur possède déjà {@link #MAX_ATOMS} atomes. Sinon il
+     * gagne {@link #atomsPerFusion()} et repart du début : un seul générateur, plus aucune particule, plus aucune
+     * amélioration payée en particules, sauf la part que garde Persistance ({@link #fusionKeepShare()}). Les
+     * améliorations payées en atomes sont toujours conservées.
      *
      * @return {@code true} si la fusion a eu lieu
      */
@@ -933,9 +861,9 @@ public abstract class GameParticles extends GameMatterAutomation {
         BigNum atoms = state.atoms().add(gained);
         state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
         notePerfectCycle(!isAtomCapLifted() && atoms.gte(atomCap()));
-        // Les skins (version 0.088) : la reconstruction se chronomètre, la contraction compte ses fusions.
+        // Les skins : la reconstruction se chronomètre, la contraction compte ses fusions.
         if (isSkinsUnlocked()) state.setRebuildPending(true);
-        if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) state.setTrialCount(state.trialCount() + 1);
+        if (inTrial(Trial.SOFT_CONTRACTION)) state.setTrialCount(state.trialCount() + 1);
         state.setTotalAtoms(state.totalAtoms().add(gained));
         state.setParticles(BigNum.ZERO);
         state.clearFormations();
@@ -963,18 +891,14 @@ public abstract class GameParticles extends GameMatterAutomation {
     // ------------------------------------------------------------------
 
     /** Toutes les améliorations, dans l'ordre du catalogue. */
-    public Collection<Upgrade> upgrades() {
-        return upgrades.values();
-    }
+    public Collection<Upgrade> upgrades() { return upgrades.values(); }
 
     /** Les améliorations qui se paient avec une ressource donnée, dans l'ordre du catalogue. */
     public List<Upgrade> upgrades(Resource resource) {
         return upgrades.values().stream().filter(upgrade -> upgrade.resource() == resource).toList();
     }
 
-    public int levelOf(String upgradeId) {
-        return state.levelOf(upgrade(upgradeId).id());
-    }
+    public int levelOf(String upgradeId) { return state.levelOf(upgrade(upgradeId).id()); }
 
     /** Vrai quand l'amélioration a atteint son niveau maximal. */
     public boolean isMaxed(String upgradeId) {
@@ -993,17 +917,17 @@ public abstract class GameParticles extends GameMatterAutomation {
     /** Coût du niveau acheté quand on en possède {@code level}, toutes réductions comprises. */
     private BigNum costAt(Upgrade upgrade, int level) {
         BigNum cost = upgrade.costAt(level);
-        // La vitesse s'essouffle (version 0.124) : au-delà de SPEED_SCALING_FROM niveaux, chaque niveau coûte de plus en plus.
+        // La vitesse s'essouffle : au-delà de SPEED_SCALING_FROM niveaux, chaque niveau coûte de plus en plus.
         if (upgrade.effect() instanceof Effect.MultiplySpeed && level > SPEED_SCALING_FROM) {
             double over = level - SPEED_SCALING_FROM;
             cost = cost.multiply(BigNum.pow10(SPEED_SCALING * over * over));
         }
-        // La bulle du jeune arbre, à droite (version 0.148) : au-delà de l'ancien plafond, le prix grimpe très vite.
+        // La bulle du jeune arbre, à droite : au-delà de l'ancien plafond, le prix grimpe très vite.
         if (upgrade.effect() instanceof Effect.AddGenerator && hasBubble(GameUniverse.TreeBubble.YOUNG_RIGHT)) {
             int over = 1 + level - (generatorCap() - 1);
             if (over > 0) cost = cost.multiply(BigNum.pow10(BUBBLE_GENERATOR_SCALING * over * over));
         }
-        // Version 0.167 : les bonus des éléments ne se lisent que pour les prix qu'ils touchent (ils se recalculent après
+        // Les bonus des éléments ne se lisent que pour les prix qu'ils touchent (ils se recalculent après
         // chaque synthèse, et l'achat sans délai demande des milliers de prix par seconde de jeu).
         double factor = 1;
         if (upgrade.effect() instanceof Effect.AddGenerator) {
@@ -1014,9 +938,7 @@ public abstract class GameParticles extends GameMatterAutomation {
             factor = 1 / bonuses().costDivisor(ElementEffect.CostTarget.ATOM_UPGRADES);
             if (rewarded(Challenge.Reward.CHEAPER_ATOM_UPGRADES)) factor /= REWARD_ATOM_UPGRADE_DIVISOR;
         }
-        if (factor != 1) {
-            cost = Upgrade.roundUp(cost.multiply(factor)).max(BigNum.ONE);
-        }
+        if (factor != 1) cost = Upgrade.roundUp(cost.multiply(factor)).max(BigNum.ONE);
         return cost;
     }
 
@@ -1064,26 +986,23 @@ public abstract class GameParticles extends GameMatterAutomation {
         return total;
     }
 
-    public boolean canBuy(String upgradeId) {
-        return priceIfBuyable(upgradeId) != null;
-    }
+    public boolean canBuy(String upgradeId) { return priceIfBuyable(upgradeId) != null; }
 
     /**
      * Le prix du prochain niveau s'il peut s'acheter maintenant, sinon {@code null} : les règles de {@link #canBuy(String)},
-     * avec un seul calcul du prix pour la vérification et l'achat (version 0.167).
+     * avec un seul calcul du prix pour la vérification et l'achat.
      */
     private BigNum priceIfBuyable(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
-        // L'épreuve du premier générateur seul (version 0.088) : pas d'autre générateur.
-        if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(idle.core.universe.Trial.LONE_GENERATOR)) return null;
+        // L'épreuve du premier générateur seul : pas d'autre générateur.
+        if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(Trial.LONE_GENERATOR)) return null;
         if (!state.started() || isMaxed(upgradeId)) return null;
         BigNum cost = costOf(upgradeId);
         return balance(upgrade.resource()).gte(cost) ? cost : null;
     }
 
     /**
-     * Achète un niveau si la partie a démarré, que le joueur a de quoi payer
-     * et que le maximum n'est pas atteint.
+     * Achète un niveau si la partie a démarré, que le joueur a de quoi payer et que le maximum n'est pas atteint.
      *
      * @return {@code true} si l'achat a eu lieu
      */
@@ -1105,10 +1024,10 @@ public abstract class GameParticles extends GameMatterAutomation {
             }
         }
         state.setLevel(upgradeId, state.levelOf(upgradeId) + 1);
-        // La fuite et le calme du Big Bang (version 0.114) repartent de zéro à chaque amélioration achetée par le
+        // La fuite et le calme du Big Bang repartent de zéro à chaque amélioration achetée par le
         // joueur ; celles des automatismes ne comptent pas : on peut s'absenter sans couper l'automatisation.
         if (!automating) state.setUpgradeCalm(0);
-        // Le calme du Big Bang (version 0.124) : tout achat le rompt, celui des automatismes aussi.
+        // Le calme du Big Bang : tout achat le rompt, celui des automatismes aussi.
         state.setBangCalm(0);
         return true;
     }
@@ -1121,9 +1040,7 @@ public abstract class GameParticles extends GameMatterAutomation {
      */
     public int buy(String upgradeId, int count) {
         int bought = 0;
-        while (bought < count && bought < MAX_BULK && buy(upgradeId)) {
-            bought++;
-        }
+        while (bought < count && bought < MAX_BULK && buy(upgradeId)) bought++;
         if (bought >= Achievements.BULK_LEVELS) award(Achievements.BULK_PURCHASE);
         return bought;
     }
@@ -1226,13 +1143,9 @@ public abstract class GameParticles extends GameMatterAutomation {
         return state.stats();
     }
 
-    public GameState state() {
-        return state;
-    }
+    public GameState state() { return state; }
 
-    Automation automation(String automationId) {
-        return require(automations, automationId, "Automatisme inconnu : ");
-    }
+    Automation automation(String automationId) { return require(automations, automationId, "Automatisme inconnu : "); }
 
     DarkAutomation darkAutomation(String darkAutomationId) {
         return require(darkAutomations, darkAutomationId, "Automatisme de matière noire inconnu : ");
@@ -1242,9 +1155,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         return require(darkUpgrades, darkUpgradeId, "Amélioration de matière noire inconnue : ");
     }
 
-    Upgrade upgrade(String upgradeId) {
-        return require(upgrades, upgradeId, "Amélioration inconnue : ");
-    }
+    Upgrade upgrade(String upgradeId) { return require(upgrades, upgradeId, "Amélioration inconnue : "); }
 
     /** L'entrée du catalogue sous cet identifiant ; {@link IllegalArgumentException} s'il n'y en a pas, avec {@code message} suivi de l'identifiant. */
     private static <T> T require(Map<String, T> catalog, String id, String message) {

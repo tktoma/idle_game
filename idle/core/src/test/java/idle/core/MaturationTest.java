@@ -4,14 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
+import idle.core.sky.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** La maturation des astres (version 0.053) : un astre formé mûrit avant de compter pleinement. */
+/** La maturation des astres : un astre formé mûrit avant de compter pleinement. */
 class MaturationTest {
-
     private static Game game() {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 5);

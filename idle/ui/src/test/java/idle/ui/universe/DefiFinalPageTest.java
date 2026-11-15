@@ -1,34 +1,29 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.GameUniverse.SeedUpgrade;
 import idle.core.GameUniverse.TreeBubble;
-import idle.ui.FinalePane;
-import idle.ui.FxTestSupport;
-import idle.ui.Version;
+import idle.ui.*;
 import idle.ui.pages.StatsPage;
 import java.util.List;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.160 : le défi final, sous Xvfb. Sans la bulle des racines, la carte des dimensions ne montre pas de palier ;
+ * Le défi final, sous Xvfb. Sans la bulle des racines, la carte des dimensions ne montre pas de palier ;
  * avec elle, chaque point se remplit de vert selon son avancée (en puissances de dix), tout vert au palier atteint. Les
  * dix atteints pendant qu'on joue, la fin se joue sur la carte (les traits verdissent, le point du milieu grandit), puis
  * l'écran de fin ; « Revoir la fin » la rejoue ; une partie déjà finie au chargement ne la rejoue pas. Les statistiques
  * et la note de version.
  */
 class DefiFinalPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au dixième univers. */
     private static Game tenth() {
@@ -153,7 +148,7 @@ class DefiFinalPageTest {
             openChallenge(game);
             reachAll(game);
             game.tick(0.05);
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

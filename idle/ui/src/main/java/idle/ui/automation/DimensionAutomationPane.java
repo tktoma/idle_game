@@ -13,31 +13,27 @@ import idle.ui.universe.Dimension;
 import idle.ui.universe.DimensionWindow;
 import java.util.EnumMap;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.geometry.*;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
- * Le sous-onglet « Dimensions » de l'automatisation (version 0.150), que la bulle du sommet de l'arbre-monde ouvre :
- * les automatismes qui jouent les dimensions à la place du joueur et achètent leurs améliorations
- * ({@link DimensionAutomation}).
+ * Le sous-onglet « Dimensions » de l'automatisation, que la bulle du sommet de l'arbre-monde ouvre : les automatismes
+ * qui jouent les dimensions à la place du joueur et achètent leurs améliorations ({@link DimensionAutomation}).
  *
  * <p>En tête, ce qui paie chaque dimension, et le rappel que « Couper tous les automatismes » les arrête et qu'ils
  * traversent les univers ; le même bouton de coupure que le sous-onglet « Automatismes », pour s'en servir d'ici. Puis
- * une section par dimension ouverte (la ligne, le plan, le volume, la durée, la boucle depuis la version 0.153, la brane
- * depuis la version 0.154, le clicker depuis la version 0.155, la grille depuis la version 0.156, le miroir depuis la version 0.157, le mélange depuis la version 0.158), qui dit
- * ce que le joueur a pour payer, et
- * une carte par automatisme : son nom, ce qu'il fait, son prix et ce qui le paie. Pas encore achetable, la carte dit
- * celui qu'il faut avoir acheté avant (« Après : … ») ; à acheter, un clic l'achète ; acheté, elle sert d'interrupteur,
- * en marche ou en pause.
+ * une section par dimension ouverte (la ligne, le plan, le volume, la durée, la boucle depuis la version 0.153, la
+ * brane depuis la version 0.154, le clicker depuis la version 0.155, la grille depuis la version 0.156, le miroir
+ * depuis la version 0.157, le mélange depuis la version 0.158), qui dit ce que le joueur a pour payer, et une carte par
+ * automatisme : son nom, ce qu'il fait, son prix et ce qui le paie. Pas encore achetable, la carte dit celui qu'il faut
+ * avoir acheté avant (« Après : … ») ; à acheter, un clic l'achète ; acheté, elle sert d'interrupteur, en marche ou en
+ * pause.
  *
  * <p>Les cartes ne se refont que si leur état a changé (acheté, en marche, payable, coupure, affichage) ; seules les
  * lignes des réserves se recopient à chaque fois.
  */
 public final class DimensionAutomationPane extends VBox {
-
     private static final String HEADING_STYLE = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 14 0 0 0; -fx-text-fill: ";
     private static final double MAX_WIDTH = 820;
 
@@ -105,7 +101,7 @@ public final class DimensionAutomationPane extends VBox {
         refresh();
     }
 
-    /** Ce que fait un automatisme, en une ligne : celle de sa carte. Version 0.209 : celui qui joue dit sa cadence. */
+    /** Ce que fait un automatisme, en une ligne : celle de sa carte. Celui qui joue dit sa cadence. */
     public static String brief(DimensionAutomation automation) {
         if (automation.kind() == DimensionAutomation.Kind.UPGRADE) return "Achète « " + automation.label() + " » dès qu'il est payable";
         String cadence = automation.cadence();
@@ -206,7 +202,7 @@ public final class DimensionAutomationPane extends VBox {
         }
     }
 
-    /** Ce qui ouvre les automatismes d'une dimension (version 0.182) : le palier de la graine et les univers formés. */
+    /** Ce qui ouvre les automatismes d'une dimension : le palier de la graine et les univers formés. */
     static String opening(int dimension) {
         int stage = Game.dimensionAutomationStage(dimension), universes = Game.dimensionAutomationUniverses(dimension);
         return "Avec " + Game.SEED_STAGE_NAMES.get(stage - 1) + " et " + universes + " univers formés";
@@ -221,30 +217,18 @@ public final class DimensionAutomationPane extends VBox {
     }
 
     /** La carte d'un automatisme : pour les vérifications. */
-    public Card card(DimensionAutomation automation) {
-        return cards.get(automation);
-    }
+    public Card card(DimensionAutomation automation) { return cards.get(automation); }
 
     /** Vrai si la section de cette dimension (1 à 10) se montre. */
-    public boolean sectionShown(int number) {
-        return sections[number].isVisible();
-    }
+    public boolean sectionShown(int number) { return sections[number].isVisible(); }
 
     /** Le titre de la section d'une dimension : pour les vérifications. */
-    public String headingText(int number) {
-        return headings[number].getText();
-    }
+    public String headingText(int number) { return headings[number].getText(); }
 
     /** La ligne de ce qui paie une dimension : pour les vérifications. */
-    public String balanceText(int number) {
-        return balances[number].getText();
-    }
+    public String balanceText(int number) { return balances[number].getText(); }
 
-    public String introText() {
-        return intro.getText();
-    }
+    public String introText() { return intro.getText(); }
 
-    public Button pauseButton() {
-        return pauseButton;
-    }
+    public Button pauseButton() { return pauseButton; }
 }

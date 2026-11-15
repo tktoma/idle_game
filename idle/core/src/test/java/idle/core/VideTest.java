@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.collider.ColliderGenerator;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,19 +11,17 @@ import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
+import idle.core.sky.*;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.129 : le vide. Il se propose au premier Big Bang du troisième univers et s'achète en énergie du
+ * Le vide. Il se propose au premier Big Bang du troisième univers et s'achète en énergie du
  * collisionneur ; ses paires coûtent de l'énergie et de l'espace, donnent de l'énergie du vide, qui fond vers un
  * équilibre ; le trou noir, nourri de particules, raccourcit les paires et ralentit la fonte ; sept améliorations ;
  * à la formation de l'univers, ce qui reste rejoint le cumul.
  */
 class VideTest {
-
     /** Le troisième univers, au premier Big Bang : le vide se propose. */
     static Game third() {
         Game game = DeuxiemeUniversTest.second();
@@ -38,9 +39,7 @@ class VideTest {
         return game;
     }
 
-    private static GameState reread(GameState state) {
-        return GameTestSupport.reread(state);
-    }
+    private static GameState reread(GameState state) { return GameTestSupport.reread(state); }
 
     // ------------------------------------------------------------------
     // L'ouverture
@@ -69,13 +68,13 @@ class VideTest {
         Game game = third();
         assertEquals(Game.VOID_UNLOCK_COST, game.voidPrice(), 1e-3, "un collisionneur faible : le prix plancher");
         // Un collisionneur fort : dix minutes de sa production.
-        game.state().setColliderGenerators(idle.core.collider.ColliderGenerator.BEAM, 9_999_999);
+        game.state().setColliderGenerators(ColliderGenerator.BEAM, 9_999_999);
         double production = game.colliderEnergyPerSecond();
         assertTrue(600 * production > Game.VOID_UNLOCK_COST);
         game.tick(0.01);
         double fixed = game.state().voidPrice();
         assertEquals(600 * production, fixed, fixed * 1e-6, "fixé au premier tick où il se propose");
-        game.state().setColliderGenerators(idle.core.collider.ColliderGenerator.BEAM, 99_999_999);
+        game.state().setColliderGenerators(ColliderGenerator.BEAM, 99_999_999);
         game.tick(0.01);
         assertEquals(fixed, game.voidPrice(), 1e-6, "il ne monte plus avec le collisionneur");
         assertEquals(fixed, reread(game.state()).voidPrice(), 1e-6);
@@ -431,7 +430,7 @@ class VideTest {
     }
 
     // ------------------------------------------------------------------
-    // Le rassemblement plus court (version 0.132)
+    // Le rassemblement plus court
     // ------------------------------------------------------------------
 
     @Test
@@ -456,11 +455,11 @@ class VideTest {
         game.state().setTimePlayed(10_000);
         game.state().stats().noteStep(GameStats.Step.GALAXY, 10_000);
         game.state().setCosmosLevel(1);
-        assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6);
+        assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 3);
-        assertEquals(Game.COSMOS_SETTLE_SECONDS * (1 - 3 * Game.VOID_SETTLE_STEP), game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6);
+        assertEquals(Game.COSMOS_SETTLE_SECONDS * (1 - 3 * Game.VOID_SETTLE_STEP), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
         game.state().setTimePlayed(10_000 + Game.COSMOS_SETTLE_SECONDS * 0.7);
-        assertEquals(0, game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6, "−30 % : prêt à 70 % du délai");
+        assertEquals(0, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6, "−30 % : prêt à 70 % du délai");
     }
 
     @Test

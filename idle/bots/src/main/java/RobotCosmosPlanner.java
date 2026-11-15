@@ -1,4 +1,5 @@
 import idle.core.*;
+import idle.core.elements.ElementCategory;
 import idle.core.upgrades.*;
 import idle.core.darkmatter.*;
 import idle.core.bigbang.*;
@@ -23,10 +24,10 @@ public class RobotCosmosPlanner {
   boolean patiencePausedByRobot=false;
   boolean persistenceReserveManaged=false;
   BigNum previousPersistenceReserve=BigNum.ZERO;
-  /** La réserve posée pour le prochain niveau de Persistance (version 0.167), pour la rendre telle quelle ensuite. */
+  /** La réserve posée pour le prochain niveau de Persistance, pour la rendre telle quelle ensuite. */
   BigNum persistenceReserveSet=null;
   /**
-   * La sobriété (version 0.202) : vrai quand la boucle des particules, des atomes et des éléments est éteinte parce que
+   * La sobriété : vrai quand la boucle des particules, des atomes et des éléments est éteinte parce que
    * plus rien ne demande d'éléments ({@link #loopIdle()}). Une sobriété des atomes seuls a été essayée et écartée : la
    * fusion fait aussi grandir la matière noire, qui accélère les automatismes ; sans elle, la synthèse tombait de 21 à
    * 1,1 par seconde, et la partie s'allongeait de 2 h 34 en deux univers.
@@ -37,11 +38,11 @@ public class RobotCosmosPlanner {
    */
   boolean sobriety=false;
   /**
-   * Version 0.204 : les mécaniques que ce bot ne joue plus, pour mesurer à partir de quand chacune ne sert plus
+   * Les mécaniques que ce bot ne joue plus, pour mesurer à partir de quand chacune ne sert plus
    * ({@link AnalyseArrets}, {@link AnalyseMecaniques}) : {@code collisionneur}, {@code sondes}, {@code defis},
    * {@code cometes}, {@code anomalies}, {@code impulsions}, {@code appui_m}. Vide pour un bot ordinaire.
    */
-  final java.util.Set<String> sansMecaniques=new java.util.HashSet<>();
+  final Set<String> sansMecaniques=new HashSet<>();
   boolean sansJouer(String mecanique){return !sansMecaniques.isEmpty() && sansMecaniques.contains(mecanique);}
   /** Les automatismes que la sobriété a éteints, pour les rallumer tels quels. */
   final List<String> sobrietyOff=new ArrayList<>();
@@ -117,7 +118,7 @@ public class RobotCosmosPlanner {
   /** La variante experte sait quand différer volontairement une fusion. */
   boolean waitForPatientFusion(){return false;}
   /**
-   * Les choix de jeu des trois actes, dans chaque univers (version 0.135) : un expert suit l'ordre d'achat mesuré du
+   * Les choix de jeu des trois actes, dans chaque univers : un expert suit l'ordre d'achat mesuré du
    * modèle (§14.1) et l'arbre de matière noire au mieux, tente les défis de Big Bang et envoie ses sondes en long voyage
    * avant de s'absenter ; un joueur moins appliqué achète le moins cher, ignore les défis de Big Bang ou n'envoie que
    * des sauts courts.
@@ -153,28 +154,28 @@ public class RobotCosmosPlanner {
   /** Les achats en matière noire, selon le style. */
   void buyDark(int limit){if(earlyStyle.darkBest())FirstUniversePolicy.dark(g,limit);else FirstUniversePolicy.cheapestDark(g,limit);}
   /**
-   * Univers à former avant de s'arrêter (version 0.130) : 1 par défaut, le premier univers comme avant. Au-delà, le
+   * Univers à former avant de s'arrêter : 1 par défaut, le premier univers comme avant. Au-delà, le
    * bot lance l'univers suivant dès qu'un univers se forme ({@link NextUniversePolicy#launchNext}), et rejoue les trois
    * actes avec ce que le deuxième univers ajoute. Une partie en train de rejouer finit au moins l'univers en cours.
    */
   int targetUniverses=1;
   /** Les gestes du deuxième univers ; aucun dans le premier. Les profils y mettent leur façon de jouer (0.131). */
   NextUniversePolicy nextUniverse=new NextUniversePolicy();
-  /** Le vide du troisième univers (version 0.133) ; rien tant qu'il ne se propose pas. Les profils y mettent leur façon. */
+  /** Le vide du troisième univers ; rien tant qu'il ne se propose pas. Les profils y mettent leur façon. */
   VoidPolicy voidPolicy=new VoidPolicy();
   /**
-   * La graine, les bulles de l'arbre, les hadrons et la ligne, à partir de l'univers 4 (version 0.152) ; rien avant.
+   * La graine, les bulles de l'arbre, les hadrons et la ligne, à partir de l'univers 4 ; rien avant.
    * Les profils y mettent leur façon.
    */
   UniverseTreePolicy tree=new UniverseTreePolicy();
   /** Les automates du collisionneur que le bot a mis en pause pour garder l'énergie du vide. */
   final Set<ColliderUpgrade> pausedForVoid=EnumSet.noneOf(ColliderUpgrade.class);
-  /** Anomalies du ciel saisies (version 0.131). */
+  /** Anomalies du ciel saisies. */
   int skyEventsCaught=0;
   /** Vrai pour jouer sans saisir les anomalies du ciel (propriété {@code idle.sansAnomalies}), comme avant la 0.131. */
   static boolean skyEventsOff(){return Boolean.getBoolean("idle.sansAnomalies");}
   /**
-   * Saisit l'anomalie du ciel visible, si elle existe (version 0.131) : un vent de particules ou une fenêtre
+   * Saisit l'anomalie du ciel visible, si elle existe : un vent de particules ou une fenêtre
    * d'exploration, facultatifs et gratuits. Vrai si une anomalie a été saisie.
    */
   boolean catchSkyEvent(){
@@ -200,7 +201,7 @@ public class RobotCosmosPlanner {
     launchedNextUniverse=false;
     while(universesSeen<g.universes()){universesSeen++;universeTimes.add(clockSeconds());}
     if(NextUniversePolicy.reached(g,targetUniverses))return true;
-    // Version 0.152 : à partir de l'univers 4, l'univers suivant attend le palier de la graine qui l'ouvre (l'arrosoir
+    // À partir de l'univers 4, l'univers suivant attend le palier de la graine qui l'ouvre (l'arrosoir
     // est tenu en attendant) ; les univers 2 et 3 se lancent toujours dès l'univers formé, comme avant.
     if(g.universes()<targetUniverses && g.canStartNextUniverse() && !tree.readyToLaunch(g))return false;
     if(NextUniversePolicy.launchNext(g,targetUniverses)){
@@ -258,19 +259,17 @@ public class RobotCosmosPlanner {
       }
     }
     if(!FirstUniversePolicy.readyForPersistence(g) && persistenceReserveManaged){
-      // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser. Version 0.167 : la réserve posée se
+      // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser. La réserve posée se
       // compare à elle-même, plus au prix de Persistance, qui change à chaque niveau (et n'existe plus au dernier).
-      if(g.synthesisReserve().equals(persistenceReserveSet))
-        g.setSynthesisReserve(previousPersistenceReserve);
+      if(g.synthesisReserve().equals(persistenceReserveSet)) g.setSynthesisReserve(previousPersistenceReserve);
       persistenceReserveManaged=false;
       persistenceReserveSet=null;
     }
   }
   void collider(){
     if(!g.isColliderUnlocked() || sansJouer("collisionneur"))return;
-    // Version 0.133 : tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates
-    // d'achat attendent aussi, et repartent ensuite.
-    // Version 0.152 : de même pour l'onglet des hadrons, à partir de l'univers 4.
+    // Tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates d'achat attendent
+    // aussi, et repartent ensuite. De même pour l'onglet des hadrons, à partir de l'univers 4.
     if(voidPolicy.savingForVoid(g) || tree.savingForHadrons(g)){
       for(ColliderGenerator gen:ColliderGenerator.values()){
         ColliderUpgrade auto=ColliderUpgrade.automationOf(gen);
@@ -294,7 +293,7 @@ public class RobotCosmosPlanner {
       }
       buyColliderUpgrades(ColliderUpgrade.values());
     }
-    // Version 0.174 : le quark top se joue dès qu'il est là (la surchauffe : particules ×10) ; avant, il expirait.
+    // Le quark top se joue dès qu'il est là (la surchauffe : particules ×10) ; avant, il expirait.
     if(g.isSecondUniverse() && g.hasTop())g.useTop();
     if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
   }
@@ -306,7 +305,7 @@ public class RobotCosmosPlanner {
   /** Les améliorations du collisionneur qui doublent sa production : elles passent avant tout le reste. */
   static final ColliderUpgrade[] COLLIDER_FIRST={ColliderUpgrade.ENERGY,ColliderUpgrade.GENERATOR_POWER};
   /**
-   * Version 0.174 : le collisionneur acheté comme une chaîne de générateurs. D'abord ce qui double la production
+   * Le collisionneur acheté comme une chaîne de générateurs. D'abord ce qui double la production
    * (production d'énergie, générateurs renforcés), puis les générateurs du plus haut au plus bas, autant que possible
    * (chacun produit celui d'en dessous : le plus haut fait grandir toute la chaîne), puis le reste dans l'ordre du jeu.
    * Avant, le premier achetable de la liste passait d'abord : sur le Speedrunner de la 0.171, 384 faisceaux croisés pour
@@ -341,13 +340,12 @@ public class RobotCosmosPlanner {
     if(g.canLaunchUrgentWave() && !g.shoppingList().items().isEmpty())g.launchUrgentWave();
     // Quand il reste des places, cibler les rayons dont les recettes demandées
     // utilisent les éléments rapportés. Les sondes partent seulement si leur destination est ouverte.
-    java.util.Map<Integer,Integer> shortages=new HashMap<>();
+    Map<Integer,Integer> shortages=new HashMap<>();
     for(ShoppingList.Item item:g.shoppingList().items()){
       if(item.missing()<=0)continue;
-      for(Integer z:item.molecule().recipe().keySet())
-        shortages.merge(z,item.missing(),Integer::sum);
+      for(Integer z:item.molecule().recipe().keySet()) shortages.merge(z,item.missing(),Integer::sum);
     }
-    java.util.List<ProbeDestination> targets=new ArrayList<>();
+    List<ProbeDestination> targets=new ArrayList<>();
     for(ProbeDestination destination:ProbeDestination.values())
       if(g.isProbeDestinationOpen(destination))targets.add(destination);
     targets.sort((a,b)->Integer.compare(probePriority(b,shortages),probePriority(a,shortages)));
@@ -360,8 +358,7 @@ public class RobotCosmosPlanner {
   }
   int probePriority(ProbeDestination destination,Map<Integer,Integer> shortage){
     int score=0;
-    for(Integer element:g.probeElements(destination))
-      score+=shortage.getOrDefault(element,0);
+    for(Integer element:g.probeElements(destination)) score+=shortage.getOrDefault(element,0);
     return score;
   }
   void systems(){
@@ -437,9 +434,8 @@ public class RobotCosmosPlanner {
    */
   boolean automateMatter(){
     Set<String> chosen=new HashSet<>();
-    // Les trois états ont des exigences indépendantes pour le cosmos.
-    // Leurs automatismes doivent progresser simultanément : le ciblage
-    // d'un état unique sous-utilisait les matières disponibles.
+    // Les trois états ont des exigences indépendantes pour le cosmos. Leurs automatismes doivent progresser
+    // simultanément : le ciblage d'un état unique sous-utilisait les matières disponibles.
     for(var need:g.shoppingList().matter().entrySet()){
       if(need.getValue()<=0)continue;
       Molecule best=FirstUniversePolicy.matterTarget(g,need.getKey());
@@ -530,8 +526,7 @@ public class RobotCosmosPlanner {
   double lastBigBangDiagnostic = -900;
   void logBigBangDiagnostic(){
     double now=g.state().timePlayed();
-    if(g.bigBangs()!=0 || now-lastBigBangDiagnostic<900
-            || !g.baseChallengesDone() || g.achievementCount()<40)return;
+    if(g.bigBangs()!=0 || now-lastBigBangDiagnostic<900 || !g.baseChallengesDone() || g.achievementCount()<40)return;
     lastBigBangDiagnostic=now;
     System.out.printf(Locale.ROOT,
       "BB_STATUS,t=%.2fh,dm_disponible=%s,dm_depensee=%s,dm_totale=%s,dm_manquante=%s,conditions=%d/%d,particules=%s,atomes=%s,defis=%d,succes=%d%n",
@@ -573,11 +568,10 @@ public class RobotCosmosPlanner {
   /**
    * L'ordre des défis de Big Bang ({@code -Didle.defisBB}) : « maturation » (ciel figé, barre haute, puis le
    * catalogue), « gele » (ciel figé, puis le catalogue) ou « avant » (le catalogue, jamais sur une partie prête à Big
-   * Bang : la règle d'avant la 0.135). Mesuré en 0.135 avec « maturation », Speedrunner et Régulier : deuxième
-   * univers de 20 h 33–21 h 15 à 14 h 57–19 h 23 ; troisième de
-   * 12 h 08–20 h 18 à 10 h 40–12 h 31. « gele » et « maturation » font jeu égal (72,7 h sur cinq parties).
-   * Lue à chaque usage, et refusée avec un message clair hors de {@link #BANG_CHALLENGE_SETTINGS} : avant la 0.141,
-   * une valeur inconnue jouait « gele » en silence.
+   * Bang : la règle d'avant la 0.135). Mesuré en 0.135 avec « maturation », Speedrunner et Régulier : deuxième univers
+   * de 20 h 33–21 h 15 à 14 h 57–19 h 23 ; troisième de 12 h 08–20 h 18 à 10 h 40–12 h 31. « gele » et « maturation »
+   * font jeu égal (72,7 h sur cinq parties). Lue à chaque usage, et refusée avec un message clair hors de {@link
+   * #BANG_CHALLENGE_SETTINGS} : avant la 0.141, une valeur inconnue jouait « gele » en silence.
    */
   static String bangChallengesSetting(){
     String wanted=System.getProperty("idle.defisBB","maturation").trim();
@@ -595,11 +589,10 @@ public class RobotCosmosPlanner {
     if(!later)return g.bangChallenges();
     List<BangChallenge> order=new ArrayList<>();
     order.add(BangChallenge.FROZEN);
-    // Version 0.174 : plus de barre haute d'abord une fois la maturation supprimée (l'arbre ancien, à droite) : sa
-    // récompense ne sert plus, et les trois défis d'origine passent avant (ils ouvrent la double appartenance des
-    // planètes). Mesuré sur le Speedrunner de la 0.171 : barre haute rejouée aux univers 8 et 9, les deux autres
-    // seulement à l'univers 10.
-    boolean maturationGone=g.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.ANCIENT_RIGHT);
+    // Plus de barre haute d'abord une fois la maturation supprimée (l'arbre ancien, à droite) : sa récompense ne sert
+    // plus, et les trois défis d'origine passent avant (ils ouvrent la double appartenance des planètes). Mesuré sur le
+    // Speedrunner de la 0.171 : barre haute rejouée aux univers 8 et 9, les deux autres seulement à l'univers 10.
+    boolean maturationGone=g.isTreeBubbleBought(GameUniverse.TreeBubble.ANCIENT_RIGHT);
     if(bangChallengesSetting().equals("maturation") && !maturationGone)order.add(BangChallenge.RAISED);
     if(maturationGone){order.add(BangChallenge.VOID);order.add(BangChallenge.FORGOTTEN);order.add(BangChallenge.BY_HAND);}
     for(BangChallenge c:g.bangChallenges())if(!order.contains(c))order.add(c);
@@ -610,16 +603,16 @@ public class RobotCosmosPlanner {
       FirstUniversePolicy.bootstrapAutomations(g);
       prioritizePersistence();
     }
-    // Version 0.130 : régime rapide, choix de cycle, famille préférée, éléments gratuits ; rien dans le premier univers.
+    // Régime rapide, choix de cycle, famille préférée, éléments gratuits ; rien dans le premier univers.
     nextUniverse.play(g);
     voidPolicy.play(g);
-    // Version 0.152 : la graine, les bulles, les hadrons et la ligne ; rien avant l'univers 4.
+    // La graine, les bulles, les hadrons et la ligne ; rien avant l'univers 4.
     tree.play(g);
     if(bangChallenges())return;
     logBigBangDiagnostic();
-    g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
+    g.buyAllBigBangMilestones();   // Les paliers de Big Bang se paient
     // Réduire les décisions pendant la phase de production pure.
-    // La sobriété (version 0.202) : la boucle s'éteint quand plus rien ne demande d'éléments.
+    // La sobriété : la boucle s'éteint quand plus rien ne demande d'éléments.
     boolean saturated=loopIdle();
     applySobriety(saturated);
     if(!saturated)particle(g,500);
@@ -687,8 +680,7 @@ public class RobotCosmosPlanner {
     hunt();
     // La synthèse ciblée doit alimenter les recettes des astres, pas tirer au hasard
     // pendant les dizaines d'heures où manque le même élément (modèle §8.3 et §15).
-    if(g.isTargetedSynthesisUnlocked()
-        && g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
+    if(g.isTargetedSynthesisUnlocked() && g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
       var need=FirstUniversePolicy.chemistryTarget(g);
       if(need!=g.synthesisTarget())g.setSynthesisTarget(need);
     }
@@ -799,8 +791,8 @@ public class RobotCosmosPlanner {
     if(earlyStyle.opening())prioritizePersistence();
     if(g.isTargetedSynthesisUnlocked()){
       boolean wantActinide=!g.hasAchievement(Achievements.TARGETED_ACTINIDE);
-      if(wantActinide && g.synthesisTarget()!=idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(idle.core.elements.ElementCategory.ACTINIDE);
-      if(!wantActinide && g.synthesisTarget()==idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(null);
+      if(wantActinide && g.synthesisTarget()!=ElementCategory.ACTINIDE)g.setSynthesisTarget(ElementCategory.ACTINIDE);
+      if(!wantActinide && g.synthesisTarget()==ElementCategory.ACTINIDE)g.setSynthesisTarget(null);
     }
     boolean wantReserve=!g.hasAchievement("feat_reserve") && g.isSynthesisAutomationUnlocked();
     if(wantReserve && g.synthesisReserve().lt(BigNum.of(50)))g.setSynthesisReserve(BigNum.of(50));

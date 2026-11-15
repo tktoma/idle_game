@@ -1,16 +1,16 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * Le miroir, neuvième dimension (version 0.157) : un plateau coupé en deux par un miroir vertical. Un motif s'allume,
+ * Le miroir, neuvième dimension : un plateau coupé en deux par un miroir vertical. Un motif s'allume,
  * case après case, sur la moitié gauche ; puis il s'éteint, et le joueur doit le reproduire de mémoire, en miroir, sur
  * la moitié droite, dans le même ordre. Réussi, il donne des reflets (la ressource), et le motif suivant est plus long
  * d'une case ; manqué, le motif raccourcit d'une case. Le plateau s'agrandit seul toutes les trois réussites (version
@@ -21,7 +21,6 @@ import java.util.random.RandomGenerator;
  * à chaque arrosage, plus ou moins selon la saison.
  */
 public abstract class GameMirror extends GameGrid {
-
     GameMirror(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -42,14 +41,10 @@ public abstract class GameMirror extends GameGrid {
 
         private final Price price;
 
-        MirrorUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        MirrorUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Une case du plateau : sa colonne (0 à gauche) et sa ligne (0 en haut). */
@@ -81,7 +76,7 @@ public abstract class GameMirror extends GameGrid {
     /** L'automatisme ne se trompe pas jusqu'à six cases ; il en clique une par action de son palier (version 0.209 ; 0,4 s avant). */
     public static final int MIRROR_AUTO_MAX = 6;
 
-    private final java.util.Random mirrorRandom = new java.util.Random(9);
+    private final Random mirrorRandom = new Random(9);
     private final List<MirrorCell> mirrorPattern = new ArrayList<>();
     private MirrorPhase mirrorPhase = MirrorPhase.PAUSE;
     private double mirrorTimer, mirrorAutoTimer, mirrorLastGain;
@@ -90,23 +85,15 @@ public abstract class GameMirror extends GameGrid {
     private MirrorAnswer mirrorLastResult = MirrorAnswer.IGNORED;
 
     /** Vrai dès que la neuvième dimension est ouverte : au neuvième univers. */
-    public boolean isMirrorOpen() {
-        return dimensionsUnlocked() >= 9;
-    }
+    public boolean isMirrorOpen() { return dimensionsUnlocked() >= 9; }
 
-    public int mirrorLevel(MirrorUpgrade upgrade) {
-        return state.mirrorLevel(upgrade.ordinal());
-    }
+    public int mirrorLevel(MirrorUpgrade upgrade) { return state.mirrorLevel(upgrade.ordinal()); }
 
     /** Les colonnes de chaque côté du miroir. */
-    public int mirrorHalf() {
-        return MIRROR_HALF + mirrorGrowth();
-    }
+    public int mirrorHalf() { return MIRROR_HALF + mirrorGrowth(); }
 
     /** Les agrandissements au plus : trois, et un de plus par niveau de plateau plus vaste. */
-    public int mirrorMaxGrowth() {
-        return MIRROR_GROWTHS + mirrorLevel(MirrorUpgrade.BOARD);
-    }
+    public int mirrorMaxGrowth() { return MIRROR_GROWTHS + mirrorLevel(MirrorUpgrade.BOARD); }
 
     /** Les agrandissements du plateau : un toutes les trois réussites, jusqu'au plus permis. */
     public int mirrorGrowth() {
@@ -120,27 +107,19 @@ public abstract class GameMirror extends GameGrid {
     }
 
     /** Toutes les colonnes du plateau : les deux moitiés. */
-    public int mirrorColumns() {
-        return 2 * mirrorHalf();
-    }
+    public int mirrorColumns() { return 2 * mirrorHalf(); }
 
-    public int mirrorRows() {
-        return MIRROR_ROWS + mirrorGrowth();
-    }
+    public int mirrorRows() { return MIRROR_ROWS + mirrorGrowth(); }
 
     /** Le temps où chaque case du motif reste allumée. */
-    public double mirrorShowSeconds() {
-        return MIRROR_SHOW + MIRROR_SHOW_STEP * mirrorLevel(MirrorUpgrade.MEMORY);
-    }
+    public double mirrorShowSeconds() { return MIRROR_SHOW + MIRROR_SHOW_STEP * mirrorLevel(MirrorUpgrade.MEMORY); }
 
     /** Les erreurs permises par motif. */
-    public int mirrorAllowedMistakes() {
-        return mirrorLevel(MirrorUpgrade.MISTAKES);
-    }
+    public int mirrorAllowedMistakes() { return mirrorLevel(MirrorUpgrade.MISTAKES); }
 
     /** Ce que donne chaque case d'un motif réussi, avant la longueur : 1, plus 1 par niveau de gain, et les omégas. */
     public double mirrorValue() {
-        return (1 + mirrorLevel(MirrorUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA) * (1 + MIRROR_BOARD * mirrorGrowth());
+        return (1 + mirrorLevel(MirrorUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA) * (1 + MIRROR_BOARD * mirrorGrowth());
     }
 
     public double mirrorLengthFactor() {
@@ -157,14 +136,10 @@ public abstract class GameMirror extends GameGrid {
         return new MirrorCell(mirrorColumns() - 1 - cell.column(), cell.row());
     }
 
-    public MirrorPhase mirrorPhase() {
-        return mirrorPhase;
-    }
+    public MirrorPhase mirrorPhase() { return mirrorPhase; }
 
     /** Le motif, sur la moitié gauche ; l'interface ne le montre que pendant qu'il s'allume. */
-    public List<MirrorCell> mirrorPattern() {
-        return Collections.unmodifiableList(mirrorPattern);
-    }
+    public List<MirrorCell> mirrorPattern() { return Collections.unmodifiableList(mirrorPattern); }
 
     /** La case allumée en ce moment (rang dans le motif), ou −1 hors de l'allumage. */
     public int mirrorShown() {
@@ -173,40 +148,24 @@ public abstract class GameMirror extends GameGrid {
     }
 
     /** Les cases déjà reproduites du motif en cours. */
-    public int mirrorPosition() {
-        return mirrorPosition;
-    }
+    public int mirrorPosition() { return mirrorPosition; }
 
     /** La longueur du motif en cours. */
-    public int mirrorLength() {
-        return mirrorLength;
-    }
+    public int mirrorLength() { return mirrorLength; }
 
-    public int mirrorMistakes() {
-        return mirrorMistakes;
-    }
+    public int mirrorMistakes() { return mirrorMistakes; }
 
     /** Le plus long motif réussi. */
-    public int mirrorBest() {
-        return mirrorBest;
-    }
+    public int mirrorBest() { return mirrorBest; }
 
-    public long mirrorSuccesses() {
-        return mirrorSuccesses;
-    }
+    public long mirrorSuccesses() { return mirrorSuccesses; }
 
-    public long mirrorFails() {
-        return mirrorFails;
-    }
+    public long mirrorFails() { return mirrorFails; }
 
-    public double mirrorLastGain() {
-        return mirrorLastGain;
-    }
+    public double mirrorLastGain() { return mirrorLastGain; }
 
     /** Le dernier motif : SUCCESS ou FAIL, IGNORED avant le premier. */
-    public MirrorAnswer mirrorLastResult() {
-        return mirrorLastResult;
-    }
+    public MirrorAnswer mirrorLastResult() { return mirrorLastResult; }
 
     /**
      * Un clic sur la case ({@code column}, {@code row}) : pendant la reproduction, sur la moitié droite, il doit être le
@@ -328,14 +287,10 @@ public abstract class GameMirror extends GameGrid {
     }
 
     /** Vrai quand l'automatisme du miroir joue (automatisation des dimensions, version 0.157). */
-    boolean isMirrorAutomatic() {
-        return isDimensionPlayed(9);
-    }
+    boolean isMirrorAutomatic() { return isDimensionPlayed(9); }
 
     /** Prix du prochain niveau, en reflets ; infini une fois au plus haut. */
-    public double mirrorCost(MirrorUpgrade upgrade) {
-        return upgrade.cost(mirrorLevel(upgrade));
-    }
+    public double mirrorCost(MirrorUpgrade upgrade) { return upgrade.cost(mirrorLevel(upgrade)); }
 
     public boolean canBuyMirror(MirrorUpgrade upgrade) {
         return isMirrorOpen() && mirrorLevel(upgrade) < upgrade.max() && state.mirrorShards() >= mirrorCost(upgrade) - 1e-9;
@@ -349,9 +304,7 @@ public abstract class GameMirror extends GameGrid {
     }
 
     @Override
-    boolean buyMirrorUpgrade(int index) {
-        return buyMirror(MirrorUpgrade.values()[index]);
-    }
+    boolean buyMirrorUpgrade(int index) { return buyMirror(MirrorUpgrade.values()[index]); }
 
     // ------------------------------------------------------------------
     // Les saisons, pour la graine
@@ -372,14 +325,10 @@ public abstract class GameMirror extends GameGrid {
             this.fill = fill;
         }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
 
         /** Ce qu'elle fait au remplissage par arrosage. */
-        public double fill() {
-            return fill;
-        }
+        public double fill() { return fill; }
     }
 
     /** Une saison dure deux minutes. */
@@ -389,22 +338,16 @@ public abstract class GameMirror extends GameGrid {
 
     private double seasonClock;
     private double seasonFilled;
-    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre (version 0.196) : les skins des saisons les comptent. */
+    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre : les skins des saisons les comptent. */
     private int seasonCycles;
 
     /** Vrai une fois les saisons là : le miroir ouvert, l'univers formé (elles passent sur la graine). */
-    public boolean areSeasonsUnlocked() {
-        return isMirrorOpen() && isUniverseFormed();
-    }
+    public boolean areSeasonsUnlocked() { return isMirrorOpen() && isUniverseFormed(); }
 
-    public Season season() {
-        return Season.values()[(int) (seasonClock / SEASON_SECONDS) % Season.values().length];
-    }
+    public Season season() { return Season.values()[(int) (seasonClock / SEASON_SECONDS) % Season.values().length]; }
 
     /** Ce qu'il reste à la saison, en secondes. */
-    public double seasonLeft() {
-        return SEASON_SECONDS - seasonClock % SEASON_SECONDS;
-    }
+    public double seasonLeft() { return SEASON_SECONDS - seasonClock % SEASON_SECONDS; }
 
     /** Ce qu'un arrosage verse au chrono, en secondes, en ce moment : 0 sans l'amélioration ou sans chrono. */
     public double seasonFillPerWatering() {
@@ -413,9 +356,7 @@ public abstract class GameMirror extends GameGrid {
     }
 
     /** Le temps que les arrosages ont versé au chrono depuis le lancement. */
-    public double seasonFilled() {
-        return seasonFilled;
-    }
+    public double seasonFilled() { return seasonFilled; }
 
     /** Chaque arrosage, de l'arrosoir ou du tuyau, remplit aussi le chrono, selon la saison. */
     @Override
@@ -437,14 +378,10 @@ public abstract class GameMirror extends GameGrid {
         seasonClock = advanced % cycle;
     }
 
-    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre (version 0.196). */
+    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre. */
     @Override
-    public int seasonCycles() {
-        return seasonCycles;
-    }
+    public int seasonCycles() { return seasonCycles; }
 
     /** Outil d'essai : passe à la saison choisie, à son début. */
-    public void testSetSeason(Season next) {
-        seasonClock = next.ordinal() * SEASON_SECONDS;
-    }
+    public void testSetSeason(Season next) { seasonClock = next.ordinal() * SEASON_SECONDS; }
 }

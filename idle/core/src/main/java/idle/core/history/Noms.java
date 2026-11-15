@@ -1,26 +1,17 @@
 package idle.core.history;
 
 import idle.core.Game;
+import idle.core.collider.*;
+import idle.core.probes.ProbeUpgrade;
+import idle.core.profile.Title;
+import idle.core.universe.*;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.bigbang.SpaceUpgrades;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.Challenges;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkAutomations;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
+import idle.core.achievements.*;
+import idle.core.bigbang.*;
+import idle.core.darkmatter.*;
+import idle.core.upgrades.*;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Les noms en français de ce qui change dans la sauvegarde (version 0.161 pour le bot analyste ; version 0.165, dans le
@@ -30,7 +21,6 @@ import java.util.Map;
  * inconnue garde son nom de sauvegarde : le rapport ne perd rien.
  */
 public final class Noms {
-
     private Noms() {}
 
     /** Ce que désigne chaque clé de la sauvegarde. */
@@ -95,10 +85,10 @@ public final class Noms {
         for (Challenge c : Challenges.ALL) CHOSES.put(c.id(), c.name());
         for (DarkAutomation d : DarkAutomations.DEFAULT) CHOSES.put(d.id(), d.name());
         for (SpaceUpgrade s : SpaceUpgrades.DEFAULT) CHOSES.put(s.id(), s.name());
-        for (Class<?> type : List.of(idle.core.collider.ColliderUpgrade.class, idle.core.collider.ColliderGenerator.class,
-                idle.core.probes.ProbeUpgrade.class, idle.core.collider.Hadron.class, idle.core.collider.Quark.class,
-                idle.core.bigbang.BangChallenge.class, idle.core.universe.DimensionAutomation.class, idle.core.profile.Title.class,
-                idle.core.universe.Skin.class)) {
+        for (Class<?> type : List.of(ColliderUpgrade.class, ColliderGenerator.class,
+                ProbeUpgrade.class, Hadron.class, Quark.class,
+                BangChallenge.class, DimensionAutomation.class, Title.class,
+                Skin.class)) {
             enumLabels(type);
         }
     }
@@ -141,8 +131,8 @@ public final class Noms {
     }
 
     /** Les bulles de l'arbre achetées, lues dans le champ de bits de la sauvegarde. */
-    public static java.util.List<String> bulles(long avant, long apres) {
-        java.util.List<String> out = new java.util.ArrayList<>();
+    public static List<String> bulles(long avant, long apres) {
+        List<String> out = new ArrayList<>();
         for (TreeBubble bubble : TreeBubble.values()) {
             long bit = 1L << bubble.ordinal();
             if ((apres & bit) != 0 && (avant & bit) == 0) out.add(bubble.label());

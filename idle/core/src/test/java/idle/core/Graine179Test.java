@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.upgrades.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,12 +12,11 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.179 : la graine se paie en temps de jeu des dimensions. Les prix des améliorations dérivent du seuil de leur
+ * La graine se paie en temps de jeu des dimensions. Les prix des améliorations dérivent du seuil de leur
  * dimension (un quart d'heure de jeu appliqué), les paliers demandent de plus en plus d'arrosages, la terre fertile
  * compte un arrosage de plus par niveau, et une sauvegarde d'avant garde son palier.
  */
 class Graine179Test {
-
     @Test
     void chaqueAmeliorationCouteUnCinquiemeDuSeuilDeSaDimensionPuisUnVirguleSixParNiveau() {
         for (SeedUpgrade upgrade : SeedUpgrade.values()) {
@@ -30,7 +32,7 @@ class Graine179Test {
             }
         }
         assertEquals(50_000, SeedUpgrade.WATERING.baseCost(), 1e-9, "250 000 segments / 5");
-        // Version 0.182 : le tuyau au volume, la terre fertile à la durée, l'étage du chrono au plan.
+        // Le tuyau au volume, la terre fertile à la durée, l'étage du chrono au plan.
         assertEquals(1_600, SeedUpgrade.HOSE.baseCost(), 1e-9, "8 000 sphères / 5");
         assertEquals(3_000_000, SeedUpgrade.SOIL.baseCost(), 1e-9, "15 000 000 instants / 5");
         assertEquals(3_000_000, SeedUpgrade.CHRONO_LOSS.baseCost(), 1e-9, "15 000 000 instants / 5");
@@ -62,7 +64,7 @@ class Graine179Test {
         assertEquals(133_290, Game.seedStageWaterings(Game.SEED_STAGES), "l'arbre-monde : douze heures d'arrosoir seul");
         Game game = GameTestSupport.universe(4);
         game.state().setSeedSprouted(true);
-        game.state().setDurationShards(1e12);   // version 0.182 : la terre fertile se paie en instants de la durée
+        game.state().setDurationShards(1e12);   // La terre fertile se paie en instants de la durée
         assertEquals(1, game.seedSoilFactor());
         for (int level = 1; level <= SeedUpgrade.SOIL.max(); level++) {
             assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));
@@ -83,7 +85,7 @@ class Graine179Test {
         String text = sansMarque(SaveCodec.write(old.state(), 0));
         assertFalse(text.contains("seedStages179"), "la marque de la 0.179 est retirée : une sauvegarde d'avant");
         GameState loaded = SaveCodec.read(text).state();
-        Game game = new Game(loaded, idle.core.upgrades.Upgrades.DEFAULT, idle.core.upgrades.Automations.DEFAULT);
+        Game game = new Game(loaded, Upgrades.DEFAULT, Automations.DEFAULT);
         assertEquals(6, game.seedStage(), "le palier atteint est gardé");
         long stage6 = Game.seedStageWaterings(6), stage7 = Game.seedStageWaterings(7);
         assertEquals(stage6 + (stage7 - stage6) * 15 / 30, loaded.seedWaterings(), "la moitié du chemin vers le palier 7, en proportion");

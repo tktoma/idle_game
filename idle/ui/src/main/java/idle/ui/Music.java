@@ -1,16 +1,13 @@
 package idle.ui;
 
 import idle.core.Game;
+import java.util.function.Consumer;
 import idle.core.sky.Cosmos;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SplittableRandom;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.SourceDataLine;
+import java.util.*;
+import javax.sound.sampled.*;
 
 /**
- * La musique de fond (version 0.210), composée par le jeu pendant qu'on joue : aucun fichier, comme les sons
+ * La musique de fond, composée par le jeu pendant qu'on joue : aucun fichier, comme les sons
  * ({@link Sound}). Une musique d'espace, lente et large, écrite comme un morceau : une grille d'accords par scène, des
  * nappes qui passent d'un accord au suivant par le plus court chemin (les notes communes restent tenues), une basse sur
  * la fondamentale, un arpège pincé sur les notes de l'accord, une mélodie faite de motifs qui reviennent (A, A, B, A,
@@ -29,7 +26,7 @@ import javax.sound.sampled.SourceDataLine;
  * (huit mesures) et repart du premier accord de sa grille : rien ne glisse de hauteur, aucune phrase n'est coupée. Un Big
  * Bang ou un univers formé fait monter la musique un moment, avec un arpège de cloches ({@link #accent()}).
  *
- * <p>La façon de jouer ({@link Style}) a été choisie à l'écoute, parmi des séries de variantes (version 0.212) : un
+ * <p>La façon de jouer ({@link Style}) a été choisie à l'écoute, parmi des séries de variantes : un
  * tempo fixe de 69 dans toutes les scènes (c'est la densité qui change, jamais une accélération), des cloches de verre
  * basses, une mélodie douce qui monte au plus au sol, peu d'écho, et un fond très doux qui respire : chaque accord entre
  * puis s'éteint deux temps avant le suivant.
@@ -38,7 +35,6 @@ import javax.sound.sampled.SourceDataLine;
  * musique se tait sans erreur, comme les sons. Elle a son interrupteur et son volume dans les réglages, à part des sons.
  */
 final class Music {
-
     /** Les modes : les demi-tons des sept degrés au-dessus de la tonique, et la pentatonique de la mélodie. */
     enum Mode {
         IONIAN(new int[] {0, 2, 4, 7, 9}, 0, 2, 4, 5, 7, 9, 11),
@@ -57,9 +53,7 @@ final class Music {
         }
 
         /** Les demi-tons du degré {@code degree} (0 la tonique), sur autant d'octaves qu'il faut. */
-        int semitones(int degree) {
-            return steps[Math.floorMod(degree, 7)] + 12 * Math.floorDiv(degree, 7);
-        }
+        int semitones(int degree) { return steps[Math.floorMod(degree, 7)] + 12 * Math.floorDiv(degree, 7); }
 
         /** Vrai si cette classe de hauteur (0 à 11, au-dessus de la tonique) est dans la gamme. */
         boolean contains(int pitchClass) {
@@ -203,9 +197,7 @@ final class Music {
     }
 
     /** La fréquence d'une note MIDI, en hertz. */
-    static double frequency(double midi) {
-        return 440 * Math.pow(2, (midi - 69) / 12);
-    }
+    static double frequency(double midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
 
     // ------------------------------------------------------------------
     // La lecture, sur un fil à part
@@ -226,7 +218,7 @@ final class Music {
     /** Le fil de la musique, créé quand elle doit jouer ; visible des essais. */
     Thread player;
     /** Où partent les blocs : la sortie audio, ou un relevé pour les essais. */
-    java.util.function.Consumer<byte[]> sink = this::output;
+    Consumer<byte[]> sink = this::output;
     private SourceDataLine line;
 
     /**
@@ -245,9 +237,7 @@ final class Music {
     }
 
     /** Un grand moment (un Big Bang, un univers formé) : la musique monte quelques secondes. */
-    void accent() {
-        accents++;
-    }
+    void accent() { accents++; }
 
     /** La boucle du fil : un bloc après l'autre, au volume du moment, avec un fondu à l'entrée et à la sortie. */
     private void run() {
@@ -317,7 +307,6 @@ final class Music {
      * deux moteurs de même graine, menés pareil, rendent les mêmes échantillons.
      */
     static final class Engine {
-
         /** Les rôles des notes, et donc leur timbre. */
         enum Role { PAD, BASS, ARP, FLUTE, BELL, KICK, SHAKER }
 
@@ -366,7 +355,7 @@ final class Music {
         private final Note[] notes = new Note[MAX_NOTES];
         private long notesStarted;
         /** Ce qui relève les notes jouées : rien dans le jeu, un relevé pour les essais. */
-        java.util.function.Consumer<Played> onPlayed = played -> { };
+        Consumer<Played> onPlayed = played -> { };
 
         private Mood wanted = new Mood(Scene.AUBE, 1, 0);
         /** La scène et la tonique qui jouent : elles ne changent qu'au début d'une mesure. */
@@ -402,9 +391,7 @@ final class Music {
         private int echoAt;
         private double padLow, masterLow, masterLow2;
 
-        Engine(long seed) {
-            this(seed, Style.DEFAULT);
-        }
+        Engine(long seed) { this(seed, Style.DEFAULT); }
 
         Engine(long seed, Style style) {
             random = new SplittableRandom(seed);
@@ -416,9 +403,7 @@ final class Music {
             for (int i = 0; i < ALLPASSES.length; i++) allpass[i] = new float[ALLPASSES[i]];
         }
 
-        void setMood(Mood mood) {
-            wanted = mood;
-        }
+        void setMood(Mood mood) { wanted = mood; }
 
         /** Un grand moment : la musique s'éclaire quelques secondes, et l'accord monte en cloches. */
         void accent() {
@@ -427,19 +412,13 @@ final class Music {
         }
 
         /** Le nombre de notes lancées depuis le début : pour les essais. */
-        long notesStarted() {
-            return notesStarted;
-        }
+        long notesStarted() { return notesStarted; }
 
         /** Le tempo du moment, en temps par minute. */
-        double bpm() {
-            return bpm;
-        }
+        double bpm() { return bpm; }
 
         /** La tonique qui joue, en note MIDI. */
-        int playingTonic() {
-            return tonic;
-        }
+        int playingTonic() { return tonic; }
 
         /** Remplit {@code out} d'échantillons, chacun entre −0,7 et 0,7. */
         void render(float[] out) {
@@ -699,7 +678,7 @@ final class Music {
                     choice[v] = pitch;
                 }
                 int[] sorted = choice.clone();
-                java.util.Arrays.sort(sorted);
+                Arrays.sort(sorted);
                 if (sorted[3] > PAD_HIGH) continue;
                 boolean muddy = false;
                 for (int v = 1; v < 4; v++) {
@@ -708,7 +687,7 @@ final class Music {
                 }
                 if (muddy) continue;
                 int[] previous = from.clone();
-                java.util.Arrays.sort(previous);
+                Arrays.sort(previous);
                 double cost = 0;
                 for (int v = 0; v < 4; v++) cost += Math.abs(sorted[v] - previous[v]);
                 // Une légère préférence pour le milieu du registre : la disposition ne dérive pas vers un bord.
@@ -804,19 +783,13 @@ final class Music {
         }
 
         /** La voix de la mélodie : celle du style, sinon celle de la scène. */
-        private Lead leadVoice() {
-            return style.lead() != null ? style.lead() : scene.lead;
-        }
+        private Lead leadVoice() { return style.lead() != null ? style.lead() : scene.lead; }
 
         /** Le haut du registre de la mélodie : celui de la flûte ou celui des cloches, selon le style. */
-        private int leadHigh() {
-            return leadVoice() == Lead.BELL ? style.bellHigh() : style.fluteHigh();
-        }
+        private int leadHigh() { return leadVoice() == Lead.BELL ? style.bellHigh() : style.fluteHigh(); }
 
         /** Le bas du registre de la mélodie : une octave et demie sous son haut. */
-        private int leadLow() {
-            return leadHigh() - 17;
-        }
+        private int leadLow() { return leadHigh() - 17; }
 
         private boolean badLeap(int midi) {
             int leap = Math.abs(midi - lastLead);

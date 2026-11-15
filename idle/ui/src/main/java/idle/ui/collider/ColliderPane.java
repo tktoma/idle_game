@@ -17,22 +17,17 @@ import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Le collisionneur de quarks (version 0.059) : trois parties, une par sous-onglet. L'énergie : l'anneau
+ * Le collisionneur de quarks : trois parties, une par sous-onglet. L'énergie : l'anneau
  * où les faisceaux se croisent et où sortent les quarks, les saveurs ouvertes et leur part, les huit
  * générateurs. La chaîne : les quarks, et ce que l'énergie et les quarks renforcent ailleurs. Les améliorations, avec
  * le huitième générateur. Rien de ce qui s'y gagne ne se perd à l'explosion ni au Big Bang.
  */
 public final class ColliderPane extends VBox {
-
     public static final String COLOR = "#9ad0ff";
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 6 14; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + COLOR + "; -fx-background-color: #101c2b; -fx-border-color: " + COLOR + ";";
@@ -47,7 +42,7 @@ public final class ColliderPane extends VBox {
     private final FlowPane flavors = new FlowPane(8, 6);
     private final Map<Quark, Label> flavorLabels = new EnumMap<>(Quark.class);
     private final Label quarksLabel = new Label();
-    /** Les quarks, dans le sous-onglet de la chaîne : elle les dépense (version 0.062). */
+    /** Les quarks, dans le sous-onglet de la chaîne : elle les dépense. */
     private final Label quarksOnChain = new Label();
     private final Button topButton = new Button();
     private final Label overheatLabel = new Label();
@@ -162,7 +157,7 @@ public final class ColliderPane extends VBox {
             grid.setMaxWidth(780);
             upgradeTitles.put(family, title);
             upgradeGrids.put(family, grid);
-            // La chaîne a son sous-onglet (version 0.061) ; le reste vit dans les améliorations.
+            // La chaîne a son sous-onglet ; le reste vit dans les améliorations.
             if (family != ColliderUpgrade.Section.CHAIN) upgradeGroup.getChildren().addAll(title, grid);
         }
         for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
@@ -217,19 +212,14 @@ public final class ColliderPane extends VBox {
         }
     }
 
-    int section() {
-        return section;
-    }
+    int section() { return section; }
 
     /** L'énergie en mots : « 14 371 », « 2,3 M »… */
-    static String energy(double value) {
-        return whole(value);
-    }
+    static String energy(double value) { return whole(value); }
 
     /**
-     * Un nombre entier du collisionneur (énergie, générateurs, quarks) : tel quel sous mille, puis
-     * dans la notation choisie, comme partout dans le jeu (version 0.064 ; avant, l'entier restait
-     * écrit en entier jusqu'au million).
+     * Un nombre entier du collisionneur (énergie, générateurs, quarks) : tel quel sous mille, puis dans la notation
+     * choisie, comme partout dans le jeu (version 0.064 ; avant, l'entier restait écrit en entier jusqu'au million).
      */
     static String whole(double value) {
         double floor = Math.floor(value + 1e-9);
@@ -237,9 +227,7 @@ public final class ColliderPane extends VBox {
     }
 
     /** Une production, qui peut être fractionnaire : « 0,5 », « 9,13 », puis dans la notation choisie. */
-    static String rate(double value) {
-        return value < 1000 ? ElementText.number(value) : Format.big(BigNum.of(value));
-    }
+    static String rate(double value) { return value < 1000 ? ElementText.number(value) : Format.big(BigNum.of(value)); }
 
     /** Les huit générateurs : ce qu'on en a, ce qu'ils produisent, leur prix. Le suivant d'un générateur absent reste caché. */
     private void refreshGenerators() {
@@ -382,7 +370,7 @@ public final class ColliderPane extends VBox {
             Card.State state;
             String price;
             if (full && upgrade.isPausable()) {
-                // Son propre réglage ; la coupure générale de l'onglet Automatisation l'arrête aussi (version 0.167).
+                // Son propre réglage ; la coupure générale de l'onglet Automatisation l'arrête aussi.
                 boolean on = !game.state().isColliderPaused(upgrade);
                 state = on ? Card.State.ON : Card.State.OFF;
                 price = !on ? (Detail.shown() ? "En pause : un clic le relance" : "En pause")
@@ -415,11 +403,7 @@ public final class ColliderPane extends VBox {
     }
 
     /** Fait tourner les faisceaux : appelé à chaque image tant que la page est affichée. */
-    public void frame(double elapsed) {
-        if (section == ENERGY) energyView.frame(elapsed);
-    }
+    public void frame(double elapsed) { if (section == ENERGY) energyView.frame(elapsed); }
 
-    public EnergyView energyView() {
-        return energyView;
-    }
+    public EnergyView energyView() { return energyView; }
 }

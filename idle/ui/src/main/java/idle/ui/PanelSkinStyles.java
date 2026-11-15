@@ -2,21 +2,21 @@ package idle.ui;
 
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javafx.animation.TranslateTransition;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.*;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 /**
- * Les skins des panneaux par-dessus la fenêtre (version 0.199), à côté d'{@link Overlay} pour le garder lisible : ceux des
+ * Les skins des panneaux par-dessus la fenêtre, à côté d'{@link Overlay} pour le garder lisible : ceux des
  * panneaux (aide, absence, fin), de l'écran de fin et du guide de transition. Un skin remplace le voile et le fond de la
  * carte ; sur un fond clair, chaque étiquette garde sa teinte mais passe à l'encre (sombre), et revient à son style
  * d'origine au retour du classique.
@@ -32,7 +32,6 @@ import javafx.util.Duration;
  * </ul>
  */
 final class PanelSkinStyles {
-
     private static final Pattern PADDING = Pattern.compile("-fx-padding:\\s*([^;]+);");
     private static final Pattern TEXT_FILL = Pattern.compile("-fx-text-fill:\\s*(#[0-9a-fA-F]{6,8}|[a-zA-Z]+);");
     /** Le voile de rideau du cinéma : des plis rouges qui se répètent. */
@@ -55,7 +54,7 @@ final class PanelSkinStyles {
             case PANEL_BOARD -> "-fx-background-color: #0e0a06cc;";
             case ENDING_CREDITS -> "-fx-background-color: #000000f2;";
             case ENDING_CERTIFICATE -> "-fx-background-color: #1a1508cc;";
-            // Version 0.203 : la photo se pose sur une table sombre et chaude (elle gardait le voile classique).
+            // La photo se pose sur une table sombre et chaude (elle gardait le voile classique).
             case ENDING_PHOTO -> "-fx-background-color: #17120ed8;";
             case TRANSITION_WHITE -> "-fx-background-color: #e8ecf2b8;";
             case TRANSITION_PAGE -> "-fx-background-color: #2a2318cc;";
@@ -131,9 +130,7 @@ final class PanelSkinStyles {
     }
 
     /** L'inclinaison de la carte, en degrés : la photo souvenir est posée de travers. */
-    static double rotation(Skin skin) {
-        return skin == Skin.ENDING_PHOTO ? -2.5 : 0;
-    }
+    static double rotation(Skin skin) { return skin == Skin.ENDING_PHOTO ? -2.5 : 0; }
 
     /** Joue l'entrée de la carte : le générique monte depuis le bas ; les autres restent en place. */
     static void enter(VBox card, Skin skin) {
@@ -164,9 +161,7 @@ final class PanelSkinStyles {
     }
 
     /** Une table d'identité pour les styles d'origine des étiquettes. */
-    static Map<Label, String> classics() {
-        return new IdentityHashMap<>();
-    }
+    static Map<Label, String> classics() { return new IdentityHashMap<>(); }
 
     /** Le rembourrage « haut droite bas gauche » d'un style classique, en pixels. */
     private static double[] padding(String classic) {
@@ -175,7 +170,7 @@ final class PanelSkinStyles {
         if (!matcher.find()) return pad;
         String[] parts = matcher.group(1).trim().split("\\s+");
         try {
-            if (parts.length == 1) java.util.Arrays.fill(pad, Double.parseDouble(parts[0]));
+            if (parts.length == 1) Arrays.fill(pad, Double.parseDouble(parts[0]));
             else if (parts.length == 2) {
                 pad[0] = pad[2] = Double.parseDouble(parts[0]);
                 pad[1] = pad[3] = Double.parseDouble(parts[1]);
@@ -192,7 +187,7 @@ final class PanelSkinStyles {
     }
 
     private static String hex(Color color) {
-        return String.format(java.util.Locale.ROOT, "#%02x%02x%02x", Math.round(color.getRed() * 255), Math.round(color.getGreen() * 255),
+        return String.format(Locale.ROOT, "#%02x%02x%02x", Math.round(color.getRed() * 255), Math.round(color.getGreen() * 255),
                 Math.round(color.getBlue() * 255));
     }
 }

@@ -4,28 +4,26 @@ import idle.core.Game;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import idle.core.universe.Trial;
-import idle.ui.common.Format;
 import idle.ui.common.Card;
 import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
 /**
- * L'onglet « Skins » (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après
+ * L'onglet « Skins », sous les réglages : il s'ouvre dans le deuxième univers, après
  * cinq fusions. Une section par visuel du jeu, avec son apparence classique et ses skins : un skin
  * débloqué se choisit d'un clic, un skin verrouillé dit comment l'obtenir. Chaque skin débloqué
- * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers. Version 0.209 : ce bonus n'est plus
+ * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers. Ce bonus n'est plus
  * écrit sur chaque carte ; une carte en tête de page donne le nombre de skins débloqués, puis le bonus cumulé.
  */
 public final class SkinsPage extends VBox {
-
     /** La couleur de l'onglet : un rose de palette. */
     public static final String COLOR = "#ff9fd6";
 
@@ -53,7 +51,7 @@ public final class SkinsPage extends VBox {
         collectionGrid.setMaxWidth(340);
         collectionGrid.add(collection);
         getChildren().addAll(title, collectionGrid, summary);
-        // Version 0.088 : les recherches, le record et les épreuves qui donnent les skins.
+        // Les recherches, le record et les épreuves qui donnent les skins.
         record.setStyle("-fx-font-size: 12px; -fx-text-fill: #cfe3ff;");
         TileGrid research = new TileGrid(260, 2, 8);
         research.setMaxWidth(820);
@@ -103,7 +101,7 @@ public final class SkinsPage extends VBox {
                 cards.put(skin, card);
                 grid.add(card);
             }
-            // Version 0.203 : sous le nom du visuel, où il se voit et ce qu'il change (SkinPlaces).
+            // Sous le nom du visuel, où il se voit et ce qu'il change (SkinPlaces).
             Label place = new Label(SkinPlaces.of(visual));
             place.setWrapText(true);
             place.setMaxWidth(820);
@@ -140,7 +138,7 @@ public final class SkinsPage extends VBox {
                 "Bonus cumulé : ×" + ElementText.number(game.skinBoost()) + " (+" + ElementText.percent(game.skinBoost() - 1) + ")", "");
         summary.setText("Choisir un skin ne change que l'apparence ; chaque skin débloqué, choisi ou non, ajoute "
                 + ElementText.percent(Skin.BONUS) + " au bonus, sans plafond (les skins libres, ouverts d'office, n'en donnent pas). "
-                // Version 0.206 : la collection s'étale sur la partie.
+                // La collection s'étale sur la partie.
                 + "Les skins viennent au fil des univers, une trentaine par univers formé jusqu'au " + (Skin.LAST_SKIN_UNIVERSE + 1)
                 + "ᵉ : une carte verrouillée dit l'univers qu'elle attend, en plus de sa condition.");
         double best = game.rebuildRecord();
@@ -192,7 +190,7 @@ public final class SkinsPage extends VBox {
             Skin skin = entry.getKey();
             boolean has = game.hasSkin(skin);
             boolean chosen = game.chosenSkin(skin.visual()) == skin;
-            // Version 0.206 : un skin attend aussi son univers ; la carte le dit tant qu'il n'est pas atteint.
+            // Un skin attend aussi son univers ; la carte le dit tant qu'il n'est pas atteint.
             boolean later = !has && game.universes() < skin.minUniverses();
             entry.getValue().show(chosen ? Card.State.ON : has ? Card.State.READY : Card.State.LOCKED, "",
                     chosen ? "choisi" : has ? "débloqué" : "", skin.label(),
@@ -201,37 +199,18 @@ public final class SkinsPage extends VBox {
         }
     }
 
-    /** La carte de la collection (version 0.209) : pour les vérifications. */
-    public Card collectionCard() {
-        return collection;
-    }
+    /** La carte de la collection : pour les vérifications. */
+    public Card collectionCard() { return collection; }
 
-    /** Le texte du résumé en tête de page : pour les vérifications (version 0.206). */
-    public String summaryText() {
-        return summary.getText();
-    }
+    /** Le texte du résumé en tête de page : pour les vérifications. */
+    public String summaryText() { return summary.getText(); }
 
     /** La carte d'un skin : pour les vérifications. */
-    public Card card(Skin skin) {
-        return cards.get(skin);
-    }
+    public Card card(Skin skin) { return cards.get(skin); }
 
     /** La carte « Classique » d'un visuel : pour les vérifications. */
-    public Card classic(SkinVisual visual) {
-        return classics.get(visual);
-    }
+    public Card classic(SkinVisual visual) { return classics.get(visual); }
 
     /** La carte d'une épreuve : pour les vérifications. */
-    public Card trial(Trial trial) {
-        return trials.get(trial);
-    }
-
-    /** Les cartes des deux recherches : pour les vérifications. */
-    public Card prismCard() {
-        return prism;
-    }
-
-    public Card denseCard() {
-        return dense;
-    }
+    public Card trial(Trial trial) { return trials.get(trial); }
 }

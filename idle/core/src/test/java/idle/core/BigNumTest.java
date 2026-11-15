@@ -7,14 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 
 class BigNumTest {
-
     /** Compare deux BigNum à une erreur relative près (les double ne sont jamais exacts). */
     private static void assertClose(BigNum expected, BigNum actual) {
         assertEquals(expected.exponent(), actual.exponent(),
@@ -25,7 +22,6 @@ class BigNumTest {
 
     @Nested
     class Normalisation {
-
         @ParameterizedTest
         @CsvSource({
                 "1500,     1.5,  3",
@@ -56,9 +52,7 @@ class BigNumTest {
         }
 
         @Test
-        void doublesSousNormaux() {
-            assertClose(BigNum.of(4.940656458412465, -324), BigNum.of(Double.MIN_VALUE));
-        }
+        void doublesSousNormaux() { assertClose(BigNum.of(4.940656458412465, -324), BigNum.of(Double.MIN_VALUE)); }
 
         @Test
         void mantisseToujoursDansLIntervalle() {
@@ -80,7 +74,6 @@ class BigNumTest {
 
     @Nested
     class Addition {
-
         @Test
         void memeOrdreDeGrandeur() {
             assertClose(BigNum.of(5), BigNum.of(2).add(BigNum.of(3)));
@@ -88,14 +81,10 @@ class BigNumTest {
         }
 
         @Test
-        void retenueSurLExposant() {
-            assertClose(BigNum.of(1.4, 51), BigNum.of(7, 50).add(BigNum.of(7, 50)));
-        }
+        void retenueSurLExposant() { assertClose(BigNum.of(1.4, 51), BigNum.of(7, 50).add(BigNum.of(7, 50))); }
 
         @Test
-        void auDelaDe1e308() {
-            assertClose(BigNum.of(2, 5000), BigNum.of(1, 5000).add(BigNum.of(1, 5000)));
-        }
+        void auDelaDe1e308() { assertClose(BigNum.of(2, 5000), BigNum.of(1, 5000).add(BigNum.of(1, 5000))); }
 
         @Test
         void termeNegligeableIgnore() {
@@ -127,7 +116,6 @@ class BigNumTest {
 
     @Nested
     class MultiplicationEtDivision {
-
         @Test
         void multiplication() {
             assertClose(BigNum.of(6, 300), BigNum.of(2, 100).multiply(BigNum.of(3, 200)));
@@ -164,7 +152,6 @@ class BigNumTest {
 
     @Nested
     class Puissances {
-
         @Test
         void puissancesEntieres() {
             assertClose(BigNum.of(1024), BigNum.of(2).pow(10));
@@ -229,7 +216,6 @@ class BigNumTest {
 
     @Nested
     class Comparaison {
-
         @Test
         void ordreDesPositifs() {
             assertTrue(BigNum.of(2, 10).gt(BigNum.of(9, 9)));
@@ -284,7 +270,6 @@ class BigNumTest {
 
     @Nested
     class ConversionEtAffichage {
-
         @Test
         void versDouble() {
             assertEquals(1500, BigNum.of(1.5, 3).toDouble(), 1e-9);
@@ -333,7 +318,6 @@ class BigNumTest {
 
     @Nested
     class Simulation {
-
         @Test
         void croissanceExponentielleSurUneLonguePartie() {
             // ×1.1 par tick pendant 100 000 ticks : très au-delà de la limite des double

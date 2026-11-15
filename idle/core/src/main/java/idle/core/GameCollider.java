@@ -1,26 +1,19 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.universe.Trial;
+
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangAchievement;
-import idle.core.collider.ColliderAchievement;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Collision;
-import idle.core.collider.CollisionTier;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Le collisionneur de quarks.
- */
+/** Le collisionneur de quarks. */
 public abstract class GameCollider extends GameDarkTree {
-
     GameCollider(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -29,13 +22,12 @@ public abstract class GameCollider extends GameDarkTree {
     public abstract long moleculesCreated();
     public abstract int bodiesFormed();
     public abstract boolean hasGalaxy();
-    public abstract idle.core.universe.Trial activeTrial();
-    public abstract boolean inTrial(idle.core.universe.Trial trial);
+    public abstract Trial activeTrial();
+    public abstract boolean inTrial(Trial trial);
     abstract void failTrial();
 
-
     // ------------------------------------------------------------------
-    // Le collisionneur de quarks (version 0.050, refait en 0.059) : un jeu en parallèle, dont rien
+    // Le collisionneur de quarks : un jeu en parallèle, dont rien
     // ne se perd ni à l'explosion ni au Big Bang ; seule la remise à zéro le reprend
     // ------------------------------------------------------------------
 
@@ -67,32 +59,30 @@ public abstract class GameCollider extends GameDarkTree {
     public record CollisionResult(long serial, Quark quark, int count, boolean caught) {}
 
     final List<CollisionResult> finishedCollisions = new ArrayList<>();
-    private final java.util.ArrayDeque<CollisionResult> recentCollisions = new java.util.ArrayDeque<>();
+    private final ArrayDeque<CollisionResult> recentCollisions = new ArrayDeque<>();
 
     /** Le collisionneur s'ouvre à la première explosion et ne se referme plus. */
     public boolean isColliderUnlocked() {
-        // Les bulles de l'arbuste et de l'arbre mûr, à gauche (version 0.148) : ouvert dès le début de l'univers.
+        // Les bulles de l'arbuste et de l'arbre mûr, à gauche : ouvert dès le début de l'univers.
         return state.started() && (isDarkMatterUnlocked() || state.bigBangs() > 0 || state.collisionRuns() > 0
                 || state.colliderGeneratorsBought(ColliderGenerator.BEAM) > 0
                 || hasBubble(GameUniverse.TreeBubble.CROWN_LEFT) || hasBubble(GameUniverse.TreeBubble.MATURE_LEFT));
     }
 
     /**
-     * Énergie gagnée par seconde : les faisceaux croisés, un d'office et ceux qu'on achète ou que
-     * produit l'aimant ({@link ColliderGenerator}), multipliés par la production d'énergie et les
-     * succès du collisionneur. Le collisionneur est un jeu à part : il ne dépend pas de la production
-     * de particules.
+     * Énergie gagnée par seconde : les faisceaux croisés, un d'office et ceux qu'on achète ou que produit l'aimant
+     * ({@link ColliderGenerator}), multipliés par la production d'énergie et les succès du collisionneur. Le
+     * collisionneur est un jeu à part : il ne dépend pas de la production de particules.
      */
     public double colliderEnergyPerSecond() {
         if (!isColliderUnlocked()) return 0;
         return (1 + state.colliderGenerators(ColliderGenerator.BEAM)) * ColliderGenerator.BEAM.power() * colliderEnergyMultiplier()
-                * colliderOutputMultiplier(ColliderGenerator.BEAM) * hadronBoost(idle.core.collider.Hadron.PION);
+                * colliderOutputMultiplier(ColliderGenerator.BEAM) * hadronBoost(Hadron.PION);
     }
 
     /**
-     * Ce par quoi un générateur multiplie sa production : son succès de production (×2), le succès
-     * des 250 générateurs (×1,5), et pour ceux qui produisent un autre générateur, les générateurs
-     * renforcés (×2 par niveau).
+     * Ce par quoi un générateur multiplie sa production : son succès de production (×2), le succès des 250 générateurs
+     * (×1,5), et pour ceux qui produisent un autre générateur, les générateurs renforcés (×2 par niveau).
      */
     private double colliderOutputMultiplier(ColliderGenerator generator) {
         double multiplier = hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.OUTPUT)) ? 2 : 1;
@@ -101,12 +91,10 @@ public abstract class GameCollider extends GameDarkTree {
         return multiplier;
     }
 
-    // Les succès du Big Bang (version 0.061).
+    // Les succès du Big Bang.
 
     /** Vrai une fois le premier Big Bang passé : les succès du Big Bang se montrent. */
-    public boolean isBangAchievementsUnlocked() {
-        return state.bigBangs() > 0;
-    }
+    public boolean isBangAchievementsUnlocked() { return state.bigBangs() > 0; }
 
     /** Où en est ce succès du Big Bang : ce qui est réuni, borné à ce qu'il demande. */
     public int bangAchievementProgress(BangAchievement achievement) {
@@ -141,7 +129,7 @@ public abstract class GameCollider extends GameDarkTree {
         return 1 + sum;
     }
 
-    // Les succès du collisionneur (version 0.060).
+    // Les succès du collisionneur.
 
     /** Générateurs achetés en tout, toutes sortes confondues. */
     public int colliderGeneratorsBoughtTotal() {
@@ -173,22 +161,20 @@ public abstract class GameCollider extends GameDarkTree {
 
     /**
      * Ce que gagnent l'énergie du collisionneur et les hadrons assemblés, par univers formé, avec la bulle de l'arbuste,
-     * à gauche (version 0.175, sur l'arbre mûr ; version 0.176, sur l'arbuste) : chaque univers remplit plus vite son
+     * à gauche (sur l'arbre mûr ; version 0.176, sur l'arbuste) : chaque univers remplit plus vite son
      * énergie pour le trou noir supermassif, et va plus vite que le précédent.
      */
     public static final double CROSSING_GAIN_PER_UNIVERSE = 0.20;
-    /** Le premier univers formé que le gain de la traversée compte (version 0.177) : le deuxième. */
+    /** Le premier univers formé que le gain de la traversée compte : le deuxième. */
     public static final int CROSSING_FIRST_UNIVERSE = 2;
 
-    /** Les univers formés que le gain de la traversée compte : ceux à partir du deuxième (version 0.177). */
-    public final int crossingUniverses() {
-        return Math.max(0, universes() - (CROSSING_FIRST_UNIVERSE - 1));
-    }
+    /** Les univers formés que le gain de la traversée compte : ceux à partir du deuxième. */
+    public final int crossingUniverses() { return Math.max(0, universes() - (CROSSING_FIRST_UNIVERSE - 1)); }
 
     /**
      * Le gain de la traversée : ×(1 + {@link #CROSSING_GAIN_PER_UNIVERSE} × univers comptés,
      * {@link #crossingUniverses()}) sur l'énergie du collisionneur et sur les hadrons assemblés, avec la bulle de
-     * l'arbuste, à gauche (version 0.176 ; l'arbre mûr, à gauche, en 0.175) ; 1 sans elle. Version 0.177 : le premier
+     * l'arbuste, à gauche (version 0.176 ; l'arbre mûr, à gauche, en 0.175) ; 1 sans elle. Le premier
      * univers ne compte plus, ×1,6 quand quatre sont formés.
      */
     public final double crossingGain() {
@@ -203,16 +189,16 @@ public abstract class GameCollider extends GameDarkTree {
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
     public double colliderGeneratorOutput(ColliderGenerator generator) {
-        // L'épreuve « Un seul générateur » (version 0.088) : la chaîne s'arrête, seul le premier produit.
-        if (generator.previous() != null && inTrial(idle.core.universe.Trial.LONE_COLLIDER)) return 0;
+        // L'épreuve « Un seul générateur » : la chaîne s'arrête, seul le premier produit.
+        if (generator.previous() != null && inTrial(Trial.LONE_COLLIDER)) return 0;
         return state.colliderGenerators(generator) * generator.power() * colliderOutputMultiplier(generator);
     }
 
     /** Prix du prochain exemplaire de ce générateur. */
     public double colliderGeneratorCost(ColliderGenerator generator) {
         double cost = generator.cost(state.colliderGeneratorsBought(generator));
-        // Version 0.151 : les upsilons baissent le prix des générateurs du collisionneur.
-        cost /= hadronBoost(idle.core.collider.Hadron.UPSILON);
+        // Les upsilons baissent le prix des générateurs du collisionneur.
+        cost /= hadronBoost(Hadron.UPSILON);
         return hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.COST)) ? cost / 2 : cost;
     }
 
@@ -242,9 +228,7 @@ public abstract class GameCollider extends GameDarkTree {
         return bought;
     }
 
-    public double colliderEnergy() {
-        return state.colliderEnergy();
-    }
+    public double colliderEnergy() { return state.colliderEnergy(); }
 
     /** Ajoute de l'énergie, et la compte dans l'énergie produite depuis le début. */
     private void addColliderEnergy(double gain) {
@@ -253,10 +237,8 @@ public abstract class GameCollider extends GameDarkTree {
         state.setColliderEnergyProduced(state.colliderEnergyProduced() + gain);
     }
 
-    /** L'énergie produite depuis le début : ce qui ouvre les deux trous noirs (version 0.062). */
-    public double colliderEnergyProduced() {
-        return state.colliderEnergyProduced();
-    }
+    /** L'énergie produite depuis le début : ce qui ouvre les deux trous noirs. */
+    public double colliderEnergyProduced() { return state.colliderEnergyProduced(); }
 
     // Les croisements et leur hasard.
 
@@ -271,19 +253,13 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** La phase des faisceaux, de 0 à 1 : ils se croisent dans le détecteur à 0,5. */
-    public double colliderBeamPhase() {
-        return state.colliderPhase();
-    }
+    public double colliderBeamPhase() { return state.colliderPhase(); }
 
     /** Vrai pendant que les faisceaux se croisent, détecteur élargi compris. */
-    public boolean isCrossing() {
-        return Math.abs(state.colliderPhase() - 0.5) <= colliderWindow() / 2;
-    }
+    public boolean isCrossing() { return Math.abs(state.colliderPhase() - 0.5) <= colliderWindow() / 2; }
 
     /** Le numéro du croisement en cours : celui qui arrive avant le milieu du tour, celui qui vient de passer après. */
-    private long currentCrossing() {
-        return state.colliderCrossings() + (state.colliderPhase() < 0.5 ? 1 : 0);
-    }
+    private long currentCrossing() { return state.colliderCrossings() + (state.colliderPhase() < 0.5 ? 1 : 0); }
 
     /** Vrai si le croisement en cours n'a pas encore été capté. */
     public boolean canCatchCrossing() {
@@ -291,9 +267,8 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /**
-     * Un clic quand les faisceaux se croisent : {@link #CROSSING_SECONDS} secondes de production
-     * d'énergie d'un coup, et une collision assurée au butin doublé. Un seul par croisement ; à
-     * côté, rien.
+     * Un clic quand les faisceaux se croisent : {@link #CROSSING_SECONDS} secondes de production d'énergie d'un coup,
+     * et une collision assurée au butin doublé. Un seul par croisement ; à côté, rien.
      *
      * @return l'énergie gagnée, 0 si le clic tombe à côté
      */
@@ -302,7 +277,7 @@ public abstract class GameCollider extends GameDarkTree {
         long crossing = currentCrossing();
         state.setColliderCaught(crossing);
         catchStreak++;
-        // Les épreuves du collisionneur (version 0.088) comptent les croisements captés à la main.
+        // Les épreuves du collisionneur comptent les croisements captés à la main.
         if (activeTrial() != null && activeTrial().isCollider()) state.setTrialCount(state.trialCount() + 1);
         return caught(crossing);
     }
@@ -311,9 +286,7 @@ public abstract class GameCollider extends GameDarkTree {
     private int catchStreak;
 
     /** Croisements captés à la main de suite, depuis le dernier manqué (ou le lancement du jeu). */
-    public int catchStreak() {
-        return catchStreak;
-    }
+    public int catchStreak() { return catchStreak; }
 
     /** Ce que donne un croisement capté : l'énergie, et la collision assurée. */
     private double caught(long crossing) {
@@ -334,8 +307,7 @@ public abstract class GameCollider extends GameDarkTree {
      */
     public double collisionChance() {
         if (!isCollisionsUnlocked()) return 0;
-        double chance = COLLISION_CHANCE
-                + LUCK_CHANCE * colliderUpgradeLevel(ColliderUpgrade.LUCK)
+        double chance = COLLISION_CHANCE + LUCK_CHANCE * colliderUpgradeLevel(ColliderUpgrade.LUCK)
                 + (hasColliderAchievement(ColliderAchievement.THOUSAND_COLLISIONS) ? 0.02 : 0);
         return Math.min(1, chance);
     }
@@ -353,9 +325,7 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Vrai si un croisement peut donner cette saveur. */
-    public boolean isQuarkOpen(Quark quark) {
-        return isCollisionTierOpen(CollisionTier.of(quark));
-    }
+    public boolean isQuarkOpen(Quark quark) { return isCollisionTierOpen(CollisionTier.of(quark)); }
 
     /** Le poids d'une saveur dans le tirage, 0 si elle n'est pas ouverte : les lourdes sont rares. */
     public double quarkWeight(Quark quark) {
@@ -407,11 +377,8 @@ public abstract class GameCollider extends GameDarkTree {
     private void give(Quark quark, int count, boolean caught) {
         long serial = state.collisionRuns() + 1;
         state.setCollisionRuns(serial);
-        if (quark == Quark.TOP) {
-            state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
-        } else {
-            state.setQuarks(quark, state.quarks(quark) + count);
-        }
+        if (quark == Quark.TOP) state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
+        else state.setQuarks(quark, state.quarks(quark) + count);
         CollisionResult result = new CollisionResult(serial, quark, quark == Quark.TOP ? 1 : count, caught);
         if (finishedCollisions.size() < 200) finishedCollisions.add(result);
         recentCollisions.addLast(result);
@@ -419,9 +386,7 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Les dernières collisions, la plus récente au bout : pour le dessin des faisceaux. */
-    public List<CollisionResult> recentCollisions() {
-        return List.copyOf(recentCollisions);
-    }
+    public List<CollisionResult> recentCollisions() { return List.copyOf(recentCollisions); }
 
     /** Les collisions depuis le dernier appel : pour les annoncer une fois. */
     public List<CollisionResult> takeFinishedCollisions() {
@@ -453,7 +418,7 @@ public abstract class GameCollider extends GameDarkTree {
             for (long crossing = first; crossing < first + count; crossing++) {
                 if (state.colliderCaught() == crossing) continue;      // déjà capté d'un clic, juste avant le milieu
                 catchStreak = 0;
-                if (inTrial(idle.core.universe.Trial.DETECTOR)) failTrial();      // un croisement laissé passer
+                if (inTrial(Trial.DETECTOR)) failTrial();      // un croisement laissé passer
                 if (every > 0 && crossing % every == 0) {
                     state.setColliderCaught(crossing);
                     caught(crossing);
@@ -465,7 +430,7 @@ public abstract class GameCollider extends GameDarkTree {
         }
         // En moyenne : les captés du déclencheur, puis la chance sur les autres.
         catchStreak = 0;
-        if (inTrial(idle.core.universe.Trial.DETECTOR)) failTrial();
+        if (inTrial(Trial.DETECTOR)) failTrial();
         long autoCaught = every > 0 ? count / every : 0;
         double free = count - autoCaught;
         addColliderEnergy(colliderEnergyPerSecond() * CROSSING_SECONDS * autoCaught);
@@ -500,14 +465,12 @@ public abstract class GameCollider extends GameDarkTree {
         return bought;
     }
 
-    public int colliderUpgradeLevel(ColliderUpgrade upgrade) {
-        return state.colliderUpgradeLevel(upgrade);
-    }
+    public int colliderUpgradeLevel(ColliderUpgrade upgrade) { return state.colliderUpgradeLevel(upgrade); }
 
     /** Vrai si cette amélioration s'offre : la première dès l'ouverture, les autres quand celle qui les ouvre a le niveau voulu. */
     public boolean isColliderUpgradeOpen(ColliderUpgrade upgrade) {
         if (!isColliderUpgradesUnlocked()) return false;
-        // La Superposition attend aussi le cinquième Big Bang (version 0.073) : jusque-là, les choix de l'arbre comptent.
+        // La Superposition attend aussi le cinquième Big Bang : jusque-là, les choix de l'arbre comptent.
         if (upgrade == ColliderUpgrade.SUPERPOSITION && state.bigBangs() < SUPERPOSITION_BIG_BANGS) return false;
         return upgrade.requires() == null || state.colliderUpgradeLevel(upgrade.requires()) >= upgrade.requiredLevel();
     }
@@ -516,8 +479,8 @@ public abstract class GameCollider extends GameDarkTree {
     public static final int SUPERPOSITION_BIG_BANGS = 5;
 
     public double colliderUpgradeCost(ColliderUpgrade upgrade) {
-        // Version 0.151 : les J/ψ baissent le prix des améliorations du collisionneur.
-        return upgrade.cost(state.colliderUpgradeLevel(upgrade)) / hadronBoost(idle.core.collider.Hadron.J_PSI);
+        // Les J/ψ baissent le prix des améliorations du collisionneur.
+        return upgrade.cost(state.colliderUpgradeLevel(upgrade)) / hadronBoost(Hadron.J_PSI);
     }
 
     /** Les quarks que demande le prochain niveau de cette amélioration (la chaîne, version 0.062) ; 0 pour les autres. */
@@ -549,7 +512,7 @@ public abstract class GameCollider extends GameDarkTree {
                 && !state.testBlocked("collider");
     }
 
-    /** Vrai si au moins un automate du collisionneur est acheté et en pause (version 0.167). */
+    /** Vrai si au moins un automate du collisionneur est acheté et en pause. */
     public boolean anyColliderAutomationPaused() {
         for (ColliderGenerator generator : ColliderGenerator.values()) {
             ColliderUpgrade automation = ColliderUpgrade.automationOf(generator);
@@ -584,7 +547,7 @@ public abstract class GameCollider extends GameDarkTree {
         }
     }
 
-    /** L'énergie produite qu'il faut au trou noir (version 0.062), puis au trou noir supermassif, le dernier avant la galaxie. */
+    /** L'énergie produite qu'il faut au trou noir, puis au trou noir supermassif, le dernier avant la galaxie. */
     public static final double BLACK_HOLE_ENERGY = 1e12;
     public static final double SUPERMASSIVE_ENERGY = 1e15;
 
@@ -601,9 +564,7 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Vrai si cet astre demande de l'énergie du collisionneur. */
-    public boolean needsColliderEnergy(Body body) {
-        return colliderEnergyNeeded(body) > 0;
-    }
+    public boolean needsColliderEnergy(Body body) { return colliderEnergyNeeded(body) > 0; }
 
     /** Vrai si l'énergie produite suffit à cet astre. */
     public boolean hasColliderEnergyFor(Body body) {
@@ -623,23 +584,15 @@ public abstract class GameCollider extends GameDarkTree {
         return total;
     }
 
-        public int quarks(Quark quark) {
-        return state.quarks(quark);
-    }
+        public int quarks(Quark quark) { return state.quarks(quark); }
 
     /** Vrai tant qu'un quark top attend d'être utilisé. */
-    public boolean hasTop() {
-        return state.topLeft() > 0;
-    }
+    public boolean hasTop() { return state.topLeft() > 0; }
 
-    public double topLeft() {
-        return state.topLeft();
-    }
+    public double topLeft() { return state.topLeft(); }
 
     /** Combien de temps le quark top attend : une minute, deux fois plus par niveau de top stable. */
-    public double topSeconds() {
-        return TOP_SECONDS * Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.TOP_LIFE));
-    }
+    public double topSeconds() { return TOP_SECONDS * Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.TOP_LIFE)); }
 
     /** Durée de la surchauffe d'un quark top : dix minutes, 50 % de plus par niveau de top stable. */
     public double overheatSeconds() {
@@ -654,9 +607,7 @@ public abstract class GameCollider extends GameDarkTree {
         return true;
     }
 
-    public double overheatLeft() {
-        return state.overheatLeft();
-    }
+    public double overheatLeft() { return state.overheatLeft(); }
 
     /** Ce par quoi le collisionneur multiplie les particules : la chaîne, et la surchauffe d'un quark top. */
     public double colliderParticlesMultiplier() {
@@ -664,19 +615,13 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Ce par quoi la chaîne multiplie les atomes de chaque fusion. */
-    public double colliderAtomsMultiplier() {
-        return 1 + 0.1 * colliderUpgradeLevel(ColliderUpgrade.ATOMS);
-    }
+    public double colliderAtomsMultiplier() { return 1 + 0.1 * colliderUpgradeLevel(ColliderUpgrade.ATOMS); }
 
     /** Ce par quoi la chaîne multiplie la croissance de la matière noire. */
-    public double colliderDarkGrowthMultiplier() {
-        return 1 + 0.2 * colliderUpgradeLevel(ColliderUpgrade.DARK_MATTER);
-    }
+    public double colliderDarkGrowthMultiplier() { return 1 + 0.2 * colliderUpgradeLevel(ColliderUpgrade.DARK_MATTER); }
 
     /** Ce par quoi la chaîne multiplie l'espace par seconde. */
-    public double colliderSpaceMultiplier() {
-        return 1 + 0.25 * colliderUpgradeLevel(ColliderUpgrade.SPACE);
-    }
+    public double colliderSpaceMultiplier() { return 1 + 0.25 * colliderUpgradeLevel(ColliderUpgrade.SPACE); }
 
     void runCollider(double dt) {
         if (dt <= 0 || !isColliderUnlocked()) return;
@@ -697,7 +642,7 @@ public abstract class GameCollider extends GameDarkTree {
         long crossings = (long) (Math.floor(after - 0.5) - Math.floor(before - 0.5));
         state.setColliderPhase(after);
         runCrossings(crossings);
-        // La surchauffe s'écoule avec la production qu'elle multiplie : voir Game#runTimedBonuses (version 0.126).
+        // La surchauffe s'écoule avec la production qu'elle multiplie : voir Game#runTimedBonuses.
         if (state.topLeft() > 0) {
             state.setTopLeft(state.topLeft() - dt);
             if (state.topLeft() <= 0) state.setQuarks(Quark.BOTTOM, state.quarks(Quark.BOTTOM) + TOP_CONSOLATION_BOTTOM);
@@ -737,9 +682,7 @@ public abstract class GameCollider extends GameDarkTree {
         state.setCollisions(List.of());
     }
 
-    private void addQuarks(Quark quark, int count) {
-        state.setQuarks(quark, state.quarks(quark) + count);
-    }
+    private void addQuarks(Quark quark, int count) { state.setQuarks(quark, state.quarks(quark) + count); }
 
     /** Un entier de {@code low} à {@code high}, toujours le même pour un tirage donné. */
     static int between(long run, int draw, int low, int high) {

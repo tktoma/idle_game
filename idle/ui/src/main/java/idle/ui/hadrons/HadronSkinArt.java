@@ -2,14 +2,10 @@ package idle.ui.hadrons;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 
 /**
- * Les skins de la liaison des hadrons (version 0.195), dessinés à côté de {@link BindingView} pour la garder lisible.
+ * Les skins de la liaison des hadrons, dessinés à côté de {@link BindingView} pour la garder lisible.
  * <ul>
  * <li>Les quarks : « Billes de verre » (une sphère translucide, son reflet et son ombre), « Fruits » (la saveur en
  * couleur de fruit, une feuille et une queue ; l'antiquark en tranche), « Notes de musique » (une noire de la couleur
@@ -23,7 +19,6 @@ import javafx.scene.paint.Stop;
  * </ul>
  */
 final class HadronSkinArt {
-
     private static final Color CHALK = Color.web("#e8e4d8");
     private static final Color BOARD = Color.web("#1e3a2a");
     private static final Color FRAME = Color.web("#8a5a2a");

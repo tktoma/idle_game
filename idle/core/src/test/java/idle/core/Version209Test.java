@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 /** Version 0.209 : Noyaux sombres avant tout achat en matière noire, et l'effet d'une bulle coupé par une mesure. */
 class Version209Test {
-
     private static Game gameWithDarkMatter(int darkMatter) {
         Game game = new Game();
         game.start();

@@ -1,22 +1,23 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+import idle.core.math.BigNum;
+import idle.core.sky.Cosmos;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.history.Achats;
-import idle.core.history.Pace;
-import idle.core.history.PurchaseHistory;
-import java.util.List;
+import idle.core.history.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.168 : la chronologie de la partie pour l'onglet Statistiques — le journal des univers formés et de leurs
+ * La chronologie de la partie pour l'onglet Statistiques — le journal des univers formés et de leurs
  * phases, les moments de la partie secondaire (dimensions, graine, défi final), le temps passé dans chaque dimension — et
  * la valeur durable d'un achat, à côté de son gain immédiat.
  */
 class Chronologie168Test {
-
     @Test
     void chaqueUniversFormeEntreAuJournalAvecSonNumeroEtSesEtapes() {
         Game game = GameTestSupport.realGame();
@@ -42,7 +43,7 @@ class Chronologie168Test {
     @Test
     void lesPhasesDUnUniversSontLesEcartsEntreSesEtapes() {
         GameStats.UniverseRecord r = new GameStats.UniverseRecord(4, 100, 400, 1_000, 5_000, 6_000, 9_000);
-        assertEquals(List.of(300.0, 600.0, 4_000.0, 1_000.0, 3_000.0), java.util.Arrays.stream(r.phases()).boxed().toList());
+        assertEquals(List.of(300.0, 600.0, 4_000.0, 1_000.0, 3_000.0), Arrays.stream(r.phases()).boxed().toList());
         assertEquals(8_900, r.duration(), 1e-9);
         assertEquals(5, GameStats.UniverseRecord.PHASES.size());
     }
@@ -103,7 +104,7 @@ class Chronologie168Test {
         Pace pace = new Pace();
         pace.observe(game);
         assertTrue(Double.isNaN(PurchaseHistory.dureeDeVie(game, Achats.Tenue.FUSION)), "pas encore de fusion : pas de durée de vie");
-        game.state().stats().noteFusion(idle.core.math.BigNum.ONE, 600);
+        game.state().stats().noteFusion(BigNum.ONE, 600);
         assertEquals(600, PurchaseHistory.dureeDeVie(game, Achats.Tenue.FUSION), 1e-9);
         assertTrue(Double.isNaN(PurchaseHistory.dureeDeVie(game, Achats.Tenue.PARTIE)), "toute la partie : pas de fin à mesurer");
         history.before(game);
@@ -116,13 +117,13 @@ class Chronologie168Test {
 
     @Test
     void ceQuiManqueAuCosmosSeDitConditionParCondition() {
-        // Version 0.168 : pour le bot analyste, l'attente d'une seule condition de la galaxie dit laquelle.
+        // Pour le bot analyste, l'attente d'une seule condition de la galaxie dit laquelle.
         Game game = GameTestSupport.realGame();
-        List<String> galaxy = game.cosmosMissing(idle.core.sky.Cosmos.GALAXY);
-        assertEquals(game.cosmosConditions(idle.core.sky.Cosmos.GALAXY), galaxy.size(), "chaque astre, et les systèmes solaires");
+        List<String> galaxy = game.cosmosMissing(Cosmos.GALAXY);
+        assertEquals(game.cosmosConditions(Cosmos.GALAXY), galaxy.size(), "chaque astre, et les systèmes solaires");
         assertTrue(galaxy.contains("Systèmes solaires complets (0 / " + Game.SYSTEMS_FOR_GALAXY + ")"), galaxy.toString());
         assertTrue(galaxy.get(0).endsWith(" : pas encore formé"), galaxy.toString());
-        List<String> cluster = game.cosmosMissing(idle.core.sky.Cosmos.CLUSTER);
+        List<String> cluster = game.cosmosMissing(Cosmos.CLUSTER);
         assertTrue(cluster.get(0).endsWith(" : pas encore formé"), "l'échelle d'avant d'abord : " + cluster);
         assertTrue(cluster.stream().anyMatch(m -> m.contains(" rassemblé (0 / ")), cluster.toString());
     }

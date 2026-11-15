@@ -1,37 +1,23 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.bigbang.SpaceUpgrades;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkAutomations;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.ElementBonuses;
+import idle.core.state.GameState;
+import idle.core.achievements.*;
+import idle.core.collider.*;
+import idle.core.elements.*;
+
+import idle.core.bigbang.*;
+import idle.core.darkmatter.*;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
-import idle.core.sky.Assemblies;
-import idle.core.sky.Assembly;
-import idle.core.sky.Bodies;
-import idle.core.sky.Body;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Le socle du jeu : ses constantes, ses catalogues et son état.
- */
+/** Le socle du jeu : ses constantes, ses catalogues et son état. */
 public abstract class GameBase {
-
     /** Le jeu entier : chaque partie de la chaîne est un {@link Game}. */
-    final Game self() {
-        return (Game) this;
-    }
+    final Game self() { return (Game) this; }
 
     GameBase(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         this.state = state;
@@ -54,9 +40,7 @@ public abstract class GameBase {
                 throw new IllegalArgumentException("Automatisme en double : " + automation.id());
             }
         }
-        for (DarkAutomation automation : DarkAutomations.DEFAULT) {
-            darkAutomations.put(automation.id(), automation);
-        }
+        for (DarkAutomation automation : DarkAutomations.DEFAULT) darkAutomations.put(automation.id(), automation);
         for (SpaceUpgrade upgrade : SpaceUpgrades.DEFAULT) {
             if (upgrade.requires() != null && !spaceUpgrades.containsKey(upgrade.requires())) {
                 throw new IllegalArgumentException("Amélioration d'espace sans celle dont elle dépend : " + upgrade.id());
@@ -124,7 +108,6 @@ public abstract class GameBase {
         darkForks.replaceAll((fork, options) -> List.copyOf(options));
     }
 
-
     /**
      * Le tempo du jeu : ce par quoi la vitesse de départ des générateurs a été multipliée pour que
      * la première explosion vienne en trois heures au lieu de vingt-quatre. Ce qui se mesurait à
@@ -136,13 +119,12 @@ public abstract class GameBase {
     /** Vitesse de départ d'un générateur : 0,25 × {@link #TEMPO}, soit trois particules par seconde. */
     public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
     /**
-     * Le premier élan (version 0.095, par paliers depuis la 0.096) : dans la toute première partie,
-     * avant la première explosion, la création prend son élan peu à peu. Elle va
-     * {@code FIRST_RUN_PACE} fois moins vite jusqu'au premier atome (une heure environ), puis
-     * {@link #FIRST_ATOMS_PACE} fois moins vite jusqu'au cinquième atome créé (deux heures), puis
-     * {@link #FIRST_GAME_PACE} fois moins vite jusqu'au trentième, où s'ouvrent l'automatisation et le
-     * tableau périodique : de là, elle a tout son élan. Rien ne ralentit plus ensuite, ni après une
-     * explosion, ni dans l'univers suivant. Seule une partie neuve repasse par là.
+     * Le premier élan (par paliers depuis la 0.096) : dans la toute première partie, avant la première explosion, la
+     * création prend son élan peu à peu. Elle va {@code FIRST_RUN_PACE} fois moins vite jusqu'au premier atome (une
+     * heure environ), puis {@link #FIRST_ATOMS_PACE} fois moins vite jusqu'au cinquième atome créé (deux heures), puis
+     * {@link #FIRST_GAME_PACE} fois moins vite jusqu'au trentième, où s'ouvrent l'automatisation et le tableau
+     * périodique : de là, elle a tout son élan. Rien ne ralentit plus ensuite, ni après une explosion, ni dans
+     * l'univers suivant. Seule une partie neuve repasse par là.
      */
     public static final double FIRST_RUN_PACE = 13;
     public static final double FIRST_ATOMS_PACE = 9;
@@ -183,14 +165,14 @@ public abstract class GameBase {
     public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 50000);
 
     /**
-     * Particules du tout premier Big Bang de la partie (version 0.181) : celui de l'acte 2 du premier univers. Avec
+     * Particules du tout premier Big Bang de la partie : celui de l'acte 2 du premier univers. Avec
      * 10¹⁹⁰⁰⁰⁰ et la réserve de 120 000 de matière noire, l'acte 2 du Speedrunner (graine 201) durait 5 h 43 en 0.179 ;
      * la cible est quatre heures. Les univers suivants gardent {@link #BIG_BANG_PARTICLES}.
      */
     public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES = BigNum.of(1, 85000);
 
     /**
-     * Particules des Big Bangs suivants du premier univers (version 0.181) : 10³⁰⁰⁰⁰. Après chaque Big Bang, la production
+     * Particules des Big Bangs suivants du premier univers : 10³⁰⁰⁰⁰. Après chaque Big Bang, la production
      * repart de zéro et met une heure à repasser de 10¹⁸⁰⁰⁰ à 10³⁰⁰⁰⁰ ; c'est elle qui faisait durer les Big Bangs 2 à 4
      * du Speedrunner (30, 65 et 88 minutes). Les univers suivants gardent {@link #BIG_BANG_PARTICLES_LATER}.
      */
@@ -200,14 +182,14 @@ public abstract class GameBase {
     public BigNum bigBangParticles() {
         BigNum need = state.universeFormed() ? (state.bigBangs() != 0 ? BIG_BANG_PARTICLES_LATER : BIG_BANG_PARTICLES)
                 : (state.bigBangs() != 0 ? FIRST_UNIVERSE_BIG_BANG_PARTICLES_LATER : FIRST_UNIVERSE_BIG_BANG_PARTICLES);
-        // La barre haute (version 0.117) : une fois et demie plus d'ordres de grandeur.
-        if (raisedBar()) need = BigNum.pow10(need.log10() * idle.core.bigbang.BangChallenge.RAISED_PARTICLES);
+        // La barre haute : une fois et demie plus d'ordres de grandeur.
+        if (raisedBar()) need = BigNum.pow10(need.log10() * BangChallenge.RAISED_PARTICLES);
         double relief = bigBangCalmRelief();
         return relief <= 0 ? need : relief >= 1 ? BigNum.ONE : BigNum.pow10(need.log10() * (1 - relief));
     }
 
     /**
-     * Le calme du Big Bang (version 0.114), récompense du défi « Fuite » (une épreuve en 0.114) : tant qu'aucune amélioration
+     * Le calme du Big Bang, récompense du défi « Fuite » (une épreuve en 0.114) : tant qu'aucune amélioration
      * n'est achetée, les particules que demande le Big Bang baissent peu à peu, en ordres de grandeur,
      * jusqu'à une seule au bout de {@link #BIG_BANG_CALM_SECONDS}. Une heure sans rien acheter suffit donc
      * toujours pour la condition des particules. La moindre amélioration fait tout repartir.
@@ -215,9 +197,9 @@ public abstract class GameBase {
     public static final double BIG_BANG_CALM_SECONDS = 3600;
 
     /**
-     * Les défis de Big Bang du deuxième univers (version 0.116) : chacun réussi multiplie, en plus de sa récompense,
+     * Les défis de Big Bang du deuxième univers : chacun réussi multiplie, en plus de sa récompense,
      * les particules par {@link #BANG_UNIVERSE_PARTICLES}, les molécules de chaque création par
-     * {@link #BANG_UNIVERSE_MOLECULES} (version 0.118, à la place de l'espace ×2, qui ralentissait l'amas), la vitesse de
+     * {@link #BANG_UNIVERSE_MOLECULES} (à la place de l'espace ×2, qui ralentissait l'amas), la vitesse de
      * maturation des astres par {@link #BANG_UNIVERSE_MATURATION}, celle des sondes par {@link #BANG_UNIVERSE_PROBE_SPEED}
      * et leurs récompenses par {@link #BANG_UNIVERSE_PROBE_REWARDS}. Les bonus se multiplient d'un défi à l'autre ;
      * les trois réussis, chaque planète peut aussi entrer dans deux systèmes solaires.
@@ -236,65 +218,61 @@ public abstract class GameBase {
     public static final double BANG_UNIVERSE_MATURATION = Math.cbrt(2);
 
     /**
-     * Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. Version 0.174 : chacun
+     * Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. Chacun
      * compte par son succès d'univers ({@link idle.core.achievements.Achievements#universeBangId}), tant qu'il est réussi.
      */
     public int universeBangChallenges() {
         if (!state.universeFormed()) return 0;
         int done = 0;
-        for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) {
+        for (BangChallenge challenge : BangChallenge.values()) {
             if (state.completedBangChallenges().contains(challenge.name())
-                    && universeStep(idle.core.achievements.Achievements.universeBangId(challenge))) done++;
+                    && universeStep(Achievements.universeBangId(challenge))) done++;
         }
         return done;
     }
 
     /**
-     * Vrai si la nouveauté du deuxième univers qu'ouvre ce succès est ouverte (version 0.174) : le succès est obtenu, ou
+     * Vrai si la nouveauté du deuxième univers qu'ouvre ce succès est ouverte : le succès est obtenu, ou
      * sa condition est remplie et il le sera au pas suivant. Une nouveauté ne s'ouvre donc qu'avec son succès, et reste
      * ouverte une fois le succès obtenu ; ce qu'elle demande à chaque partie (un Big Bang, la Persistance…) compte en plus.
      */
     public boolean universeStep(String achievementId) {
         if (state.achievements().contains(achievementId)) return true;
-        Achievement achievement = idle.core.achievements.Achievements.byId(achievementId);
+        Achievement achievement = Achievements.byId(achievementId);
         return achievement != null && achievement.condition() != null && achievement.condition().test(self());
     }
 
     /** Un bonus des défis de Big Bang : {@code base} à la puissance du nombre de défis réussis. */
-    public double universeBangFactor(double base) {
-        return Math.pow(base, universeBangChallenges());
-    }
+    public double universeBangFactor(double base) { return Math.pow(base, universeBangChallenges()); }
 
     /** Vrai une fois les trois défis de Big Bang réussis dans le deuxième univers : une planète peut entrer dans deux systèmes. */
     public boolean planetsTwice() {
-        // Les trois défis d'origine (version 0.116) ; ceux de la 0.117 n'y entrent pas.
-        if (!state.universeFormed() || !universeStep(idle.core.achievements.Achievements.UNIVERSE_PLANETS)) return false;
-        for (idle.core.bigbang.BangChallenge c : new idle.core.bigbang.BangChallenge[] {idle.core.bigbang.BangChallenge.VOID,
-                idle.core.bigbang.BangChallenge.FORGOTTEN, idle.core.bigbang.BangChallenge.BY_HAND})
+        // Les trois défis d'origine ; ceux de la 0.117 n'y entrent pas.
+        if (!state.universeFormed() || !universeStep(Achievements.UNIVERSE_PLANETS)) return false;
+        for (BangChallenge c : new BangChallenge[] {BangChallenge.VOID, BangChallenge.FORGOTTEN, BangChallenge.BY_HAND})
             if (!state.completedBangChallenges().contains(c.name())) return false;
         return true;
     }
 
-    /** Vrai pendant l'action d'un automatisme (version 0.114) : ses achats ne sont pas ceux du joueur, ils ne rompent pas le calme. */
+    /** Vrai pendant l'action d'un automatisme : ses achats ne sont pas ceux du joueur, ils ne rompent pas le calme. */
     boolean automating = false;
 
     /** La part du seuil de particules déjà effacée par le calme, de 0 à 1 ; 0 sans la récompense. */
     public double bigBangCalmRelief() {
-        if (!state.completedChallenges().contains(idle.core.darkmatter.Challenges.LEAK.id())) return 0;
-        // Version 0.124 : la barre haute ne se contourne pas en attendant.
+        if (!state.completedChallenges().contains(Challenges.LEAK.id())) return 0;
+        // La barre haute ne se contourne pas en attendant.
         if (raisedBar()) return 0;
         return Math.min(1, state.bangCalm() / BIG_BANG_CALM_SECONDS);
     }
 
     /**
-     * Atomes à avoir en main pour le Big Bang : dix fois ce qu'une partie d'une demi-minute en
-     * laisse quand l'arbre vient d'être fini. Il faut laisser tourner une partie, donc couper
-     * l'explosion automatique.
+     * Atomes à avoir en main pour le Big Bang : dix fois ce qu'une partie d'une demi-minute en laisse quand l'arbre
+     * vient d'être fini. Il faut laisser tourner une partie, donc couper l'explosion automatique.
      */
     public static final BigNum BIG_BANG_ATOMS = BigNum.of(1, 12);
 
     /**
-     * Les atomes des Big Bangs du premier univers (version 0.181) : dix fois moins. En 0.179, les Big Bangs 3, 4 et 7
+     * Les atomes des Big Bangs du premier univers : dix fois moins. En 0.179, les Big Bangs 3, 4 et 7
      * du Speedrunner attendaient les seuls atomes 54, 35 et 55 minutes ; la phase des sept Big Bangs durait 6 h 52,
      * la cible est six heures. Les univers suivants gardent {@link #BIG_BANG_ATOMS}.
      */
@@ -306,19 +284,17 @@ public abstract class GameBase {
      */
     public static final BigNum BIG_BANG_DARK_MATTER = BigNum.of(500);
 
-    /** Vrai pendant le défi de Big Bang « Barre haute » (version 0.117). */
-    boolean raisedBar() {
-        return idle.core.bigbang.BangChallenge.RAISED.name().equals(state.activeBangChallenge());
-    }
+    /** Vrai pendant le défi de Big Bang « Barre haute ». */
+    boolean raisedBar() { return BangChallenge.RAISED.name().equals(state.activeBangChallenge()); }
 
-    /** Les atomes en main que demande le Big Bang : moins au premier univers (version 0.181), plus pendant la barre haute. */
+    /** Les atomes en main que demande le Big Bang : moins au premier univers, plus pendant la barre haute. */
     public BigNum bigBangAtoms() {
         BigNum need = state.universeFormed() ? BIG_BANG_ATOMS : FIRST_UNIVERSE_BIG_BANG_ATOMS;
-        return raisedBar() ? need.multiply(idle.core.bigbang.BangChallenge.RAISED_ATOMS) : need;
+        return raisedBar() ? need.multiply(BangChallenge.RAISED_ATOMS) : need;
     }
 
     /**
-     * La réserve du tout premier Big Bang de la partie (version 0.166) : celui de l'acte 2 du premier univers. Avec 500,
+     * La réserve du tout premier Big Bang de la partie : celui de l'acte 2 du premier univers. Avec 500,
      * quatre conditions sur cinq étaient réunies vers 5 h et le joueur attendait ensuite 4 h les seules particules ; avec
      * cette réserve, qui se remplit d'environ 43 000 à l'heure à ce moment, la dernière attente est d'environ une heure,
      * sans changer l'heure du Big Bang.
@@ -326,12 +302,11 @@ public abstract class GameBase {
     public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(42_000);
 
     /**
-     * La matière noire en réserve que demande le Big Bang : plus pour le tout premier (version 0.166), et plus pendant la
-     * barre haute.
+     * La matière noire en réserve que demande le Big Bang : plus pour le tout premier, et plus pendant la barre haute.
      */
     public BigNum bigBangDarkMatter() {
         BigNum need = !state.universeFormed() && state.bigBangs() == 0 ? FIRST_BIG_BANG_DARK_MATTER : BIG_BANG_DARK_MATTER;
-        return raisedBar() ? need.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : need;
+        return raisedBar() ? need.multiply(BangChallenge.RAISED_DARK_MATTER) : need;
     }
 
     /**
@@ -344,10 +319,9 @@ public abstract class GameBase {
     public static final double SPACE_PER_SECOND = 1;
 
     /**
-     * Espace qu'occupe une molécule, par proton, avant ce que son état y ajoute
-     * ({@link Molecule.State#spaceFactor()}) : une molécule de quartz (30 protons, un cristal) en
-     * prend 300, une molécule d'eau (10 protons, un liquide) 200, une molécule de dihydrogène
-     * (2 protons, un gaz) 400.
+     * Espace qu'occupe une molécule, par proton, avant ce que son état y ajoute ({@link Molecule.State#spaceFactor()})
+     * : une molécule de quartz (30 protons, un cristal) en prend 300, une molécule d'eau (10 protons, un liquide) 200,
+     * une molécule de dihydrogène (2 protons, un gaz) 400.
      */
     public static final double SPACE_PER_PROTON = 10;
 
@@ -366,16 +340,15 @@ public abstract class GameBase {
     public static final double TABLE_WEIGHT_GROWTH = 3;
 
     /**
-     * Nombre d'explosions au-delà duquel le tableau ne s'alourdit plus. Sans cette limite, un
-     * joueur qui explose plus vite qu'il ne remplit l'arbre verrait chaque partie durer trois
-     * fois plus que la précédente, sans fin. Dix : c'est à ce moment que l'arbre n'apporte plus
-     * qu'une case par explosion, et un niveau de plus ferait passer une partie de trois heures
-     * et demie à plus de huit.
+     * Nombre d'explosions au-delà duquel le tableau ne s'alourdit plus. Sans cette limite, un joueur qui explose plus
+     * vite qu'il ne remplit l'arbre verrait chaque partie durer trois fois plus que la précédente, sans fin. Dix :
+     * c'est à ce moment que l'arbre n'apporte plus qu'une case par explosion, et un niveau de plus ferait passer une
+     * partie de trois heures et demie à plus de huit.
      */
     public static final int TABLE_WEIGHT_MAX_LEVEL = 10;
 
     /**
-     * Masse du tableau pendant les défis « Présence » et « Absence » (version 0.073) : un tableau très
+     * Masse du tableau pendant les défis « Présence » et « Absence » : un tableau très
      * lourd, qu'on ne remplit vite qu'avec les voies du bon style.
      */
     public static final BigNum STYLE_CHALLENGE_WEIGHT = BigNum.of(3, 6);
@@ -387,7 +360,7 @@ public abstract class GameBase {
     public static final BigNum CHALLENGE_WEIGHT = BigNum.of(5000);
 
     /**
-     * Version 0.181 : les défis d'explosion se corsent à chaque univers formé. La masse de leur tableau
+     * Les défis d'explosion se corsent à chaque univers formé. La masse de leur tableau
      * ({@link #CHALLENGE_WEIGHT}, {@link #STYLE_CHALLENGE_WEIGHT}) est multipliée par {@code 2^univers formés}
      * (version 0.206 ; 1,3 de la 0.181 à la 0.203) : ×2 au deuxième univers, ×8 au quatrième, ×128 au huitième, ×1 024 au
      * onzième. Avec ×1,3 les treize défis se gagnaient encore en moins d'une minute à tous les univers (mesures 0.183 et
@@ -396,7 +369,7 @@ public abstract class GameBase {
     public static final double CHALLENGE_UNIVERSE_GROWTH = 2.0;
 
     /**
-     * Version 0.206 : l'amélioration de matière noire qui compte le plus, Noyaux sombres ({@code dark_shop_atoms}) :
+     * L'amélioration de matière noire qui compte le plus, Noyaux sombres ({@code dark_shop_atoms}) :
      * les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau. Mesuré en 0.203 sur
      * l'univers 2 du Speedrunner rejoué sans elle : 35 h au lieu de 12 h 42 (Rouages sombres + 5 h, Rendement + 3 h 40,
      * les autres moins d'une heure). L'interface la met en avant : carte dorée, mention sur la carte, annonce quand elle
@@ -405,21 +378,19 @@ public abstract class GameBase {
     public static final String KEY_DARK_UPGRADE = "dark_shop_atoms";
 
     /** Le facteur de difficulté des défis dans cet univers : {@link #CHALLENGE_UNIVERSE_GROWTH} par univers formé. */
-    public double challengeUniverseFactor() {
-        return Math.pow(CHALLENGE_UNIVERSE_GROWTH, universes());
-    }
+    public double challengeUniverseFactor() { return Math.pow(CHALLENGE_UNIVERSE_GROWTH, universes()); }
 
     /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après ({@link GameUniverse#universes()}). */
     public abstract int universes();
 
     /**
-     * La matière noire de chaque explosion avant le premier Big Bang (version 0.097) : ×0,8. Le deuxième acte
+     * La matière noire de chaque explosion avant le premier Big Bang : ×0,8. Le deuxième acte
      * s'étale ainsi vers six heures, au lieu de cinq.
      */
     public static final double FIRST_CYCLE_DARK_MATTER = 0.8;
 
     /**
-     * Version 0.181 : l'élan de la matière noire du premier univers, du premier Big Bang à la formation, est multiplié par
+     * L'élan de la matière noire du premier univers, du premier Big Bang à la formation, est multiplié par
      * 1,6. Chaque cycle du troisième acte refait l'arbre de matière noire jusqu'au Débordement (10¹⁰ années-lumière),
      * sans quoi les atomes du Big Bang restent plafonnés ; la taille croît comme l'élan, et les Big Bangs 2 à 4 du
      * Speedrunner (graine 201) prenaient 30, 65 et 88 minutes. Les univers suivants n'y ont pas droit.
@@ -457,11 +428,10 @@ public abstract class GameBase {
     public static final int GUARANTEED_UNIQUE_SYNTHESIS = 8;
 
     /**
-     * Ce que les éléments peuvent ajouter, au plus, au gain d'un niveau de vitesse (0.10 = 10 points).
-     * Si un niveau de vitesse rapportait plus que la hausse de son prix (+27 %), chaque niveau
-     * paierait le suivant et la production s'emballerait sans fin. Avec les maximums d'exemplaires
-     * actuels, les éléments ajoutent au plus 4,5 points : ce plafond est un garde-fou, au cas où
-     * le tableau périodique changerait.
+     * Ce que les éléments peuvent ajouter, au plus, au gain d'un niveau de vitesse (0.10 = 10 points). Si un niveau de
+     * vitesse rapportait plus que la hausse de son prix (+27 %), chaque niveau paierait le suivant et la production
+     * s'emballerait sans fin. Avec les maximums d'exemplaires actuels, les éléments ajoutent au plus 4,5 points : ce
+     * plafond est un garde-fou, au cas où le tableau périodique changerait.
      */
     public static final double MAX_ELEMENT_SPEED_EXTRA = 0.10;
 
@@ -529,11 +499,10 @@ public abstract class GameBase {
     public static final double DARK_MATTER_GROWTH_PER_UNIT = 0.003;
 
     /**
-     * Résistance de la matière noire à sa propre croissance : la vitesse est divisée par sa
-     * taille (comptée en protons) élevée à cette puissance. Avec 0,1, elle est divisée par deux
-     * chaque fois que la taille est multipliée par mille. C'est ce qui étale la croissance, du
-     * proton à l'univers, sur toute la durée du jeu : doubler l'élan (matière noire, arbre,
-     * avancement) ou le temps d'appui fait gagner trois ordres de grandeur, pas davantage.
+     * Résistance de la matière noire à sa propre croissance : la vitesse est divisée par sa taille (comptée en protons)
+     * élevée à cette puissance. Avec 0,1, elle est divisée par deux chaque fois que la taille est multipliée par mille.
+     * C'est ce qui étale la croissance, du proton à l'univers, sur toute la durée du jeu : doubler l'élan (matière
+     * noire, arbre, avancement) ou le temps d'appui fait gagner trois ordres de grandeur, pas davantage.
      */
     public static final double DARK_MATTER_RESISTANCE = 0.1;
 
@@ -557,7 +526,7 @@ public abstract class GameBase {
     final Map<String, Automation> automations = new LinkedHashMap<>();
     final Map<String, DarkUpgrade> darkUpgrades = new LinkedHashMap<>();
     /**
-     * Version 0.214 : les voies de chaque bifurcation de l'arbre, dans l'ordre du catalogue, rangées une fois. Le style
+     * Les voies de chaque bifurcation de l'arbre, dans l'ordre du catalogue, rangées une fois. Le style
      * d'une case (présence ou absence) les relit à chaque pas de jeu.
      */
     final Map<String, List<DarkUpgrade>> darkForks = new HashMap<>();
@@ -567,13 +536,13 @@ public abstract class GameBase {
     final Map<String, Assembly> assemblies = new LinkedHashMap<>();
     final Map<String, Body> bodies = new LinkedHashMap<>();
     /** Pour chaque assemblage : l'astre qui est fait de lui. */
-    final Map<String, Body> bodyByAssembly = new java.util.HashMap<>();
+    final Map<String, Body> bodyByAssembly = new HashMap<>();
     /** Les catalogues en listes, faites une fois : ils ne changent pas après la construction, et sont demandés à chaque image. */
     List<SpaceUpgrade> spaceUpgradeList;
     List<Assembly> assemblyList;
     List<Body> bodyList;
     /** Le nombre de molécules rassemblées dans chaque état, recalculé seulement quand leur liste change. */
-    final Map<Molecule.State, Long> gatheredByState = new java.util.EnumMap<>(Molecule.State.class);
+    final Map<Molecule.State, Long> gatheredByState = new EnumMap<>(Molecule.State.class);
     int gatheredByStateVersion = -1;
     /** L'espace occupé par les molécules, recalculé seulement quand leur liste change. */
     BigNum occupiedSpace = BigNum.ZERO;
@@ -581,19 +550,19 @@ public abstract class GameBase {
     BigNum reservedSpace = BigNum.ZERO;
     int reservedSpaceVersion = -1;
     /** Ce que donnent les molécules créées, recalculé seulement quand leur liste change. */
-    final Map<Molecule.Stat, Double> moleculeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
+    final Map<Molecule.Stat, Double> moleculeBoosts = new EnumMap<>(Molecule.Stat.class);
     /** Les exemplaires de plus que les molécules accordent à chaque élément, par numéro atomique (version 0.170 : un tableau, lu à chaque tirage). */
-    final int[] elementUncaps = new int[idle.core.elements.PeriodicTable.ELEMENTS.size() + 1];
+    final int[] elementUncaps = new int[PeriodicTable.ELEMENTS.size() + 1];
     int moleculeBonusesVersion = -1;
     /** Ce par quoi les améliorations d'espace acquises multiplient chaque grandeur, recalculé avec les bonus des molécules. */
-    final Map<Molecule.Stat, Double> upgradeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
+    final Map<Molecule.Stat, Double> upgradeBoosts = new EnumMap<>(Molecule.Stat.class);
     final Map<String, DarkAutomation> darkAutomations = new LinkedHashMap<>();
     final Map<String, Achievement> achievements = new LinkedHashMap<>();
     /** Les succès obtenus depuis le dernier appel à {@link #takeNewAchievements()}, pour les annoncer. */
     final List<Achievement> newAchievements = new ArrayList<>();
     double achievementTimer = 0;
     /** Le cumul des bonus propres des succès, recalculé quand leur nombre change. */
-    final java.util.EnumMap<Achievement.Bonus, Double> achievementBonuses = new java.util.EnumMap<>(Achievement.Bonus.class);
+    final EnumMap<Achievement.Bonus, Double> achievementBonuses = new EnumMap<>(Achievement.Bonus.class);
     int achievementBonusesFor = -1;
     final RandomGenerator random;
 
@@ -602,7 +571,7 @@ public abstract class GameBase {
     int elementBonusesVersion = -1;
     double elementBonusesStrength = 1;
     /**
-     * La chance des familles rares et le double tirage (version 0.202), gardés à part des autres bonus des éléments : la
+     * La chance des familles rares et le double tirage, gardés à part des autres bonus des éléments : la
      * synthèse les relit à chaque tirage ({@link idle.core.elements.ElementBonuses#luckAndDoubleDraw}).
      */
     double[] elementLuck = {1, 0};
@@ -612,8 +581,8 @@ public abstract class GameBase {
     static final ElementBonuses NO_BONUSES = ElementBonuses.of(Map.of());
 
     /**
-     * Vrai si l'effet de cette bulle de l'arbre agit : elle est achetée (version 0.148). Ses effets touchent tous les
-     * étages du moteur, d'où ce raccourci ici, tout en bas. Version 0.209 : une mesure peut couper l'effet d'une bulle
+     * Vrai si l'effet de cette bulle de l'arbre agit : elle est achetée. Ses effets touchent tous les
+     * étages du moteur, d'où ce raccourci ici, tout en bas. Une mesure peut couper l'effet d'une bulle
      * achetée ({@code bulle:NOM}, {@link GameStateBase#testBlock}) ; les bots le font pour celle du jeune arbre, à droite.
      * La bulle compte toujours comme achetée pour l'arbre (liens, skins) : seul son effet manque.
      */
@@ -621,37 +590,35 @@ public abstract class GameBase {
         return state.treeBubbleBought(bubble.ordinal()) && !bubbleEffectBlocked(bubble);
     }
 
-    /** Le niveau de cette bulle de l'arbre, pour ses effets : 0 si elle n'est pas achetée (version 0.148), ou si une mesure coupe son effet. */
+    /** Le niveau de cette bulle de l'arbre, pour ses effets : 0 si elle n'est pas achetée, ou si une mesure coupe son effet. */
     final int bubbleLevel(GameUniverse.TreeBubble bubble) {
         return bubbleEffectBlocked(bubble) ? 0 : Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
     }
 
-    /** Vrai si une mesure coupe l'effet de cette bulle (version 0.209) : jamais dans une partie ordinaire. */
+    /** Vrai si une mesure coupe l'effet de cette bulle : jamais dans une partie ordinaire. */
     private boolean bubbleEffectBlocked(GameUniverse.TreeBubble bubble) {
         return state.testBlocking() && state.testBlocked("bulle:" + bubble.name());
     }
 
-    /** Ce que chaque ordre de grandeur de hadrons d'une sorte ajoute à son bonus (version 0.151) : +25 %. */
+    /** Ce que chaque ordre de grandeur de hadrons d'une sorte ajoute à son bonus : +25 %. */
     public static final double HADRON_BOOST_STEP = 0.25;
 
     /**
-     * Le bonus d'une sorte de hadrons (version 0.151) : ×(1 + {@link #HADRON_BOOST_STEP} × log₁₀(1 + n)), n ceux
+     * Le bonus d'une sorte de hadrons : ×(1 + {@link #HADRON_BOOST_STEP} × log₁₀(1 + n)), n ceux
      * qu'on en a ; 1 sans eux. Pour ceux qui baissent un prix, le prix est divisé d'autant.
      */
-    public final double hadronBoost(idle.core.collider.Hadron hadron) {
+    public final double hadronBoost(Hadron hadron) {
         long count = state.hadrons(hadron);
         return count <= 0 ? 1 : 1 + HADRON_BOOST_STEP * Math.log10(1 + (double) count);
     }
 
-    /** Les gluons (version 0.151) : les quarks liés dans tous les hadrons qu'on a. */
+    /** Les gluons : les quarks liés dans tous les hadrons qu'on a. */
     public final long gluons() {
         long total = 0;
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) total += state.hadrons(hadron) * hadron.quarkCount();
+        for (Hadron hadron : Hadron.values()) total += state.hadrons(hadron) * hadron.quarkCount();
         return total;
     }
 
     /** Vrai une fois ce palier de gluons atteint : ce qu'il fait garder agit. */
-    public final boolean isGluonMilestoneReached(idle.core.collider.GluonMilestone milestone) {
-        return gluons() >= milestone.gluons();
-    }
+    public final boolean isGluonMilestoneReached(GluonMilestone milestone) { return gluons() >= milestone.gluons(); }
 }

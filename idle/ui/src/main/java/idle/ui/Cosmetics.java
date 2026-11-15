@@ -1,19 +1,19 @@
 package idle.ui;
 
 import idle.core.Game;
+import java.time.LocalTime;
+import java.util.function.Supplier;
 import idle.core.collider.ColliderAchievement;
 import idle.core.math.BigNum;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Guette les conditions des thèmes et des notations à débloquer ({@link Cosmetic}), à chaque image.
  * Trois d'entre elles se comptent en temps réel, hors des règles du jeu : le temps passé sans
- * toucher à rien, le temps passé en pause, et (version 0.200) un Big Bang fait entre minuit et six
+ * toucher à rien, le temps passé en pause, et un Big Bang fait entre minuit et six
  * heures. Ces compteurs ne sont pas gardés : il faut tenir d'une traite, sans fermer le jeu.
  */
 final class Cosmetics {
-
     /** Dix minutes sans toucher à rien. */
     static final double IDLE_SECONDS = 600;
     /** Une heure de pause d'affilée. */
@@ -23,20 +23,20 @@ final class Cosmetics {
     /** Une heure de surchauffe d'avance. */
     static final double OVERHEAT = 3600;
     private static final BigNum GOOGOL = BigNum.of(1, 100);
-    /** Un quetta : 1e30 (version 0.200). */
+    /** Un quetta : 1e30. */
     private static final BigNum QUETTA = BigNum.of(1, 30);
-    /** Le dernier Big Bang fait pendant la nuit (version 0.200) : avant six heures du matin. */
+    /** Le dernier Big Bang fait pendant la nuit : avant six heures du matin. */
     static final int NIGHT_END_HOUR = 6;
 
     private final Game game;
     private final Settings settings;
     private double idle;
     private double paused;
-    /** Les Big Bangs vus à l'image d'avant (version 0.200), ou −1 avant la première ; vrai une fois l'un d'eux fait de nuit. */
+    /** Les Big Bangs vus à l'image d'avant, ou −1 avant la première ; vrai une fois l'un d'eux fait de nuit. */
     private int bigBangsSeen = -1;
     private boolean nightBigBang;
     /** L'heure qu'il est : l'horloge, ou une heure fixée pour les essais. */
-    java.util.function.Supplier<java.time.LocalTime> clock = java.time.LocalTime::now;
+    Supplier<LocalTime> clock = LocalTime::now;
 
     Cosmetics(Game game, Settings settings) {
         this.game = game;
@@ -44,19 +44,13 @@ final class Cosmetics {
     }
 
     /** Le joueur vient de toucher au clavier ou à la souris. */
-    void input() {
-        idle = 0;
-    }
+    void input() { idle = 0; }
 
     /** Le temps passé sans toucher à rien, le jeu en marche. */
-    double idle() {
-        return idle;
-    }
+    double idle() { return idle; }
 
     /** Le temps passé en pause, d'affilée. */
-    double paused() {
-        return paused;
-    }
+    double paused() { return paused; }
 
     /**
      * Une image : avance les compteurs, puis débloque ce dont la condition est remplie.

@@ -16,7 +16,6 @@ package idle.core.darkmatter;
  * @param reward     ce que le défi laisse une fois réussi
  */
 public record Challenge(String id, String name, Rule rule, int darkMatter, Reward reward) {
-
     /** La contrainte d'un défi. */
     public enum Rule {
         /** Tous les automatismes, ordinaires et de matière noire, sont quatre fois plus lents, jamais sous une demi-seconde. */
@@ -31,16 +30,16 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         INERT_ELEMENTS,
         /** Les éléments se désintègrent : chaque exemplaire a une demi-vie de 35 secondes. */
         DECAY,
-        /** Version 0.070 : les voies d'absence de l'arbre n'agissent plus, ni l'accord d'absence. Seules comptent celles de présence. */
+        /** Les voies d'absence de l'arbre n'agissent plus, ni l'accord d'absence. Seules comptent celles de présence. */
         PRESENCE_ONLY,
-        /** Version 0.070 : les voies de présence n'agissent plus, ni l'accord de présence. Seules comptent celles d'absence. */
+        /** Les voies de présence n'agissent plus, ni l'accord de présence. Seules comptent celles d'absence. */
         ABSENCE_ONLY,
-        /** Version 0.070 : la branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
+        /** La branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
         CUT_BRANCH,
         /** Version 0.070 : aucune voie, aucune liaison n'agit : il ne reste que le tronc de l'arbre. */
         BARE_TREE,
         /**
-         * Version 0.115 : la fuite, du deuxième univers. Les particules fuient de plus en plus vite tant que le
+         * La fuite, du deuxième univers. Les particules fuient de plus en plus vite tant que le
          * joueur n'achète aucune amélioration ; il faut deux minutes au moins avant d'exploser.
          */
         LEAK

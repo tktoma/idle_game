@@ -6,11 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.203 : la grappe de raisin range les galaxies de l'amas en vraie grappe. Les grains tiennent dans la vue, se
+ * La grappe de raisin range les galaxies de l'amas en vraie grappe. Les grains tiennent dans la vue, se
  * touchent sans se recouvrir, s'effilent vers le bas, et celui du joueur (le premier) est au cœur de la grappe.
  */
 class GrappeEtEmpreinteTest {
-
     @Test
     void lesGrainsSeSerrentEnGrappeSansSeRecouvrir() {
         for (int count : new int[] {1, 3, 6, 9, 10, 12}) {

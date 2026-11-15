@@ -1,6 +1,7 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import javafx.scene.Node;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.ShoppingList;
@@ -15,24 +16,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * La liste de courses du troisième acte, au-dessus des assemblages, des astres et de l'univers :
- * ce qu'il manque pour le prochain pas ({@link Game#shoppingList()}), molécule par molécule, avec
- * sur chaque ligne le bouton qui la crée ou la rassemble. Le joueur n'a plus à passer de la carte
- * d'un astre à la page des molécules.
+ * La liste de courses du troisième acte, au-dessus des assemblages, des astres et de l'univers : ce qu'il manque pour
+ * le prochain pas ({@link Game#shoppingList()}), molécule par molécule, avec sur chaque ligne le bouton qui la crée ou
+ * la rassemble. Le joueur n'a plus à passer de la carte d'un astre à la page des molécules.
  *
- * <p>Elle se replie d'un clic sur son titre. Les règles ne sont pas ici : chaque bouton fait ce
- * que ferait la carte de la molécule, au même prix.
+ * <p>Elle se replie d'un clic sur son titre. Les règles ne sont pas ici : chaque bouton fait ce que ferait la carte de
+ * la molécule, au même prix.
  */
 public final class ShoppingPane extends VBox {
-
     /** Au-delà, les lignes restantes sont résumées en une phrase : la liste ne doit pas pousser la page hors de l'écran. */
     public static final int MAX_ROWS = 10;
 
@@ -81,9 +76,7 @@ public final class ShoppingPane extends VBox {
     private final List<Row> rows = new ArrayList<>();
     private boolean open = true;
 
-    /**
-     * @param changed appelé après chaque création, rassemblement ou formation, pour recopier la page
-     */
+    /** @param changed appelé après chaque création, rassemblement ou formation, pour recopier la page */
     ShoppingPane(Game game, Runnable changed) {
         super(5);
         this.game = game;
@@ -114,14 +107,7 @@ public final class ShoppingPane extends VBox {
     }
 
     /** Vrai si la liste est dépliée. */
-    public boolean isOpen() {
-        return open;
-    }
-
-    /** Le titre, qui replie et déplie la liste : pour les vérifications. */
-    public Button titleButton() {
-        return title;
-    }
+    public boolean isOpen() { return open; }
 
     /** Nombre de lignes de molécules affichées : pour les vérifications. */
     public int shownRows() {
@@ -130,17 +116,6 @@ public final class ShoppingPane extends VBox {
             if (row.box.isVisible()) shown++;
         }
         return list.isVisible() ? shown : 0;
-    }
-
-    /** Le texte d'une ligne, « nom | compte | usage | bouton » : pour les vérifications. */
-    public String rowText(int index) {
-        Row row = rows.get(index);
-        return row.name.getText() + " | " + row.count.getText() + " | " + row.purpose.getText() + " | " + row.action.getText();
-    }
-
-    /** Clique le bouton d'une ligne : pour les vérifications. */
-    public void clickRow(int index) {
-        rows.get(index).action.fire();
     }
 
     /** Tout le texte hors des lignes : titre, note, matière, suite. Pour les vérifications. */
@@ -291,7 +266,7 @@ public final class ShoppingPane extends VBox {
         return "il manque " + Format.count(needed.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
     }
 
-    private static void show(javafx.scene.Node node, boolean visible) {
+    private static void show(Node node, boolean visible) {
         node.setVisible(visible);
         node.setManaged(visible);
     }

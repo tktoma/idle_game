@@ -1,8 +1,7 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.*;
 import org.junit.jupiter.api.Test;
 
 /** Tests sans affichage JavaFX : exécutables sur les runners CI headless. */

@@ -1,15 +1,14 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
 import idle.core.math.BigNum;
 import idle.core.probes.ProbeTrip;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.135 : chaque profil a ses propres choix dans les trois actes, dès le premier univers. */
 class EarlyStyleTest {
-
     private static Game fresh() {
         Game game = new Game(42L);
         game.start();
@@ -63,10 +62,9 @@ class EarlyStyleTest {
         game.state().setExplosions(1);
         game.state().setDarkLevel("dark_shop_atoms", 1);
         game.state().setDarkLevel("dark_shop_cadence", 1);
-        // Version 0.167 : les lots des automatismes passent avant tout ; déjà pleins ici, pour ne mesurer que la boutique.
-        for (var automation : game.automations())
-            if (game.isAutomationBatchAvailable(automation.id()))
-                game.state().setAutomationBatchLevel(automation.id(), idle.core.GameAtoms.AUTOMATION_BATCH_LEVELS);
+        // Les lots des automatismes passent avant tout ; déjà pleins ici, pour ne mesurer que la boutique.
+        for (var automation : game.automations()) if (game.isAutomationBatchAvailable(automation.id()))
+                game.state().setAutomationBatchLevel(automation.id(), GameAtoms.AUTOMATION_BATCH_LEVELS);
         game.state().setDarkMatter(BigNum.of(400));
         assertTrue(game.canBuyDark("dark_shop_atoms"), "la case répétable est payable");
         FirstUniversePolicy.cheapestDark(game, 50);
@@ -86,7 +84,7 @@ class EarlyStyleTest {
         FirstUniversePolicy.cheapestAtoms(game, 50);
         assertTrue(game.ownsAutomation("auto_generator"), "l'automatisme payable (5 atomes) d'abord");
         assertFalse(game.ownsAutomation("auto_fusion"));
-        for (var upgrade : game.upgrades(idle.core.Resource.ATOMS))
+        for (var upgrade : game.upgrades(Resource.ATOMS))
             assertEquals(0, game.levelOf(upgrade.id()), "les atomes restants sont gardés pour la fusion automatique : " + upgrade.id());
     }
 

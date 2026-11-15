@@ -1,19 +1,17 @@
 package idle.core.sky;
 
-import java.util.List;
+import java.util.*;
 
 /**
- * Un système solaire (version 0.054) : une étoile formée, ses planètes de la plus proche à la plus
- * lointaine, et des lunes. Chaque astre n'appartient qu'à un système. Un système est complet à
- * partir de {@link Game#SYSTEM_MIN_PLANETS} planètes ; la galaxie en demande
- * {@link Game#SYSTEMS_FOR_GALAXY}.
+ * Un système solaire : une étoile formée, ses planètes de la plus proche à la plus lointaine, et des lunes. Chaque
+ * astre n'appartient qu'à un système. Un système est complet à partir de {@link Game#SYSTEM_MIN_PLANETS} planètes ; la
+ * galaxie en demande {@link Game#SYSTEMS_FOR_GALAXY}.
  *
- * @param star    l'étoile
+ * @param star l'étoile
  * @param planets les planètes, dans l'ordre des orbites
- * @param moons   les lunes
+ * @param moons les lunes
  */
 public record SolarSystem(String star, List<String> planets, List<String> moons) {
-
     public SolarSystem {
         if (star == null || star.isBlank()) throw new IllegalArgumentException("Système sans étoile");
         planets = List.copyOf(planets);
@@ -21,9 +19,7 @@ public record SolarSystem(String star, List<String> planets, List<String> moons)
     }
 
     /** Le système en une ligne : « étoile|planète,planète|lune », comme dans la sauvegarde. */
-    public String line() {
-        return star + "|" + String.join(",", planets) + "|" + String.join(",", moons);
-    }
+    public String line() { return star + "|" + String.join(",", planets) + "|" + String.join(",", moons); }
 
     /** Relit une ligne écrite par {@link #line()} ; {@code null} si elle ne se lit pas. */
     public static SolarSystem parse(String line) {
@@ -34,18 +30,14 @@ public record SolarSystem(String star, List<String> planets, List<String> moons)
     }
 
     private static List<String> split(String list) {
-        List<String> ids = new java.util.ArrayList<>();
+        List<String> ids = new ArrayList<>();
         for (String id : list.split(",")) if (!id.isBlank()) ids.add(id.trim());
         return ids;
     }
 
     /** Le même système, avec ces planètes. */
-    public SolarSystem withPlanets(List<String> list) {
-        return new SolarSystem(star, list, moons);
-    }
+    public SolarSystem withPlanets(List<String> list) { return new SolarSystem(star, list, moons); }
 
     /** Le même système, avec ces lunes. */
-    public SolarSystem withMoons(List<String> list) {
-        return new SolarSystem(star, planets, list);
-    }
+    public SolarSystem withMoons(List<String> list) { return new SolarSystem(star, planets, list); }
 }

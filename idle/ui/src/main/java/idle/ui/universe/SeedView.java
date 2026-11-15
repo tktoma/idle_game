@@ -1,41 +1,48 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.ui.common.CanvasPane;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.function.IntConsumer;
+import javafx.geometry.VPos;
+import javafx.scene.Cursor;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
-import idle.ui.common.CanvasPane;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
+import javafx.scene.canvas.*;
 
 /**
- * La graine d'univers (version 0.083), le visuel de son sous-onglet : une graine en amande, dorée,
- * qui respire au centre d'un halo, des ondes qui partent d'elle, et une poussière qui monte. Les
- * graines de plus tournent autour d'elle, plus petites, jusqu'à {@link #MAX_ORBITING}.
+ * La graine d'univers, le visuel de son sous-onglet : une graine en amande, dorée, qui respire au centre d'un halo, des
+ * ondes qui partent d'elle, et une poussière qui monte. Les graines de plus tournent autour d'elle, plus petites,
+ * jusqu'à {@link #MAX_ORBITING}.
  *
- * <p>Version 0.103 : la graine ne germe plus seule. Le bouton de la sous-page la fait germer une fois
- * l'objectif de la dimension 1 atteint ; ensuite, chaque clic fait tomber une goutte d'eau sur le germe,
- * qui grandit et prend des feuilles.
+ * <p>La graine ne germe plus seule. Le bouton de la sous-page la fait germer une fois l'objectif de la dimension 1
+ * atteint ; ensuite, chaque clic fait tomber une goutte d'eau sur le germe, qui grandit et prend des feuilles.
  *
- * <p>Version 0.137 : plus de bouton, un arrosoir. Il attend sur une étagère de bois, en bas à droite ; un bouton posé sur
- * l'étagère le débloque. On le prend à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, et
- * le jeu compte un arrosage par seconde ({@code Game#setWatering}). Relâché, il revient tout seul sur l'étagère.
+ * <p>Plus de bouton, un arrosoir. Il attend sur une étagère de bois, en bas à droite ; un bouton posé sur l'étagère le
+ * débloque. On le prend à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, et le jeu compte
+ * un arrosage par seconde ({@code Game#setWatering}). Relâché, il revient tout seul sur l'étagère.
  *
- * <p>Version 0.153 : avec la boucle, le rond de croissance. De temps en temps, un rond vert pousse quelque part dans la
- * vue et bat doucement, son anneau et ses secondes comptant ce qu'il reste à le cueillir ; un clic le cueille. Pendant
- * son effet, l'arrosage va plus vite, et une ligne au-dessus de l'étagère le dit : « Croissance +45 % : 23 s ».
+ * <p>Avec la boucle, le rond de croissance. De temps en temps, un rond vert pousse quelque part dans la vue et bat
+ * doucement, son anneau et ses secondes comptant ce qu'il reste à le cueillir ; un clic le cueille. Pendant son effet,
+ * l'arrosage va plus vite, et une ligne au-dessus de l'étagère le dit : « Croissance +45 % : 23 s ».
  *
- * <p>Version 0.155 : avec le clicker, la météo. En haut à gauche, le ciel de la graine : un soleil qui rayonne par beau
- * temps, un soleil voilé d'un nuage par temps variable, un nuage sombre qui pleut et s'éclaire d'un éclair par orage ;
- * dessous, son effet sur l'arrosage et le temps qu'il lui reste (« Beau temps +30 % : 32 s »). Par beau temps, une
- * lumière chaude tombe sur la vue ; par orage, la pluie la traverse.
+ * <p>Avec le clicker, la météo. En haut à gauche, le ciel de la graine : un soleil qui rayonne par beau temps, un
+ * soleil voilé d'un nuage par temps variable, un nuage sombre qui pleut et s'éclaire d'un éclair par orage ; dessous,
+ * son effet sur l'arrosage et le temps qu'il lui reste (« Beau temps +30 % : 32 s »). Par beau temps, une lumière
+ * chaude tombe sur la vue ; par orage, la pluie la traverse.
  *
- * <p>Version 0.157 : avec le miroir, les saisons. Au-dessus de l'étagère, près du chrono, la saison, son effet et le temps
- * qu'il lui reste, et ce que chaque arrosage verse au chrono une fois l'amélioration achetée (« Printemps ×1,5 : 92 s ·
- * +0.3 s au chrono par arrosage »).
+ * <p>Avec le miroir, les saisons. Au-dessus de l'étagère, près du chrono, la saison, son effet et le temps qu'il lui
+ * reste, et ce que chaque arrosage verse au chrono une fois l'amélioration achetée (« Printemps ×1,5 : 92 s · +0.3 s au
+ * chrono par arrosage »).
  */
 public final class SeedView extends Canvas {
-
     /** Graines dessinées autour de la première, au plus. */
     public static final int MAX_ORBITING = 24;
 
@@ -59,9 +66,7 @@ public final class SeedView extends Canvas {
         double age;
         final double drift;
 
-        Drop(double drift) {
-            this.drift = drift;
-        }
+        Drop(double drift) { this.drift = drift; }
     }
 
     private double time;
@@ -70,9 +75,9 @@ public final class SeedView extends Canvas {
     private long waterings;
     /** La longueur montrée du germe : elle rejoint doucement celle que donnent les arrosages. */
     private double shownSprout;
-    private final java.util.List<Drop> drops = new java.util.ArrayList<>();
+    private final List<Drop> drops = new ArrayList<>();
     private int dropCount;
-    /** Le germe devenu brindille (version 0.106) : une tige de bois, plus épaisse, et ses rameaux. */
+    /** Le germe devenu brindille : une tige de bois, plus épaisse, et ses rameaux. */
     private boolean twig;
     /** L'éclat qui salue la brindille, de 1 à 0. */
     private double flash;
@@ -80,7 +85,7 @@ public final class SeedView extends Canvas {
     private static final Color CRACK = Color.web("#4a3412");
 
     /**
-     * Le palier de la graine (version 0.120), de 1 à 11 : graine, tige, graine craquelée, graine brisée, bonsaï,
+     * Le palier de la graine, de 1 à 11 : graine, tige, graine craquelée, graine brisée, bonsaï,
      * arbuste, jeune arbre, arbre mûr, arbre ancien, arbre géant, arbre-monde. Plus elle grandit, plus la vue
      * s'éloigne pour la montrer en entier.
      */
@@ -94,7 +99,7 @@ public final class SeedView extends Canvas {
     private static final double[] ZOOM = {1, 1, 1, 0.85, 0.62, 0.55, 0.46, 0.39, 0.34, 0.29, 0.25};
 
     // ------------------------------------------------------------------
-    // L'arrosoir (version 0.137)
+    // L'arrosoir
     // ------------------------------------------------------------------
 
     private static final Color CAN = Color.web("#5f93ab");
@@ -113,7 +118,7 @@ public final class SeedView extends Canvas {
         boolean splashed;
     }
 
-    // Le tuyau d'arrosage et le chrono (version 0.139).
+    // Le tuyau d'arrosage et le chrono.
     private static final Color HOSE = Color.web("#3f8f4a");
     private static final Color HOSE_LIGHT = Color.web("#7cc985");
     private static final Color CHRONO_FACE = Color.web("#14202c");
@@ -121,7 +126,7 @@ public final class SeedView extends Canvas {
     private static final Color BRASS = Color.web("#c9a24a");
     private boolean hoseShown, hoseFlowing;
     private double hoseTimer;
-    private final java.util.List<Stream> hoseSpray = new java.util.ArrayList<>();
+    private final List<Stream> hoseSpray = new ArrayList<>();
     private boolean chronoShown, chronoRunning;
     private double chronoFill, chronoHand;
 
@@ -131,14 +136,10 @@ public final class SeedView extends Canvas {
         hoseFlowing = shown && flowing;
     }
 
-    public boolean isHoseShown() {
-        return hoseShown;
-    }
+    public boolean isHoseShown() { return hoseShown; }
 
     /** Les gouttes du tuyau : pour les vérifications. */
-    public int hoseDrops() {
-        return hoseSpray.size();
-    }
+    public int hoseDrops() { return hoseSpray.size(); }
 
     /** Le chrono sur l'étage du haut : là ou non, sa part remplie (0 à 1), et s'il accélère le jeu. */
     public void setChrono(boolean shown, double fill, boolean running) {
@@ -147,11 +148,9 @@ public final class SeedView extends Canvas {
         chronoRunning = shown && running;
     }
 
-    public boolean isChronoShown() {
-        return chronoShown;
-    }
+    public boolean isChronoShown() { return chronoShown; }
 
-    // Les bulles de l'arbre (version 0.142) : un arbre d'améliorations posé sur l'arbre, payé avec l'énergie du vide.
+    // Les bulles de l'arbre : un arbre d'améliorations posé sur l'arbre, payé avec l'énergie du vide.
     /** L'état d'une bulle, qui décide de son éclat. */
     public enum BubbleState {
         /** Aucune bulle reliée à elle n'est achetée. */
@@ -166,55 +165,51 @@ public final class SeedView extends Canvas {
 
     /**
      * Une bulle à dessiner : sa place (son rang dans le jeu, qui donne sa position dans le schéma), son nom, ce qu'elle
-     * fait (version 0.148), son prix, son état, et les bulles d'avant auxquelles elle est reliée (leurs rangs dans la liste).
+     * fait, son prix, son état, et les bulles d'avant auxquelles elle est reliée (leurs rangs dans la liste).
      */
-    public record Bubble(int place, String name, String effect, String price, BubbleState state, java.util.List<Integer> below) { }
+    public record Bubble(int place, String name, String effect, String price, BubbleState state, List<Integer> below) { }
 
     /** Au-delà, l'effet d'une bulle se coupe en deux lignes. */
     private static final int EFFECT_LINE = 56;
 
     /** L'effet d'une bulle en lignes : aucune s'il n'y en a pas, deux, coupées à un espace, s'il est long. */
-    static java.util.List<String> effectLines(String effect) {
-        if (effect == null || effect.isBlank()) return java.util.List.of();
-        if (effect.length() <= EFFECT_LINE) return java.util.List.of(effect);
+    static List<String> effectLines(String effect) {
+        if (effect == null || effect.isBlank()) return List.of();
+        if (effect.length() <= EFFECT_LINE) return List.of(effect);
         int middle = effect.length() / 2, cut = -1;
         for (int d = 0; d < middle && cut < 0; d++) {
             if (effect.charAt(middle + d) == ' ') cut = middle + d;
             else if (effect.charAt(middle - d) == ' ') cut = middle - d;
         }
-        if (cut < 0) return java.util.List.of(effect);
-        return java.util.List.of(effect.substring(0, cut), effect.substring(cut + 1));
+        if (cut < 0) return List.of(effect);
+        return List.of(effect.substring(0, cut), effect.substring(cut + 1));
     }
 
     /** La bulle {@code index} telle que la vue la connaît : pour les vérifications. */
-    public Bubble bubble(int index) {
-        return bubbles.get(index);
-    }
+    public Bubble bubble(int index) { return bubbles.get(index); }
 
     private static final Color BUBBLE = Color.web("#9fe6ff");
     private static final Color BUBBLE_DEEP = Color.web("#3a8fb8");
-    private java.util.List<Bubble> bubbles = java.util.List.of();
+    private List<Bubble> bubbles = List.of();
     private double[] bubbleX = new double[0], bubbleY = new double[0];
     private double bubbleR;
     private int hovered = -1;
-    private java.util.function.IntConsumer onBubble = index -> { };
+    private IntConsumer onBubble = index -> { };
     /** Ce que le dernier dessin a vu : la graine (centre, taille) et le feuillage (centre, rayon ; 0 sans arbre). */
     private double seedX, seedY, seedSize, crownX, crownY, crownR;
 
     /** Les bulles de l'arbre, dans l'ordre où l'application les connaît. */
-    public void setBubbles(java.util.List<Bubble> shown) {
-        bubbles = java.util.List.copyOf(shown);
+    public void setBubbles(List<Bubble> shown) {
+        bubbles = List.copyOf(shown);
         if (hovered >= bubbles.size()) hovered = -1;
     }
 
     /** Ce que fait un clic sur une bulle : son rang dans la liste donnée. */
-    public void setOnBubble(java.util.function.IntConsumer action) {
+    public void setOnBubble(IntConsumer action) {
         onBubble = action == null ? index -> { } : action;
     }
 
-    public int bubbleCount() {
-        return bubbles.size();
-    }
+    public int bubbleCount() { return bubbles.size(); }
 
     /** La bulle sous ce point (son rang), ou -1. */
     public int bubbleAt(double x, double y) {
@@ -230,14 +225,10 @@ public final class SeedView extends Canvas {
     }
 
     /** La bulle survolée, dont l'étiquette s'affiche ; -1 sinon. */
-    public int hoveredBubble() {
-        return hovered;
-    }
+    public int hoveredBubble() { return hovered; }
 
     /** Survole ce point : l'étiquette de la bulle qui s'y trouve s'affiche. */
-    public void hover(double x, double y) {
-        hovered = bubbleAt(x, y);
-    }
+    public void hover(double x, double y) { hovered = bubbleAt(x, y); }
 
     /** Un clic à ce point : vrai s'il tombe sur une bulle, qui est alors achetée si elle peut l'être. */
     public boolean clickBubble(double x, double y) {
@@ -248,7 +239,7 @@ public final class SeedView extends Canvas {
         return true;
     }
 
-    // Le rond de croissance (version 0.153).
+    // Le rond de croissance.
     private static final Color BLOOM = Color.web("#9fe08a");
     private static final Color BLOOM_LIGHT = Color.web("#e4ffd6");
     private boolean bloomShown;
@@ -278,14 +269,10 @@ public final class SeedView extends Canvas {
         onBloom = action == null ? () -> { } : action;
     }
 
-    public boolean isBloomShown() {
-        return bloomShown;
-    }
+    public boolean isBloomShown() { return bloomShown; }
 
     /** Le rayon du rond, sans son battement : à la mesure de la vue. */
-    public double bloomRadius() {
-        return Math.max(14, Math.min(getWidth(), getHeight()) * 0.05);
-    }
+    public double bloomRadius() { return Math.max(14, Math.min(getWidth(), getHeight()) * 0.05); }
 
     /** Où est le rond dans la vue, en points : pour les vérifications. */
     public double[] bloomPoint() {
@@ -322,8 +309,8 @@ public final class SeedView extends Canvas {
         else {
             UniverseView.glow(g, at[0], at[1], r * (2.2 + 0.6 * beat), BLOOM, 0.5 + 0.3 * beat);
             g.setGlobalAlpha(1);
-            g.setFill(new javafx.scene.paint.RadialGradient(0, 0, at[0] - r * 0.3, at[1] - r * 0.3, r * 1.3, false,
-                    javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, BLOOM_LIGHT), new javafx.scene.paint.Stop(1, BLOOM)));
+            g.setFill(new RadialGradient(0, 0, at[0] - r * 0.3, at[1] - r * 0.3, r * 1.3, false,
+                    CycleMethod.NO_CYCLE, new Stop(0, BLOOM_LIGHT), new Stop(1, BLOOM)));
             g.fillOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
             g.setStroke(BLOOM);
             g.setLineWidth(1.5);
@@ -331,52 +318,48 @@ public final class SeedView extends Canvas {
             g.strokeOval(at[0] - ring, at[1] - ring, ring * 2, ring * 2);
             g.setGlobalAlpha(0.95);
             g.setLineWidth(3);
-            g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
+            g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, ArcType.OPEN);
         }
         g.setGlobalAlpha(1);
         g.setFill(Color.WHITE);
-        g.setFont(javafx.scene.text.Font.font(12));
-        g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+        g.setFont(Font.font(12));
+        g.setTextAlign(TextAlignment.CENTER);
         g.fillText((long) Math.ceil(bloomLeft - 1e-9) + " s", at[0], at[1] + ring + 14);
         g.setGlobalAlpha(1);
     }
 
-    // L'essence de l'arbre (version 0.185).
+    // L'essence de l'arbre.
     /** Le skin choisi pour l'arbre, {@code null} pour le Classique : SeedTree en tire l'essence. */
     private Skin skin;
 
     /** L'essence de l'arbre : le skin choisi pour le visuel de l'arbre, {@code null} pour le Classique. */
-    public void setSkin(Skin skin) {
-        this.skin = skin;
-    }
+    public void setSkin(Skin skin) { this.skin = skin; }
 
-    // L'établi de la graine (version 0.196) : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
+    // L'établi de la graine : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
     /** Les skins choisis par visuel ; absent pour le Classique. {@link SeedSkinArt} et {@link ToolsSkinArt} les dessinent. */
-    private final java.util.EnumMap<SkinVisual, Skin> skins = new java.util.EnumMap<>(SkinVisual.class);
+    private final EnumMap<SkinVisual, Skin> skins = new EnumMap<>(SkinVisual.class);
 
-    /** Les visuels de l'établi (version 0.196), ceux que {@link #setVisualSkin} habille. */
+    /** Les visuels de l'établi, ceux que {@link #setVisualSkin} habille. */
     public static final SkinVisual[] ESTABLISHMENT = {SkinVisual.SEED, SkinVisual.WATERING_CAN, SkinVisual.SHELF, SkinVisual.HOSE,
         SkinVisual.CHRONO, SkinVisual.GROWTH_RING, SkinVisual.WEATHER, SkinVisual.SEASONS};
 
     /**
-     * Les visuels de l'arbre au-delà de son essence et de ses bulles (version 0.197), que {@link #setVisualSkin} habille
+     * Les visuels de l'arbre au-delà de son essence et de ses bulles, que {@link #setVisualSkin} habille
      * aussi : la saison figée, la fantaisie, le sol ({@link TreeSkinArt}), les bulles et leurs liens ({@link TreeBubbleSkinArt}).
      */
     public static final SkinVisual[] TREE_LOOKS = {SkinVisual.TREE_SEASON, SkinVisual.TREE_FANTASY, SkinVisual.TREE_GROUND,
         SkinVisual.TREE_BUBBLES, SkinVisual.TREE_BUBBLE_LINKS};
 
-    /** Le skin choisi pour un visuel de l'établi (version 0.196) ou de l'arbre (version 0.197), {@code null} pour le Classique. */
+    /** Le skin choisi pour un visuel de l'établi ou de l'arbre, {@code null} pour le Classique. */
     public void setVisualSkin(SkinVisual visual, Skin skin) {
         if (skin == null) skins.remove(visual);
         else skins.put(visual, skin);
     }
 
     /** Le skin choisi pour ce visuel, {@code null} pour le Classique. */
-    public Skin visualSkin(SkinVisual visual) {
-        return skins.get(visual);
-    }
+    public Skin visualSkin(SkinVisual visual) { return skins.get(visual); }
 
-    // La météo (version 0.155).
+    // La météo.
     private static final Color SUN = Color.web("#ffd27f");
     private static final Color CLOUD = Color.web("#c8d0e0");
     private static final Color STORM_CLOUD = Color.web("#59607a");
@@ -449,8 +432,8 @@ public final class SeedView extends Canvas {
         }
         g.setGlobalAlpha(1);
         g.setFill(weather == Game.Weather.SUN ? SUN : weather == Game.Weather.STORM ? RAIN : CLOUD);
-        g.setFont(javafx.scene.text.Font.font(12));
-        g.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
+        g.setFont(Font.font(12));
+        g.setTextAlign(TextAlignment.LEFT);
         g.fillText(weatherText(), x - r * 1.6, y + r * 2.6);
     }
 
@@ -480,7 +463,7 @@ public final class SeedView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // Les saisons (version 0.157).
+    // Les saisons.
     /** Une couleur par saison : vert tendre, or, roux, bleu froid. */
     private static final Color[] SEASON_COLORS = {Color.web("#9fe08a"), Color.web("#ffd27f"), Color.web("#ffb36b"), Color.web("#a8d8ff")};
     /** La saison, {@code null} tant qu'elles ne sont pas là ; ce qu'il lui reste ; ce qu'un arrosage verse au chrono. */
@@ -497,8 +480,8 @@ public final class SeedView extends Canvas {
     /** La ligne de la saison : « Printemps ×1,5 : 92 s · +0.3 s au chrono par arrosage » ; rien sans saisons. */
     public String seasonText() {
         if (season == null) return "";
-        return season.label() + " " + idle.ui.common.Format.multiplier(season.fill()) + " : " + (long) Math.ceil(seasonLeft - 1e-9) + " s"
-                + (seasonFill > 0 ? " · +" + idle.ui.common.ElementText.number(seasonFill) + " s au chrono par arrosage" : "");
+        return season.label() + " " + Format.multiplier(season.fill()) + " : " + (long) Math.ceil(seasonLeft - 1e-9) + " s"
+                + (seasonFill > 0 ? " · +" + ElementText.number(seasonFill) + " s au chrono par arrosage" : "");
     }
 
     private boolean canUnlocked;
@@ -510,14 +493,14 @@ public final class SeedView extends Canvas {
     private double tilt;
     private boolean overPlant;
     private double streamTimer;
-    private final java.util.List<Stream> stream = new java.util.ArrayList<>();
+    private final List<Stream> stream = new ArrayList<>();
     /** Ce que le dernier dessin a vu de la plante : son axe, sa demi-largeur, son sommet et son pied. */
     private double plantX, plantHalf, plantTop, plantBottom;
 
     public SeedView() {
         super(800, 400);
         setOnMousePressed(event -> {
-            // Le rond de croissance d'abord (version 0.153), puis une bulle (version 0.142) : sinon, l'arrosoir.
+            // Le rond de croissance d'abord, puis une bulle : sinon, l'arrosoir.
             if (clickBloom(event.getX(), event.getY()) || clickBubble(event.getX(), event.getY()) || grab(event.getX(), event.getY())) event.consume();
         });
         setOnMouseDragged(event -> {
@@ -530,8 +513,8 @@ public final class SeedView extends Canvas {
         setOnMouseMoved(event -> {
             hover(event.getX(), event.getY());
             boolean buy = hovered >= 0 && bubbles.get(hovered).state() == BubbleState.BUY;
-            setCursor(buy || overBloom(event.getX(), event.getY()) ? javafx.scene.Cursor.HAND : canUnlocked && overCan(event.getX(), event.getY())
-                    ? javafx.scene.Cursor.OPEN_HAND : javafx.scene.Cursor.DEFAULT);
+            setCursor(buy || overBloom(event.getX(), event.getY()) ? Cursor.HAND : canUnlocked && overCan(event.getX(), event.getY())
+                    ? Cursor.OPEN_HAND : Cursor.DEFAULT);
         });
         setOnMouseExited(event -> hovered = -1);
     }
@@ -545,14 +528,10 @@ public final class SeedView extends Canvas {
         }
     }
 
-    public boolean isCanUnlocked() {
-        return canUnlocked;
-    }
+    public boolean isCanUnlocked() { return canUnlocked; }
 
     /** La taille de l'arrosoir, et celle de l'étagère : à la mesure de la vue. */
-    private double canSize() {
-        return Math.max(26, Math.min(getWidth(), getHeight()) * 0.11);
-    }
+    private double canSize() { return Math.max(26, Math.min(getWidth(), getHeight()) * 0.11); }
 
     /** Le milieu de l'étagère, sur sa planche : là où l'arrosoir se pose, et où se tient le bouton qui le débloque. */
     public double shelfX() {
@@ -561,36 +540,22 @@ public final class SeedView extends Canvas {
     }
 
     /** Le dessus de la planche de l'étagère. */
-    public double shelfTop() {
-        return getHeight() - Math.max(canSize() * 0.55, getHeight() * 0.07);
-    }
+    public double shelfTop() { return getHeight() - Math.max(canSize() * 0.55, getHeight() * 0.07); }
 
     /** Le milieu de l'étagère en hauteur, entre ses deux planches : là où se tient le bouton qui débloque l'arrosoir. */
-    public double shelfMiddleY() {
-        return shelfTop() - canSize() * 0.68;
-    }
+    public double shelfMiddleY() { return shelfTop() - canSize() * 0.68; }
 
     /** Où l'arrosoir se pose sur l'étagère. */
-    private double homeX() {
-        return shelfX();
-    }
+    private double homeX() { return shelfX(); }
 
-    private double homeY() {
-        return shelfTop() - canSize() * 0.42;
-    }
+    private double homeY() { return shelfTop() - canSize() * 0.42; }
 
-    public double canX() {
-        return Double.isNaN(canX) ? homeX() : canX;
-    }
+    public double canX() { return Double.isNaN(canX) ? homeX() : canX; }
 
-    public double canY() {
-        return Double.isNaN(canY) ? homeY() : canY;
-    }
+    public double canY() { return Double.isNaN(canY) ? homeY() : canY; }
 
     /** De 0 à 1 : penché ou non. */
-    public double tilt() {
-        return tilt;
-    }
+    public double tilt() { return tilt; }
 
     private boolean overCan(double x, double y) {
         double s = canSize();
@@ -603,7 +568,7 @@ public final class SeedView extends Canvas {
         dragging = true;
         grabX = x - canX();
         grabY = y - canY();
-        setCursor(javafx.scene.Cursor.CLOSED_HAND);
+        setCursor(Cursor.CLOSED_HAND);
         return true;
     }
 
@@ -621,13 +586,11 @@ public final class SeedView extends Canvas {
         if (!dragging) return;
         dragging = false;
         overPlant = false;
-        setCursor(javafx.scene.Cursor.DEFAULT);
+        setCursor(Cursor.DEFAULT);
     }
 
     /** Là où tombe l'eau de l'arrosoir penché : un peu à droite de son centre, sous le bec. */
-    private double pourX() {
-        return canX() + canSize() * 0.95;
-    }
+    private double pourX() { return canX() + canSize() * 0.95; }
 
     private boolean pourPointOverPlant() {
         if (plantHalf <= 0) return false;
@@ -636,14 +599,10 @@ public final class SeedView extends Canvas {
     }
 
     /** Vrai tant que l'arrosoir, tenu au-dessus de la graine, est assez penché pour verser : le jeu compte alors ses arrosages. */
-    public boolean isPouring() {
-        return canUnlocked && dragging && overPlant && tilt > 0.6 && seeds >= 1;
-    }
+    public boolean isPouring() { return canUnlocked && dragging && overPlant && tilt > 0.6 && seeds >= 1; }
 
     /** Les gouttes qui coulent du bec : pour les vérifications. */
-    public int streamDrops() {
-        return stream.size();
-    }
+    public int streamDrops() { return stream.size(); }
 
     /** Le bout du bec, en points de la vue, l'arrosoir penché comme il l'est. */
     private double[] spout() {
@@ -729,14 +688,10 @@ public final class SeedView extends Canvas {
     }
 
     /** Le nombre de graines à montrer (un réel : il peut être très grand). */
-    public void setSeeds(double count) {
-        seeds = Math.max(0, count);
-    }
+    public void setSeeds(double count) { seeds = Math.max(0, count); }
 
     /** Graines dessinées autour de la première : pour les vérifications. */
-    public int orbiting() {
-        return (int) Math.min(MAX_ORBITING, Math.max(0, Math.floor(seeds) - 1));
-    }
+    public int orbiting() { return (int) Math.min(MAX_ORBITING, Math.max(0, Math.floor(seeds) - 1)); }
 
     /** La graine a-t-elle germé, et combien de fois son germe a-t-il été arrosé. */
     public void setSprout(boolean sprouted, long waterings) {
@@ -759,9 +714,7 @@ public final class SeedView extends Canvas {
     }
 
     /** Le palier dessiné : pour les vérifications. */
-    public int stage() {
-        return stage;
-    }
+    public int stage() { return stage; }
 
     /** Joue le passage depuis le palier {@code from} : la vue s'éloigne, une fissure craque dans la graine, la tige grossit. */
     private void evolve(int from) {
@@ -771,9 +724,7 @@ public final class SeedView extends Canvas {
     }
 
     /** Vrai pendant le passage d'un palier : pour les vérifications. */
-    public boolean isEvolving() {
-        return evolveAge >= 0;
-    }
+    public boolean isEvolving() { return evolveAge >= 0; }
 
     private static double ease(double t) {
         double x = Math.max(0, Math.min(1, t));
@@ -788,28 +739,19 @@ public final class SeedView extends Canvas {
     }
 
     /** La croissance de ce que le palier ajoute : de 0,55 à 1 pendant le passage, 1 ensuite. */
-    private double growth() {
-        return evolveAge < 0 ? 1 : 0.55 + 0.45 * ease((evolveAge - 0.6) / 2.0);
-    }
+    private double growth() { return evolveAge < 0 ? 1 : 0.55 + 0.45 * ease((evolveAge - 0.6) / 2.0); }
 
     /** Salue la brindille d'un éclat de lumière. */
-    public void celebrate() {
-        flash = 1;
-    }
+    public void celebrate() { flash = 1; }
 
     /** Une goutte d'eau tombe sur le germe. */
-    public void water() {
-        if (drops.size() < 12) drops.add(new Drop(UniverseView.noise(++dropCount * 3 + 7) - 0.5));
-    }
+    public void water() { if (drops.size() < 12) drops.add(new Drop(UniverseView.noise(++dropCount * 3 + 7) - 0.5)); }
 
     /** Les gouttes en train de tomber : pour les vérifications. */
-    public int drops() {
-        return drops.size();
-    }
+    public int drops() { return drops.size(); }
 
     /**
-     * La longueur que visent les arrosages, de 0 à 1 : 0,15 à la germination, puis de plus en plus
-     * lentement vers 1.
+     * La longueur que visent les arrosages, de 0 à 1 : 0,15 à la germination, puis de plus en plus lentement vers 1.
      */
     public double sprout() {
         if (!sprouted || seeds < 1) return 0;
@@ -817,9 +759,7 @@ public final class SeedView extends Canvas {
     }
 
     /** Les feuilles du germe : une à la germination, une de plus tous les quinze arrosages, cinq au plus. */
-    public int leaves() {
-        return sprouted ? (int) Math.min(5, 1 + waterings / 15) : 0;
-    }
+    public int leaves() { return sprouted ? (int) Math.min(5, 1 + waterings / 15) : 0; }
 
     public void frame(double elapsed, boolean moving) {
         double dt = Math.min(elapsed, 0.1);
@@ -849,7 +789,7 @@ public final class SeedView extends Canvas {
         double zoom = zoom();
         // Le passage secoue un instant la graine, quand elle craque.
         double shake = evolveAge >= 0 && evolveAge < 0.6 ? Math.sin(evolveAge * 70) * 3 * (1 - evolveAge / 0.6) : 0;
-        // Plus la vue s'éloigne, plus la graine descend : l'arbre (version 0.121) monte jusqu'en haut de la vue.
+        // Plus la vue s'éloigne, plus la graine descend : l'arbre monte jusqu'en haut de la vue.
         double cx = w / 2 + shake, cy = h * (0.55 + 0.33 * Math.min(1, (1 - zoom) / 0.75));
         double size = Math.min(w, h) * 0.16 * zoom;
         boolean any = seeds >= 1;
@@ -902,7 +842,7 @@ public final class SeedView extends Canvas {
         UniverseView.glow(g, cx, cy, size * 1.2 * breath, SEAM, 0.25);
 
         // Les graines de plus, en orbite : derrière (en haut) plus petites et plus pâles, devant plus grandes.
-        // La graine habillée (version 0.196) : chaque amande, grande ou petite, entière ou brisée, prend la forme du skin.
+        // La graine habillée : chaque amande, grande ou petite, entière ou brisée, prend la forme du skin.
         Skin seedSkin = skins.get(SkinVisual.SEED);
         int count = orbiting();
         for (int k = 0; k < count; k++) {
@@ -924,7 +864,7 @@ public final class SeedView extends Canvas {
         double grow = shownSprout * (stage >= 4 ? 1.3 : 1) * (stage >= 3 ? 0.85 + 0.15 * growth() : 1);
         double tipX = cx + Math.sin(-0.35) * size * 1.0, tipY = cy - Math.cos(-0.35) * size * 1.0;
         double topX = tipX, topY = tipY;
-        // Du bonsaï à l'arbre-monde (version 0.120) : un arbre dessiné de la graine brisée.
+        // Du bonsaï à l'arbre-monde : un arbre dessiné de la graine brisée.
         if (stage >= 5) {
             double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time, skin,
                     skins.get(SkinVisual.TREE_SEASON), skins.get(SkinVisual.TREE_FANTASY), skins.get(SkinVisual.TREE_GROUND));
@@ -935,7 +875,7 @@ public final class SeedView extends Canvas {
             crownR = top[2];
             grow = 0;
         }
-        // Plus épaisse à chaque palier : la tige craquelée puis brisée (version 0.120).
+        // Plus épaisse à chaque palier : la tige craquelée puis brisée.
         double thick = stage >= 4 ? 2.6 : stage >= 3 ? 1.8 : 1;
         if (stage >= 3) thick = 1 + (thick - 1) * growth();
         if (grow > 0.005) {
@@ -984,7 +924,7 @@ public final class SeedView extends Canvas {
             g.setGlobalAlpha(1);
         }
 
-        // Où l'arrosoir verse (version 0.137) : la plante, de son pied à son sommet.
+        // Où l'arrosoir verse : la plante, de son pied à son sommet.
         plantX = cx;
         plantTop = Math.min(topY, cy - size);
         plantBottom = cy + size * 0.5;
@@ -1019,7 +959,7 @@ public final class SeedView extends Canvas {
 
         if (flash > 0) UniverseView.glow(g, cx, cy - size, size * (2 + 4 * (1 - flash)), SEAM, 0.8 * flash);
 
-        // La graine elle-même : la coque, la chair, la couture. Brisée à partir du palier 4 (version 0.120) : ses deux
+        // La graine elle-même : la coque, la chair, la couture. Brisée à partir du palier 4 : ses deux
         // moitiés s'écartent au pied de la plante.
         double s = size * breath;
         if (stage >= 4) {
@@ -1081,7 +1021,7 @@ public final class SeedView extends Canvas {
     }
 
     /**
-     * L'étagère de bois et l'arrosoir (version 0.137), par-dessus le reste : avant le déblocage, l'étagère est vide et
+     * L'étagère de bois et l'arrosoir, par-dessus le reste : avant le déblocage, l'étagère est vide et
      * l'arrosoir n'y est qu'une ombre, sous le bouton qui le débloque.
      */
     private void drawShelfAndCan() {
@@ -1090,12 +1030,11 @@ public final class SeedView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         double s = canSize(), x = shelfX(), top = shelfTop(), plank = s * 2.4, thick = Math.max(5, s * 0.14);
         // Une petite étagère de bois : deux montants, un fond plus sombre, une planche du haut et celle où se pose
-        // l'arrosoir, posée sur deux pieds.
-        // Version 0.139 : un étage de plus pour le chrono, au-dessus de l'arrosoir.
+        // l'arrosoir, posée sur deux pieds. Un étage de plus pour le chrono, au-dessus de l'arrosoir.
         double level = s * 1.35, mid = top - level, high = top - level * (chronoShown ? 2 : 1);
         double left = x - plank / 2, right = x + plank / 2, post = Math.max(4, s * 0.1);
         drawHose(g, s);
-        // L'étagère habillée (version 0.196) : ToolsSkinArt la dessine à la même place, montants, planches et étage du chrono.
+        // L'étagère habillée : ToolsSkinArt la dessine à la même place, montants, planches et étage du chrono.
         Skin shelfSkin = skins.get(SkinVisual.SHELF);
         if (shelfSkin != null) ToolsSkinArt.shelf(g, left, right, top, mid, high, thick, post, chronoShown, shelfSkin);
         else {
@@ -1118,27 +1057,27 @@ public final class SeedView extends Canvas {
             if (chronoSkin != null) ToolsSkinArt.chrono(g, x, mid - level / 2, s * 0.45, chronoFill, chronoRunning, chronoHand, time, chronoSkin);
             else drawChrono(g, x, mid - level / 2, s * 0.45);
         }
-        // La saison (version 0.157), au-dessus de l'étagère, près du chrono qu'elle remplit.
+        // La saison, au-dessus de l'étagère, près du chrono qu'elle remplit.
         String season = seasonText();
         if (!season.isEmpty()) {
             double textX = Math.min(w - plank * 0.6, x), textY = high - thick - 28;
-            // L'emblème de la saison (version 0.196), au-dessus de sa ligne, quand un skin des saisons est choisi.
+            // L'emblème de la saison, au-dessus de sa ligne, quand un skin des saisons est choisi.
             Skin seasonSkin = skins.get(SkinVisual.SEASONS);
             if (seasonSkin != null) {
                 SeedSkinArt.season(g, textX, textY - 30, 14, this.season, seasonLeft / Game.SEASON_SECONDS, seasonSkin);
             }
-            g.setFont(javafx.scene.text.Font.font(12));
-            g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            g.setFont(Font.font(12));
+            g.setTextAlign(TextAlignment.CENTER);
             g.setGlobalAlpha(0.95);
             g.setFill(SEASON_COLORS[this.season.ordinal()]);
             g.fillText(season, textX, textY);
             g.setGlobalAlpha(1);
         }
-        // L'effet du rond de croissance (version 0.153), au-dessus de l'étagère : l'arrosage va plus vite.
+        // L'effet du rond de croissance, au-dessus de l'étagère : l'arrosage va plus vite.
         String boost = bloomText();
         if (!boost.isEmpty()) {
-            g.setFont(javafx.scene.text.Font.font(13));
-            g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            g.setFont(Font.font(13));
+            g.setTextAlign(TextAlignment.CENTER);
             g.setGlobalAlpha(0.85 + 0.15 * Math.sin(time * 4));
             g.setFill(BLOOM);
             g.fillText(boost, Math.min(w - plank * 0.6, x), high - thick - 10);
@@ -1194,7 +1133,7 @@ public final class SeedView extends Canvas {
         paintCan(g, canX(), canY(), s, CAN_TILT_DEGREES * tilt, false);
     }
 
-    /** L'arrosoir, Classique ou habillé du skin choisi (version 0.196), à la même place et penché de même. */
+    /** L'arrosoir, Classique ou habillé du skin choisi, à la même place et penché de même. */
     private void paintCan(GraphicsContext g, double x, double y, double s, double degrees, boolean ghost) {
         Skin canSkin = skins.get(SkinVisual.WATERING_CAN);
         if (canSkin != null) ToolsSkinArt.can(g, x, y, s, degrees, ghost, canSkin);
@@ -1212,7 +1151,7 @@ public final class SeedView extends Canvas {
      * la plante.
      */
     /**
-     * Le schéma des bulles (version 0.143), repris des dessins des paliers 7 à 11 et rendu symétrique : pour chaque place
+     * Le schéma des bulles, repris des dessins des paliers 7 à 11 et rendu symétrique : pour chaque place
      * (le rang de la bulle dans le jeu), sa position en unités du dessin, la base à l'origine, vers la droite et vers le
      * haut. Les racines sont sous la base.
      */
@@ -1255,7 +1194,7 @@ public final class SeedView extends Canvas {
             bubbleX[i] = baseX + at[0] * kx;
             bubbleY[i] = Math.min(getHeight() - bubbleR * 1.2, baseY - at[1] * k);
         }
-        // Les deux bulles du bas à l'arbre-monde (version 0.144) : la graine et les racines remontent un peu et
+        // Les deux bulles du bas à l'arbre-monde : la graine et les racines remontent un peu et
         // s'écartent, au lieu d'être serrées au bas de la vue.
         int seed = -1, roots = -1;
         for (int i = 0; i < n; i++) {
@@ -1275,12 +1214,10 @@ public final class SeedView extends Canvas {
     private static final Color ROOTS_GOLD = Color.web("#ffd27f");
 
     /** Le rayon des bulles au dernier dessin : pour les vérifications. */
-    public double bubbleRadius() {
-        return bubbleR;
-    }
+    public double bubbleRadius() { return bubbleR; }
 
     /**
-     * Les bulles de l'arbre (version 0.142) et leurs liens : chaque bulle reliée aux bulles d'en dessous qui l'ouvrent.
+     * Les bulles de l'arbre et leurs liens : chaque bulle reliée aux bulles d'en dessous qui l'ouvrent.
      * Elles flottent un peu. Achetable, une bulle pulse ; achetée, elle reste allumée ; sinon elle n'est qu'un reflet,
      * en pointillé tant qu'aucune bulle reliée n'est achetée.
      */
@@ -1305,10 +1242,10 @@ public final class SeedView extends Canvas {
                 if (len <= 2 * bubbleR) continue;
                 double ux = dx / len, uy = dy / len;
                 boolean lit = bubbles.get(i).state() == BubbleState.BOUGHT && bubbles.get(j).state() == BubbleState.BOUGHT;
-                // Un lien vaut dans les deux sens (version 0.143) : plein dès qu'un de ses bouts est acheté.
+                // Un lien vaut dans les deux sens : plein dès qu'un de ses bouts est acheté.
                 boolean open = bubbles.get(j).state() == BubbleState.BOUGHT || bubbles.get(i).state() == BubbleState.BOUGHT;
                 if (TreeBubbleSkinArt.links(linkSkin)) {
-                    // Version 0.197 : les liens en branches, fils de lumière ou racines.
+                    // Les liens en branches, fils de lumière ou racines.
                     TreeBubbleSkinArt.link(g, bubbleX[j] + ux * bubbleR, bubbleY[j] + uy * bubbleR, bubbleX[i] - ux * bubbleR, bubbleY[i] - uy * bubbleR,
                             bubbleR, lit, open, time, i * 7 + j, linkSkin);
                     continue;
@@ -1326,7 +1263,7 @@ public final class SeedView extends Canvas {
             double x = bubbleX[i], y = bubbleY[i];
             double r = bubbleR * (i == hovered ? 1.08 : 1);
             double pulse = 0.5 + 0.5 * Math.sin(time * 3 + i);
-            // Les racines (version 0.144) : une aura dorée qui respire, achetées ou non.
+            // Les racines : une aura dorée qui respire, achetées ou non.
             if (bubble.place() == ROOTS_PLACE) {
                 double breath = 0.5 + 0.5 * Math.sin(time * 1.6);
                 UniverseView.glow(g, x, y, r * (2.8 + 0.6 * breath), ROOTS_GOLD, 0.65 + 0.25 * breath);
@@ -1341,16 +1278,16 @@ public final class SeedView extends Canvas {
             g.setGlobalAlpha(0.6);
             g.fillOval(x - r * 1.08, y - r * 1.08, r * 2.16, r * 2.16);
             if (TreeBubbleSkinArt.bubbles(bubbleSkin)) {
-                // Version 0.197 : les bulles en fruits, lanternes, gouttes, pierres ou graines.
+                // Les bulles en fruits, lanternes, gouttes, pierres ou graines.
                 TreeBubbleSkinArt.bubble(g, x, y, r, bubble.state(), pulse, time, i, bubbleSkin);
                 continue;
             }
             switch (bubble.state()) {
                 case BOUGHT -> {
                     UniverseView.glow(g, x, y, r * 2.4, BUBBLE, 0.55);
-                    g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false,
-                            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.web("#e8fbff")),
-                            new javafx.scene.paint.Stop(0.55, BUBBLE), new javafx.scene.paint.Stop(1, BUBBLE_DEEP)));
+                    g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false,
+                            CycleMethod.NO_CYCLE, new Stop(0, Color.web("#e8fbff")),
+                            new Stop(0.55, BUBBLE), new Stop(1, BUBBLE_DEEP)));
                     g.setGlobalAlpha(0.85);
                     g.fillOval(x - r, y - r, 2 * r, 2 * r);
                 }
@@ -1391,13 +1328,13 @@ public final class SeedView extends Canvas {
         Bubble bubble = bubbles.get(hovered);
         GraphicsContext g = getGraphicsContext2D();
         g.save();
-        javafx.scene.text.Font name = javafx.scene.text.Font.font(null, javafx.scene.text.FontWeight.BOLD, 13);
-        javafx.scene.text.Font price = javafx.scene.text.Font.font(12);
-        javafx.scene.text.Text measure = new javafx.scene.text.Text(bubble.name());
+        Font name = Font.font(null, FontWeight.BOLD, 13);
+        Font price = Font.font(12);
+        Text measure = new Text(bubble.name());
         measure.setFont(name);
         double width = measure.getLayoutBounds().getWidth();
-        // Ce qu'elle fait (version 0.148), entre le nom et le prix : sur deux lignes quand elle est longue.
-        java.util.List<String> effect = effectLines(bubble.effect());
+        // Ce qu'elle fait, entre le nom et le prix : sur deux lignes quand elle est longue.
+        List<String> effect = effectLines(bubble.effect());
         measure.setFont(price);
         for (String line : effect) {
             measure.setText(line);
@@ -1415,8 +1352,8 @@ public final class SeedView extends Canvas {
         g.setLineWidth(1.2);
         g.strokeRoundRect(x, y, width, height, 10, 10);
         g.setGlobalAlpha(1);
-        g.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
-        g.setTextBaseline(javafx.geometry.VPos.TOP);
+        g.setTextAlign(TextAlignment.LEFT);
+        g.setTextBaseline(VPos.TOP);
         g.setFont(name);
         g.setFill(Color.web("#e8fbff"));
         g.fillText(bubble.name(), x + 10, y + 6);
@@ -1442,7 +1379,7 @@ public final class SeedView extends Canvas {
             ToolsSkinArt.hose(g, s, tip, floor, hoseSkin);
             return;
         }
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         for (int pass = 0; pass < 2; pass++) {
             g.setStroke(pass == 0 ? HOSE : HOSE_LIGHT);
             g.setLineWidth(pass == 0 ? Math.max(4, s * 0.16) : Math.max(1.5, s * 0.05));
@@ -1476,7 +1413,7 @@ public final class SeedView extends Canvas {
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
         g.setFill(CHRONO_TIME);
         g.setGlobalAlpha(0.8);
-        g.fillArc(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7, 90, -360 * chronoFill, javafx.scene.shape.ArcType.ROUND);
+        g.fillArc(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7, 90, -360 * chronoFill, ArcType.ROUND);
         g.setGlobalAlpha(1);
         g.setStroke(BRASS);
         g.setLineWidth(Math.max(2, r * 0.14));
@@ -1503,7 +1440,7 @@ public final class SeedView extends Canvas {
         // le corps, pour que ses deux bouts s'y enfoncent.
         g.setStroke(ghost ? MOTE : CAN_DARK);
         g.setLineWidth(Math.max(2, s * 0.09));
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         g.beginPath();
         g.moveTo(-s * 0.1, -s * 0.3);
         g.bezierCurveTo(-s * 0.15, -s * 0.95, -s * 0.95, -s * 0.85, -s * 0.42, s * 0.08);

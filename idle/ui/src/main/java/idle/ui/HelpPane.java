@@ -2,13 +2,15 @@ package idle.ui;
 
 import idle.core.Absence;
 import idle.core.Game;
+import idle.core.collider.GluonMilestone;
 import idle.core.collider.Hadron;
+import idle.core.universe.DimensionAutomation;
+import idle.core.universe.Skin;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeTrip;
 import idle.core.profile.Title;
-import idle.core.universe.DimensionAutomation;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
@@ -16,27 +18,24 @@ import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 
 /**
- * L'aide « Comment jouer », par-dessus la fenêtre : un paragraphe par étape du jeu, puis la liste
- * des raccourcis avec leurs touches du moment.
+ * L'aide « Comment jouer », par-dessus la fenêtre : un paragraphe par étape du jeu, puis la liste des raccourcis avec
+ * leurs touches du moment.
  *
- * <p>Seules les étapes que le joueur a atteintes sont expliquées : la suite se découvre en
- * jouant, et l'aide grandit avec la partie. Les nombres cités viennent des règles ({@link Game}) quand elles
- * les exposent ; les autres (en lettres : « dix minutes », « trois secondes », « cinquième Big Bang »…) sont
- * recopiés et à relire si la règle change.
+ * <p>Seules les étapes que le joueur a atteintes sont expliquées : la suite se découvre en jouant, et l'aide grandit
+ * avec la partie. Les nombres cités viennent des règles ({@link Game}) quand elles les exposent ; les autres (en
+ * lettres : « dix minutes », « trois secondes », « cinquième Big Bang »…) sont recopiés et à relire si la règle change.
  *
- * <p>Elle s'ouvre et se ferme par son raccourci ({@link Shortcuts.Action#HELP}), par le bouton
- * « Aide » sous les onglets, et se ferme aussi par Échap ou son bouton.
+ * <p>Elle s'ouvre et se ferme par son raccourci ({@link Shortcuts.Action#HELP}), par le bouton « Aide » sous les
+ * onglets, et se ferme aussi par Échap ou son bouton.
  */
 final class HelpPane extends Overlay {
-
     private static final String TITLE_STYLE = "-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 0 0 0; -fx-text-fill: #d6dde6;";
     private static final String TEXT_STYLE = "-fx-font-size: 13px; -fx-text-fill: #b7c4d2;";
     private static final String BUTTON_STYLE = buttonStyle("8 18", "#d6dde6");
@@ -76,9 +75,7 @@ final class HelpPane extends Overlay {
     }
 
     /** Vrai tant que l'aide est affichée. */
-    boolean isOpen() {
-        return open;
-    }
+    boolean isOpen() { return open; }
 
     /** Ouvre l'aide si elle est fermée, la ferme sinon. */
     void toggle() {
@@ -115,7 +112,7 @@ final class HelpPane extends Overlay {
                 + "vitesse de création, le couplage (chaque générateur renforce les autres) et un générateur de plus. "
                 + "Réunis, les " + generators + " générateurs fusionnent en atomes : il n'en reste qu'un, et les "
                 + "particules repartent de zéro."
-                // Le fond des particules et la fusion des générateurs (version 0.192) : des skins, par les particules créées et les fusions.
+                // Le fond des particules et la fusion des générateurs : des skins, par les particules créées et les fusions.
                 + (game.isSkinsUnlocked() ? " Le fond de poussières derrière les générateurs a ses skins, choisis dans l'onglet Skins, un "
                         + "par palier de particules créées (neige à un million, puis pluie, pollen, lucioles, bulles, poussière d'or, cendres, "
                         + "mille fois plus chacun), et Silence, libre, qui le laisse vide ; le glissement des générateurs qui fusionnent a les "
@@ -144,13 +141,12 @@ final class HelpPane extends Overlay {
                                     + "et la formation automatiques. La création automatique suit la liste de courses, puis la "
                                     + "matière et la variété qui manquent par état, puis les amas que vous lui confiez ; sa "
                                     + "réserve d'espace et ses plafonds par état se règlent dans l'onglet Automatisation." : "")
-                    // Version 0.126 : où les réglages tiennent, sans rien dire de ce qui vient après le Big Bang.
+                    // Où les réglages tiennent, sans rien dire de ce qui vient après le Big Bang.
                     + " Vos réglages (la coupure générale, les ordres d'achat, le seuil de fusion, le verrou de l'appui, la "
                     + "part d'espace laissée libre, les molécules favorites, les automatismes de matière noire allumés, les "
                     + "pauses du collisionneur) tiennent d'une remise à zéro à l'autre (explosion, "
                     + "Big Bang et au-delà) : seul « Recommencer de zéro », dans les réglages, les remet comme au début."
-                    // Version 0.147 : ce que la coupure générale laisse tourner.
-                    // Version 0.167 : elle arrête aussi les automates du collisionneur.
+                    // Ce que la coupure générale laisse tourner. Elle arrête aussi les automates du collisionneur.
                     + (game.isColliderUpgradesUnlocked() ? " L'onglet montre aussi les automates du collisionneur, qui se "
                             + "mettent en pause un par un ou tous d'un bouton, et que la coupure générale arrête aussi ; elle "
                             + "laisse son déclencheur automatique" + (game.hasHose() ? " et le tuyau d'arrosage de la graine" : "")
@@ -158,7 +154,7 @@ final class HelpPane extends Overlay {
             sections.add(new Section("Tableau périodique", "Une synthèse coûte des atomes et donne un élément. Chaque "
                     + "élément apporte un bonus, ses exemplaires le renforcent, et une famille réunie forme un ensemble. "
                     + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."
-                    // La page hors cases (version 0.192) : trois skins de plus, à côté de ceux des cases.
+                    // La page hors cases : trois skins de plus, à côté de ceux des cases.
                     + (game.isSkinsUnlocked() ? " La page a ses skins hors cases, dans l'onglet Skins : Médailles sur les tuiles des "
                             + "ensembles (un ensemble complet), Creuset sur la carte de synthèse (100 synthèses), Spectre sur la légende "
                             + "des familles (toutes les familles possédées)." : "")));
@@ -175,17 +171,17 @@ final class HelpPane extends Overlay {
                     + "les branches, six liaisons, payées en matière noire, s'ouvrent par l'une ou l'autre des voies voisines ; "
                     + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
                     + "matières noires : seuls les prix rythment l'arbre. "
-                    // Version 0.206 : la case qui compte le plus.
+                    // La case qui compte le plus.
                     + "Dans la colonne payée en matière noire, « Noyaux sombres » (carte dorée) est la case qui compte le plus : "
                     + "les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau ; sans elle, "
                     + "l'univers suivant dure trois fois plus longtemps. "
-                    // Version 0.209 : en tête, et premier achat en matière noire.
+                    // En tête, et premier achat en matière noire.
                     + "Sa colonne vient en tête de l'arbre, et elle passe avant le reste : tant qu'elle n'a pas de niveau, "
                     + "les autres achats en matière noire, accords compris, l'attendent. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste"
                     + (game.universes() > 0 ? " ; leur tableau pèse " + ElementText.number(game.challengeUniverseFactor())
                             + " fois plus qu'au premier univers (×" + ElementText.number(Game.CHALLENGE_UNIVERSE_GROWTH) + " par univers formé)" : "")
-                    // Version 0.206 : les annonces des défis.
+                    // Les annonces des défis.
                     + ". Les annonces suivent chaque défi : commencé, tableau assez lourd pour exploser, réussi ou abandonné, et "
                     + "le poids des défis à chaque univers formé. Au bout de l'arbre, les "
                     + game.bigBangConditions().size() + " conditions du prochain Big Bang, une fois réunies, le "
@@ -201,7 +197,7 @@ final class HelpPane extends Overlay {
                             + "branches entamées) pour l'arbre, qui changent ses traits, ses vignettes, ses en-têtes et son fond ; Tarot (3 défis réussis), Wanted (6) et Sceaux (les dix) pour les défis." : "")));
         }
         if (game.isBigBangUnlocked()) {
-            // Version 0.126 : ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
+            // Ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
             sections.add(new Section("Big Bang", "Le Big Bang remet la partie à zéro comme une explosion, et efface en plus "
                     + "la matière noire en réserve et sa taille ; l'arbre de matière noire et les défis réussis ne restent "
                     + "qu'avec les paliers qui les gardent (les bifurcations se rouvrent quand même). Restent les succès, les "
@@ -216,12 +212,12 @@ final class HelpPane extends Overlay {
                     + "jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
                     + "paliers, " + game.bigBangMilestones().size() + " en tout : une fois ouvert, un palier se paie en "
                     + "particules ou en atomes, d'un clic sur sa carte, et agit dès lors."
-                    // Les skins des molécules (version 0.188) : par les sortes créées, rassemblées et le nombre de molécules.
+                    // Les skins des molécules : par les sortes créées, rassemblées et le nombre de molécules.
                     + (game.isSkinsUnlocked() ? " Les molécules ont aussi leurs skins, choisis dans l'onglet Skins et qui changent "
                             + "leur dessin sur les cartes comme dans l'espace : Boules pleines à 50 sortes créées, Traits quand les "
                             + game.molecules().size() + " sortes du catalogue l'ont été, Perles à 20 sortes rassemblées, Lego à 1 000 "
                             + "molécules créées ; et trois palettes libres de leurs couleurs (Pastel, Daltonien sûr, Monochrome par rayon). "
-                            // Version 0.194 : les amas, les blocs et le gaz de l'espace, la galaxie, l'amas et la toile.
+                            // Les amas, les blocs et le gaz de l'espace, la galaxie, l'amas et la toile.
                             + "Dans l'espace, les amas rassemblés (Minéraux, Néon, Pastel à 5, 20 et 50 sortes rassemblées), les blocs "
                             + "d'assemblage (Pierre taillée, Lingots, Cristaux bruts, Pains de glace à 10, 15, 20 et 30 assemblages) et le gaz "
                             + "au loin (Brume, Fumée, Aurore à 1 000, 10 000 et 100 000 molécules de gaz rassemblées) ont les leurs ; la galaxie "
@@ -256,14 +252,14 @@ final class HelpPane extends Overlay {
                         + Card.sign(Card.State.WAITING) + " en attente, " + Card.sign(Card.State.STARTED) + " entamée, " + Card.sign(Card.State.ON)
                         + " en marche, " + Card.sign(Card.State.OFF) + " coupée, " + Card.sign(Card.State.DONE) + " acquise, "
                         + Card.sign(Card.State.LOCKED) + " fermée." : "")
-                // Les signes (version 0.192) : ceux des cartes et ceux des états de la matière ont leurs skins.
+                // Les signes : ceux des cartes et ceux des états de la matière ont leurs skins.
                 + (game.isSkinsUnlocked() ? " Ces signes ont leurs skins, dans l'onglet Skins : Runes, Formes pleines, Lettres, un succès "
                         + "d'un onglet différent chacun (Cent fusions, Ensemble complet, Dix explosions) ; les signes des états de la matière "
                         + "(gaz, liquides, cristaux) aussi : Lettres à 20 sortes rassemblées, Gouttes et grains à 50, Alchimie quand toutes "
                         + "le sont." : "")));
         sections.add(new Section("Lire un nombre", "Laissez la souris sur la production, les atomes par fusion, la matière "
                 + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne"
-                // Les info-bulles (version 0.192) : trois skins, par les heures de jeu.
+                // Les info-bulles : trois skins, par les heures de jeu.
                 + (game.isSkinsUnlocked() ? " (elle a ses skins, dans l'onglet Skins : Parchemin à une heure de jeu, Post-it à cinq, Terminal à dix)" : "")
                 + ". Sous "
                 + "les onglets, l'objectif rappelle le prochain pas"
@@ -278,7 +274,7 @@ final class HelpPane extends Overlay {
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
                 + "sous-onglet « Notifications et signes », coupent les annonces par catégorie, cachent les morceaux de "
                 + "l'objectif un par un et les pastilles ● des onglets par sorte."));
-        // Le profil (version 0.147) : là dès le premier générateur.
+        // Le profil : là dès le premier générateur.
         if (game.isStarted()) sections.add(new Section("Profil", "L'onglet Profil dit qui joue : un nom, à écrire dans le "
                 + "champ du haut (Entrée le valide), un avatar à choisir dans la galerie, ou une image à vous (PNG, JPG, GIF, BMP), "
                 + "copiée dans le dossier du jeu et recadrée en rond. Chaque étape de la partie donne un titre, "
@@ -287,11 +283,11 @@ final class HelpPane extends Overlay {
                 + (game.isBigBangUnlocked() ? " Depuis le premier Big Bang, quatre albums gardent tout ce que vous avez obtenu au "
                         + "moins une fois, molécules, sortes rassemblées, assemblages et astres, avec le temps de jeu de la "
                         + "première fois ; ce qui manque reste un « ??? »." : "")
-                // Les cadres de l'avatar (version 0.189) : des skins, un par titre.
+                // Les cadres de l'avatar : des skins, un par titre.
                 + (game.isSkinsUnlocked() ? " L'avatar a aussi ses cadres, un par titre (rond cerné, hexagone, écusson, cadre doré "
                         + "baroque, timbre-poste, polaroid), choisis dans l'onglet Skins : ils entourent l'avatar de l'en-tête et "
                         + "l'aperçu de votre image, pas les cartes de la galerie."
-                        // Version 0.198 : le style des avatars, les albums, les tuiles des succès, les courbes et la frise.
+                        // Le style des avatars, les albums, les tuiles des succès, les courbes et la frise.
                         + " Les avatars du jeu ont leur style, Trait, Pixel, Craie, Vitrail (25, 50, 75 succès, puis tous), qui "
                         + "redessine l'en-tête et la galerie, pas votre image. Les albums ont les leurs : Illustré met le dessin de "
                         + "chaque chose trouvée sur sa case (50 entrées dans les albums), puis Vignettes autocollantes, Timbres, "
@@ -303,7 +299,7 @@ final class HelpPane extends Overlay {
                         + "libre (Pastel, Néon, Niveaux de gris), et la frise des univers de la chronologie devient Musée, "
                         + "Pellicule ou Train (3, 5, 7 univers formés)." : "")
                 + " Nom, avatar, titres et albums restent pour de bon, même après « Recommencer de zéro »."));
-        // Les succès du deuxième univers (version 0.174) : chaque nouveauté s'ouvre par le sien.
+        // Les succès du deuxième univers : chaque nouveauté s'ouvre par le sien.
         if (game.isSecondUniverse()) sections.add(new Section("Succès d'univers", "Une fois un univers formé, chaque "
                 + "nouveauté s'ouvre par un succès, dans l'ordre des actes : l'onglet Skins à cinq fusions, le régime à trois "
                 + "générateurs, la synergie à dix, la prime de cycle parfait avec la Persistance, les éléments gratuits à dix "
@@ -312,9 +308,9 @@ final class HelpPane extends Overlay {
                 + "Chaque défi de Big Bang réussi a aussi le sien : il ouvre les bonus d'univers de ce défi, qui comptent tant "
                 + "qu'il est réussi. Un succès obtenu le reste ; ce que la nouveauté demande à chaque partie (un Big Bang, "
                 + "la Persistance…) compte en plus. D'autres succès jalonnent la suite, du vide jusqu'à la fin de la partie. "
-                // Version 0.206 : les skins s'étalent sur la partie.
+                // Les skins s'étalent sur la partie.
                 + "Les skins eux-mêmes viennent au fil des univers : une trentaine se débloquent par univers formé, jusqu'au "
-                + (idle.core.universe.Skin.LAST_SKIN_UNIVERSE + 1) + "ᵉ ; la carte d'un skin verrouillé dit l'univers qu'il attend, "
+                + (Skin.LAST_SKIN_UNIVERSE + 1) + "ᵉ ; la carte d'un skin verrouillé dit l'univers qu'il attend, "
                 + "en plus de sa condition. Les skins gagnés par une épreuve ou une recherche viennent dès que c'est fait."));
         if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
                 + "explosion, que ni l'explosion ni le Big Bang ne remettent à zéro. Les faisceaux croisés donnent de l'énergie, et "
@@ -332,7 +328,7 @@ final class HelpPane extends Overlay {
                 + (game.isSkinsUnlocked() ? " Le détecteur, les éclairs du croisement, les étincelles et les quarks qui s'envolent ont "
                 + "leurs skins, dans l'onglet Skins : les collisions, les croisements, les épreuves du collisionneur et les hadrons liés "
                 + "les débloquent." : "")));
-        // Les dimensions (version 0.128) : une par univers, et ce que font les sept qui se jouent (la boucle, version 0.153 ;
+        // Les dimensions : une par univers, et ce que font les sept qui se jouent (la boucle, version 0.153 ;
         // la brane, version 0.154 ; le clicker, version 0.155 ; la grille, version 0.156 ; le miroir, version 0.157 ; le
         // mélange, version 0.158, refait à la 0.159).
         if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
@@ -347,22 +343,22 @@ final class HelpPane extends Overlay {
                 + "l'arbre-monde, ce que les améliorations de la graine raccourcissent d'autant ; les attentes de l'amas et de la formation sont faites pour jouer les "
                 + "dimensions et arroser. La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir "
                 + "la prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante."
-                // Les essences de l'arbre (version 0.185) : des skins, un par univers formé à partir du quatrième.
+                // Les essences de l'arbre : des skins, un par univers formé à partir du quatrième.
                 + (game.isSkinsUnlocked() ? " L'arbre a aussi ses essences, bouleau, saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, "
                         + "palmier : une se débloque par univers formé à partir du quatrième, et se choisit dans l'onglet Skins ; elle change "
                         + "l'écorce, les feuilles et la silhouette de l'arbre à tous ses paliers, du bonsaï à l'arbre-monde."
-                        // Les skins des mini-jeux (version 0.187) : un par dimension, débloqué à son seuil.
+                        // Les skins des mini-jeux : un par dimension, débloqué à son seuil.
                         + " Chaque mini-jeu a aussi son skin (rails et wagons pour la ligne, feuille de cahier pour le plan, aquarium, "
                         + "vinyle, cible de tir à l'arc, toile d'araignée, bulles de savon, démineur, vitrail, kaléidoscope), débloqué "
                         + "quand sa dimension atteint son seuil et choisi dans l'onglet Skins, dans la section de sa dimension : il change le "
                         + "décor et l'habillage du jeu, jamais sa règle ni la place de ce qu'on clique."
-                        // L'univers et l'établi de la graine (version 0.196) : douze visuels de plus dans l'onglet Skins.
+                        // L'univers et l'établi de la graine : douze visuels de plus dans l'onglet Skins.
                         + " Les univers en bulles, leur naissance, leurs liens et le lancement de l'univers suivant ont leurs skins par "
                         + "univers formés ; la graine (noix, gland, noyau d'avocat, pépin, tournesol, œuf, pierre brute) par ses paliers ; "
                         + "l'arrosoir par ses arrosages, le tuyau et la terre fertile ; l'étagère et le chrono par l'étage du chrono, le chrono "
                         + "plein et les univers ; le tuyau par ses niveaux ; le rond de croissance, la météo et les saisons par les ronds "
                         + "cueillis, les orages et les cycles des saisons depuis l'ouverture de la fenêtre."
-                        // L'arbre au-delà de ses essences, ses bulles, la carte, le défi final, les mini-jeux (version 0.197).
+                        // L'arbre au-delà de ses essences, ses bulles, la carte, le défi final, les mini-jeux.
                         + " L'arbre a aussi sa saison figée (automne, hiver, printemps, par les saisons débloquées puis les univers), "
                         + "sa fantaisie (cristal, corail, circuit lumineux, nuages, inversé, pixel art, par les paliers de la graine dont une "
                         + "bulle est achetée) et son sol (herbe, sable, neige, mousse, dallage, eau, par les paliers de la graine), qui se "
@@ -390,16 +386,16 @@ final class HelpPane extends Overlay {
                         + "clic gauche tenu, et l'on cueille les boules au clic droit ; avec la caméra libre, le regard suit la "
                         + "souris sans clic, qui reste retenue dans la vue (Échap la rend, un clic la reprend), et un clic "
                         + "cueille la boule sous la croix. Une plongée dure "
-                        + idle.ui.common.ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
+                        + ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
                         + "le joueur, et ses améliorations s'achètent dehors." : "")
-                // La durée (version 0.134).
+                // La durée.
                 + (game.isDurationOpen() ? " Dans la durée, on tient le bouton au milieu du rond (clic tenu, ou la barre "
                         + "d'espace) : les spirales avancent du bord vers le centre, qu'elles atteignent en "
-                        + idle.ui.common.ElementText.number(game.durationMaxSeconds()) + " secondes. Au relâchement, chaque "
+                        + ElementText.number(game.durationMaxSeconds()) + " secondes. Au relâchement, chaque "
                         + "tour vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
                         + "courts, et tenir au-delà du centre ne rapporte plus rien, sans rien faire perdre. Ses améliorations "
                         + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")
-                // La boucle (version 0.153), et le rond de croissance qui vient avec elle.
+                // La boucle, et le rond de croissance qui vient avec elle.
                 + (game.isLoopOpen() ? " Dans la boucle, un point tourne sur chaque cercle, lentement au début, et des zones "
                         + "y attendent, chacune en trois parts : le bord « mauvais », puis « bien », le centre « excellent ». "
                         + "Un clic sur le cercle, ou sa touche (" + loopKeys(settings) + ", à changer dans les réglages, "
@@ -413,7 +409,7 @@ final class HelpPane extends Overlay {
                         + "temps en temps près de la graine : cueilli d'un clic avant qu'il s'en aille, il accélère "
                         + "l'arrosage de " + Math.round(game.bloomGain() * 100) + " % pendant "
                         + ElementText.number(game.bloomSeconds()) + " secondes." : "")
-                // La brane (version 0.154), et la lumière astrale qui vient avec elle.
+                // La brane, et la lumière astrale qui vient avec elle.
                 + (game.isBraneOpen() ? " Dans la brane, on appuie la membrane en un point, on glisse pour la tendre (plus "
                         + "le glissé est long, plus l'onde portera loin ; un cercle en pointillé montre sa portée) et l'on "
                         + "relâche : une onde part du point appuyé, grandit et rebondit sur les bords. Des points apparaissent "
@@ -425,7 +421,7 @@ final class HelpPane extends Overlay {
                         + "la fois. Ses améliorations : gain, élasticité (une tirée plus courte porte "
                         + "déjà à fond), grandeur des ondes, rebond, et points en une onde. Avec la brane, la lumière astrale "
                         + "de la graine, payée en ondes, multiplie l'arrosage par seconde de l'arrosoir et du tuyau." : "")
-                // Le clicker (version 0.155), et la météo qui vient avec lui.
+                // Le clicker, et la météo qui vient avec lui.
                 + (game.isClickerOpen() ? " Dans le clicker, chaque clic sur la surface donne des étincelles, d'autant plus "
                         + "que vous cliquez vite : la cadence se compte sur les " + ElementText.number(Game.CLICKER_WINDOW)
                         + " dernières secondes, jusqu'à " + Math.round(Game.CLICKER_MAX_RATE) + " clics par seconde. "
@@ -440,7 +436,7 @@ final class HelpPane extends Overlay {
                         + "(arrosage −" + Math.round(Game.WEATHER_STORM_LOSS * 100) + " % pendant "
                         + ElementText.number(game.weatherStormSeconds()) + " secondes) ; la branche « Clicker » de la graine "
                         + "allonge le beau temps, raccourcit les orages et renforce le soleil." : "")
-                // La grille (version 0.156), et la graine profonde qui vient avec elle.
+                // La grille, et la graine profonde qui vient avec elle.
                 + (game.isGridOpen() ? " Dans la grille, des points se cachent dans un cube énorme, mille cases par côté "
                         + "au départ ; on choisit une couche (les boutons, la molette ou les flèches haut et bas), on vise une "
                         + "case (un clic sur la carte, que le zoom précise, ou ses coordonnées x, y, z) et on l'essaie. Chaque "
@@ -454,7 +450,7 @@ final class HelpPane extends Overlay {
                         + "avant, seul le gain se voit. Ses autres améliorations : gain, nombre de points, multiplicateur de "
                         + "proximité, et des essais de plus par point. Avec la grille, la graine profonde, payée en repères, multiplie tout l'arrosage, jusqu'à "
                         + "la racine carrée de la puissance de dix de l'énergie du vide récupérée." : "")
-                // Le miroir (version 0.157), et les saisons qui viennent avec lui.
+                // Le miroir, et les saisons qui viennent avec lui.
                 + (game.isMirrorOpen() ? " Dans le miroir, un motif s'allume case après case sur la moitié gauche du "
                         + "plateau, puis s'éteint : il faut le refaire de mémoire, en miroir, sur la moitié droite, dans le même "
                         + "ordre. Réussi, il donne des reflets, d'autant plus qu'il est long, et le suivant a une case de plus ; "
@@ -465,7 +461,7 @@ final class HelpPane extends Overlay {
                         + "printemps, moins en hiver. Toutes les " + Game.MIRROR_GROW_EVERY + " réussites, le plateau "
                         + "s'agrandit seul d'une colonne de chaque côté et d'une ligne, et le gain avec lui, "
                         + Game.MIRROR_GROWTHS + " fois au plus ; le « Plateau plus vaste » en permet davantage." : "")
-                // Le mélange (version 0.158, refait à la 0.159), et la bulle des racines qui vient avec lui.
+                // Le mélange, et la bulle des racines qui vient avec lui.
                 + (game.isMixOpen() ? " Le mélange est un seul mini-jeu qui mêle, étape par étape, les mécaniques des "
                         + "autres dimensions, sur une arène carrée. À l'étape 1, une boule va et vient sur une ligne graduée ; "
                         + "chaque étape y mêle la dimension suivante : les éclats que pose la ligne et le point qui les ramasse "
@@ -478,7 +474,7 @@ final class HelpPane extends Overlay {
                         + "propres à chaque étape, repartent de zéro, et le malus de départ ("
                         + ElementText.number(Game.MIX_MALUS * 100) + " %) revient. Avec le mélange, la dernière amélioration "
                         + "de la graine, payée en fragments, ouvre la bulle des racines." : "")
-                // Le défi final (version 0.160), que la bulle des racines ouvre.
+                // Le défi final, que la bulle des racines ouvre.
                 + (game.isFinalChallengeOpen() ? " La bulle des racines ouvre le défi final : un palier à atteindre dans "
                         + "chaque dimension, en ressource gagnée en tout (cent fois son seuil, dix millions de fragments pour "
                         + "le mélange). Sur la carte des dimensions, chaque point se remplit de vert vers son palier, en "
@@ -495,7 +491,7 @@ final class HelpPane extends Overlay {
                 + " univers, et ainsi de suite, un palier et un univers de plus par dimension (ceux du mélange avec l'arbre-monde et "
                 + Game.dimensionAutomationUniverses(Game.MAX_DIMENSIONS) + " univers). La bulle du sommet de l'arbre-monde les fait "
                 + "moitié prix. En tout, " + DimensionAutomation.values().length + " automatismes. Dans chaque dimension, ils "
-                // Version 0.209 : payés avec la ressource de leur dimension ; ceux qui jouent en dernier, en cinq paliers.
+                // Payés avec la ressource de leur dimension ; ceux qui jouent en dernier, en cinq paliers.
                 + "s'achètent l'un après l'autre, avec la ressource de la dimension (" + Game.dimensionResourceName(1) + " pour la ligne, "
                 + Game.dimensionResourceName(2) + " pour le plan, et ainsi de suite jusqu'aux " + Game.dimensionResourceName(10)
                 + " du mélange) : il faut d'abord la jouer à la main, de dix minutes à une demi-heure. Viennent d'abord ceux qui "
@@ -514,7 +510,7 @@ final class HelpPane extends Overlay {
                 + "Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
                 + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
 + "tous. Achetés, ils traversent les univers."));
-        // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
+        // Le vide : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
         if (game.isVoidOffered() || game.isVoidUnlocked() || !game.state().voidHistory().isEmpty()) sections.add(new Section("Le vide",
                 "Au premier Big Bang du troisième univers, puis de chaque univers suivant, le vide se propose dans l'onglet "
                 + "Collisionneur : il s'ouvre contre dix minutes de production du collisionneur, comptées à son arrivée, et au moins "
@@ -522,7 +518,7 @@ final class HelpPane extends Overlay {
                 + "particules, une par seconde au départ. Chacune coûte une demi-seconde de production du collisionneur, tient un "
                 + "cinquième de seconde d'expansion d'espace libre pendant ses " + (int) Game.VOID_PAIR_LIFE + " secondes de vie, et donne 1 énergie du vide à sa "
                 + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
-                + "départ). L'énergie du vide fond de " + String.format(java.util.Locale.FRANCE, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
+                + "départ). L'énergie du vide fond de " + String.format(Locale.FRANCE, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
                 + "divisé par la fonte. Elle paie huit améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
                 + "coût en énergie, espace par paire, fonte plus lente, et trois qui raccourcissent le troisième acte : allègement "
                 + "du ciel (−" + Math.round(Game.VOID_LIGHTEN_STEP * 100) + " % par niveau des molécules et de la matière que "
@@ -536,7 +532,7 @@ final class HelpPane extends Overlay {
                 + "le vide, son trou noir et ses améliorations repartent de zéro dans l'univers suivant."
                 + (game.isSkinsUnlocked() ? " L'écume, les paires et le trou noir du vide ont leurs skins, dans l'onglet Skins : le vide "
                 + "ouvert et ses améliorations, les paires nées, les univers que compte le trou noir du vide les débloquent." : "")));
-        // Les hadrons (version 0.149) : dès qu'ils se proposent, et tant que leur onglet est ouvert.
+        // Les hadrons : dès qu'ils se proposent, et tant que leur onglet est ouvert.
         if (game.isHadronsOffered() || game.isHadronsUnlocked()) sections.add(new Section("Hadrons",
                 "Avec la bulle de l'arbuste, au milieu, les hadrons se proposent dans l'onglet Collisionneur : leur onglet "
                 + "s'ouvre contre dix minutes de production du collisionneur, comptées à leur arrivée, et au moins "
@@ -563,8 +559,8 @@ final class HelpPane extends Overlay {
                 + ". Le trou noir du vide, ouvert, raccourcit aussi celle des deux trous noirs : ÷ (1 + "
                 + Math.round(Game.VOID_HOLE_MATURATION_STEP * 100) + " % par univers formé à partir du quatrième). En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "
-                + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."
-                // Les skins des astres (version 0.186) : par le nombre d'astres formés dans un univers.
+                + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + ElementText.number(Game.MATURATION_HASTE_SECONDS) + " secondes."
+                // Les skins des astres : par le nombre d'astres formés dans un univers.
                 + (game.isSkinsUnlocked() ? " Les astres ont aussi leurs skins, Planétarium, Gravure et Cartographie, débloqués à 10, 20 et 35 astres "
                         + "formés dans un univers, et choisis dans l'onglet Skins : ils changent le dessin de tous les astres, sur leurs cartes, "
                         + "dans le ciel, les systèmes et l'espace. Le ciel lui-même a les siens (version 0.194) : Planche naturaliste à 15 "
@@ -577,7 +573,7 @@ final class HelpPane extends Overlay {
                 + "Soleil ou d'une naine rouge. Chaque point d'un système complet ajoute " + ElementText.percent(Game.SYSTEM_GAIN)
                 + " à toutes les grandeurs. Au septième Big Bang, deux places de maturation et une sonde de plus ; au huitième, "
                 + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."
-                // Version 0.194 : les skins des systèmes, par les systèmes complets.
+                // Les skins des systèmes, par les systèmes complets.
                 + (game.isSkinsUnlocked() ? " Le dessin des systèmes a ses skins, dans l'onglet Skins : Orrery à un système complet, Dessin "
                         + "d'enfant à deux, Radar à trois." : "")));
         if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
@@ -586,7 +582,7 @@ final class HelpPane extends Overlay {
                 + "du rayon visé, de l'espace d'un coup, un sursaut qui double l'espace par seconde un moment, des échantillons. "
                 + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "
                 + "Rien ne se perd si l'on revient tard, ni au Big Bang."
-                // Version 0.194 : les skins des sondes, par les voyages ; la trajectoire suit le skin.
+                // Les skins des sondes, par les voyages ; la trajectoire suit le skin.
                 + (game.isSkinsUnlocked() ? " Les sondes ont leurs skins, dans l'onglet Skins, par voyages revenus : Avion de papier à 10, "
                         + "Montgolfière à 25, Bouteille à la mer à 50, Pigeon à 100 ; chacun a sa trajectoire (pointillés de carte au trésor, "
                         + "traînée de condensation, fil d'Ariane, plumes) et le dos de la carte du butin le suit." : "")));
@@ -599,7 +595,7 @@ final class HelpPane extends Overlay {
                 + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets…), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
                 + "pendant un défi, a son arpège dans chaque dimension et change de tonalité à chaque univers), de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
                 + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."
-                // Le chrome de la fenêtre (version 0.190) : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
+                // Le chrome de la fenêtre : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
                 + (game.isSkinsUnlocked() ? " Le chrome de la fenêtre a aussi ses skins, choisis dans l'onglet Skins : le fond (Papier à une "
                         + "heure de jeu, Ardoise à 50 éléments découverts, Nuit étoilée à la galaxie formée, Terminal à 100 explosions, "
                         + "Blueprint à 10 assemblages formés), les onglets (classeur au Big Bang débloqué, boutons physiques à dix heures "
@@ -607,7 +603,7 @@ final class HelpPane extends Overlay {
                         + "tuile de verre avec le skin Cristal du Big Bang, carte à jouer aux dix défis réussis, étiquette à dix sondes "
                         + "revenues). Le fond n'habille que les marges, sous un voile sombre, et suit le thème choisi : le thème clair "
                         + "l'inverse." : "")
-                // Version 0.199 : la fenêtre autour du jeu : notifications, panneaux, transition, fin, bouton de démarrage, curseur.
+                // La fenêtre autour du jeu : notifications, panneaux, transition, fin, bouton de démarrage, curseur.
                 + (game.isSkinsUnlocked() ? " Autour du jeu encore, dans l'onglet Skins : les notifications (Post-it, Télégramme, Bulle de BD, "
                         + "Ticket de caisse, Parchemin déroulé, à 20, 50, 100, 200 et 500 notifications reçues depuis l'ouverture du jeu), "
                         + "les panneaux comme celui-ci (Page de livre à cinq heures de jeu, Écran de cinéma à dix, Tableau d'affichage à "
@@ -617,7 +613,7 @@ final class HelpPane extends Overlay {
                         + "plante, Allumette et Détonateur à neuf, dix et onze univers) et le curseur (Main de verre, Étoile filante et sa "
                         + "traînée, Arrosoir, Loupe, Baguette : un succès d'un onglet différent chacun ; le curseur choisi se montre sur "
                         + "tous les onglets, sauf au-dessus d'un bouton, où la main du système reste)." : "")
-                // Version 0.200 : les sons (skins), les thèmes et les notations nouveaux (réglages).
+                // Les sons (skins), les thèmes et les notations nouveaux (réglages).
                 + (game.isSkinsUnlocked() ? " Les sons aussi ont leurs skins, tous synthétisés : la banque de sons change le timbre de tous "
                         + "(Bois à une heure de jeu, Verre à deux, 8 bits à cinq, Orchestre à dix, Nature à vingt ; Silence partiel, libre, ne "
                         + "laisse sonner que les Big Bangs), le son du Big Bang a le sien (Carillon géant, Souffle de vent, Orgue à 5, 10 et 20 "
@@ -632,7 +628,7 @@ final class HelpPane extends Overlay {
         return sections;
     }
 
-    /** « (ou la touche R) » : la touche réglée pour réclamer un butin de sonde, rien si elle n'en a pas (version 0.126). */
+    /** « (ou la touche R) » : la touche réglée pour réclamer un butin de sonde, rien si elle n'en a pas. */
     private static String claimKey(Settings settings) {
         KeyCode key = settings.shortcuts() ? settings.key(Shortcuts.Action.CLAIM) : null;
         return key == null ? "" : " (ou la touche " + Shortcuts.name(key) + ")";
@@ -652,9 +648,9 @@ final class HelpPane extends Overlay {
         return text.toString();
     }
 
-    /** « Proton : atomes par fusion ; … ; méson B : prix des générateurs divisé » : ce que renforce chaque hadron (version 0.151). */
+    /** « Proton : atomes par fusion ; … ; méson B : prix des générateurs divisé » : ce que renforce chaque hadron. */
     private static String hadronBonuses() {
-        java.util.List<String> parts = new java.util.ArrayList<>();
+        List<String> parts = new ArrayList<>();
         for (Hadron hadron : Hadron.values()) {
             parts.add(hadron.label() + " : " + hadron.bonus() + (hadron.lowersCost() ? ", divisé" : ""));
         }
@@ -662,14 +658,12 @@ final class HelpPane extends Overlay {
     }
 
     /** « 1,25 » : un nombre à deux décimales, à la française. */
-    private static String hundredths(double value) {
-        return String.format(java.util.Locale.FRANCE, "%.2f", value);
-    }
+    private static String hundredths(double value) { return String.format(Locale.FRANCE, "%.2f", value); }
 
-    /** « Mémoire des liaisons (1 000 gluons) : l'explosion garde … » : les paliers de gluons (version 0.151). */
+    /** « Mémoire des liaisons (1 000 gluons) : l'explosion garde … » : les paliers de gluons. */
     private static String gluonMilestones() {
-        java.util.List<String> parts = new java.util.ArrayList<>();
-        for (idle.core.collider.GluonMilestone milestone : idle.core.collider.GluonMilestone.values()) {
+        List<String> parts = new ArrayList<>();
+        for (GluonMilestone milestone : GluonMilestone.values()) {
             String effect = milestone.effect();
             parts.add(milestone.label() + " (" + Format.whole(milestone.gluons()) + " gluons), "
                     + Character.toLowerCase(effect.charAt(0)) + effect.substring(1, effect.length() - 1));

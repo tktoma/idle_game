@@ -5,12 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.core.upgrades.Automation;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.202 : la sobriété des bots. Quand plus rien dans l'univers ne demande d'éléments (ni la liste de courses, ni
+ * La sobriété des bots. Quand plus rien dans l'univers ne demande d'éléments (ni la liste de courses, ni
  * la matière ou la variété d'une échelle du cosmos à venir), après le dernier Big Bang, sans palier ni case finie de
  * l'arbre à payer, le bot éteint la boucle des particules, des atomes et des éléments ; il la rallume telle quelle dès
  * qu'un besoin revient. L'univers où elle agit finit à la même seconde ; le hasard de la synthèse, décalé, déplace les
@@ -18,10 +17,7 @@ import org.junit.jupiter.api.Test;
  * qui rend exactement ce qu'elle a pris.
  */
 class SobrieteTest {
-
-    private static RobotCosmosPlanner planner(Game game) {
-        return new RobotCosmosPlanner(game, 20);
-    }
+    private static RobotCosmosPlanner planner(Game game) { return new RobotCosmosPlanner(game, 20); }
 
     @Test
     void rienNeSEteintAvantLeDernierBigBang() {

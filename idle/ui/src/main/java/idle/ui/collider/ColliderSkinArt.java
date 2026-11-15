@@ -18,7 +18,6 @@ import javafx.scene.text.Font;
  * </ul>
  */
 final class ColliderSkinArt {
-
     private static final Color WOOD = Color.web("#8a5a2a");
     private static final Color WOOD_LIGHT = Color.web("#c08a4a");
     private static final Color COPPER = Color.web("#d98a4a");
@@ -237,9 +236,7 @@ final class ColliderSkinArt {
      * moitié droite de l'anneau (de l'injecteur au détecteur en passant par la droite) et son envers sur la
      * moitié gauche ; entre les deux il se tord, de chant au détecteur, et il se croise à l'injecteur.
      */
-    static boolean under(double angle) {
-        return tilt(angle) < 0;
-    }
+    static boolean under(double angle) { return tilt(angle) < 0; }
 
     /** L'inclinaison du ruban à cet angle : 1 de face à l'endroit, −1 de face à l'envers, 0 de chant. */
     private static double tilt(double angle) {

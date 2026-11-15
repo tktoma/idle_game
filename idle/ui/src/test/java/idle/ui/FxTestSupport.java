@@ -1,8 +1,9 @@
 package idle.ui;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import idle.core.Game;
+import idle.core.state.GameState;
+import idle.core.universe.DimensionAutomation;
 import javafx.application.Platform;
 
 /** Démarrage partagé du toolkit pour les tests JavaFX sous Xvfb. */
@@ -20,7 +21,7 @@ public final class FxTestSupport {
         started = true;
     }
 
-    public static <T> T fx(java.util.concurrent.Callable<T> action) {
+    public static <T> T fx(Callable<T> action) {
         start();
         if (Platform.isFxApplicationThread()) {
             try { return action.call(); } catch (Exception e) { throw new AssertionError(e); }
@@ -38,18 +39,18 @@ public final class FxTestSupport {
      * l'arbre-monde et un univers de plus que la dimension (avant, la bulle du sommet suffisait ; les tests des pages des
      * dimensions qui ne posaient qu'elle échouaient depuis).
      */
-    public static void openDimensionAutomations(idle.core.Game game, int dimension) {
-        while (game.universes() < idle.core.Game.dimensionAutomationUniverses(dimension)) {
+    public static void openDimensionAutomations(Game game, int dimension) {
+        while (game.universes() < Game.dimensionAutomationUniverses(dimension)) {
             if (!game.testAddUniverse()) throw new AssertionError("univers " + (game.universes() + 1) + " impossible à ajouter");
         }
         game.state().setSeedSprouted(true);
-        game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), idle.core.Game.seedStageWaterings(idle.core.Game.SEED_STAGES)));
+        game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(Game.SEED_STAGES)));
         if (!game.isDimensionAutomationOpen(dimension)) throw new AssertionError("automatismes de la dimension " + dimension + " fermés");
     }
 
-    /** Donne à la dimension de quoi tout payer, dans sa propre ressource (version 0.209). */
-    public static void fillDimension(idle.core.Game game, int dimension, double amount) {
-        idle.core.GameState state = game.state();
+    /** Donne à la dimension de quoi tout payer, dans sa propre ressource. */
+    public static void fillDimension(Game game, int dimension, double amount) {
+        GameState state = game.state();
         switch (dimension) {
             case 1 -> state.setDimensionShards(amount);
             case 2 -> state.setPlaneShards(amount);
@@ -69,23 +70,23 @@ public final class FxTestSupport {
      * ceux qui achètent), avec la ressource de la dimension, puis coupe ceux qui achètent et rend la ressource d'avant : seul
      * celui qui joue tourne, comme avant la 0.209.
      */
-    public static void buyPlay(idle.core.Game game, idle.core.universe.DimensionAutomation last) {
+    public static void buyPlay(Game game, DimensionAutomation last) {
         int dimension = last.dimension();
         double before = game.dimensionResource(dimension);
         fillDimension(game, dimension, 1e300);
-        for (idle.core.universe.DimensionAutomation automation : idle.core.universe.DimensionAutomation.values()) {
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.dimension() != dimension) continue;
             if (!game.ownsDimensionAutomation(automation) && !game.buyDimensionAutomation(automation)) throw new AssertionError(automation.toString());
-            if (automation.kind() == idle.core.universe.DimensionAutomation.Kind.UPGRADE) game.setDimensionAutomationEnabled(automation, false);
+            if (automation.kind() == DimensionAutomation.Kind.UPGRADE) game.setDimensionAutomationEnabled(automation, false);
             if (automation == last) break;
         }
         fillDimension(game, dimension, before);
     }
 
-    /** Achète ceux qui achètent dans cette dimension, coupés, pour que le premier palier de celui qui joue s'offre (version 0.209). */
-    public static void buyUpgradesOnly(idle.core.Game game, int dimension) {
-        for (idle.core.universe.DimensionAutomation automation : idle.core.universe.DimensionAutomation.values()) {
-            if (automation.dimension() == dimension && automation.kind() == idle.core.universe.DimensionAutomation.Kind.PLAY) {
+    /** Achète ceux qui achètent dans cette dimension, coupés, pour que le premier palier de celui qui joue s'offre. */
+    public static void buyUpgradesOnly(Game game, int dimension) {
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
+            if (automation.dimension() == dimension && automation.kind() == DimensionAutomation.Kind.PLAY) {
                 buyPlay(game, automation.previous());
                 return;
             }

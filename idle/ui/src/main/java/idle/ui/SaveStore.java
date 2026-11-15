@@ -1,15 +1,14 @@
 package idle.ui;
 
 import idle.core.Game;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import idle.core.save.SaveCodec;
 import idle.ui.common.Format;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.nio.file.*;
 
 /**
  * Le fichier de sauvegarde : où il est, quand il s'écrit, et comment il se relit.
@@ -28,7 +27,7 @@ import java.util.List;
  *       {@code .illisible}, pour pouvoir être examiné.</li>
  * </ul>
  *
- * <p>Les points de reprise (version 0.127) : {@link #MAX_CHECKPOINTS} emplacements nommés, à côté de la sauvegarde,
+ * <p>Les points de reprise : {@link #MAX_CHECKPOINTS} emplacements nommés, à côté de la sauvegarde,
  * que le joueur remplit et reprend à la main. Ils s'écrivent avec les mêmes précautions. Reprendre un point met
  * d'abord la partie en cours de côté, dans un emplacement à part ({@link #UNDO_SLOT}) : rien ne se perd par erreur.
  *
@@ -37,7 +36,6 @@ import java.util.List;
  * dans un fichier à part, pour que les ressources gratuites n'abîment jamais la vraie partie.
  */
 public final class SaveStore {
-
     /**
      * Ce qu'a donné la lecture au lancement.
      *
@@ -61,9 +59,7 @@ public final class SaveStore {
      * @param problem pourquoi il ne se lit pas, ou un texte vide
      */
     record Checkpoint(int slot, SaveCodec.Preview preview, String problem) {
-        boolean used() {
-            return preview != null;
-        }
+        boolean used() { return preview != null; }
     }
 
     private final boolean enabled;
@@ -105,40 +101,28 @@ public final class SaveStore {
     }
 
     /** Vrai si le jeu sauvegarde : faux seulement quand il a été lancé avec {@code --sans-sauvegarde}. */
-    boolean enabled() {
-        return enabled;
-    }
+    boolean enabled() { return enabled; }
 
     /**
      * Le dossier des données, où s'écrivent la sauvegarde et ses points de reprise : le profil y copie aussi l'image
-     * que le joueur choisit pour son avatar (version 0.147).
+     * que le joueur choisit pour son avatar.
      */
-    public Path folder() {
-        return folder;
-    }
+    public Path folder() { return folder; }
 
     /** Le fichier où s'écrit la partie. */
-    Path file() {
-        return file;
-    }
+    Path file() { return file; }
 
     /** L'instant de la dernière sauvegarde écrite ou relue, en millisecondes depuis 1970 ; 0 s'il n'y en a pas. */
-    long savedAt() {
-        return savedAt;
-    }
+    long savedAt() { return savedAt; }
 
     /** Ce qui a empêché la dernière sauvegarde, ou un texte vide si elle s'est bien passée. */
-    String problem() {
-        return problem;
-    }
+    String problem() { return problem; }
 
     /**
-     * Pourquoi le dernier point de reprise n'a pas pu s'écrire ou s'effacer, ou un texte vide (version 0.127). À part
+     * Pourquoi le dernier point de reprise n'a pas pu s'écrire ou s'effacer, ou un texte vide. À part
      * de {@link #problem()} : un point qui échoue ne fait pas croire que la sauvegarde ordinaire a échoué, et l'inverse.
      */
-    String checkpointProblem() {
-        return checkpointProblem;
-    }
+    String checkpointProblem() { return checkpointProblem; }
 
     /**
      * Reprend la partie sauvegardée, dans la partie en cours. Le fichier d'abord ; s'il est
@@ -201,25 +185,23 @@ public final class SaveStore {
         }
     }
 
-    /** La partie sur une ligne, pour le presse-papiers, avec la version du jeu qui l'exporte (version 0.127). */
+    /** La partie sur une ligne, pour le presse-papiers, avec la version du jeu qui l'exporte. */
     String export(Game game) {
         return SaveCodec.export(game.state(), System.currentTimeMillis(), new SaveCodec.Meta("", Version.CURRENT));
     }
 
     // ------------------------------------------------------------------
-    // Les points de reprise (version 0.127)
+    // Les points de reprise
     // ------------------------------------------------------------------
 
     private Path checkpointFile(int slot) {
         return checkpoints.resolve(slot == UNDO_SLOT ? "avant-reprise.sav" : "point-" + slot + ".sav");
     }
 
-    private static boolean validSlot(int slot) {
-        return slot == UNDO_SLOT || (slot >= 1 && slot <= MAX_CHECKPOINTS);
-    }
+    private static boolean validSlot(int slot) { return slot == UNDO_SLOT || (slot >= 1 && slot <= MAX_CHECKPOINTS); }
 
     /** Les points déjà lus, avec la date et la taille de leur fichier : la page des réglages les redemande à chaque image. */
-    private final java.util.Map<Integer, Object[]> checkpointCache = new java.util.HashMap<>();
+    private final Map<Integer, Object[]> checkpointCache = new HashMap<>();
 
     /** Le point de cet emplacement, lu sur le disque (ou en mémoire, tant que son fichier n'a pas changé). */
     Checkpoint checkpoint(int slot) {
@@ -320,8 +302,8 @@ public final class SaveStore {
         StringBuilder text = new StringBuilder();
         if (!preview.meta().label().isEmpty()) text.append("« ").append(preview.meta().label()).append(" » · ");
         if (preview.savedAt() > 0) {
-            text.append(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", java.util.Locale.FRENCH)
-                    .format(java.time.Instant.ofEpochMilli(preview.savedAt()).atZone(java.time.ZoneId.systemDefault()))).append(" · ");
+            text.append(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.FRENCH)
+                    .format(Instant.ofEpochMilli(preview.savedAt()).atZone(ZoneId.systemDefault()))).append(" · ");
         }
         text.append(preview.meta().gameVersion().isEmpty() ? "version d'avant la 0.127" : "version " + preview.meta().gameVersion());
         text.append(" · ").append(Format.duration(preview.timePlayed())).append(" de jeu");
@@ -369,7 +351,7 @@ public final class SaveStore {
 
     /**
      * L'état de la sauvegarde, sans le chemin du fichier : pour le rapport de bug, qui n'a pas à dire où le joueur
-     * range ses fichiers (version 0.127). Le profil (partie ou essai) suffit.
+     * range ses fichiers. Le profil (partie ou essai) suffit.
      */
     String statusWithoutPath() {
         if (!enabled) return "jeu lancé sans sauvegarde";
@@ -380,9 +362,7 @@ public final class SaveStore {
         return "il y a " + Format.duration(ago) + profile;
     }
 
-    private static Path aside(Path path) {
-        return path.resolveSibling(path.getFileName() + ".illisible");
-    }
+    private static Path aside(Path path) { return path.resolveSibling(path.getFileName() + ".illisible"); }
 
     private static void setAside(Path path) {
         try {

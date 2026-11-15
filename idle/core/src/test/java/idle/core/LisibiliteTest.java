@@ -1,28 +1,23 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
+import idle.core.molecules.*;
 import idle.core.sky.Body;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Ce qui aide à s'y retrouver : l'astre visé, l'espace que demande encore la liste de courses et
- * le temps qu'il faudra, ce que rapporte une création pour l'espace qu'elle prend, et le meilleur
- * achat du moment.
+ * Ce qui aide à s'y retrouver : l'astre visé, l'espace que demande encore la liste de courses et le temps qu'il faudra,
+ * ce que rapporte une création pour l'espace qu'elle prend, et le meilleur achat du moment.
  */
 class LisibiliteTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     /** Après un premier Big Bang, tout ouvert jusqu'aux astres, sans les automatismes de rassemblement et de formation. */
     private static Game openGame(double space) {
@@ -35,13 +30,10 @@ class LisibiliteTest {
         return game;
     }
 
-    private static void fillTable(Game game, int copies) {
-        GameTestSupport.fillTable(game, copies);
-    }
+    private static void fillTable(Game game, int copies) { GameTestSupport.fillTable(game, copies); }
 
     @Nested
     class AstreVise {
-
         @Test
         void aucunAvantLesAstres() {
             Game game = newGame();
@@ -62,7 +54,7 @@ class LisibiliteTest {
 
         @Test
         void lesMatieresExotiquesAttendentLeHuitiemeBigBang() {
-            // Version 0.138 : au septième Big Bang, la nébuleuse planétaire (zéro condition manquante une fois sa
+            // Au septième Big Bang, la nébuleuse planétaire (zéro condition manquante une fois sa
             // matière réunie) ne doit pas passer devant le dernier astre ordinaire, le seul que le joueur peut former.
             Game game = openGame(1e12);
             GameTestSupport.bangs(game, 7);
@@ -90,7 +82,6 @@ class LisibiliteTest {
 
     @Nested
     class EspaceDeLaListeDeCourses {
-
         @Test
         void rienAViserNeDemandeRien() {
             Game game = newGame();
@@ -106,7 +97,7 @@ class LisibiliteTest {
             ShoppingList list = game.shoppingList();
             assertEquals("Amas rocheux", list.target());
             assertEquals(4, list.items().size());
-            assertEquals(java.util.Map.of(Molecule.State.CRYSTAL, 400), list.matter());
+            assertEquals(Map.of(Molecule.State.CRYSTAL, 400), list.matter());
             // Les molécules : 250 × 300 + 30 × 500 + 10 × 760 + 5 × 860 = 101 900 ; leurs quatre lieux : 900 + 1 500 + 2 280 + 2 580 = 7 260 ;
             // la matière au-delà de ces 295 cristaux : 105 fois le plus petit cristal (40) = 4 200.
             assertEquals(113_360, game.shoppingSpace().toDouble(), 1e-6);
@@ -145,10 +136,10 @@ class LisibiliteTest {
             game.state().setCosmosLevel(1);                           // la galaxie est formée
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
-            // L'amas de galaxies demande sa matière dans les trois états (version 0.178), et de la variété dans chacun.
-            assertEquals(java.util.Map.of(Molecule.State.GAS, 60_000_000, Molecule.State.LIQUID, 6_000_000,
+            // L'amas de galaxies demande sa matière dans les trois états, et de la variété dans chacun.
+            assertEquals(Map.of(Molecule.State.GAS, 60_000_000, Molecule.State.LIQUID, 6_000_000,
                     Molecule.State.CRYSTAL, 13_750_000), list.matter());
-            assertEquals(java.util.Map.of(Molecule.State.GAS, 12, Molecule.State.LIQUID, 10, Molecule.State.CRYSTAL, 26), list.sorts());
+            assertEquals(Map.of(Molecule.State.GAS, 12, Molecule.State.LIQUID, 10, Molecule.State.CRYSTAL, 26), list.sorts());
             // Chaque unité de matière compte pour la plus petite molécule de son état (le dihydrogène à 400, l'eau à 200,
             // l'hydrure de lithium à 40), chaque sorte pour ses trois premières molécules et son lieu (six fois la plus
             // petite) : 25 750 047 040 en tout (version 0.179 : 60 % de la matière d'avant).
@@ -162,7 +153,6 @@ class LisibiliteTest {
 
     @Nested
     class MeilleurAchat {
-
         @Test
         void rienAvantLeBigBang() {
             Game game = newGame();

@@ -1,14 +1,11 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Les mécaniques du jeu que le bot peut cesser de jouer (version 0.204), pour {@link AnalyseArrets} : à partir du jalon,
+ * Les mécaniques du jeu que le bot peut cesser de jouer, pour {@link AnalyseArrets} : à partir du jalon,
  * il n'y touche plus. Ce qui est déjà acquis reste (les générateurs du collisionneur continuent de produire, un défi
  * réussi garde sa récompense) ; seuls ses gestes s'arrêtent.
  */
 final class AnalyseMecaniques {
-
     private AnalyseMecaniques() {}
 
     private static AnalyseArrets.Coupure sans(String id, String nom) {

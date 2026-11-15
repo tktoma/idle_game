@@ -2,35 +2,27 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import idle.core.Game;
 import idle.core.sky.Cosmos;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.*;
 
 /**
  * Campagne de validation des 24 comportements de joueur.
  *
- * Deux origines indépendantes : la partie neuve et la sauvegarde avant le
- * huitième Big Bang. Le temps de décision est suffisamment fin pour ne pas
- * court-circuiter les automations de matière (rattrapage toutes les 5 s).
+ * Deux origines indépendantes : la partie neuve et la sauvegarde avant le huitième Big Bang. Le temps de décision est
+ * suffisamment fin pour ne pas court-circuiter les automations de matière (rattrapage toutes les 5 s).
  *
- * Attention : certains profils sont volontairement peu attentifs. L'objectif
- * de ce premier passage est l'absence de crash, la continuité des sauvegardes,
- * des actions réelles et le bilan de progression pour chaque profil. Une
- * victoire dans un délai fixe n'est PAS un invariant pour ces profils.
+ * Attention : certains profils sont volontairement peu attentifs. L'objectif de ce premier passage est l'absence de
+ * crash, la continuité des sauvegardes, des actions réelles et le bilan de progression pour chaque profil. Une victoire
+ * dans un délai fixe n'est PAS un invariant pour ces profils.
  *
- * Version 0.172 : chaque profil est un test à lui (une ligne par profil dans le rapport), et les tests de la classe
- * se jouent en même temps, un par cœur ({@code @Execution(CONCURRENT)} sur chaque méthode, réglages dans
- * {@code junit-platform.properties}) : la campagne prend le temps du profil le plus long, pas la somme des vingt-quatre.
+ * Chaque profil est un test à lui (une ligne par profil dans le rapport), et les tests de la classe se jouent en même
+ * temps, un par cœur ({@code @Execution(CONCURRENT)} sur chaque méthode, réglages dans {@code
+ * junit-platform.properties}) : la campagne prend le temps du profil le plus long, pas la somme des vingt-quatre.
  * Chaque profil a sa partie, sa graine et son dossier ; le moteur ne partage rien entre deux parties, et la classe
  * suivante ne commence qu'une fois toutes ces parties finies (l'annotation est sur les méthodes, pas sur la classe :
  * sur la classe, elle la ferait courir en même temps que les autres classes, dont AnalyseTest, qui règle un état
@@ -45,15 +37,11 @@ class Profiles24CampaignTest {
     private static final AtomicInteger VICTOIRES = new AtomicInteger();
     private static final AtomicInteger AVANCES = new AtomicInteger();
 
-    private static boolean selected(IdleProfiles24.Profile p) {
-        return p.id() >= FIRST && p.id() <= LAST;
-    }
+    private static boolean selected(IdleProfiles24.Profile p) { return p.id() >= FIRST && p.id() <= LAST; }
 
     private static void validateRange() {
-        assertTrue(FIRST >= 1 && LAST <= 24 && FIRST <= LAST,
-                "Bornes de campagne invalides : " + FIRST + "-" + LAST);
-        assertEquals(24, IdleProfiles24.PROFILES.length,
-                "Le nombre de profils a changé : mettre à jour la matrice CI");
+        assertTrue(FIRST >= 1 && LAST <= 24 && FIRST <= LAST, "Bornes de campagne invalides : " + FIRST + "-" + LAST);
+        assertEquals(24, IdleProfiles24.PROFILES.length, "Le nombre de profils a changé : mettre à jour la matrice CI");
     }
 
     /** Les profils du segment, dans l'ordre ; le segment doit être couvert en entier. */
@@ -68,9 +56,7 @@ class Profiles24CampaignTest {
         return liste;
     }
 
-    private static Game fresh(long seed) {
-        return Bots.fresh(seed);
-    }
+    private static Game fresh(long seed) { return Bots.fresh(seed); }
 
     private static Game late(long seed) throws Exception {
         return Bots.load(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"), seed);
@@ -94,38 +80,30 @@ class Profiles24CampaignTest {
                 "Le huitieme Big Bang marque la fin des explosions supplementaires");
         Game sky = fresh(43);
         sky.state().setBigBangs(5);
-        assertFalse(IdleProfiles24.allowExtraPrestige(sky),
-                "Le ciel incomplet du sixieme Big Bang doit etre preserve");
+        assertFalse(IdleProfiles24.allowExtraPrestige(sky), "Le ciel incomplet du sixieme Big Bang doit etre preserve");
     }
 
     @Test
     @Execution(ExecutionMode.CONCURRENT)
     void cadenceDeVingtSecondesRespecteeMalgreUnTickDeSoixante(@TempDir Path out) throws Exception {
         Game rapide = fresh(101);
-        IdleProfiles24 speedy = new IdleProfiles24(
-                rapide, IdleProfiles24.PROFILES[0], 101, 60);
+        IdleProfiles24 speedy = new IdleProfiles24(rapide, IdleProfiles24.PROFILES[0], 101, 60);
         speedy.execute(0.05, out.resolve("rapide"));
-        assertEquals(9, speedy.actions,
-                "Le speedrunner doit pouvoir décider 3 fois par tick de 60 s");
+        assertEquals(9, speedy.actions, "Le speedrunner doit pouvoir décider 3 fois par tick de 60 s");
         Game absent = fresh(102);
-        IdleProfiles24 afk = new IdleProfiles24(
-                absent, IdleProfiles24.PROFILES[16], 102, 60);
+        IdleProfiles24 afk = new IdleProfiles24(absent, IdleProfiles24.PROFILES[16], 102, 60);
         afk.execute(0.05, out.resolve("afk"));
-        assertEquals(1, afk.actions,
-                "Le profil AFK doit garder sa cadence d'une fois par heure");
+        assertEquals(1, afk.actions, "Le profil AFK doit garder sa cadence d'une fois par heure");
     }
 
     @Test
     @Execution(ExecutionMode.CONCURRENT)
     void aucuneExplosionDActionsAuRetourDuneAbsence(@TempDir Path out) throws Exception {
         Game game = fresh(103);
-        IdleProfiles24 mobile = new IdleProfiles24(
-                game, IdleProfiles24.PROFILES[18], 103, 60);
+        IdleProfiles24 mobile = new IdleProfiles24(game, IdleProfiles24.PROFILES[18], 103, 60);
         mobile.execute(2, out.resolve("mobile"));
-        assertTrue(mobile.actions > 0,
-                "Le profil intermittent doit agir quand il est en ligne");
-        assertTrue(mobile.actions <= 12,
-                "Les decisions manquees hors ligne ne doivent pas se rejouer d'un coup");
+        assertTrue(mobile.actions > 0, "Le profil intermittent doit agir quand il est en ligne");
+        assertTrue(mobile.actions <= 12, "Les decisions manquees hors ligne ne doivent pas se rejouer d'un coup");
     }
 
     /** Deux heures depuis une partie neuve, pour chaque profil du segment : un test par profil. */
@@ -170,12 +148,10 @@ class Profiles24CampaignTest {
         boolean won = g.hasCosmos(Cosmos.UNIVERSE);
         // Former l'univers remet volontairement les compteurs a zero :
         // une victoire n'est pas une regression de Big Bangs/astres/cosmos.
-        assertTrue(won || g.bigBangs() >= bbBefore,
-                p.name() + " : Big Bangs perdus sans formation d'univers");
+        assertTrue(won || g.bigBangs() >= bbBefore, p.name() + " : Big Bangs perdus sans formation d'univers");
         assertTrue(won || g.bodiesMature() >= bodiesBefore || g.bigBangs() > bbBefore,
                 p.name() + " : perte des astres sans nouveau Big Bang");
-        assertTrue(won || g.cosmosFormed() >= cosmosBefore,
-                p.name() + " : cosmos perdu sans formation d'univers");
+        assertTrue(won || g.cosmosFormed() >= cosmosBefore, p.name() + " : cosmos perdu sans formation d'univers");
         AVANCES.incrementAndGet();
         if (won) VICTOIRES.incrementAndGet();
         System.out.printf(

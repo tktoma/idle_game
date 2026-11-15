@@ -7,31 +7,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkAutomation;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
+import idle.core.molecules.*;
+import idle.core.sky.*;
 import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Le confort de jeu : ce qui épargne des clics sans rien changer aux règles. Les améliorations
- * d'espace acquises d'elles-mêmes, l'achat groupé en atomes, la création continue, les gestes
- * groupés, la coupure générale des automatismes, les réglages qui traversent les remises à zéro,
- * les molécules favorites et la liste de courses.
+ * Le confort de jeu : ce qui épargne des clics sans rien changer aux règles. Les améliorations d'espace acquises
+ * d'elles-mêmes, l'achat groupé en atomes, la création continue, les gestes groupés, la coupure générale des
+ * automatismes, les réglages qui traversent les remises à zéro, les molécules favorites et la liste de courses.
  */
 class ConfortTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     /** Après un premier Big Bang, sans aucune amélioration d'espace et sans espace. */
     private static Game afterBigBang() {
@@ -48,13 +38,10 @@ class ConfortTest {
         return game;
     }
 
-    private static void give(Game game, String id, int count) {
-        GameTestSupport.give(game, id, count);
-    }
+    private static void give(Game game, String id, int count) { GameTestSupport.give(game, id, count); }
 
     @Nested
     class AmeliorationsDEspacePrisesSeules {
-
         @Test
         void leSeuilAtteintLAmeliorationEstAcquiseSansClic() {
             Game game = afterBigBang();
@@ -114,14 +101,13 @@ class ConfortTest {
 
     @Nested
     class AchatGroupeEnAtomes {
-
         @Test
         void ilSOuvreAvecUneMatiereNoire() {
             Game game = newGame();
             assertFalse(game.isBulkAtomBuyUnlocked());
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.ONE);
-            assertFalse(game.canBuyDark("dark_shop_bulk"));      // Noyaux sombres d'abord (version 0.209)
+            assertFalse(game.canBuyDark("dark_shop_bulk"));      // Noyaux sombres d'abord
             game.state().setDarkLevel("dark_shop_atoms", 1);
             assertTrue(game.canBuyDark("dark_shop_bulk"));
             assertTrue(game.buyDark("dark_shop_bulk"));
@@ -147,7 +133,6 @@ class ConfortTest {
 
     @Nested
     class CreationContinueEtGestesGroupes {
-
         @Test
         void ilsViennentAvecLEspace() {
             Game game = afterBigBang();
@@ -243,7 +228,6 @@ class ConfortTest {
 
     @Nested
     class CoupureDesAutomatismes {
-
         private Game automated() {
             Game game = newGame();
             game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
@@ -318,14 +302,11 @@ class ConfortTest {
         }
 
         @Test
-        void sansAutomatismeIlNYARienACouper() {
-            assertFalse(newGame().hasAnyAutomation());
-        }
+        void sansAutomatismeIlNYARienACouper() { assertFalse(newGame().hasAnyAutomation()); }
     }
 
     @Nested
     class ReglagesRetenus {
-
         @Test
         void lesAutomatismesDeMatiereNoireReprennentQuandLaMatiereNoireRevient() {
             Game game = newGame();
@@ -383,7 +364,6 @@ class ConfortTest {
 
     @Nested
     class MoleculesFavorites {
-
         @Test
         void uneMoleculeSEpingleEtSeRetire() {
             Game game = afterBigBang();
@@ -417,7 +397,6 @@ class ConfortTest {
 
     @Nested
     class ListeDeCourses {
-
         @Test
         void rienAViserAvantLeBigBang() {
             assertEquals(ShoppingList.Kind.NONE, newGame().shoppingList().kind());

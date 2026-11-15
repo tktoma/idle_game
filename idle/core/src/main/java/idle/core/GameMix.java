@@ -1,18 +1,16 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * Le mélange, dixième dimension (version 0.158, refait à la 0.159) : un seul mini-jeu qui mêle, étape par étape, les
+ * Le mélange, dixième dimension : un seul mini-jeu qui mêle, étape par étape, les
  * mécaniques des neuf autres dimensions. À l'étape 1, il n'y a que la ligne ; chaque étape suivante y mêle la dimension
  * d'après, jusqu'à l'étape 9 où tout est mêlé. Les fragments (la ressource) gagnés à une étape ouvrent la suivante ; y
  * passer remet à zéro les améliorations du mélange, propres à chaque étape. Chaque dimension mêlée de plus multiplie
@@ -36,7 +34,6 @@ import java.util.random.RandomGenerator;
  * <p>Avec le mélange vient la dernière amélioration de la graine : elle ouvre la bulle des racines, sous la graine.
  */
 public abstract class GameMix extends GameMirror {
-
     GameMix(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -76,14 +73,10 @@ public abstract class GameMix extends GameMirror {
         }
 
         /** L'étape où elle s'ouvre : celle où sa mécanique est mêlée. */
-        public int stage() {
-            return stage;
-        }
+        public int stage() { return stage; }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Un éclat posé sur l'arène : où, à quelle profondeur, son numéro et celui de son reflet (0 sans reflet). */
@@ -94,7 +87,7 @@ public abstract class GameMix extends GameMirror {
     public static final class MixWave {
         private final double x, y, reach;
         private double radius;
-        private final java.util.Set<Long> hit = new java.util.HashSet<>();
+        private final Set<Long> hit = new HashSet<>();
 
         MixWave(double x, double y, double reach) {
             this.x = x;
@@ -102,28 +95,18 @@ public abstract class GameMix extends GameMirror {
             this.reach = reach;
         }
 
-        public double x() {
-            return x;
-        }
+        public double x() { return x; }
 
-        public double y() {
-            return y;
-        }
+        public double y() { return y; }
 
-        public double radius() {
-            return radius;
-        }
+        public double radius() { return radius; }
 
-        public double reach() {
-            return reach;
-        }
+        public double reach() { return reach; }
     }
 
     /** Une zone ×2 du clicker : son centre, son rayon, son temps restant. */
     public record MixZone(double x, double y, double radius, double left) {
-        public boolean contains(double px, double py) {
-            return Math.hypot(px - x, py - y) <= radius;
-        }
+        public boolean contains(double px, double py) { return Math.hypot(px - x, py - y) <= radius; }
     }
 
     /** Ce qu'a donné le dernier relâchement, selon le rythme. */
@@ -165,7 +148,7 @@ public abstract class GameMix extends GameMirror {
     /** Le miroir : le reflet ramassé juste après son éclat vaut ×2, +0,25 par niveau ; chaque paire de suite +10 %. */
     public static final double MIX_PAIR = 2, MIX_PAIR_STEP = 0.25, MIX_PAIR_STREAK = 0.1;
 
-    private final java.util.Random mixRandom = new java.util.Random(10);
+    private final Random mixRandom = new Random(10);
     private final List<MixShard> mixShards = new ArrayList<>();
     private final List<MixWave> mixWaves = new ArrayList<>();
     private final List<MixZone> mixZones = new ArrayList<>();
@@ -178,23 +161,15 @@ public abstract class GameMix extends GameMirror {
     private MixRhythm mixLastRhythm = MixRhythm.NONE;
 
     /** Vrai dès que la dixième dimension est ouverte : au dixième univers. */
-    public boolean isMixOpen() {
-        return dimensionsUnlocked() >= 10;
-    }
+    public boolean isMixOpen() { return dimensionsUnlocked() >= 10; }
 
-    public int mixLevel(MixUpgrade upgrade) {
-        return state.mixLevel(upgrade.ordinal());
-    }
+    public int mixLevel(MixUpgrade upgrade) { return state.mixLevel(upgrade.ordinal()); }
 
     /** L'étape : le nombre de dimensions mêlées. */
-    public int mixStage() {
-        return state.mixStage();
-    }
+    public int mixStage() { return state.mixStage(); }
 
     /** Vrai si la mécanique de la dimension {@code dimension} est mêlée à l'étape en cours. */
-    public boolean isMixing(int dimension) {
-        return mixStage() >= dimension;
-    }
+    public boolean isMixing(int dimension) { return mixStage() >= dimension; }
 
     /** Les fragments à gagner à cette étape pour ouvrir la suivante ; infini à la dernière. */
     public double mixStageGoal() {
@@ -235,14 +210,10 @@ public abstract class GameMix extends GameMirror {
     // ------------------------------------------------------------------
 
     /** Ce que garde le malus : 10 % au départ de chaque étape, jusqu'à tout. */
-    public double mixMalus() {
-        return Math.min(1, MIX_MALUS * Math.pow(MIX_MALUS_STEP, mixLevel(MixUpgrade.MALUS)));
-    }
+    public double mixMalus() { return Math.min(1, MIX_MALUS * Math.pow(MIX_MALUS_STEP, mixLevel(MixUpgrade.MALUS))); }
 
     /** Le multiplicateur des dimensions mêlées : +50 % par dimension de plus. */
-    public double mixStageMultiplier() {
-        return 1 + MIX_STAGE_BONUS * (mixStage() - 1);
-    }
+    public double mixStageMultiplier() { return 1 + MIX_STAGE_BONUS * (mixStage() - 1); }
 
     /** Le multiplicateur de cadence du clicker (étape 7) : 1 avant. */
     public double mixClickMultiplier() {
@@ -252,7 +223,7 @@ public abstract class GameMix extends GameMirror {
 
     /** Ce que vaut une graduation : gain, omégas, malus, dimensions mêlées, cadence. */
     public double mixValue() {
-        return (1 + mixLevel(MixUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA) * mixMalus() * mixStageMultiplier()
+        return (1 + mixLevel(MixUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA) * mixMalus() * mixStageMultiplier()
                 * mixClickMultiplier();
     }
 
@@ -268,53 +239,31 @@ public abstract class GameMix extends GameMirror {
     // Ce que voit l'interface
     // ------------------------------------------------------------------
 
-    public int mixTicks() {
-        return MIX_TICKS + mixLevel(MixUpgrade.TICKS);
-    }
+    public int mixTicks() { return MIX_TICKS + mixLevel(MixUpgrade.TICKS); }
 
     /** Où est la graduation {@code index} (de 0 à {@link #mixTicks()} − 1) sur la ligne. */
-    public double mixTickX(int index) {
-        return (index + 1.0) / (mixTicks() + 1);
-    }
+    public double mixTickX(int index) { return (index + 1.0) / (mixTicks() + 1); }
 
     /** Où est la boule sur la ligne, de 0 à 1. */
-    public double mixBall() {
-        return mixBall;
-    }
+    public double mixBall() { return mixBall; }
 
-    public List<MixShard> mixShardList() {
-        return Collections.unmodifiableList(mixShards);
-    }
+    public List<MixShard> mixShardList() { return Collections.unmodifiableList(mixShards); }
 
-    public double mixX() {
-        return mixX;
-    }
+    public double mixX() { return mixX; }
 
-    public double mixY() {
-        return mixY;
-    }
+    public double mixY() { return mixY; }
 
     /** La profondeur du point (étape 3), de 0 à 1. */
-    public double mixDepth() {
-        return mixDepth;
-    }
+    public double mixDepth() { return mixDepth; }
 
-    public double mixCursorSpeed() {
-        return MIX_CURSOR_SPEED * (1 + MIX_CURSOR_STEP * mixLevel(MixUpgrade.SPEED));
-    }
+    public double mixCursorSpeed() { return MIX_CURSOR_SPEED * (1 + MIX_CURSOR_STEP * mixLevel(MixUpgrade.SPEED)); }
 
-    public double mixDepthTolerance() {
-        return MIX_DEPTH_TOLERANCE + MIX_DEPTH_STEP * mixLevel(MixUpgrade.DEPTH);
-    }
+    public double mixDepthTolerance() { return MIX_DEPTH_TOLERANCE + MIX_DEPTH_STEP * mixLevel(MixUpgrade.DEPTH); }
 
     /** La charge en attente (étape 4). */
-    public double mixPot() {
-        return mixPot;
-    }
+    public double mixPot() { return mixPot; }
 
-    public boolean isMixHolding() {
-        return mixHolding;
-    }
+    public boolean isMixHolding() { return mixHolding; }
 
     /** Le multiplicateur de la charge en ce moment : de 1 à 2 (et plus) en 8 s tenues. */
     public double mixChargeMultiplier() {
@@ -323,18 +272,12 @@ public abstract class GameMix extends GameMirror {
     }
 
     /** Où est le point du rythme sur son cercle, en tours (étape 5). */
-    public double mixRingPhase() {
-        return mixRingPhase;
-    }
+    public double mixRingPhase() { return mixRingPhase; }
 
     /** Le centre de la zone du rythme, en tours. */
-    public double mixRingZone() {
-        return mixRingZone;
-    }
+    public double mixRingZone() { return mixRingZone; }
 
-    public double mixRingHalfWidth() {
-        return MIX_RING_HALF * (1 + MIX_RING_STEP * mixLevel(MixUpgrade.RHYTHM));
-    }
+    public double mixRingHalfWidth() { return MIX_RING_HALF * (1 + MIX_RING_STEP * mixLevel(MixUpgrade.RHYTHM)); }
 
     /** Ce que donnerait un relâchement maintenant, selon le rythme : NONE avant l'étape 5. */
     public MixRhythm mixRhythmNow() {
@@ -354,30 +297,18 @@ public abstract class GameMix extends GameMirror {
         };
     }
 
-    public MixRhythm mixLastRhythm() {
-        return mixLastRhythm;
-    }
+    public MixRhythm mixLastRhythm() { return mixLastRhythm; }
 
-    public List<MixWave> mixWaves() {
-        return Collections.unmodifiableList(mixWaves);
-    }
+    public List<MixWave> mixWaves() { return Collections.unmodifiableList(mixWaves); }
 
-    public double mixWaveReach() {
-        return MIX_WAVE_REACH * (1 + MIX_WAVE_STEP * mixLevel(MixUpgrade.REACH));
-    }
+    public double mixWaveReach() { return MIX_WAVE_REACH * (1 + MIX_WAVE_STEP * mixLevel(MixUpgrade.REACH)); }
 
-    public List<MixZone> mixZones() {
-        return Collections.unmodifiableList(mixZones);
-    }
+    public List<MixZone> mixZones() { return Collections.unmodifiableList(mixZones); }
 
-    public int mixMaxZones() {
-        return isMixing(7) ? 1 + mixLevel(MixUpgrade.ZONES) : 0;
-    }
+    public int mixMaxZones() { return isMixing(7) ? 1 + mixLevel(MixUpgrade.ZONES) : 0; }
 
     /** Les clics par seconde, comptés sur deux secondes. */
-    public double mixClickRate() {
-        return mixClicks.size() / 2.0;
-    }
+    public double mixClickRate() { return mixClicks.size() / 2.0; }
 
     /** La chaleur du trésor sous le point (étape 8) : de 0 (loin) à 1 (dessus) ; 0 avant. */
     public double mixHeat() {
@@ -385,30 +316,18 @@ public abstract class GameMix extends GameMirror {
         return Math.max(0, 1 - Math.hypot(mixX - mixTreasureX, mixY - mixTreasureY) / Math.sqrt(2));
     }
 
-    public long mixTreasures() {
-        return mixTreasures;
-    }
+    public long mixTreasures() { return mixTreasures; }
 
-    public double mixTreasureValue() {
-        return MIX_TREASURE * (1 + MIX_TREASURE_STEP * mixLevel(MixUpgrade.TREASURE));
-    }
+    public double mixTreasureValue() { return MIX_TREASURE * (1 + MIX_TREASURE_STEP * mixLevel(MixUpgrade.TREASURE)); }
 
-    public double mixPairFactor() {
-        return MIX_PAIR + MIX_PAIR_STEP * mixLevel(MixUpgrade.PAIRS);
-    }
+    public double mixPairFactor() { return MIX_PAIR + MIX_PAIR_STEP * mixLevel(MixUpgrade.PAIRS); }
 
     /** Les paires ramassées de suite. */
-    public long mixPairStreak() {
-        return mixPairStreak;
-    }
+    public long mixPairStreak() { return mixPairStreak; }
 
-    public long mixReleases() {
-        return mixReleases;
-    }
+    public long mixReleases() { return mixReleases; }
 
-    public double mixLastGain() {
-        return mixLastGain;
-    }
+    public double mixLastGain() { return mixLastGain; }
 
     // ------------------------------------------------------------------
     // Ce que fait le joueur
@@ -433,9 +352,7 @@ public abstract class GameMix extends GameMirror {
     }
 
     /** Le point plonge vers cette profondeur (étape 3). */
-    public void setMixDepth(double depth) {
-        mixTargetDepth = clamp(depth);
-    }
+    public void setMixDepth(double depth) { mixTargetDepth = clamp(depth); }
 
     /** Tient le bouton (étape 4) : la charge monte. Le relâcher la verse, au rythme du cercle, et lance l'onde. */
     public void holdMix(boolean hold) {
@@ -466,9 +383,7 @@ public abstract class GameMix extends GameMirror {
         mixClicks.addLast(mixClock);
     }
 
-    private static double clamp(double v) {
-        return Math.max(0, Math.min(1, v));
-    }
+    private static double clamp(double v) { return Math.max(0, Math.min(1, v)); }
 
     // ------------------------------------------------------------------
     // Le temps
@@ -569,7 +484,7 @@ public abstract class GameMix extends GameMirror {
             double dd = mixTargetDepth - mixDepth, step = MIX_DIVE_SPEED * dt;
             mixDepth = Math.abs(dd) <= step ? mixTargetDepth : mixDepth + Math.signum(dd) * step;
         }
-        for (java.util.Iterator<MixShard> it = mixShards.iterator(); it.hasNext(); ) {
+        for (Iterator<MixShard> it = mixShards.iterator(); it.hasNext(); ) {
             MixShard shard = it.next();
             if (Math.hypot(shard.x() - mixX, shard.y() - mixY) > MIX_REACH_RADIUS) continue;
             if (isMixing(3) && Math.abs(shard.depth() - mixDepth) > mixDepthTolerance() + 1e-9) continue;
@@ -601,13 +516,13 @@ public abstract class GameMix extends GameMirror {
 
     /** Les ondes grandissent et ramassent les éclats que leur front (ou un rebond) passe, d'un coup, sans la charge. */
     private void runWaves(double dt) {
-        for (java.util.Iterator<MixWave> it = mixWaves.iterator(); it.hasNext(); ) {
+        for (Iterator<MixWave> it = mixWaves.iterator(); it.hasNext(); ) {
             MixWave wave = it.next();
             double from = wave.radius, to = Math.min(wave.reach, from + MIX_WAVE_SPEED * dt);
             wave.radius = to;
             // L'arène va de 0 à 1 ; la brane, de −1 à 1 : on passe d'un repère à l'autre pour réutiliser ses images.
             double[][] xs = GameBrane.images(2 * wave.x - 1), ys = GameBrane.images(2 * wave.y - 1);
-            for (java.util.Iterator<MixShard> s = mixShards.iterator(); s.hasNext(); ) {
+            for (Iterator<MixShard> s = mixShards.iterator(); s.hasNext(); ) {
                 MixShard shard = s.next();
                 double best = Double.POSITIVE_INFINITY;
                 int bounces = 0;
@@ -664,7 +579,7 @@ public abstract class GameMix extends GameMirror {
 
     /**
      * Le mélange automatique : le point file vers l'éclat le plus proche (et plonge à sa profondeur) ; il tient la charge
-     * et la relâche une fois pleine, quand le rythme est au moins « bien » ; il clique. Version 0.209 : il fait tout cela
+     * et la relâche une fois pleine, quand le rythme est au moins « bien » ; il clique. Il fait tout cela
      * une fois par action de son palier (six clics par seconde, et le reste à chaque pas, de la 0.158 à la 0.208).
      */
     private void playMixAutomatically(double dt) {
@@ -700,18 +615,14 @@ public abstract class GameMix extends GameMirror {
     }
 
     /** Vrai quand le mélange automatique tourne (automatisation des dimensions, version 0.158). */
-    boolean isMixAutomatic() {
-        return isDimensionPlayed(10);
-    }
+    boolean isMixAutomatic() { return isDimensionPlayed(10); }
 
     // ------------------------------------------------------------------
     // Les améliorations
     // ------------------------------------------------------------------
 
     /** Prix du prochain niveau, en fragments ; infini une fois au plus haut. */
-    public double mixCost(MixUpgrade upgrade) {
-        return upgrade.cost(mixLevel(upgrade));
-    }
+    public double mixCost(MixUpgrade upgrade) { return upgrade.cost(mixLevel(upgrade)); }
 
     public boolean canBuyMix(MixUpgrade upgrade) {
         return isMixOpen() && mixStage() >= upgrade.stage() && mixLevel(upgrade) < upgrade.max()
@@ -726,9 +637,7 @@ public abstract class GameMix extends GameMirror {
     }
 
     @Override
-    boolean buyMixUpgrade(int index) {
-        return buyMix(MixUpgrade.values()[index]);
-    }
+    boolean buyMixUpgrade(int index) { return buyMix(MixUpgrade.values()[index]); }
 
     // ------------------------------------------------------------------
     // Outils d'essai

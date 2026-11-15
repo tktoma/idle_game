@@ -1,34 +1,25 @@
 import idle.core.history.Noms;
+import idle.core.bigbang.*;
 import idle.core.Game;
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.Challenges;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkAutomations;
+import idle.core.darkmatter.*;
 import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Automations;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import idle.core.upgrades.*;
+import java.util.*;
 
 /**
- * Le « pourquoi » du bot analyste (version 0.162) : ce que demande et rapporte un défi, ce qu'apporte un succès, ce
+ * Le « pourquoi » du bot analyste : ce que demande et rapporte un défi, ce qu'apporte un succès, ce
  * que fait un automatisme. Les textes reprennent ceux du jeu (les fenêtres des défis et des succès), en plus court ;
  * les nombres viennent des constantes du moteur, pour rester justes quand l'équilibrage change.
  */
 final class AnalysePourquoi {
-
     private AnalysePourquoi() {}
 
     private static String fois(double value) {
         return value == Math.rint(value) ? String.valueOf((long) value) : String.format(Locale.FRANCE, "%.2f", value);
     }
 
-    private static String pourcent(double fraction) {
-        return String.format(Locale.FRANCE, "%.0f %%", 100 * fraction);
-    }
+    private static String pourcent(double fraction) { return String.format(Locale.FRANCE, "%.0f %%", 100 * fraction); }
 
     /** Le défi d'explosion de cet identifiant, ou {@code null}. */
     static Challenge defi(String id) {
@@ -92,7 +83,7 @@ final class AnalysePourquoi {
             out.add(b.keepsRun() ? "Commencer ne remet rien à zéro." : "Commencer remet la partie à zéro comme un Big Bang, sans en compter un.");
         }
         for (var condition : g.bigBangConditions()) {
-            if (condition == idle.core.bigbang.BigBangCondition.CHALLENGES && !g.isBigBangConditionMet(condition)) {
+            if (condition == BigBangCondition.CHALLENGES && !g.isBigBangConditionMet(condition)) {
                 out.add("Les défis d'explosion sont une condition du Big Bang n° " + (g.bigBangs() + 1) + ", pas encore remplie : il faut les faire.");
             }
         }
@@ -109,7 +100,7 @@ final class AnalysePourquoi {
         }
         out.add("Comme chaque succès : +" + pourcent(Game.ACHIEVEMENT_PARTICLES) + " de particules.");
         for (var condition : g.bigBangConditions()) {
-            if (condition == idle.core.bigbang.BigBangCondition.ACHIEVEMENTS) {
+            if (condition == BigBangCondition.ACHIEVEMENTS) {
                 out.add("Les succès comptent pour le Big Bang n° " + (g.bigBangs() + 1)
                         + (g.isBigBangConditionMet(condition) ? " : la condition est remplie." : " : la condition n'est pas encore remplie."));
             }

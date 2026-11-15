@@ -8,12 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * L'automatisation du troisième acte et ses réglages : l'ordre d'achat choisi par le joueur,
@@ -21,10 +18,7 @@ import org.junit.jupiter.api.Test;
  * automatique, « tout confier », le rassemblement et la formation automatiques.
  */
 class AutomatisationTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     /** Une partie qui connaît la matière noire : assez pour tous ses automatismes, sauf celui de l'arbre. */
     private static Game darkGame() {
@@ -43,13 +37,9 @@ class AutomatisationTest {
         return game;
     }
 
-    private static void fillTable(Game game, int copies) {
-        GameTestSupport.fillTable(game, copies);
-    }
+    private static void fillTable(Game game, int copies) { GameTestSupport.fillTable(game, copies); }
 
-    private static void give(Game game, String id, int count) {
-        GameTestSupport.give(game, id, count);
-    }
+    private static void give(Game game, String id, int count) { GameTestSupport.give(game, id, count); }
 
     private static List<String> ids(List<Upgrade> upgrades) {
         List<String> ids = new ArrayList<>();
@@ -59,7 +49,6 @@ class AutomatisationTest {
 
     @Nested
     class OrdreDesAmeliorationsEnAtomes {
-
         @Test
         void sansReglageCEstLOrdreDuCatalogueEtLeMoinsCherDAbord() {
             Game game = darkGame();
@@ -192,7 +181,6 @@ class AutomatisationTest {
 
     @Nested
     class OrdreDesAutomatismes {
-
         @Test
         void unAutomatismeMonteEtDescend() {
             Game game = darkGame();
@@ -240,7 +228,6 @@ class AutomatisationTest {
 
     @Nested
     class ArbreDeMatiereNoire {
-
         @Test
         void ilAttendLePremierBigBang() {
             Game game = darkGame();
@@ -278,7 +265,7 @@ class AutomatisationTest {
                     // Tout ce qui a un dernier niveau y est porté, case ou boutique.
                     if (game.isDarkAvailable(upgrade.id())) assertEquals(upgrade.maxLevel(), level, upgrade.id());
                 } else if (!tree) {
-                    // La boutique sans limite reste au joueur, sauf le premier niveau de Noyaux sombres (version 0.209).
+                    // La boutique sans limite reste au joueur, sauf le premier niveau de Noyaux sombres.
                     assertEquals(upgrade.id().equals(Game.KEY_DARK_UPGRADE) ? 1 : 0, level, upgrade.id());
                 } else {
                     // Une case sans dernier niveau est ouverte, puis montée tant qu'un niveau coûte au plus 1 % de sa branche :
@@ -331,7 +318,6 @@ class AutomatisationTest {
 
     @Nested
     class CreationAutomatique {
-
         private Game game(double space) {
             Game game = spaceGame(space, "space_states");
             GameTestSupport.bangs(game, 2);
@@ -418,7 +404,6 @@ class AutomatisationTest {
 
     @Nested
     class RassemblementEtFormationAutomatiques {
-
         @Test
         void ilsViennentAvecLEspace() {
             Game game = spaceGame(0, "space_states");

@@ -1,35 +1,27 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.ui.pages.SettingsPage;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import javafx.scene.*;
 import javafx.scene.control.Button;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.146 : le sous-onglet « Notifications et signes » des réglages, sous Xvfb. Les notifications, l'objectif et les
+ * Le sous-onglet « Notifications et signes » des réglages, sous Xvfb. Les notifications, l'objectif et les
  * signes d'état y sont réunis ; chaque catégorie a son bouton, grisé quand son grand interrupteur est coupé.
  */
 class NotificationsEtSignesPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
-    void showAllDots() {
-        Readiness.setHidden(java.util.Set.of());
-    }
+    void showAllDots() { Readiness.setHidden(Set.of()); }
 
     /** Ce que la page demande à la fenêtre : rien à sauvegarder ici. */
     static SettingsPage.Saves saves() {

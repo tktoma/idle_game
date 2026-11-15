@@ -6,33 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
 import idle.ui.atoms.AtomView;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.192 : les skins des icônes d'onglet sous Xvfb. Chaque skin dessine les treize icônes et l'atome, aux deux
+ * Les skins des icônes d'onglet sous Xvfb. Chaque skin dessine les treize icônes et l'atome, aux deux
  * tailles, éclairées ou sourdes, sans exception ; chaque icône a un modèle avec des points ; « Figées » arrête le temps
  * et le réglage coupé aussi ; le pixel art ramène la couleur à huit valeurs ; sans skin, tout tourne comme avant.
  */
 class TabIconSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
-    void classic() {
-        TabIcon.setSkin(null);
-    }
+    void classic() { TabIcon.setSkin(null); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

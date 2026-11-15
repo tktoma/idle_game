@@ -1,19 +1,13 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import java.util.*;
 import idle.core.molecules.Molecule;
-import java.util.List;
 import javafx.scene.paint.Color;
 
-/**
- * La vue de l'espace : la géométrie du rangement (grilles, croissance, soudures, collisions, couleurs).
- */
+/** La vue de l'espace : la géométrie du rangement (grilles, croissance, soudures, collisions, couleurs). */
 public abstract class SpaceViewPacking extends SpaceViewPlacement {
-
-    SpaceViewPacking(Game game) {
-        super(game);
-    }
-
+    SpaceViewPacking(Game game) { super(game); }
 
     /**
      * Pose les clairières l'une après l'autre : la première au centre, chaque suivante contre une de
@@ -78,7 +72,7 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
             if (gap > within) continue;
             ranked[free++] = ((long) Float.floatToIntBits((float) gap) << 32) | cell;
         }
-        java.util.Arrays.sort(ranked, 0, free);
+        Arrays.sort(ranked, 0, free);
         for (int index = 0; index < free && held < wanted; index++) {
             int cell = (int) ranked[index];
             owner[cell] = cluster;
@@ -88,10 +82,9 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
     }
 
     /**
-     * Mesure le cercle où le dessin de chaque astre peut tenir : sa clairière, moins tout ce qui
-     * s'en approche. Rien de ce qui est dessiné autour ne doit être touché : ni le rond ou le pont
-     * d'un amas, ni une molécule isolée, ni le bord du cœur. Les autres astres n'ont pas à être
-     * mesurés, leurs clairières ne se recouvrent pas.
+     * Mesure le cercle où le dessin de chaque astre peut tenir : sa clairière, moins tout ce qui s'en approche. Rien de
+     * ce qui est dessiné autour ne doit être touché : ni le rond ou le pont d'un amas, ni une molécule isolée, ni le
+     * bord du cœur. Les autres astres n'ont pas à être mesurés, leurs clairières ne se recouvrent pas.
      */
     void clear(double[] x, double[] y, int[] owner, double span, Grid grid) {
         for (int body = 0; body < sky.length; body++) {
@@ -123,10 +116,9 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
     }
 
     /**
-     * Les ponts d'un amas : ceux qui l'ont construit ({@code tree}, un par molécule ajoutée), plus un
-     * pont entre deux de ses molécules chaque fois qu'elles sont à moins de {@code join} l'une de
-     * l'autre. Un amas n'est donc pas un chapelet de molécules reliées à la file, mais un tissu où
-     * chacune tient à toutes ses voisines.
+     * Les ponts d'un amas : ceux qui l'ont construit ({@code tree}, un par molécule ajoutée), plus un pont entre deux
+     * de ses molécules chaque fois qu'elles sont à moins de {@code join} l'une de l'autre. Un amas n'est donc pas un
+     * chapelet de molécules reliées à la file, mais un tissu où chacune tient à toutes ses voisines.
      *
      * @return les ponts, deux places par pont, sans doublon
      */
@@ -136,7 +128,7 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
         int count = 0;
         for (int link = 0; link < tree.length; link += 2) {
             if (seen.add(pair(tree[link], tree[link + 1]))) {
-                if (count + 2 > pairs.length) pairs = java.util.Arrays.copyOf(pairs, 2 * pairs.length);
+                if (count + 2 > pairs.length) pairs = Arrays.copyOf(pairs, 2 * pairs.length);
                 pairs[count++] = tree[link];
                 pairs[count++] = tree[link + 1];
             }
@@ -156,18 +148,18 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
                 if (Math.hypot(x[to] - x[from], y[to] - y[from]) > join) continue;
                 near[kept++] = rank[to];
             }
-            java.util.Arrays.sort(near, 0, kept);
+            Arrays.sort(near, 0, kept);
             for (int each = 0; each < kept; each++) {
                 int to = cells[near[each]];
                 if (seen.add(pair(from, to))) {
-                    if (count + 2 > pairs.length) pairs = java.util.Arrays.copyOf(pairs, 2 * pairs.length);
+                    if (count + 2 > pairs.length) pairs = Arrays.copyOf(pairs, 2 * pairs.length);
                     pairs[count++] = from;
                     pairs[count++] = to;
                 }
             }
         }
         for (int cell : cells) rank[cell] = -1;
-        return java.util.Arrays.copyOf(pairs, count);
+        return Arrays.copyOf(pairs, count);
     }
 
     /**
@@ -202,34 +194,28 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
             return true;
         }
 
-        boolean contains(long key) {
-            return used[slot(key)];
-        }
+        boolean contains(long key) { return used[slot(key)]; }
     }
 
     /** Une clé pour la paire de places (a, b), la même dans les deux sens. */
-    private static long pair(int a, int b) {
-        return ((long) Math.min(a, b) << 32) | Math.max(a, b);
-    }
+    private static long pair(int a, int b) { return ((long) Math.min(a, b) << 32) | Math.max(a, b); }
 
     /**
-     * La collision des amas : taille le rond de chaque molécule rassemblée, puis chaque pont, pour
-     * qu'aucun amas n'en recouvre un autre. Tout se mesure en rayons de place.
+     * La collision des amas : taille le rond de chaque molécule rassemblée, puis chaque pont, pour qu'aucun amas n'en
+     * recouvre un autre. Tout se mesure en rayons de place.
      *
      * <p>Un rond a le rayon {@link #BLOB_SHARE}, sauf s'il rencontre avant :
      * <ul>
-     *   <li>le rond d'un autre amas : chacun s'arrête à mi-chemin, et les deux se touchent sans se
-     *       recouvrir ;</li>
-     *   <li>le dessin d'une molécule qui n'est pas rassemblée : le rond s'arrête à son bord ;</li>
-     *   <li>le bord du cœur utilisé : aucun amas n'en dépasse.</li>
-     * </ul>
-     * Les ronds d'un même amas, eux, se recouvrent librement : c'est ce qui les soude. Un pont est
-     * aussi large qu'il peut l'être sans toucher un rond ou un pont d'un autre amas ; s'il n'a pas
-     * la place de passer, il n'est pas dessiné ({@link #THINNEST_BRIDGE}). Trois molécules reliées
-     * deux à deux ferment un triangle, qui est rempli s'il ne contient rien d'étranger à l'amas.
+     * <li>le rond d'un autre amas : chacun s'arrête à mi-chemin, et les deux se touchent sans se recouvrir ;</li>
+     * <li>le dessin d'une molécule qui n'est pas rassemblée : le rond s'arrête à son bord ;</li>
+     * <li>le bord du cœur utilisé : aucun amas n'en dépasse.</li>
+     * </ul> Les ronds d'un même amas, eux, se recouvrent librement : c'est ce qui les soude. Un pont est aussi large
+     * qu'il peut l'être sans toucher un rond ou un pont d'un autre amas ; s'il n'a pas la place de passer, il n'est pas
+     * dessiné ({@link #THINNEST_BRIDGE}). Trois molécules reliées deux à deux ferment un triangle, qui est rempli s'il
+     * ne contient rien d'étranger à l'amas.
      *
      * @param owner l'amas de chaque place, ou -1 si sa molécule n'est pas rassemblée
-     * @param span  le rayon du cœur utilisé
+     * @param span le rayon du cœur utilisé
      */
     void collide(double[] x, double[] y, int[] owner, double span, Grid grid) {
         int count = x.length;
@@ -280,8 +266,8 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
         int[] laidCluster = new int[total];
         int[] laidNext = new int[total];
         int[] firstLaid = new int[count];
-        java.util.Arrays.fill(firstLaid, -1);
-        List<Integer> longOnes = new java.util.ArrayList<>();
+        Arrays.fill(firstLaid, -1);
+        List<Integer> longOnes = new ArrayList<>();
         double longest = 2 * FAR;
         int laid = 0;
 
@@ -409,13 +395,13 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
                     empty = !((side1 >= 0 && side2 >= 0 && side3 >= 0) || (side1 <= 0 && side2 <= 0 && side3 <= 0));
                 }
                 if (!empty) continue;
-                if (count + 3 > kept.length) kept = java.util.Arrays.copyOf(kept, 2 * kept.length);
+                if (count + 3 > kept.length) kept = Arrays.copyOf(kept, 2 * kept.length);
                 kept[count++] = a;
                 kept[count++] = b;
                 kept[count++] = c;
             }
         }
-        return java.util.Arrays.copyOf(kept, count);
+        return Arrays.copyOf(kept, count);
     }
 
     /**

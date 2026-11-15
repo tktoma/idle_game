@@ -1,6 +1,7 @@
 package idle.ui.probes;
 
 import idle.core.Game;
+import java.util.function.LongConsumer;
 import idle.core.collider.Quark;
 import idle.core.elements.PeriodicTable;
 import idle.core.molecules.Molecule;
@@ -20,12 +21,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
  * Les sondes, sous-page du Big Bang : le butin rapporté, à réclamer d'un clic, récompense par
@@ -33,7 +31,6 @@ import javafx.scene.layout.VBox;
  * payées en échantillons. Rien ne s'y perd au Big Bang.
  */
 public final class ProbesPane extends VBox {
-
     public static final String COLOR = "#ffcf8a";
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 6 14; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + COLOR + "; -fx-background-color: #2a1f10; -fx-border-color: " + COLOR + ";";
@@ -53,7 +50,7 @@ public final class ProbesPane extends VBox {
     private final ProbesView view;
     private final CanvasPane viewPane;
     /** Ce qu'ouvre un clic sur une sonde arrivée : le panneau du butin. Sans panneau, tout s'ouvre d'un coup. */
-    private java.util.function.LongConsumer opener;
+    private LongConsumer opener;
     private final Label boostLabel = new Label();
     private final VBox flying = new VBox(4);
     private final List<Label> flyingLabels = new ArrayList<>();
@@ -128,7 +125,7 @@ public final class ProbesPane extends VBox {
             tripButtons.put(trip, button);
             trips.getChildren().add(button);
         }
-        // L'onde d'urgence chimique (version 0.086) : sans destination, elle rapporte l'élément le plus demandé.
+        // L'onde d'urgence chimique : sans destination, elle rapporte l'élément le plus demandé.
         urgent.setStyle(BUTTON_STYLE);
         urgent.setFocusTraversable(false);
         urgent.setOnAction(event -> {
@@ -158,29 +155,19 @@ public final class ProbesPane extends VBox {
     }
 
     /** Le panneau qui ouvre le butin d'une sonde, par son numéro. */
-    public void setOpener(java.util.function.LongConsumer opener) {
-        this.opener = opener;
-    }
+    public void setOpener(LongConsumer opener) { this.opener = opener; }
 
     /** Ouvre le butin de cette sonde. */
-    public void open(long probe) {
-        opener.accept(probe);
-    }
+    public void open(long probe) { opener.accept(probe); }
 
     /** Le dessin des trajets : pour les vérifications. */
-    public ProbesView view() {
-        return view;
-    }
+    public ProbesView view() { return view; }
 
     /** Les boutons des sondes arrivées : pour les vérifications. */
-    public List<Button> lootButtons() {
-        return lootButtons;
-    }
+    public List<Button> lootButtons() { return lootButtons; }
 
     /** Fait avancer les sondes à l'écran. */
-    public void frame(double elapsed) {
-        view.frame(elapsed);
-    }
+    public void frame(double elapsed) { view.frame(elapsed); }
 
     /** Les boutons des sondes arrivées, refaits seulement quand elles changent : un bouton reste sous le curseur. */
     private void refreshLoot() {
@@ -221,9 +208,7 @@ public final class ProbesPane extends VBox {
     }
 
     /** La destination choisie : pour les vérifications. */
-    public ProbeDestination destination() {
-        return destination;
-    }
+    public ProbeDestination destination() { return destination; }
 
     public void refresh() {
         intro.setVisible(Detail.shown());

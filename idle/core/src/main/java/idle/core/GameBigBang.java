@@ -1,35 +1,24 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.collider.Hadron;
+import idle.core.universe.Trial;
+
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangAchievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.BigBangCondition;
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.BigBangMilestones;
-import idle.core.bigbang.SpaceUpgrade;
+import idle.core.bigbang.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Assembly;
-import idle.core.sky.Body;
-import idle.core.sky.SolarSystem;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Le Big Bang : ses défis et ses paliers, l'expansion, les collections et les améliorations d'espace.
- */
+/** Le Big Bang : ses défis et ses paliers, l'expansion, les collections et les améliorations d'espace. */
 public abstract class GameBigBang extends GameDarkMatter {
-
     GameBigBang(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
-
 
     // ------------------------------------------------------------------
     // Le Big Bang
@@ -42,7 +31,7 @@ public abstract class GameBigBang extends GameDarkMatter {
             case ATOMS -> state.atoms().gte(bigBangAtoms());
             case DARK_MATTER -> state.darkMatter().gte(bigBangDarkMatter());
             case ACHIEVEMENTS -> achievementCount() >= BIG_BANG_ACHIEVEMENTS;
-            // Les dix de toujours (version 0.115) : la fuite, facultative, n'y entre pas.
+            // Les dix de toujours : la fuite, facultative, n'y entre pas.
             case CHALLENGES -> !challenges().isEmpty() && baseChallengesDone();
             case SKY -> bodiesMature() >= bigBangSkyRequirement();
         };
@@ -79,35 +68,32 @@ public abstract class GameBigBang extends GameDarkMatter {
      * partie en cours : une explosion les reprend, et il faut les réunir de nouveau.
      */
     public boolean canBigBang() {
-        return state.started() && !inChallenge()
-                && bigBangConditionsMet() == bigBangConditions().size();
+        return state.started() && !inChallenge() && bigBangConditionsMet() == bigBangConditions().size();
     }
 
     /**
      * Déclenche le Big Bang : le passage à l'acte suivant.
      *
-     * <p>Tout ce que les trois premiers actes ont construit disparaît : particules, atomes,
-     * améliorations, automatismes, éléments, puis la matière noire, sa taille, son arbre, ses
-     * automatismes, la masse du tableau et les défis réussis. La partie repart d'un seul
-     * générateur, comme au premier jour. Restent les succès et leurs bonus, les records des
-     * défis, le temps de jeu, les statistiques, et le nombre de Big Bangs ({@link #bigBangs()}).
+     * <p>Tout ce que les trois premiers actes ont construit disparaît : particules, atomes, améliorations,
+     * automatismes, éléments, puis la matière noire, sa taille, son arbre, ses automatismes, la masse du tableau et les
+     * défis réussis. La partie repart d'un seul générateur, comme au premier jour. Restent les succès et leurs bonus,
+     * les records des défis, le temps de jeu, les statistiques, et le nombre de Big Bangs ({@link #bigBangs()}).
      *
-     * <p>Reste aussi tout ce qui appartient à l'acte que le Big Bang ouvre : l'espace et ses
-     * améliorations, les molécules, leurs rassemblements, les assemblages, les astres et la galaxie.
-     * Chaque Big Bang accélère l'expansion ({@link #spacePerSecond()}) ; en échange le tableau
-     * périodique est vide, et il faut le regarnir avant de créer de nouvelles molécules.
+     * <p>Reste aussi tout ce qui appartient à l'acte que le Big Bang ouvre : l'espace et ses améliorations, les
+     * molécules, leurs rassemblements, les assemblages, les astres et la galaxie. Chaque Big Bang accélère l'expansion
+     * ({@link #spacePerSecond()}) ; en échange le tableau périodique est vide, et il faut le regarnir avant de créer de
+     * nouvelles molécules.
      *
-     * <p>À partir du Big Bang qui atteint le palier voulu ({@link #bigBangKeepsDarkTree()}), l'arbre
-     * de matière noire reste aussi, avec ses automatismes : seuls partent la réserve, la taille et
-     * la masse du tableau. Les défis réussis, eux, restent dès un palier plus tôt
-     * ({@link #bigBangKeepsChallenges()}).
+     * <p>À partir du Big Bang qui atteint le palier voulu ({@link #bigBangKeepsDarkTree()}), l'arbre de matière noire
+     * reste aussi, avec ses automatismes : seuls partent la réserve, la taille et la masse du tableau. Les défis
+     * réussis, eux, restent dès un palier plus tôt ({@link #bigBangKeepsChallenges()}).
      *
      * @return {@code true} si le Big Bang a eu lieu
      */
     public boolean bigBang() {
         if (!canBigBang()) return false;
-        // Le Big Bang à froid (version 0.088) : le Big Bang le réussit.
-        if (inTrial(idle.core.universe.Trial.COLD_BANG)) completeTrial();
+        // Le Big Bang à froid : le Big Bang le réussit.
+        if (inTrial(Trial.COLD_BANG)) completeTrial();
         noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
         // Un défi de Big Bang en cours est réussi : sa récompense est acquise, son temps noté.
@@ -130,10 +116,9 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
-     * Rouvre les bifurcations : leurs voies et les liaisons qui en dépendent repartent de zéro, et la
-     * matière noire des liaisons cesse d'être comptée comme dépensée. Ce que fait chaque Big Bang ; et
-     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.084), qui rend cette matière noire en
-     * réserve (version 0.126). Le Big Bang, lui, vide la réserve : il ne la rend pas.
+     * Rouvre les bifurcations : leurs voies et les liaisons qui en dépendent repartent de zéro, et la matière noire des
+     * liaisons cesse d'être comptée comme dépensée. Ce que fait chaque Big Bang ; et l'explosion qui suit « Rouvrir les
+     * bifurcations », qui rend cette matière noire en réserve. Le Big Bang, lui, vide la réserve : il ne la rend pas.
      *
      * @return la matière noire que les liaisons défaites avaient coûté
      */
@@ -153,11 +138,11 @@ public abstract class GameBigBang extends GameDarkMatter {
 
     /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
     private void clearForBigBang() {
-        // Le petit arbre du deuxième univers (version 0.087) : le Big Bang rend le choix, gratuitement.
+        // Le petit arbre du deuxième univers : le Big Bang rend le choix, gratuitement.
         state.setCycleChoice(null);
         boolean keepsTree = bigBangKeepsDarkTree();
-        java.util.Set<String> keptChallenges = bigBangKeepsChallenges()
-                ? new java.util.LinkedHashSet<>(state.completedChallenges()) : java.util.Set.of();
+        Set<String> keptChallenges = bigBangKeepsChallenges()
+                ? new LinkedHashSet<>(state.completedChallenges()) : Set.of();
         state.clearMatter();
         if (keepsTree) {
             state.clearDarkMatterKeepingTree();
@@ -179,17 +164,13 @@ public abstract class GameBigBang extends GameDarkMatter {
     // ------------------------------------------------------------------
 
     /** Les défis de Big Bang, dans l'ordre du catalogue. */
-    public List<BangChallenge> bangChallenges() {
-        return List.of(BangChallenge.values());
-    }
+    public List<BangChallenge> bangChallenges() { return List.of(BangChallenge.values()); }
 
     /** Big Bangs qui ouvrent les défis de Big Bang : le cinquième, comme avant les paliers six à huit. */
     public static final int BANG_CHALLENGES_BIG_BANGS = 5;
 
     /** Vrai à partir du cinquième Big Bang : les défis de Big Bang s'ouvrent, pour donner un sens aux Big Bangs suivants. */
-    public boolean isBangChallengesUnlocked() {
-        return state.bigBangs() >= BANG_CHALLENGES_BIG_BANGS;
-    }
+    public boolean isBangChallengesUnlocked() { return state.bigBangs() >= BANG_CHALLENGES_BIG_BANGS; }
 
     /** Le défi de Big Bang en cours, ou {@code null}. */
     public BangChallenge activeBangChallenge() {
@@ -231,7 +212,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
-     * Vrai si ce défi-là peut commencer. Le ciel figé (version 0.117) attend que le ciel du Big Bang suivant soit déjà
+     * Vrai si ce défi-là peut commencer. Le ciel figé attend que le ciel du Big Bang suivant soit déjà
      * réuni : sans nouvel astre, il ne le serait jamais.
      */
     public boolean canStartBangChallenge(BangChallenge challenge) {
@@ -266,9 +247,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /** Vrai si cette contrainte de défi de Big Bang s'applique en ce moment. */
-    boolean bangRuled(BangChallenge challenge) {
-        return challenge.name().equals(state.activeBangChallenge());
-    }
+    boolean bangRuled(BangChallenge challenge) { return challenge.name().equals(state.activeBangChallenge()); }
 
     /** Ce que les défis de Big Bang réussis multiplient pour cette récompense : 1 sans défi réussi. */
     public double bangReward(BangChallenge.Reward reward) {
@@ -289,18 +268,16 @@ public abstract class GameBigBang extends GameDarkMatter {
     // ------------------------------------------------------------------
 
     /** Les paliers de Big Bang, onze du premier au huitième Big Bang ({@link BigBangMilestones}). */
-    public List<BigBangMilestone> bigBangMilestones() {
-        return BigBangMilestones.DEFAULT;
-    }
+    public List<BigBangMilestone> bigBangMilestones() { return BigBangMilestones.DEFAULT; }
 
-    /** Vrai si ce palier agit : assez de Big Bangs ont été déclenchés, et il est payé s'il a un prix (version 0.124). */
+    /** Vrai si ce palier agit : assez de Big Bangs ont été déclenchés, et il est payé s'il a un prix. */
     public boolean isBigBangMilestoneReached(BigBangMilestone milestone) {
-        // La bulle du géant de droite, en bas (version 0.148) : tous les paliers agissent, sans Big Bang ni prix.
+        // La bulle du géant de droite, en bas : tous les paliers agissent, sans Big Bang ni prix.
         if (hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_LOW)) return true;
         return isBigBangMilestoneOpen(milestone) && (!milestone.hasPrice() || state.boughtMilestones().contains(milestone.name()));
     }
 
-    /** Vrai une fois le nombre de Big Bangs du palier atteint : il s'achète alors, s'il a un prix (version 0.124). */
+    /** Vrai une fois le nombre de Big Bangs du palier atteint : il s'achète alors, s'il a un prix. */
     public boolean isBigBangMilestoneOpen(BigBangMilestone milestone) {
         return state.bigBangs() >= milestone.bigBangs() || hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_LOW);
     }
@@ -316,7 +293,7 @@ public abstract class GameBigBang extends GameDarkMatter {
                 && milestoneBalance(milestone).gte(milestone.price());
     }
 
-    /** Paie un palier de Big Bang (version 0.124) : ses effets agissent dès maintenant et jusqu'à l'univers suivant. */
+    /** Paie un palier de Big Bang : ses effets agissent dès maintenant et jusqu'à l'univers suivant. */
     public boolean buyBigBangMilestone(BigBangMilestone milestone) {
         if (!canBuyBigBangMilestone(milestone)) return false;
         if (milestone.resource() == Resource.ATOMS) state.setAtoms(state.atoms().subtract(milestone.price()).max(BigNum.ZERO));
@@ -385,7 +362,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     // Les rayons : ce qui est créé dans chacun (version 0.178 : les collections de rayon ont disparu)
     // ------------------------------------------------------------------
 
-    private final Map<Molecule.Kind, int[]> kindCounts = new java.util.EnumMap<>(Molecule.Kind.class);
+    private final Map<Molecule.Kind, int[]> kindCounts = new EnumMap<>(Molecule.Kind.class);
     int kindCountsVersion = -1;
 
     private int[] kindCount(Molecule.Kind kind) {
@@ -401,15 +378,8 @@ public abstract class GameBigBang extends GameDarkMatter {
         return kindCounts.getOrDefault(kind, new int[2]);
     }
 
-    /** Nombre de sortes de ce rayon dont le joueur a créé au moins une molécule. */
-    public int kindCreated(Molecule.Kind kind) {
-        return kindCount(kind)[0];
-    }
-
     /** Nombre de sortes de ce rayon dans le catalogue. */
-    public int kindSize(Molecule.Kind kind) {
-        return kindCount(kind)[1];
-    }
+    public int kindSize(Molecule.Kind kind) { return kindCount(kind)[1]; }
 
     /**
      * Ce par quoi les améliorations d'espace acquises multiplient une grandeur
@@ -430,16 +400,15 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
-     * Recalcule ce que donnent les molécules, rassemblées ou non, quand leur liste a changé. Une
-     * sorte de molécule compte pour {@link #effectiveMolecules(String)} : un plafond relevé prend
-     * la partie entière de ce nombre. Une sorte rassemblée ajoute en plus les particules et les
-     * atomes de son état, comptés de la même façon.
+     * Recalcule ce que donnent les molécules, rassemblées ou non, quand leur liste a changé. Une sorte de molécule
+     * compte pour {@link #effectiveMolecules(String)} : un plafond relevé prend la partie entière de ce nombre. Une
+     * sorte rassemblée ajoute en plus les particules et les atomes de son état, comptés de la même façon.
      */
     void refreshMoleculeBonuses() {
         if (moleculeBonusesVersion == state.moleculesVersion()) return;
         moleculeBonusesVersion = state.moleculesVersion();
         moleculeBoosts.clear();
-        java.util.Arrays.fill(elementUncaps, 0);
+        Arrays.fill(elementUncaps, 0);
         upgradeBoosts.clear();
         for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
             if (upgrade.effect() instanceof SpaceUpgrade.Boost boost && state.ownsSpaceUpgrade(upgrade.id())) {
@@ -527,9 +496,8 @@ public abstract class GameBigBang extends GameDarkMatter {
     final List<SpaceUpgrade> newSpaceUpgrades = new ArrayList<>();
 
     /**
-     * Acquiert toutes les améliorations d'espace dont le seuil est atteint : elles ne coûtent rien,
-     * il n'y a donc rien à décider. Une amélioration peut en ouvrir une autre, déjà à portée : on
-     * recommence tant qu'il s'en prend.
+     * Acquiert toutes les améliorations d'espace dont le seuil est atteint : elles ne coûtent rien, il n'y a donc rien
+     * à décider. Une amélioration peut en ouvrir une autre, déjà à portée : on recommence tant qu'il s'en prend.
      */
     void takeSpaceUpgrades() {
         if (!state.started() || !isBigBangUnlocked() || state.spaceUpgradeCount() >= spaceUpgrades.size()) return;
@@ -564,14 +532,10 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /** Vrai une fois acquise l'amélioration d'espace « Création continue » : tenir le clic sur une molécule répète sa création. */
-    public boolean isHoldCreateUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.HoldCreate.class);
-    }
+    public boolean isHoldCreateUnlocked() { return ownsSpaceEffect(SpaceUpgrade.HoldCreate.class); }
 
     /** Vrai une fois acquise l'amélioration d'espace « Gestes groupés » : tout rassembler, tout assembler, former tous les astres prêts. */
-    public boolean isBulkFormUnlocked() {
-        return ownsSpaceEffect(SpaceUpgrade.BulkForm.class);
-    }
+    public boolean isBulkFormUnlocked() { return ownsSpaceEffect(SpaceUpgrade.BulkForm.class); }
 
     /**
      * Rassemble toutes les sortes de molécules qui peuvent l'être, dans l'ordre du catalogue, tant
@@ -660,11 +624,10 @@ public abstract class GameBigBang extends GameDarkMatter {
     // ------------------------------------------------------------------
 
     /**
-     * Espace que l'expansion de la matière ajoute chaque seconde : {@link #SPACE_PER_SECOND} par
-     * Big Bang déclenché, augmenté par les molécules, les assemblages et les astres qui
-     * l'accélèrent, par les améliorations d'inflation, par les paliers de Big Bang, et, une fois le
-     * palier atteint, par la matière noire en réserve ({@link #darkMatterSpaceBoost()}). Nul avant le
-     * premier Big Bang.
+     * Espace que l'expansion de la matière ajoute chaque seconde : {@link #SPACE_PER_SECOND} par Big Bang déclenché,
+     * augmenté par les molécules, les assemblages et les astres qui l'accélèrent, par les améliorations d'inflation,
+     * par les paliers de Big Bang, et, une fois le palier atteint, par la matière noire en réserve ({@link
+     * #darkMatterSpaceBoost()}). Nul avant le premier Big Bang.
      */
     public BigNum spacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
@@ -684,13 +647,13 @@ public abstract class GameBigBang extends GameDarkMatter {
     public double rawSpacePerSecond() {
         if (!isBigBangUnlocked()) return 0;
         return SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
-                * (inTrial(idle.core.universe.Trial.COLD_BANG) ? idle.core.universe.Trial.COLD_EXPANSION : 1)
+                * (inTrial(Trial.COLD_BANG) ? Trial.COLD_EXPANSION : 1)
                 * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier()
-                * bangAchievementMultiplier(BangAchievement.Reward.SPACE) * hadronBoost(idle.core.collider.Hadron.KAON);
+                * bangAchievementMultiplier(BangAchievement.Reward.SPACE) * hadronBoost(Hadron.KAON);
     }
 
     /**
-     * L'amorti de l'espace (version 0.167) : au-delà de {@link #SPACE_DAMPING_START} par seconde, l'espace gagné ne croît
+     * L'amorti de l'espace : au-delà de {@link #SPACE_DAMPING_START} par seconde, l'espace gagné ne croît
      * plus que comme la puissance {@link #SPACE_DAMPING_POWER} des bonus. Avant, les bonus des molécules et de la matière
      * noire s'empilaient jusqu'à 10¹¹ par seconde, pour un espace utilisé qui ne passe guère 10⁸ : vers le septième Big
      * Bang, l'expansion donnait déjà mille fois ce qui servait. Sous le seuil, là où l'espace manque, rien ne change.
@@ -703,10 +666,9 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
-     * Fait passer le temps de l'expansion : l'espace grandit de {@link #spacePerSecond()} par
-     * seconde de jeu, quoi que fasse le joueur. Rien ne le reprend, ni l'explosion ni le Big Bang ;
-     * les molécules en occupent une part ({@link #occupiedSpace()}), leurs lieux de rassemblement en réservent une autre
-     * ({@link #reservedSpace()}).
+     * Fait passer le temps de l'expansion : l'espace grandit de {@link #spacePerSecond()} par seconde de jeu, quoi que
+     * fasse le joueur. Rien ne le reprend, ni l'explosion ni le Big Bang ; les molécules en occupent une part ({@link
+     * #occupiedSpace()}), leurs lieux de rassemblement en réservent une autre ({@link #reservedSpace()}).
      */
     void expandSpace(double dt) {
         if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;

@@ -1,32 +1,25 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.darkmatter.SizeScale;
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.ElementSet;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import java.util.List;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Les règles du jeu : les ensembles, la synthèse ciblée, les paliers de taille, le verrou de l'appui
  * et les niveaux sans plafond.
  */
 class JeuEnsemblesTest extends GameTestSupport {
-
-
     @Nested
     class Ensembles {
-
         private Game tableGame() {
             Game game = newGame();
             unlock(game);
@@ -189,7 +182,6 @@ class JeuEnsemblesTest extends GameTestSupport {
 
     @Nested
     class SyntheseCiblee {
-
         private static final double MAX = Game.MAX_ATOMS.toDouble();
 
         /** Tableau débloqué, plein d'atomes, sans automatisme en marche, synthèse ciblée achetée. */
@@ -213,7 +205,7 @@ class JeuEnsemblesTest extends GameTestSupport {
 
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(2));
-            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord
             assertTrue(game.buyDark("dark_shop_target"));
             assertValue(0, game.state().darkMatter());
             assertTrue(game.isTargetedSynthesisUnlocked());
@@ -398,7 +390,6 @@ class JeuEnsemblesTest extends GameTestSupport {
 
     @Nested
     class PaliersDeTaille {
-
         private Game darkGame() {
             Game game = newGame();
             game.state().setDarkMatter(BigNum.of(1));
@@ -475,7 +466,6 @@ class JeuEnsemblesTest extends GameTestSupport {
 
     @Nested
     class VerrouDeLAppui {
-
         private Game darkGame() {
             Game game = newGame();
             game.state().setDarkMatter(BigNum.of(5));
@@ -537,7 +527,6 @@ class JeuEnsemblesTest extends GameTestSupport {
 
     @Nested
     class NiveauxSansPlafond {
-
         @Test
         void noyauxEtRouagesSombresNOntPlusDeMaximum() {
             Game game = newGame();
@@ -561,7 +550,7 @@ class JeuEnsemblesTest extends GameTestSupport {
             unlock(game);
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(1e6));
-            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord
             for (int level = 0; level < 12; level++) game.buyDark("dark_shop_cadence");
             assertEquals(game.minAutomationInterval(), game.automationInterval("autoSlow"), 0);
         }

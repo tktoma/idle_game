@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import javafx.scene.paint.Color;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -11,28 +12,23 @@ import idle.core.universe.SkinVisual;
 import idle.ui.FxTestSupport;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.197 : l'arbre au-delà de ses essences, sous Xvfb. Chaque saison figée, chaque fantaisie et chaque sol se
+ * L'arbre au-delà de ses essences, sous Xvfb. Chaque saison figée, chaque fantaisie et chaque sol se
  * dessine à chaque palier, du bonsaï à l'arbre-monde, avec chaque essence, sans exception, le feuillage dans la vue et le
  * coût borné ; chacun change le dessin par rapport au Classique, et l'arbre inversé porte son feuillage sous le milieu
  * de sa hauteur. Les bulles de l'arbre et leurs liens se dessinent sous chaque skin, dans les quatre états, et changent
  * le dessin. Sans skin, {@link TreeSkinArt.Look#CLASSIC}.
  */
 class TreeLooksSkinsTest {
-
     private static final double W = 800, H = 600, BASE_X = 400, BASE_Y = 560;
     private static final int MAX_TIPS = 400;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -56,7 +52,7 @@ class TreeLooksSkinsTest {
     private static Canvas tree(int stage, Skin essence, Skin season, Skin fantasy, Skin ground) {
         Canvas canvas = new Canvas(W, H);
         GraphicsContext g = canvas.getGraphicsContext2D();
-        g.setFill(javafx.scene.paint.Color.web("#0a0c16"));
+        g.setFill(Color.web("#0a0c16"));
         g.fillRect(0, 0, W, H);
         SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0, essence, season, fantasy, ground);
         return canvas;

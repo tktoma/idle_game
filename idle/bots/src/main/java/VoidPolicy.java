@@ -1,25 +1,20 @@
-import idle.core.Game;
-import idle.core.GameUniverse;
+import idle.core.*;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.sky.Cosmos;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
- * Ce que les bots font du vide (version 0.133), qui se propose au premier Big Bang du troisième univers et de chaque
- * univers suivant : l'ouvrir contre de l'énergie du collisionneur, régler la part qu'il prend, acheter ses
- * améliorations en énergie du vide, nourrir son trou noir. Elle remplace le jeu du vide que la 0.132 avait mis dans
- * {@link NextUniversePolicy}. Comme celle-ci, une seule classe pour
- * tous les bots, appelée par {@link RobotCosmosPlanner#resourceLoop()}, avec une façon de jouer par profil
- * ({@link Style}, table {@code IdleProfiles24.VOID_STYLES}).
+ * Ce que les bots font du vide, qui se propose au premier Big Bang du troisième univers et de chaque univers suivant :
+ * l'ouvrir contre de l'énergie du collisionneur, régler la part qu'il prend, acheter ses améliorations en énergie du
+ * vide, nourrir son trou noir. Elle remplace le jeu du vide que la 0.132 avait mis dans {@link NextUniversePolicy}.
+ * Comme celle-ci, une seule classe pour tous les bots, appelée par {@link RobotCosmosPlanner#resourceLoop()}, avec une
+ * façon de jouer par profil ({@link Style}, table {@code IdleProfiles24.VOID_STYLES}).
  *
- * <p>Tant que le vide ne se propose pas (univers 1 et 2), rien ne se passe ici et aucun hasard n'est tiré : les
- * parties des deux premiers univers sont celles d'avant. {@code -Didle.sansVide=true} laisse le vide fermé, pour
- * mesurer l'univers 3 sans lui.
+ * <p>Tant que le vide ne se propose pas (univers 1 et 2), rien ne se passe ici et aucun hasard n'est tiré : les parties
+ * des deux premiers univers sont celles d'avant. {@code -Didle.sansVide=true} laisse le vide fermé, pour mesurer
+ * l'univers 3 sans lui.
  */
 final class VoidPolicy {
-
     /** Comment le joueur dépense l'énergie du vide. */
     enum Plan {
         /**
@@ -82,27 +77,21 @@ final class VoidPolicy {
     private double offeredAt = -1;
     private int offeredIn = -1;
 
-    VoidPolicy() {
-        this(Style.EXPERT, new Random(0));
-    }
+    VoidPolicy() { this(Style.EXPERT, new Random(0)); }
 
     VoidPolicy(Style style, Random random) {
         this.style = style;
         this.random = random;
     }
 
-    Style style() {
-        return style;
-    }
+    Style style() { return style; }
 
-    static boolean disabled() {
-        return Boolean.getBoolean("idle.sansVide");
-    }
+    static boolean disabled() { return Boolean.getBoolean("idle.sansVide"); }
 
-    /** Avec la propriété {@code idle.traceVide} (version 0.132), chaque geste du vide s'écrit : temps de jeu, geste, énergie du vide. */
+    /** Avec la propriété {@code idle.traceVide}, chaque geste du vide s'écrit : temps de jeu, geste, énergie du vide. */
     private static void trace(Game game, String what) {
         if (!Boolean.getBoolean("idle.traceVide")) return;
-        System.out.printf(java.util.Locale.ROOT, "VIDE,%.3f,%s,%.0f%n", game.state().timePlayed() / 3600, what, game.voidEnergy().toDouble());
+        System.out.printf(Locale.ROOT, "VIDE,%.3f,%s,%.0f%n", game.state().timePlayed() / 3600, what, game.voidEnergy().toDouble());
     }
 
     private boolean chance(double p) {
@@ -117,7 +106,7 @@ final class VoidPolicy {
      */
     boolean savingForVoid(Game game) {
         if (disabled() || style.open() <= 0 || !game.isVoidOffered()) return false;
-        // Version 0.174 : pas pour un prix trop loin ; la réserve n'attend que s'il vient en moins de RESERVE_REACH_SECONDS
+        // Pas pour un prix trop loin ; la réserve n'attend que s'il vient en moins de RESERVE_REACH_SECONDS
         // de production.
         if (!nearPrice(game, game.voidPrice())) return false;
         if (offeredIn != game.universes()) {
@@ -129,7 +118,7 @@ final class VoidPolicy {
     }
 
     /**
-     * Version 0.174 : le temps de production du collisionneur au-delà duquel un prix d'ouverture (vide, hadrons) ne gèle
+     * Le temps de production du collisionneur au-delà duquel un prix d'ouverture (vide, hadrons) ne gèle
      * plus ses achats. Mesuré sur le Speedrunner de la 0.171 (graine 201) : le gel de deux heures pour les 10⁹ du vide
      * tombait sur un collisionneur à quelques milliers par seconde, et se terminait sans l'avoir ouvert (univers 5 à 7).
      * Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionneur. La galaxie n'arrivait pas plus tôt,
@@ -194,7 +183,7 @@ final class VoidPolicy {
         if (worthSacrifice(game)) {
             if (!chance(style.sacrifice())) return 0;
             boolean fed = game.sacrificeParticles();
-            if (fed) { sacrifices++; trace(game, "trou noir, masse " + String.format(java.util.Locale.ROOT, "%.2f", game.voidMass())); }
+            if (fed) { sacrifices++; trace(game, "trou noir, masse " + String.format(Locale.ROOT, "%.2f", game.voidMass())); }
             resumeFusion(game);
             return fed ? 1 : 0;
         }
@@ -227,7 +216,7 @@ final class VoidPolicy {
     }
 
     /**
-     * Vrai quand l'énergie du vide se garde pour les bulles de l'arbre (version 0.166) : la galaxie formée, il ne reste à
+     * Vrai quand l'énergie du vide se garde pour les bulles de l'arbre : la galaxie formée, il ne reste à
      * l'univers que le rassemblement, et tant que la bulle du géant (à gauche, en bas) n'a pas rendu le vide permanent, ce
      * qui reste à la formation de l'univers paie les bulles. Le bot n'achète plus alors que les raccourcis (maturation,
      * rassemblement, allègement), qui raccourcissent ce qui reste. Avant, il achetait jusqu'au bout des croissances à
@@ -240,7 +229,7 @@ final class VoidPolicy {
     }
 
     /**
-     * Version 0.177 : à moins de ce temps de la formation de l'univers, l'énergie gardée pour les bulles ne paie plus de
+     * À moins de ce temps de la formation de l'univers, l'énergie gardée pour les bulles ne paie plus de
      * raccourci. Mesuré en 0.177 : le Régulier achetait l'assise (260 860 d'énergie du vide) une minute avant la
      * formation de son univers 7, n'y gagnait qu'une minute, et n'avait plus de quoi payer ses bulles ; la galaxie de
      * l'univers 8 attendait alors 6 h 17 au lieu de 27 min.
@@ -273,9 +262,7 @@ final class VoidPolicy {
         return done;
     }
 
-    private static boolean open(Game game, VoidUpgrade upgrade) {
-        return game.voidLevel(upgrade) < upgrade.max();
-    }
+    private static boolean open(Game game, VoidUpgrade upgrade) { return game.voidLevel(upgrade) < upgrade.max(); }
 
     /** Le moins cher de ces améliorations qu'on peut payer, ou {@code null}. */
     private static VoidUpgrade cheapest(Game game, List<VoidUpgrade> among) {

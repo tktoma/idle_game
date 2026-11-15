@@ -5,28 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.196 : la graine et son établi, sous Xvfb. Pour chacun des huit visuels (graine, arrosoir, étagère, tuyau,
+ * La graine et son établi, sous Xvfb. Pour chacun des huit visuels (graine, arrosoir, étagère, tuyau,
  * chrono, rond de croissance, météo, saisons), chaque skin dessine la vue à deux tailles, à plusieurs paliers de la graine,
  * l'arrosoir penché ou non, le chrono qui tourne ou non, par beau temps et par orage, à chaque saison, sans exception ;
  * immobile, la vue habillée diffère du Classique en pixels, et le choix se lit par visuel.
  */
 class SeedEstablishmentSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

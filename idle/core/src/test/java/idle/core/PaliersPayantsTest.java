@@ -1,21 +1,20 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.save.SaveCodec;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.BigBangMilestones;
+import idle.core.bigbang.*;
 import idle.core.math.BigNum;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.124 : les paliers de Big Bang se paient, la vitesse s'essouffle au-delà de cent niveaux,
+ * Les paliers de Big Bang se paient, la vitesse s'essouffle au-delà de cent niveaux,
  * et les puissances du tableau, du ciel, du collisionneur et des succès élèvent la production.
  */
 class PaliersPayantsTest {
-
     private static BigBangMilestone named(String name) {
         return BigBangMilestones.DEFAULT.stream().filter(m -> m.name().equals(name)).findFirst().orElseThrow();
     }
@@ -73,7 +72,7 @@ class PaliersPayantsTest {
         assertTrue(game.isBigBangMilestoneReached(named("Création automatique")));
         try {
             Game copy = new Game(42L);
-            idle.core.save.SaveCodec.readInto(copy.state(), idle.core.save.SaveCodec.write(game.state(), 0));
+            SaveCodec.readInto(copy.state(), SaveCodec.write(game.state(), 0));
             copy.restored();
             assertTrue(copy.isBigBangMilestoneReached(named("Expansion accélérée")), "la sauvegarde garde les paliers payés");
         } catch (Exception unreadable) {
@@ -123,7 +122,7 @@ class PaliersPayantsTest {
         GameParticles.powersOff = false;
         try {
             Game game = new Game(42L);
-            idle.core.save.SaveCodec.readInto(game.state(), idle.core.save.SaveCodec.write(SaveTest.richState(), 0));
+            SaveCodec.readInto(game.state(), SaveCodec.write(SaveTest.richState(), 0));
             game.restored();
             double power = game.systemsPower();
             assertTrue(power > 0, "la partie riche a des astres, de l'énergie et des succès");

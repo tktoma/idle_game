@@ -1,4 +1,10 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.achievements.Achievements;
+import idle.core.molecules.Molecule;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -6,9 +12,7 @@ import idle.core.Game;
 import idle.core.bigbang.BangChallenge;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
+import java.nio.file.*;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -19,16 +23,13 @@ import org.junit.jupiter.api.io.TempDir;
  * Il ne mesure rien : les campagnes se lancent avec run.py.
  */
 class BotsTest {
-
     private static List<Path> saves(String folder) throws Exception {
         try (Stream<Path> files = Files.list(Path.of("sauvegardes", folder))) {
             return files.filter(path -> path.toString().endsWith(".save")).sorted().toList();
         }
     }
 
-    private static Game load(Path save) throws Exception {
-        return Bots.load(save, 42);
-    }
+    private static Game load(Path save) throws Exception { return Bots.load(save, 42); }
 
     /** Partie neuve du profil 1 (graine 201) au 5e Big Bang : les dix défis et les quarante succès sont là. */
     static final Path FIFTH_BANG = Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save");
@@ -38,14 +39,14 @@ class BotsTest {
         Game g = new Game();
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
-        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        g.state().setAtoms(BigNum.of(25));
         assertTrue(FirstUniversePolicy.needsPersistence(g));
         assertFalse(FirstUniversePolicy.readyForPersistence(g),
                 "Persistance ne doit pas retarder les automatismes de debut");
-        g.state().setAtoms(idle.core.math.BigNum.of(200));
+        g.state().setAtoms(BigNum.of(200));
         assertEquals(4, FirstUniversePolicy.bootstrapAutomations(g));
         assertTrue(FirstUniversePolicy.readyForPersistence(g));
-        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        g.state().setAtoms(BigNum.of(25));
         assertEquals(1, FirstUniversePolicy.atoms(g, 1));
         assertTrue(g.keepsUpgradesOnFusion());
         assertEquals(1, g.levelOf("atom_keep"));
@@ -56,16 +57,16 @@ class BotsTest {
         Game g = new Game();
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
-        g.state().setAtoms(idle.core.math.BigNum.of(200));
+        g.state().setAtoms(BigNum.of(200));
         assertEquals(4, FirstUniversePolicy.bootstrapAutomations(g));
-        g.state().setAtoms(idle.core.math.BigNum.of(20));
+        g.state().setAtoms(BigNum.of(20));
         RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
         bot.prioritizePersistence();
-        // Version 0.167 : le premier niveau (8) se paie, la réserve garde le prix du suivant (16).
+        // Le premier niveau (8) se paie, la réserve garde le prix du suivant (16).
         assertEquals(1, g.levelOf("atom_keep"));
-        assertEquals(idle.core.math.BigNum.of(16), g.synthesisReserve());
+        assertEquals(BigNum.of(16), g.synthesisReserve());
         assertEquals(0, FirstUniversePolicy.atoms(g, 40));
-        assertEquals(idle.core.math.BigNum.of(12), g.state().atoms());
+        assertEquals(BigNum.of(12), g.state().atoms());
         // Les quatre niveaux suivants, un par un, chacun à son prix.
         for (int level = 2; level <= 5; level++) {
             g.state().setAtoms(g.costOf("atom_keep"));
@@ -74,12 +75,12 @@ class BotsTest {
         }
         bot.prioritizePersistence();
         assertEquals(1, g.fusionKeepShare(), 1e-12);
-        assertEquals(idle.core.math.BigNum.ZERO, g.synthesisReserve(), "la réserve d'avant revient au dernier niveau");
+        assertEquals(BigNum.ZERO, g.synthesisReserve(), "la réserve d'avant revient au dernier niveau");
     }
 
     @Test
     void laSyntheseCommenceDesLOuvertureDuTableauSansAttendrePersistance() {
-        // Version 0.133 : une graine fixe. Avec le hasard de new Game(), le résultat dépendait des éléments tirés par
+        // Une graine fixe. Avec le hasard de new Game(), le résultat dépendait des éléments tirés par
         // les deux synthèses : le test échouait environ une fois sur trente.
         Game g = new Game(42L);
         g.start();
@@ -94,10 +95,10 @@ class BotsTest {
         g.state().addAutomation("auto_fusion");
         g.state().setAutomationSpeedLevel("auto_generator", 2);
         assertEquals("atom_keep", FirstUniversePolicy.nextStep(g).id());
-        g.state().setAtoms(idle.core.math.BigNum.of(31));
-        // 31 atomes : 8 gardés pour Persistance, les synthèses à 2, 4 et 8 passent avec le reste (version 0.167).
+        g.state().setAtoms(BigNum.of(31));
+        // 31 atomes : 8 gardés pour Persistance, les synthèses à 2, 4 et 8 passent avec le reste.
         assertEquals(3, FirstUniversePolicy.synthesize(g, 20));
-        assertEquals(idle.core.math.BigNum.of(17), g.state().atoms());
+        assertEquals(BigNum.of(17), g.state().atoms());
         assertEquals(1, FirstUniversePolicy.atoms(g, 5));
         assertTrue(g.keepsUpgradesOnFusion());
     }
@@ -129,12 +130,12 @@ class BotsTest {
                 || list.matter().values().stream().anyMatch(v -> v > 0)
                 || list.sorts().values().stream().anyMatch(v -> v > 0);
         assertTrue(needs, "La sauvegarde de référence vise un astre qui demande des molécules");
-        g.state().setDarkMatter(idle.core.math.BigNum.of(1000));
+        g.state().setDarkMatter(BigNum.of(1000));
         assertTrue(FirstUniversePolicy.holdExplosions(g));
-        g.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        g.state().setDarkMatter(BigNum.of(10));
         assertFalse(FirstUniversePolicy.holdExplosions(g),
                 "Sans les 500 matières noires du Big Bang, les explosions restent nécessaires");
-        g.state().setDarkMatter(idle.core.math.BigNum.of(1000));
+        g.state().setDarkMatter(BigNum.of(1000));
         g.state().setBigBangs(0);
         assertFalse(FirstUniversePolicy.holdExplosions(g), "Avant le premier Big Bang, on explose dès les 118 éléments");
     }
@@ -144,7 +145,7 @@ class BotsTest {
         Game g = new Game();
         g.start();
         g.state().setBigBangs(5);
-        g.state().setDarkMatter(idle.core.math.BigNum.of(500));
+        g.state().setDarkMatter(BigNum.of(500));
         assertEquals(18, g.bigBangSkyRequirement());
         assertFalse(FirstUniversePolicy.skyReady(g));
         assertFalse(FirstUniversePolicy.finalBangPreparation(g));
@@ -167,8 +168,8 @@ class BotsTest {
         g.start();
         g.state().setExplosions(1);
         g.state().setDarkLevel("dark_flow", 1);
-        g.state().setDarkMatter(idle.core.math.BigNum.of(30));
-        // Version 0.209 : Noyaux sombres d'abord (tout achat en matière noire l'attend), puis la liaison avant les boutiques.
+        g.state().setDarkMatter(BigNum.of(30));
+        // Noyaux sombres d'abord (tout achat en matière noire l'attend), puis la liaison avant les boutiques.
         FirstUniversePolicy.dark(g, 1);
         assertEquals(1, g.darkLevelOf("dark_shop_atoms"));
         assertEquals(0, g.darkLevelOf("link_flow"));
@@ -182,7 +183,7 @@ class BotsTest {
         Game g = new Game();
         g.start();
         g.state().setExplosions(1);
-        g.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        g.state().setDarkMatter(BigNum.of(10));
         FirstUniversePolicy.dark(g, 1);
         assertEquals(1, g.darkLevelOf("dark_shop_atoms"));
     }
@@ -195,7 +196,7 @@ class BotsTest {
         AdvancedLab autre = new AdvancedLab(g, 20, "DEPENDANCES", 42);
         assertTrue(expert.waitForPatientFusion());
         assertFalse(autre.waitForPatientFusion());
-        g.state().setTimeSinceFusion(idle.core.achievements.Achievements.PATIENT_SECONDS);
+        g.state().setTimeSinceFusion(Achievements.PATIENT_SECONDS);
         assertFalse(expert.waitForPatientFusion());
     }
 
@@ -245,33 +246,26 @@ class BotsTest {
         assertTrue(bot.acts > 0);
     }
 
-    // Version 0.170 : l'expert depuis le septième Big Bang jusqu'à l'univers (150 s seul, bien plus sur une machine
+    // L'expert depuis le septième Big Bang jusqu'à l'univers (150 s seul, bien plus sur une machine
     // chargée) vit dans sa propre classe, ExpertPremierUniversTest, pour que Gradle le lance dans une JVM à part, en
     // même temps que le reste.
 
     @Test
     void unAmasNeChangePasAuPremierManqueTemporaireDElements() throws Exception {
         Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
-        idle.core.molecules.Molecule target = FirstUniversePolicy.matterTarget(
-                g, idle.core.molecules.Molecule.State.CRYSTAL);
+        Molecule target = FirstUniversePolicy.matterTarget(g, Molecule.State.CRYSTAL);
         if(target == null) return; // Aucun amas de cristal ouvert dans ce checkpoint.
         for(Integer z : target.recipe().keySet()) g.state().setElementCount(z, 1);
-        idle.core.molecules.Molecule again = FirstUniversePolicy.matterTarget(
-                g, idle.core.molecules.Molecule.State.CRYSTAL);
+        Molecule again = FirstUniversePolicy.matterTarget(g, Molecule.State.CRYSTAL);
         assertEquals(target.id(), again.id(),
                 "Un manque de quelques atomes ne doit pas réinitialiser l'accrétion de l'amas");
     }
 
     @Test
     void laMatiereLaPlusEnRetardProportionnellementPasseEnPremier() {
-        var absent = java.util.Map.of(
-                idle.core.molecules.Molecule.State.GAS, 5_000_000,
-                idle.core.molecules.Molecule.State.LIQUID, 3_000_000);
-        var cible = java.util.Map.of(
-                idle.core.molecules.Molecule.State.GAS, 400_000_000,
-                idle.core.molecules.Molecule.State.LIQUID, 4_000_000);
-        assertEquals(idle.core.molecules.Molecule.State.LIQUID,
-                FirstUniversePolicy.focusMatterState(absent,cible));
+        var absent = Map.of(Molecule.State.GAS, 5_000_000, Molecule.State.LIQUID, 3_000_000);
+        var cible = Map.of(Molecule.State.GAS, 400_000_000, Molecule.State.LIQUID, 4_000_000);
+        assertEquals(Molecule.State.LIQUID, FirstUniversePolicy.focusMatterState(absent,cible));
     }
 
     @Test
@@ -296,7 +290,7 @@ class BotsTest {
 
     @Test
     void uneVictoireEcriteParLeMoteurActuelEstUneVictoire(@TempDir Path out) throws Exception {
-        // Version 0.126 : l'univers formé remet tout à zéro ; la victoire reste celle du jeu, l'univers formé.
+        // L'univers formé remet tout à zéro ; la victoire reste celle du jeu, l'univers formé.
         Game won = Bots.fresh(42);
         won.testFormUniverse();
         assertEquals(0, won.bigBangs(), "la remise à zéro de l'univers a eu lieu");
@@ -327,15 +321,15 @@ class BotsTest {
 
     /** Le texte écrit sur la sortie standard pendant cette action. */
     private static String stdout(Runnable action) {
-        java.io.PrintStream before = System.out;
-        java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
-        System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        PrintStream before = System.out;
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
         try {
             action.run();
         } finally {
             System.setOut(before);
         }
-        return captured.toString(java.nio.charset.StandardCharsets.UTF_8);
+        return captured.toString(StandardCharsets.UTF_8);
     }
 
     @Test
@@ -365,9 +359,9 @@ class BotsTest {
         try (Stream<Path> files = Files.list(Path.of("src", "main", "java"))) {
             for (Path source : files.filter(path -> path.toString().endsWith(".java")).toList()) {
                 String text = Files.readString(source);
-                assertFalse(java.util.regex.Pattern.compile("printf\\(\\s*\"").matcher(text).find(),
+                assertFalse(Pattern.compile("printf\\(\\s*\"").matcher(text).find(),
                         source + " : printf sans Locale.ROOT");
-                assertFalse(java.util.regex.Pattern.compile("String\\.format\\(\\s*\"").matcher(text).find(),
+                assertFalse(Pattern.compile("String\\.format\\(\\s*\"").matcher(text).find(),
                         source + " : String.format sans Locale.ROOT");
             }
         }
@@ -385,7 +379,7 @@ class BotsTest {
         assertEquals(BigNum.of(1000), g.bigBangDarkMatter());
         assertFalse(FirstUniversePolicy.holdExplosions(g), "il en faut 1000 pendant la barre haute : on explose encore");
         g.state().setDarkMatter(BigNum.of(1050));
-        // Version 0.166 : la réserve ne se garde qu'à l'approche du seuil de particules (90 % de ses ordres de grandeur).
+        // La réserve ne se garde qu'à l'approche du seuil de particules (90 % de ses ordres de grandeur).
         g.state().setParticles(BigNum.pow10(0.95 * g.bigBangParticles().log10()));
         assertTrue(FirstUniversePolicy.savingForBigBang(g));
         FirstUniversePolicy.dark(g, 50);
@@ -400,7 +394,7 @@ class BotsTest {
 
     @Test
     void laReserveDuBigBangNeSeGardeQuALApprocheDesParticules() throws Exception {
-        // Version 0.166 : avec la réserve de 120 000 du premier Big Bang, garder dès que défis et succès étaient là coupait
+        // Avec la réserve de 120 000 du premier Big Bang, garder dès que défis et succès étaient là coupait
         // les achats de l'arbre pendant 3 h et retardait le Big Bang de 42 min.
         Game g = load(FIFTH_BANG);
         g.state().setParticles(BigNum.pow10(0.5 * g.bigBangParticles().log10()));
@@ -424,7 +418,7 @@ class BotsTest {
     @Test
     void laBarreHauteCentupleLesAtomesAvantDeCouperLaFusion() throws Exception {
         // Correctif 0.141 (B2) : la fusion et la synthèse se coupaient à 1e12 atomes quand la barre haute en demande 1e14.
-        // Version 0.181 : au premier univers (cette sauvegarde), le Big Bang demande 1e11 atomes et la barre haute 1e13.
+        // Au premier univers (cette sauvegarde), le Big Bang demande 1e11 atomes et la barre haute 1e13.
         Game g = load(FIFTH_BANG);
         ready(g);
         g.state().setAtoms(BigNum.of(1, 12));
@@ -489,7 +483,7 @@ class BotsTest {
 
     @Test
     void leLotDesAutomatismesSAcheteLeMoinsCherDAbordSansEntamerLaReserve() {
-        // Version 0.167 : 2, 8, 32… en matière noire, chacun le sien.
+        // 2, 8, 32… en matière noire, chacun le sien.
         Game g = new Game(42L);
         g.start();
         g.state().setExplosions(1);
@@ -506,7 +500,7 @@ class BotsTest {
 
     @Test
     void leSpeedrunnerTientLaToucheMEntreDeuxDecisions() {
-        // Version 0.167 : les automatismes n'achètent qu'un niveau par action ; le joueur attentif tient M.
+        // Les automatismes n'achètent qu'un niveau par action ; le joueur attentif tient M.
         Game g = new Game(42L);
         g.start();
         IdleProfiles24 speed = new IdleProfiles24(g, BotAnalyste.ANALYSTE, 42, 5);
@@ -521,7 +515,7 @@ class BotsTest {
 
     @Test
     void leRegulierAppuieSurMAChaqueDecision() {
-        // Version 0.167 : sans la tenir, le Régulier appuie une fois sur M quand il décide (toutes les 60 s).
+        // Sans la tenir, le Régulier appuie une fois sur M quand il décide (toutes les 60 s).
         Game g = new Game(42L);
         g.start();
         IdleProfiles24 regular = new IdleProfiles24(g, IdleProfiles24.PROFILES[2], 42, 5);

@@ -1,29 +1,28 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.collections.ListChangeListener;
+import javafx.scene.*;
+import javafx.scene.control.Button;
+import javafx.scene.layout.Pane;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.GameUniverse.SeedUpgrade;
 import idle.ui.FxTestSupport;
-import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
+ * Les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
  * sa ressource, fermée tant que sa dimension l'est (celle de la boucle, la cinquième, a ses cartes depuis la version
  * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155,
  * celle de la grille, la huitième, depuis la version 0.156, celle du miroir, la neuvième, depuis la version 0.157, celle du mélange, la dixième, depuis la version 0.158) ;
  * le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Quatre univers, les quatre dimensions ouvertes, l'arrosoir débloqué et de quoi tout payer. */
     private static Game rich() {
@@ -88,11 +87,11 @@ class GraineAmeliorationsPageTest {
             game.start();
             game.testFormUniverse();
             while (game.universes() < 3) assertTrue(game.testAddUniverse());
-            // Version 0.182 : le tuyau est sur la branche Volume, 1 600 sphères au premier niveau.
+            // Le tuyau est sur la branche Volume, 1 600 sphères au premier niveau.
             game.state().setVolumeShards(120);
             SeedUpgradesPane pane = page(game).seedUpgrades();
             pane.select(3);
-            javafx.scene.control.Button hose = pane.button(SeedUpgrade.HOSE);
+            Button hose = pane.button(SeedUpgrade.HOSE);
             assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose));
             assertTrue(hose.getText().contains("il en manque 1480"), hose.getText());
             assertTrue(hose.isDisabled());
@@ -118,7 +117,7 @@ class GraineAmeliorationsPageTest {
     }
 
     /**
-     * Version 0.141 : le panneau se rafraîchit quatre fois par seconde sans retirer ses cartes. Avant, un clic dont
+     * Le panneau se rafraîchit quatre fois par seconde sans retirer ses cartes. Avant, un clic dont
      * l'appui et le relâché encadraient un rafraîchissement se perdait (vu avec une vraie souris sous Xvfb).
      */
     @Test
@@ -127,11 +126,10 @@ class GraineAmeliorationsPageTest {
             Game game = rich();
             UniversePage page = page(game);
             SeedUpgradesPane pane = page.seedUpgrades();
-            javafx.scene.control.Button card = pane.button(SeedUpgrade.WATERING);
-            javafx.scene.Parent column = card.getParent();
+            Button card = pane.button(SeedUpgrade.WATERING);
+            Parent column = card.getParent();
             int[] changes = {0};
-            ((javafx.scene.layout.Pane) column).getChildren().addListener(
-                    (javafx.collections.ListChangeListener<javafx.scene.Node>) change -> changes[0]++);
+            ((Pane) column).getChildren().addListener((ListChangeListener<Node>) change -> changes[0]++);
             for (int i = 0; i < 20; i++) page.frame(0.25, true);
             card.fire();
             pane.refresh();
@@ -149,21 +147,21 @@ class GraineAmeliorationsPageTest {
         FxTestSupport.fx(() -> {
             Game game = rich();
             SeedUpgradesPane pane = page(game).seedUpgrades();
-            // La boucle (version 0.153) : sa branche a ses vraies cartes, fermées tant que la dimension 5 ne l'est pas.
+            // La boucle : sa branche a ses vraies cartes, fermées tant que la dimension 5 ne l'est pas.
             assertFalse(pane.isBranchOpen(5));
             assertEquals("Boucle", SeedUpgradesPane.branchName(5));
             pane.select(5);
             assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).isDisabled());
             assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).getText().endsWith("S'ouvre avec la dimension 5"),
                     pane.button(SeedUpgrade.BLOOM_DURATION).getText());
-            // La brane (version 0.154) : sa branche a la lumière astrale, fermée tant que la dimension 6 ne l'est pas.
+            // La brane : sa branche a la lumière astrale, fermée tant que la dimension 6 ne l'est pas.
             assertFalse(pane.isBranchOpen(6));
             assertEquals("Brane", SeedUpgradesPane.branchName(6));
             pane.select(6);
             assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).isDisabled());
             assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).getText().endsWith("S'ouvre avec la dimension 6"),
                     pane.button(SeedUpgrade.ASTRAL_LIGHT).getText());
-            // Le clicker (version 0.155) : sa branche a les trois améliorations de la météo, fermées sans la dimension 7.
+            // Le clicker : sa branche a les trois améliorations de la météo, fermées sans la dimension 7.
             assertFalse(pane.isBranchOpen(7));
             assertEquals("Clicker", SeedUpgradesPane.branchName(7));
             pane.select(7);
@@ -171,19 +169,19 @@ class GraineAmeliorationsPageTest {
                 assertTrue(pane.button(weather).isDisabled());
                 assertTrue(pane.button(weather).getText().endsWith("S'ouvre avec la dimension 7"), pane.button(weather).getText());
             }
-            // La grille (version 0.156) : sa branche a la graine profonde, fermée sans la dimension 8.
+            // La grille : sa branche a la graine profonde, fermée sans la dimension 8.
             assertFalse(pane.isBranchOpen(8));
             assertEquals("Grille", SeedUpgradesPane.branchName(8));
             pane.select(8);
             assertTrue(pane.button(SeedUpgrade.DEEP_SEED).isDisabled());
             assertTrue(pane.button(SeedUpgrade.DEEP_SEED).getText().endsWith("S'ouvre avec la dimension 8"), pane.button(SeedUpgrade.DEEP_SEED).getText());
-            // Le miroir (version 0.157) : sa branche a les saisons, fermées sans la dimension 9.
+            // Le miroir : sa branche a les saisons, fermées sans la dimension 9.
             assertFalse(pane.isBranchOpen(9));
             assertEquals("Miroir", SeedUpgradesPane.branchName(9));
             pane.select(9);
             assertTrue(pane.button(SeedUpgrade.SEASONS).isDisabled());
             assertTrue(pane.button(SeedUpgrade.SEASONS).getText().endsWith("S'ouvre avec la dimension 9"), pane.button(SeedUpgrade.SEASONS).getText());
-            // Le mélange (version 0.158) : sa branche a la bulle des racines, fermée sans la dimension 10.
+            // Le mélange : sa branche a la bulle des racines, fermée sans la dimension 10.
             assertFalse(pane.isBranchOpen(10));
             assertEquals("Mélange", SeedUpgradesPane.branchName(10));
             pane.select(10);
@@ -203,7 +201,7 @@ class GraineAmeliorationsPageTest {
             assertFalse(pane.chronoSlider().isVisible() && pane.chronoSlider().getParent().isVisible());
             pane.select(1);
             assertTrue(pane.button(SeedUpgrade.CHRONO_FILL).isDisabled(), "sans l'étage, pas de remplissage");
-            pane.select(2);   // version 0.182 : l'étage du chrono est sur la branche Plan
+            pane.select(2);   // L'étage du chrono est sur la branche Plan
             assertTrue(pane.resourceText().getText().startsWith("Facettes du plan"), pane.resourceText().getText());
             pane.button(SeedUpgrade.CHRONO).fire();
             assertTrue(game.isChronoUnlocked());

@@ -15,16 +15,16 @@ import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 /**
  * La sous-page « Astres » de l'onglet Big Bang : les corps du ciel que le joueur forme en cumulant
@@ -39,7 +39,6 @@ import javafx.scene.layout.VBox;
  * astres dont il part est formé : le joueur découvre les échelles l'une après l'autre.
  */
 public final class BodiesPane extends VBox {
-
     /** Hauteur du ciel, en pixels : de quoi montrer les petits astres sur une ligne et les planètes sur une autre. */
     private static final double SKY_HEIGHT = 380;
     private static final double PICTURE_WIDTH = 150;
@@ -61,7 +60,7 @@ public final class BodiesPane extends VBox {
     private final Map<Body.Tier, Label> tierTitles = new EnumMap<>(Body.Tier.class);
     private final Map<Body.Tier, TileGrid> tierGrids = new EnumMap<>(Body.Tier.class);
     private final Map<Body, Card> cards = new LinkedHashMap<>();
-    /** Le dessin de chaque carte, et le skin des astres avec lequel ils ont été faits : en changer les redessine (version 0.186). */
+    /** Le dessin de chaque carte, et le skin des astres avec lequel ils ont été faits : en changer les redessine. */
     private final Map<Body, Canvas> pictures = new LinkedHashMap<>();
     private idle.core.universe.Skin drawnSkin;
     /** Les astres qui mûrissent : une ligne et un bouton « Accélérer » par place. */
@@ -70,15 +69,13 @@ public final class BodiesPane extends VBox {
     private final List<Label> maturingLabels = new java.util.ArrayList<>();
     private final List<javafx.scene.control.Button> hastenButtons = new java.util.ArrayList<>();
     private final List<String> maturingShown = new java.util.ArrayList<>();
-    /** Le plan de plusieurs astres (version 0.085) : ses besoins réunis, ce qui manque d'abord. */
+    /** Le plan de plusieurs astres : ses besoins réunis, ce qui manque d'abord. */
     private final VBox planBox = new VBox(4);
     private final Label planTitle = new Label();
     private final Label planMissing = new Label();
     private final Label planDone = new Label();
 
-    /**
-     * @param changed ce qu'il faut refaire quand un astre vient d'être formé : rafraîchir toute la page
-     */
+    /** @param changed ce qu'il faut refaire quand un astre vient d'être formé : rafraîchir toute la page */
     BodiesPane(Game game, Runnable changed) {
         super(8);
         this.game = game;
@@ -163,24 +160,13 @@ public final class BodiesPane extends VBox {
     }
 
     /** Le ciel : pour les vérifications. */
-    public SkyView sky() {
-        return sky;
-    }
+    public SkyView sky() { return sky; }
 
     /** La carte d'un astre, ou {@code null} si elle n'a pas encore été montrée : pour les vérifications. */
-    public Card card(Body body) {
-        return cards.get(body);
-    }
+    public Card card(Body body) { return cards.get(body); }
 
     /** Fait avancer le ciel d'une image. */
-    void frame(double elapsed) {
-        sky.frame(elapsed);
-    }
-
-    /** Le bouton « Former les astres prêts » : pour les vérifications. */
-    public javafx.scene.control.Button formAllButton() {
-        return formAll;
-    }
+    void frame(double elapsed) { sky.frame(elapsed); }
 
     /** Recopie l'état du jeu dans les cartes. */
     public void refresh() {
@@ -210,7 +196,7 @@ public final class BodiesPane extends VBox {
             boolean maturing = game.isBodyMaturing(body.id());
             int met = game.bodyConditionsMet(body.id());
             String gain = BigBangPage.what(body.boost().stat()) + " +" + ElementText.percent(body.boost().perMolecule());
-            // L'étoile de la planification (version 0.085) : un clic l'ajoute au plan, ou l'en retire.
+            // L'étoile de la planification : un clic l'ajoute au plan, ou l'en retire.
             if (game.isBodyPlanningUnlocked() && !formed) {
                 card.setPin(() -> {
                     game.togglePlannedBody(body.id());
@@ -329,11 +315,6 @@ public final class BodiesPane extends VBox {
                 : " · en même temps pour " + need.bodies().size() + " astres, compté une fois");
     }
 
-    /** Le texte du plan : pour les vérifications. */
-    public String planText() {
-        return planTitle.getText() + "\n" + planMissing.getText() + "\n" + planDone.getText();
-    }
-
     /** De quoi un astre est fait, en une ligne : « Fait de roche sableuse » ou « Fait de glace de comète et eau de source ». */
     private String origin(Body body) {
         if (body.assemblies().isEmpty()) return "Fait de matière rassemblée, sans assemblage";
@@ -444,7 +425,5 @@ public final class BodiesPane extends VBox {
     }
 
     /** Un état, comme on compte sa matière : « gaz rassemblés », « cristaux rassemblés ». */
-    private static String matterName(Molecule.State matter) {
-        return MatterText.plural(matter) + " rassemblés";
-    }
+    private static String matterName(Molecule.State matter) { return MatterText.plural(matter) + " rassemblés"; }
 }

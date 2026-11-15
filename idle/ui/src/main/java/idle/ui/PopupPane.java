@@ -1,31 +1,31 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.Trial;
+import idle.ui.pages.SkinsPage;
+import idle.ui.vacuum.VoidPage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import idle.core.universe.Skin;
+import idle.core.universe.Trial;
 import java.util.function.BooleanSupplier;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Les fenêtres d'explication (version 0.089), par-dessus la fenêtre, une seule fois chacune :
+ * Les fenêtres d'explication, par-dessus la fenêtre, une seule fois chacune :
  * <ul>
- *   <li>à l'ouverture d'un onglet, ce qu'est sa ressource et comment elle marche, en deux ou trois phrases ;</li>
- *   <li>dans le deuxième univers, chaque nouveauté des trois actes au moment où elle s'ouvre ;</li>
- *   <li>dans le troisième univers et les suivants, le vide quand il se propose, puis son trou noir
- *       ({@link #voidEntries(Game)}).</li>
- * </ul>
- * Ce qui s'ouvre au même moment se lit dans la même fenêtre. Le jeu continue derrière ; « Compris »
- * la ferme, et la suivante attend son tour. Une partie d'avant cette version ne revoit pas ce
- * qu'elle connaît déjà : au premier relevé, tout ce qui est déjà ouvert est marqué vu sans rien montrer.
+ * <li>à l'ouverture d'un onglet, ce qu'est sa ressource et comment elle marche, en deux ou trois phrases ;</li>
+ * <li>dans le deuxième univers, chaque nouveauté des trois actes au moment où elle s'ouvre ;</li>
+ * <li>dans le troisième univers et les suivants, le vide quand il se propose, puis son trou noir ({@link
+ * #voidEntries(Game)}).</li>
+ * </ul> Ce qui s'ouvre au même moment se lit dans la même fenêtre. Le jeu continue derrière ; « Compris » la ferme, et
+ * la suivante attend son tour. Une partie d'avant cette version ne revoit pas ce qu'elle connaît déjà : au premier
+ * relevé, tout ce qui est déjà ouvert est marqué vu sans rien montrer.
  */
 final class PopupPane extends Overlay {
-
     /** Une explication : son identifiant gardé dans la sauvegarde, son titre, son texte, sa couleur et quand elle s'ouvre. */
     record Entry(String id, String group, String heading, String text, String color, BooleanSupplier open) {
     }
@@ -54,24 +54,16 @@ final class PopupPane extends Overlay {
     }
 
     /** Vrai tant qu'une fenêtre est affichée. */
-    boolean isOpen() {
-        return isVisible();
-    }
+    boolean isOpen() { return isVisible(); }
 
     /** Les explications de la fenêtre affichée : pour les vérifications. */
-    List<Entry> shown() {
-        return shown;
-    }
+    List<Entry> shown() { return shown; }
 
     /** Les fenêtres qui attendent leur tour : pour les vérifications. */
-    int waiting() {
-        return waiting.size();
-    }
+    int waiting() { return waiting.size(); }
 
     /** Coupées pour les essais automatiques, qui n'ont personne pour cliquer « Compris ». */
-    static boolean enabled() {
-        return !Boolean.getBoolean("idle.noPopups");
-    }
+    static boolean enabled() { return !Boolean.getBoolean("idle.noPopups"); }
 
     /**
      * Relève ce qui vient de s'ouvrir parmi {@code entries} et l'annonce. Au tout premier relevé d'une
@@ -113,7 +105,7 @@ final class PopupPane extends Overlay {
     }
 
     /**
-     * Annonce un événement de la partie dans une fenêtre (version 0.126) : elle prend son tour comme une explication,
+     * Annonce un événement de la partie dans une fenêtre : elle prend son tour comme une explication,
      * mais n'est pas gardée dans la sauvegarde, puisqu'elle ne parle que de ce moment-là.
      */
     void announce(String groupText, String heading, String text, String color) {
@@ -191,9 +183,9 @@ final class PopupPane extends Overlay {
     static List<Entry> secondUniverse(Game game) {
         String one = "Deuxième univers — acte 1", two = "Deuxième univers — acte 2", three = "Deuxième univers — acte 3";
         String blue = GameApp.PARTICLES_COLOR, gold = GameApp.ATOMS_COLOR, violet = GameApp.DARK_MATTER_COLOR, bang = GameApp.BIG_BANG_COLOR;
-        String skins = idle.ui.pages.SkinsPage.COLOR;
+        String skins = SkinsPage.COLOR;
         BooleanSupplier second = game::isSecondUniverse;
-        // Version 0.109 : une nouveauté ne s'annonce que pendant la partie du deuxième univers, et une fois son acte
+        // Une nouveauté ne s'annonce que pendant la partie du deuxième univers, et une fois son acte
         // ouvert dans cette partie : l'acte 1 d'emblée, l'acte 2 à la première explosion, l'acte 3 au premier Big Bang.
         // Avant, certaines s'affichaient dès la formation du premier univers, ou en avance sur leur acte.
         BooleanSupplier act1 = game::isReplaying;
@@ -203,7 +195,7 @@ final class PopupPane extends Overlay {
                 gated(act1, "second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +" + Math.round(Game.REGIME_GAIN * 100) + "\u00a0% de cadence "
                         + "pendant " + (int) Game.REGIME_SECONDS + " s, puis " + (int) Game.REGIME_REST_SECONDS + " s de repos. Il se relance toujours à la main.", blue, game::isRegimeUnlocked),
                 gated(act1, "second:synergy", one, "Synergie des rangs", "Dès le dixième générateur, chacun produit un peu plus, "
-                        + "jusqu'à +" + String.format(java.util.Locale.FRANCE, "%.1f", Game.SYNERGY_MAX * 100) + "\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
+                        + "jusqu'à +" + String.format(Locale.FRANCE, "%.1f", Game.SYNERGY_MAX * 100) + "\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
                 gated(act1, "second:perfect", one, "Prime de cycle parfait", "Trois fusions de suite sans buter sur le plafond "
                         + "d'atomes : +" + Math.round(Game.PERFECT_GAIN * 100) + "\u00a0% de particules pendant une minute.", gold, game::isPerfectCycleUnlocked),
                 gated(act1, "second:free", one, "Éléments gratuits", "Tous les dix éléments découverts, un élément gratuit : dans "
@@ -235,11 +227,11 @@ final class PopupPane extends Overlay {
     }
 
     /**
-     * Le vide (version 0.129) : son offre dans le collisionneur, au premier Big Bang du troisième univers, puis son
+     * Le vide : son offre dans le collisionneur, au premier Big Bang du troisième univers, puis son
      * trou noir, au premier trou noir formé. Une fois chacune, comme les autres explications.
      */
     static List<Entry> voidEntries(Game game) {
-        String color = idle.ui.vacuum.VoidPage.COLOR;
+        String color = VoidPage.COLOR;
         return List.of(
                 new Entry("void:offer", "Troisième univers — le vide", "Le vide se propose", "Dans l'onglet Collisionneur, le vide "
                         + "s'ouvre contre dix minutes de production du collisionneur, comptées maintenant. Il y fera naître des paires "
@@ -247,10 +239,10 @@ final class PopupPane extends Overlay {
                         game::isVoidOffered),
                 new Entry("void:hole", "Troisième univers — le vide", "Le trou noir du vide", "Un trou noir est formé : dans l'onglet "
                         + "du vide, sacrifiez-lui des particules. Sa masse raccourcit la vie des paires, qui rendent leur espace plus "
-                        + "vite, et ralentit la fonte de l'énergie du vide.", idle.ui.vacuum.VoidPage.HOLE_COLOR, game::isVoidHoleOpen));
+                        + "vite, et ralentit la fonte de l'énergie du vide.", VoidPage.HOLE_COLOR, game::isVoidHoleOpen));
     }
 
-    /** Une nouveauté du deuxième univers, qui attend que son acte soit ouvert (version 0.109). */
+    /** Une nouveauté du deuxième univers, qui attend que son acte soit ouvert. */
     private static Entry gated(BooleanSupplier act, String id, String group, String heading, String text, String color, BooleanSupplier open) {
         return new Entry(id, group, heading, text, color, () -> act.getAsBoolean() && open.getAsBoolean());
     }

@@ -1,6 +1,10 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.core.universe.SkinVisual;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import idle.core.math.BigNum;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Format;
@@ -8,34 +12,24 @@ import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé
- * (version 0.080, refaite en 0.081). Trois sous-onglets :
+ * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé . Trois sous-onglets :
  * <ul>
- *   <li>« Univers » : les univers en bulles, les graines d'univers et les outils d'essai (les quatre améliorations de
- *       la version 0.081, Brane, Bulk, Paysage et Omnivers, sans prix ni effet, sont parties à la version 0.213) ;</li>
- *   <li>« Graine d'univers » (version 0.083) : la ressource principale, en grand, et son visuel ;</li>
- *   <li>« Dimensions », dès le premier univers (version 0.100) : dix points autour d'un onzième, une dimension
- *       de plus par univers ; chacune ouvre sa fenêtre. Depuis la version 0.160, le défi final y montre l'avancée de
- *       chaque dimension vers son palier ; les dix atteints pendant qu'on joue, la fin s'y joue seule, puis l'écran de
- *       fin ; « Revoir la fin » la rejoue ;</li>
- * </ul>
- * Le sous-onglet « Vide » est parti à la version 0.142 : le vide se joue dans son onglet, et son cumul, dans la graine,
- * paie les bulles de l'arbre.
+ * <li>« Univers » : les univers en bulles, les graines d'univers et les outils d'essai (les quatre améliorations de la
+ * version 0.081, Brane, Bulk, Paysage et Omnivers, sans prix ni effet, sont parties à la version 0.213) ;</li>
+ * <li>« Graine d'univers » : la ressource principale, en grand, et son visuel ;</li>
+ * <li>« Dimensions », dès le premier univers : dix points autour d'un onzième, une dimension de plus par univers ;
+ * chacune ouvre sa fenêtre. Depuis la version 0.160, le défi final y montre l'avancée de chaque dimension vers son
+ * palier ; les dix atteints pendant qu'on joue, la fin s'y joue seule, puis l'écran de fin ; « Revoir la fin » la
+ * rejoue ;</li>
+ * </ul> Le sous-onglet « Vide » est parti à la version 0.142 : le vide se joue dans son onglet, et son cumul, dans la
+ * graine, paie les bulles de l'arbre.
  */
 public final class UniversePage extends VBox {
-
     /** La couleur de l'univers : un bleu pervenche, à part des autres onglets. */
     public static final String COLOR = "#a8b8ff";
     /** La couleur du Vide : un cyan pâle. */
@@ -68,18 +62,18 @@ public final class UniversePage extends VBox {
     private final Button replay = tool("Revoir la naissance");
     private final Button oldTabs = tool("Montrer les anciens onglets");
     private final Button reset = tool("Tout remettre à zéro");
-    /** Rouvrir les paliers (version 0.087) : jouer la partie qui formera l'univers suivant. */
+    /** Rouvrir les paliers : jouer la partie qui formera l'univers suivant. */
     private final Button next = new Button();
     private final Label nextLine = new Label();
     private Runnable onNextUniverse = () -> { };
-    /** Ce qui précède le lancement de l'univers suivant : le guide de transition (version 0.127). */
-    private java.util.function.Consumer<Runnable> confirmLaunch = Runnable::run;
+    /** Ce qui précède le lancement de l'univers suivant : le guide de transition. */
+    private Consumer<Runnable> confirmLaunch = Runnable::run;
 
     /** Le guide à montrer avant de lancer l'univers suivant. */
-    public void setLaunchConfirm(java.util.function.Consumer<Runnable> confirm) {
+    public void setLaunchConfirm(Consumer<Runnable> confirm) {
         confirmLaunch = confirm == null ? Runnable::run : confirm;
     }
-    /** Le lancement de l'univers suivant (version 0.111), joué par-dessus la page. */
+    /** Le lancement de l'univers suivant, joué par-dessus la page. */
     private final LaunchView launch = new LaunchView();
     private double pulse;
     private final VBox mainPane;
@@ -88,7 +82,7 @@ public final class UniversePage extends VBox {
     private final DimensionsView dimensions = new DimensionsView();
     private final Label dimensionsLine = new Label();
     private final VBox dimensionsPane;
-    /** Le défi final (version 0.160) : rejouer la fin, une fois la partie finie. */
+    /** Le défi final : rejouer la fin, une fois la partie finie. */
     private final Button replayFinale = tool("Revoir la fin");
     /** La partie était-elle finie au dernier relevé ; {@code null} tant qu'aucun relevé n'a été fait (un chargement). */
     private Boolean finishedSeen;
@@ -102,10 +96,10 @@ public final class UniversePage extends VBox {
      * remplace, sur son étagère de la vue.
      */
     private final Label seedStatus = new Label();
-    /** Les améliorations de la graine et le chrono (version 0.139), à gauche de sa vue. */
+    /** Les améliorations de la graine et le chrono, à gauche de sa vue. */
     private final SeedUpgradesPane seedUpgrades;
     private double upgradesTimer;
-    /** Le bouton posé sur l'étagère, qui débloque l'arrosoir (version 0.137). */
+    /** Le bouton posé sur l'étagère, qui débloque l'arrosoir. */
     private final Button unlockCan = new Button("Débloquer l'arrosoir");
     /** Ce que l'arrosoir avait versé à la dernière image : pour saluer la brindille et rafraîchir la page. */
     private long lastWaterings = -1;
@@ -168,13 +162,13 @@ public final class UniversePage extends VBox {
             refresh();
         });
         next.setFocusTraversable(false);
-        // Version 0.111 : comme le bouton du tout début de la partie, il respire, et il faut cliquer pour lancer
+        // Comme le bouton du tout début de la partie, il respire, et il faut cliquer pour lancer
         // l'univers. Le clic joue le lancement ; à son éclat, l'univers part et l'onglet Particules revient.
         next.setStyle("-fx-font-size: 16px; -fx-padding: 12 28; -fx-cursor: hand; -fx-text-fill: #e8f4ff;"
                 + " -fx-background-color: #16202e; -fx-background-radius: 8; -fx-border-color: " + COLOR + "; -fx-border-radius: 8;");
         next.setOnAction(event -> {
             if (!game.canOpenNextUniverse() || launch.isPlaying()) return;
-            // Version 0.127 : le guide de transition d'abord ; le lancement ne part que si le joueur confirme.
+            // Le guide de transition d'abord ; le lancement ne part que si le joueur confirme.
             confirmLaunch.accept(() -> {
                 if (!game.canOpenNextUniverse() || launch.isPlaying()) return;
                 launch.play(() -> {
@@ -218,29 +212,25 @@ public final class UniversePage extends VBox {
         unlockCan.setStyle("-fx-font-size: 13px; -fx-padding: 6 14; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
                 + " -fx-text-fill: #10151f; -fx-background-color: " + SEED_COLOR + "; -fx-border-color: #fff6d2;");
         unlockCan.setFocusTraversable(false);
-        unlockCan.setOnAction(event -> {
-            if (game.unlockWateringCan()) refresh();
-        });
+        unlockCan.setOnAction(event -> { if (game.unlockWateringCan()) refresh(); });
         // L'étagère est dessinée dans la vue ; son bouton se tient au-dessus d'elle, au même endroit.
         Pane canLayer = new Pane(unlockCan);
         canLayer.setPickOnBounds(false);
         seedHolder.setMinSize(0, 0);
         StackPane seedStage = new StackPane(seedHolder, canLayer);
-        // Les bulles de l'arbre (version 0.142) : un clic sur l'une l'achète, avec l'énergie du vide accumulée.
+        // Les bulles de l'arbre : un clic sur l'une l'achète, avec l'énergie du vide accumulée.
         seedView.setOnBubble(this::clickBubble);
-        // Le rond de croissance (version 0.153) : un clic le cueille, et l'arrosage accélère.
-        seedView.setOnBloom(() -> {
-            if (game.catchBloom()) refresh();
-        });
+        // Le rond de croissance : un clic le cueille, et l'arrosage accélère.
+        seedView.setOnBloom(() -> { if (game.catchBloom()) refresh(); });
         VBox.setVgrow(seedStage, Priority.ALWAYS);
-        // Le cumul du vide (version 0.129) : ce qu'il restait d'énergie du vide à la formation de chaque univers.
+        // Le cumul du vide : ce qu'il restait d'énergie du vide à la formation de chaque univers.
         voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
         voidCumul.setWrapText(true);
         voidCumul.setMaxWidth(620);
         seedUpgrades = new SeedUpgradesPane(game);
-        javafx.scene.control.ScrollPane upgradesScroll = new javafx.scene.control.ScrollPane(seedUpgrades);
+        ScrollPane upgradesScroll = new ScrollPane(seedUpgrades);
         upgradesScroll.setFitToWidth(true);
-        upgradesScroll.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        upgradesScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         upgradesScroll.setMinWidth(280);
         upgradesScroll.setPrefWidth(340);
         upgradesScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
@@ -269,9 +259,7 @@ public final class UniversePage extends VBox {
     }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     /** Ce que fait l'outil « Montrer les anciens onglets » : vrai pour les montrer. */
     public void setOnOldTabs(Consumer<Boolean> action) {
@@ -283,30 +271,19 @@ public final class UniversePage extends VBox {
         onNextUniverse = action == null ? () -> { } : action;
     }
 
-    /** Le bouton « Rouvrir les paliers » : pour les vérifications. */
-    public Button nextButton() {
-        return next;
-    }
-
     /** Ce que fait un clic sur une dimension ouverte : son numéro, de 1 à 10. */
     public void setOnOpenDimension(IntConsumer action) {
         onOpenDimension = action == null ? number -> { } : action;
     }
 
     /** Vrai si l'outil d'essai a fait revenir les anciens onglets. */
-    public boolean showsOldTabs() {
-        return showOldTabs;
-    }
+    public boolean showsOldTabs() { return showOldTabs; }
 
     /** La ligne du cumul du vide, dans le sous-onglet Graine : pour les vérifications. */
-    public Label voidCumulLabel() {
-        return voidCumul;
-    }
+    public Label voidCumulLabel() { return voidCumul; }
 
     /** L'outil d'essai repasse à « cacher » : une nouvelle partie, un chargement. */
-    public void forgetOldTabs() {
-        showOldTabs = false;
-    }
+    public void forgetOldTabs() { showOldTabs = false; }
 
     public void select(int index) {
         if (index == DIMENSIONS && !game.isDimensionsUnlocked()) index = MAIN;
@@ -319,13 +296,11 @@ public final class UniversePage extends VBox {
         dimensionsTab.setStyle(SubTabs.style(index == DIMENSIONS, COLOR));
     }
 
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Passe au sous-onglet suivant ou précédent, en boucle, parmi ceux qui sont ouverts. */
     public void step(int direction) {
-        java.util.List<Integer> shown = new java.util.ArrayList<>(java.util.List.of(MAIN, SEED));
+        List<Integer> shown = new ArrayList<>(List.of(MAIN, SEED));
         if (game.isDimensionsUnlocked()) shown.add(DIMENSIONS);
         int at = Math.max(0, shown.indexOf(selected));
         select(shown.get(Math.floorMod(at + direction, shown.size())));
@@ -342,11 +317,11 @@ public final class UniversePage extends VBox {
         if (selected == DIMENSIONS && !dims) select(MAIN);
         resources.setText(universes + " univers"
                 + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
-                // Le bonus permanent des univers formés (version 0.112).
+                // Le bonus permanent des univers formés.
                 + (universes > 0 ? "   |   matière noire et sa croissance " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())) : ""));
         removeUniverse.setDisable(universes <= 1);
         boolean replaying = game.isReplaying();
-        // Le deuxième univers (version 0.106) attend la brindille de la graine ; il s'ouvre alors tout seul.
+        // Le deuxième univers attend la brindille de la graine ; il s'ouvre alors tout seul.
         boolean nextOpen = game.canOpenNextUniverse();
         next.setVisible(nextOpen && !launch.isPlaying());
         next.setText("Lancer l'univers " + (universes + 1));
@@ -387,7 +362,7 @@ public final class UniversePage extends VBox {
                         + "dimension se remplit de vert vers son palier, en puissances de dix ; les dix atteints, la partie est finie."
                 : open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                         + " Cliquez une dimension ouverte pour y entrer.");
-        java.util.Map<String, Double> history = game.state().voidHistory();
+        Map<String, Double> history = game.state().voidHistory();
         boolean bubbles = !game.treeBubblesShown().isEmpty();
         voidCumul.setVisible(!history.isEmpty() || bubbles);
         voidCumul.setManaged(voidCumul.isVisible());
@@ -398,12 +373,12 @@ public final class UniversePage extends VBox {
             StringBuilder each = new StringBuilder();
             history.forEach((universe, stock) -> each.append(each.length() == 0 ? "" : ", ").append("univers ").append(universe)
                     .append(" : ").append(Format.count(BigNum.of(stock))));
-            // Version 0.142 : elle paie les bulles de l'arbre ; la ligne dit ce qu'il en reste à dépenser.
+            // Elle paie les bulles de l'arbre ; la ligne dit ce qu'il en reste à dépenser.
             voidCumul.setText("Énergie du vide accumulée : " + Format.count(BigNum.of(game.voidAccumulated())) + " (" + each
                     + "), ce qu'il restait à la formation de chaque univers. À dépenser pour les bulles de l'arbre : "
                     + Format.count(BigNum.of(game.voidAvailable())) + ".");
         }
-        // Il n'y a qu'une graine (version 0.105) : pas de compteur, la graine est là dès que l'univers est formé.
+        // Il n'y a qu'une graine : pas de compteur, la graine est là dès que l'univers est formé.
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
         seedView.setSprout(game.state().seedSprouted(), game.state().seedWaterings());
         seedView.setCanUnlocked(game.isWateringCanUnlocked());
@@ -417,7 +392,7 @@ public final class UniversePage extends VBox {
         String pace = " (arrosoir : " + Format.darkMatter(BigNum.of(game.wateringCanRate())) + " par seconde"
                 + (game.hasHose() ? ", tuyau : " + Format.darkMatter(BigNum.of(game.hoseRate())) + " par seconde" : "")
                 + (game.seedSoilFactor() > 1 ? ", chaque arrosage compte " + game.seedSoilFactor() : "")
-                // La graine profonde (version 0.156) : ce qu'elle multiplie, une fois achetée.
+                // La graine profonde : ce qu'elle multiplie, une fois achetée.
                 + (game.deepSeed() > 1 + 1e-9 ? ", graine profonde " + Format.multiplier(BigNum.of(game.deepSeed())) : "") + ")";
         seedStatus.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
                 : game.isSeedStageCapped()
@@ -457,9 +432,7 @@ public final class UniversePage extends VBox {
     }
 
     /** Une partie chargée ou remise à zéro : le prochain relevé reprend la fin telle qu'elle est, sans la jouer. */
-    public void forgetFinale() {
-        finishedSeen = null;
-    }
+    public void forgetFinale() { finishedSeen = null; }
 
     /** Joue la fin sur la carte des dimensions, qui se montre. */
     public void playFinale() {
@@ -470,28 +443,20 @@ public final class UniversePage extends VBox {
     }
 
     /** Vrai tant que la fin se joue sur la carte. */
-    public boolean isFinalePlaying() {
-        return dimensions.isFinalePlaying();
-    }
+    public boolean isFinalePlaying() { return dimensions.isFinalePlaying(); }
 
     /** Ce qui suit la fin : l'écran de fin. */
-    public void setOnFinale(Runnable action) {
-        dimensions.setOnFinale(action);
-    }
+    public void setOnFinale(Runnable action) { dimensions.setOnFinale(action); }
 
     /** Le bouton « Revoir la fin » : pour les vérifications. */
-    public Button replayFinaleButton() {
-        return replayFinale;
-    }
+    public Button replayFinaleButton() { return replayFinale; }
 
     /** La ligne au-dessus de la carte des dimensions : pour les vérifications. */
-    public String dimensionsLineText() {
-        return dimensionsLine.getText();
-    }
+    public String dimensionsLineText() { return dimensionsLine.getText(); }
 
     /**
      * Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120 ;
-     * version 0.179 : seulement des arrosages, le seuil de la dimension ne retient plus la graine depuis la 0.139).
+     * Seulement des arrosages, le seuil de la dimension ne retient plus la graine depuis la 0.139).
      */
     private String nextStageLine(int number) {
         int stage = Math.min(number, Game.SEED_STAGES);
@@ -509,58 +474,56 @@ public final class UniversePage extends VBox {
     }
 
     /** Vrai tant que la naissance se joue. */
-    public boolean isBirthPlaying() {
-        return view.isBirthPlaying();
-    }
+    public boolean isBirthPlaying() { return view.isBirthPlaying(); }
 
     /** Fait avancer l'animation du sous-onglet affiché ; {@code moving} faux (réglage coupé) la laisse immobile. */
     public void frame(double elapsed, boolean moving) {
         // Le lancement avance même animations coupées : c'est lui qui lance l'univers.
         boolean wasPlaying = launch.isPlaying();
-        launch.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.LAUNCH));
+        launch.setSkin(game.chosenSkin(SkinVisual.LAUNCH));
         launch.frame(elapsed);
         if (wasPlaying && !launch.isPlaying()) refresh();
         pulse += Math.min(elapsed, 0.1);
         double scale = moving && next.isVisible() ? 1 + 0.03 * (1 + Math.sin(pulse * Math.PI / 1.1)) : 1;
         next.setScaleX(scale);
         next.setScaleY(scale);
-        // L'arrosoir (version 0.137) : penché sur la graine, il arrose ; le jeu compte, la page suit.
+        // L'arrosoir : penché sur la graine, il arrose ; le jeu compte, la page suit.
         game.setWatering(selected == SEED && seedView.isPouring());
         long waterings = game.state().seedWaterings() + (game.state().seedSprouted() ? 1 : 0);
         if (lastWaterings >= 0 && waterings != lastWaterings) {
-            // La brindille (version 0.106) ouvre le deuxième univers : un éclat la salue.
+            // La brindille ouvre le deuxième univers : un éclat la salue.
             if (game.isSeedTwig() && game.state().seedWaterings() == Game.SEED_TWIG_WATERINGS) seedView.celebrate();
             refresh();
         }
         lastWaterings = waterings;
-        // La fin (version 0.160) avance même si le joueur change de sous-onglet : l'écran de fin vient quand même.
+        // La fin avance même si le joueur change de sous-onglet : l'écran de fin vient quand même.
         if (selected != DIMENSIONS && dimensions.isFinalePlaying()) dimensions.frame(elapsed, moving);
         switch (selected) {
             case DIMENSIONS -> {
-                // La carte et le remplissage du défi final (version 0.197), et la palette que leurs points reprennent.
-                DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
-                dimensions.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSIONS_MAP), game.chosenSkin(idle.core.universe.SkinVisual.FINALE_FILL));
+                // La carte et le remplissage du défi final, et la palette que leurs points reprennent.
+                DimensionPalette.setSkin(game.chosenSkin(SkinVisual.DIMENSION_PALETTE));
+                dimensions.setSkins(game.chosenSkin(SkinVisual.DIMENSIONS_MAP), game.chosenSkin(SkinVisual.FINALE_FILL));
                 dimensions.frame(elapsed, moving);
             }
             case SEED -> {
-                // Le tuyau et le chrono (version 0.139) : ce que la vue en montre suit le jeu à chaque image.
+                // Le tuyau et le chrono : ce que la vue en montre suit le jeu à chaque image.
                 seedView.setHose(game.hasHose(), game.hasHose() && game.canTendSeed());
                 seedView.setChrono(game.isChronoUnlocked(), game.chronoCapacity() > 0 ? game.chronoStored() / game.chronoCapacity() : 0,
                         game.isChronoRunning());
                 seedView.setBubbles(bubbles());
-                // Le rond de croissance (version 0.153) : là où le jeu le fait pousser, et son effet en cours.
+                // Le rond de croissance : là où le jeu le fait pousser, et son effet en cours.
                 seedView.setBloom(game.isBloomVisible(), game.bloomX(), game.bloomY(), game.bloomVisibleLeft(), Game.BLOOM_VISIBLE);
                 seedView.setBloomEffect(game.bloomActiveLeft(), game.bloomGain());
-                // La météo (version 0.155) : le temps qu'il fait, et son effet sur l'arrosage.
+                // La météo : le temps qu'il fait, et son effet sur l'arrosage.
                 seedView.setWeather(game.isWeatherUnlocked() ? game.weather() : null, game.weatherLeft(), game.weatherFactor());
-                // Les saisons (version 0.157) : la saison, ce qu'il lui reste, et ce qu'un arrosage verse au chrono.
+                // Les saisons : la saison, ce qu'il lui reste, et ce qu'un arrosage verse au chrono.
                 seedView.setSeason(game.areSeasonsUnlocked() ? game.season() : null, game.seasonLeft(), game.seasonFillPerWatering());
-                // L'essence de l'arbre (version 0.185) : le skin choisi dans l'onglet Skins, null pour le Classique.
-                seedView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TREE));
-                // L'établi de la graine (version 0.196) : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
-                for (idle.core.universe.SkinVisual visual : SeedView.ESTABLISHMENT) seedView.setVisualSkin(visual, game.chosenSkin(visual));
-                // L'arbre au-delà de son essence (version 0.197) : la saison figée, la fantaisie, le sol, les bulles et leurs liens.
-                for (idle.core.universe.SkinVisual visual : SeedView.TREE_LOOKS) seedView.setVisualSkin(visual, game.chosenSkin(visual));
+                // L'essence de l'arbre : le skin choisi dans l'onglet Skins, null pour le Classique.
+                seedView.setSkin(game.chosenSkin(SkinVisual.TREE));
+                // L'établi de la graine : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
+                for (SkinVisual visual : SeedView.ESTABLISHMENT) seedView.setVisualSkin(visual, game.chosenSkin(visual));
+                // L'arbre au-delà de son essence : la saison figée, la fantaisie, le sol, les bulles et leurs liens.
+                for (SkinVisual visual : SeedView.TREE_LOOKS) seedView.setVisualSkin(visual, game.chosenSkin(visual));
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;
@@ -570,23 +533,19 @@ public final class UniversePage extends VBox {
                 }
             }
             default -> {
-                // Les skins des bulles, de la naissance et des liens (version 0.196), et celui du lancement.
-                view.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_BUBBLE), game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_BIRTH),
-                        game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_LINKS));
+                // Les skins des bulles, de la naissance et des liens, et celui du lancement.
+                view.setSkins(game.chosenSkin(SkinVisual.UNIVERSE_BUBBLE), game.chosenSkin(SkinVisual.UNIVERSE_BIRTH),
+                        game.chosenSkin(SkinVisual.UNIVERSE_LINKS));
                 view.frame(elapsed, moving);
             }
         }
     }
 
     /** La vue des univers : pour les vérifications. */
-    public UniverseView view() {
-        return view;
-    }
+    public UniverseView view() { return view; }
 
     /** Le lancement de l'univers suivant : pour les vérifications. */
-    public LaunchView launchView() {
-        return launch;
-    }
+    public LaunchView launchView() { return launch; }
 
     /** Le bouton de l'étagère pose l'arrosoir au-dessus de la planche, au milieu. */
     private void placeUnlockCan() {
@@ -597,16 +556,14 @@ public final class UniversePage extends VBox {
     }
 
     /** Ce que dit la page de la graine, et le bouton qui débloque l'arrosoir : pour les vérifications. */
-    public Label seedStatus() {
-        return seedStatus;
-    }
+    public Label seedStatus() { return seedStatus; }
 
-    /** Les bulles de l'arbre (version 0.142), comme la vue les dessine : leur place, leur prix, leur état, leurs liens. */
-    private java.util.List<SeedView.Bubble> bubbles() {
-        java.util.List<Game.TreeBubble> shown = game.treeBubblesShown();
-        java.util.List<SeedView.Bubble> list = new java.util.ArrayList<>();
+    /** Les bulles de l'arbre, comme la vue les dessine : leur place, leur prix, leur état, leurs liens. */
+    private List<SeedView.Bubble> bubbles() {
+        List<Game.TreeBubble> shown = game.treeBubblesShown();
+        List<SeedView.Bubble> list = new ArrayList<>();
         for (Game.TreeBubble bubble : shown) {
-            // Version 0.148 : celles qui se rachètent restent à acheter jusqu'à leur dernier niveau.
+            // Celles qui se rachètent restent à acheter jusqu'à leur dernier niveau.
             int level = game.treeBubbleLevel(bubble);
             boolean many = bubble.maxLevel() > 1;
             SeedView.BubbleState state = game.isTreeBubbleMaxed(bubble) ? SeedView.BubbleState.BOUGHT
@@ -615,9 +572,8 @@ public final class UniversePage extends VBox {
             double cost = game.treeBubbleCost(bubble);
             String levels = many ? "Niveau " + level + " / " + bubble.maxLevel() + ". " : "";
             String price = switch (state) {
-                case BOUGHT -> many ? "Niveau " + level + " / " + bubble.maxLevel() + " : au plus haut"
-                        : "Achetée";
-                // Version 0.158 : la bulle des racines s'ouvre par la dernière amélioration de la graine.
+                case BOUGHT -> many ? "Niveau " + level + " / " + bubble.maxLevel() + " : au plus haut" : "Achetée";
+                // La bulle des racines s'ouvre par la dernière amélioration de la graine.
                 case CLOSED -> bubble == Game.TreeBubble.ROOTS && game.seedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE) == 0
                         ? "Ouverte par l'amélioration de graine " + Game.SeedUpgrade.ROOT_BUBBLE.label()
                         : shownLinks(bubble, shown).size() == 1 ? "Il faut d'abord : " + shownLinks(bubble, shown).get(0).label()
@@ -626,7 +582,7 @@ public final class UniversePage extends VBox {
                 case SHORT -> levels + "Prix : " + Format.count(BigNum.of(cost)) + " d'énergie du vide (il en manque "
                         + Format.count(BigNum.of(Math.ceil(cost - game.voidAvailable()))) + ")";
             };
-            java.util.List<Integer> below = new java.util.ArrayList<>();
+            List<Integer> below = new ArrayList<>();
             for (Game.TreeBubble under : bubble.below()) if (shown.contains(under)) below.add(shown.indexOf(under));
             list.add(new SeedView.Bubble(bubble.ordinal(), bubble.label(), bubble.effect(), price, state, below));
         }
@@ -634,46 +590,33 @@ public final class UniversePage extends VBox {
     }
 
     /** Les bulles nées reliées à celle-ci : celles qui peuvent l'ouvrir. */
-    private static java.util.List<Game.TreeBubble> shownLinks(Game.TreeBubble bubble, java.util.List<Game.TreeBubble> shown) {
-        java.util.List<Game.TreeBubble> links = new java.util.ArrayList<>(bubble.links());
+    private static List<Game.TreeBubble> shownLinks(Game.TreeBubble bubble, List<Game.TreeBubble> shown) {
+        List<Game.TreeBubble> links = new ArrayList<>(bubble.links());
         links.retainAll(shown);
         return links;
     }
 
     /** Un clic sur une bulle : achetée si elle peut l'être. */
     private void clickBubble(int index) {
-        java.util.List<Game.TreeBubble> shown = game.treeBubblesShown();
+        List<Game.TreeBubble> shown = game.treeBubblesShown();
         if (index < 0 || index >= shown.size()) return;
         if (game.buyTreeBubble(shown.get(index))) refresh();
         seedView.setBubbles(bubbles());
     }
 
-    public SeedUpgradesPane seedUpgrades() {
-        return seedUpgrades;
-    }
+    public SeedUpgradesPane seedUpgrades() { return seedUpgrades; }
 
-    public Button unlockCanButton() {
-        return unlockCan;
-    }
+    public Button unlockCanButton() { return unlockCan; }
 
     /** La graine d'univers : pour les vérifications. */
 
-    public SeedView seedView() {
-        return seedView;
-    }
+    public SeedView seedView() { return seedView; }
 
     /** La carte des dimensions : pour les vérifications. */
-    public DimensionsView dimensionsView() {
-        return dimensions;
-    }
+    public DimensionsView dimensionsView() { return dimensions; }
 
     /** Les outils d'essai, par leur texte : pour les vérifications. */
     Button tool(int index) {
         return new Button[] {addUniverse, removeUniverse, addSeeds, addVoid, replay, oldTabs, reset}[index];
-    }
-
-    /** Un outil d'essai, par sa place (0 : +1 univers, 1 : −1, 2 : graines, 3 : vide, 4 : naissance, 5 : anciens onglets, 6 : zéro). */
-    public void pressTool(int index) {
-        tool(index).fire();
     }
 }

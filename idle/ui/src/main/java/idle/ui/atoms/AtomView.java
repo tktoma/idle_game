@@ -2,19 +2,18 @@ package idle.ui.atoms;
 
 import idle.ui.common.TabIcon;
 import idle.ui.common.TabIconSkinArt;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import idle.core.universe.Skin;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 
 /**
  * Icône animée d'un atome : un noyau doré et trois électrons sur des orbites inclinées.
  * Elle représente la deuxième ressource du jeu, à côté de son compteur.
  *
- * <p>Version 0.192 : elle suit le skin des icônes d'onglet ({@link TabIcon#skin()}) : craie, pixel art, constellation
+ * <p>Elle suit le skin des icônes d'onglet ({@link TabIcon#skin()}) : craie, pixel art, constellation
  * ou emoji, par le même modèle de points et de traits que les autres icônes ; « Figées » l'arrête.
  */
 public final class AtomView extends Canvas {
-
     /** Inclinaison de chaque orbite, en degrés. */
     private static final double[] ORBIT_TILTS = {0, 60, 120};
 
@@ -25,9 +24,7 @@ public final class AtomView extends Canvas {
     private double time = 0;
 
     /** @param size côté de l'icône, en pixels */
-    public AtomView(double size) {
-        super(size, size);
-    }
+    public AtomView(double size) { super(size, size); }
 
     /** Avance l'animation de {@code elapsed} secondes et redessine. */
     public void frame(double elapsed) {
@@ -36,11 +33,11 @@ public final class AtomView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         double size = getWidth();
         double center = size / 2;
-        idle.core.universe.Skin skin = TabIcon.skin();
+        Skin skin = TabIcon.skin();
         if (TabIconSkinArt.draws(skin)) {
             g.setGlobalAlpha(1);
             g.clearRect(0, 0, size, size);
-            double shown = skin == idle.core.universe.Skin.ICONS_PIXEL
+            double shown = skin == Skin.ICONS_PIXEL
                     ? TabIconSkinArt.PIXEL_STEP * (Math.floor(time / TabIconSkinArt.PIXEL_STEP) % 2) : time;
             TabIconSkinArt.draw(skin, g, model(shown), size, NUCLEUS, 1, time);
             return;
@@ -85,7 +82,7 @@ public final class AtomView extends Canvas {
         g.fillOval(center - nucleus, center - nucleus, nucleus * 2, nucleus * 2);
     }
 
-    /** L'atome en points et en traits (version 0.192) : le noyau, trois orbites en anneaux inclinés, un électron sur chacune. */
+    /** L'atome en points et en traits : le noyau, trois orbites en anneaux inclinés, un électron sur chacune. */
     public static TabIconSkinArt.Model model(double time) {
         TabIconSkinArt.Model m = new TabIconSkinArt.Model();
         m.point(0, 0);

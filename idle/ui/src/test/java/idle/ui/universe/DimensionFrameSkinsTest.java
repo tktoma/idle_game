@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,25 +12,20 @@ import idle.core.universe.SkinVisual;
 import idle.ui.FxTestSupport;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.197 : les cadres et la palette des mini-jeux, sous Xvfb. Chaque cadre se dessine à deux tailles et change le
+ * Les cadres et la palette des mini-jeux, sous Xvfb. Chaque cadre se dessine à deux tailles et change le
  * calque, vide sans skin ; la fenêtre laisse sa marge au cadre choisi et la reprend sans lui. La palette, libre, change la
  * couleur de chaque dimension dans l'arène, dans les étiquettes et sur les boutons d'achat de la fenêtre, d'un coup ; sans
  * skin, la fenêtre garde ses couleurs d'origine.
  */
 class DimensionFrameSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -38,7 +34,7 @@ class DimensionFrameSkinsTest {
     }
 
     private static int opaque(Canvas canvas) {
-        WritableImage image = canvas.snapshot(new javafx.scene.SnapshotParameters() {
+        WritableImage image = canvas.snapshot(new SnapshotParameters() {
             {
                 setFill(Color.TRANSPARENT);
             }

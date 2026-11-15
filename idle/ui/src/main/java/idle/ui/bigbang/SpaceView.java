@@ -1,6 +1,9 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.paint.*;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Assembly;
@@ -8,89 +11,74 @@ import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.MatterText;
 import java.util.List;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
  * L'espace que l'expansion de la matière a créé, vu de dessus, avec les molécules qui l'occupent.
  *
- * <p>L'espace est un disque dont la surface vaut l'espace créé ({@code GameState.space()}) : son
- * bord recule à mesure que le temps passe. Les molécules s'y rangent en spirale depuis le centre,
- * à l'intérieur du cœur utilisé : le disque dont la surface vaut l'espace qu'elles occupent et
- * celui que réservent leurs lieux de rassemblement ({@link Game#usedSpace()}). Le cœur grossit
- * donc avec ce que fait le joueur, le bord avec le temps, et l'anneau vide entre les deux est
- * l'espace libre.
+ * <p>L'espace est un disque dont la surface vaut l'espace créé ({@code GameState.space()}) : son bord recule à mesure
+ * que le temps passe. Les molécules s'y rangent en spirale depuis le centre, à l'intérieur du cœur utilisé : le disque
+ * dont la surface vaut l'espace qu'elles occupent et celui que réservent leurs lieux de rassemblement ({@link
+ * Game#usedSpace()}). Le cœur grossit donc avec ce que fait le joueur, le bord avec le temps, et l'anneau vide entre
+ * les deux est l'espace libre.
  *
- * <p>Les molécules rassemblées ({@link Game#formSubstance(String)}) occupent le centre, et celles
- * d'une même sorte y forment un seul amas : une surface pleine, sans fente ni trou entre ses
- * molécules, de la couleur de la molécule et cernée de la couleur de son état. Les états les plus serrés sont servis les premiers,
- * donc au plus près du centre : les cristaux, puis les liquides, et les gaz au bord, comme une
- * planète de son noyau à son atmosphère. Les amas se cognent sans se
- * chevaucher : chacun s'arrête là où il touche son voisin, comme des bulles serrées les unes
- * contre les autres. Les molécules qui ne sont pas rassemblées restent au-delà, dans l'ordre de
- * leur création.
+ * <p>Les molécules rassemblées ({@link Game#formSubstance(String)}) occupent le centre, et celles d'une même sorte y
+ * forment un seul amas : une surface pleine, sans fente ni trou entre ses molécules, de la couleur de la molécule et
+ * cernée de la couleur de son état. Les états les plus serrés sont servis les premiers, donc au plus près du centre :
+ * les cristaux, puis les liquides, et les gaz au bord, comme une planète de son noyau à son atmosphère. Les amas se
+ * cognent sans se chevaucher : chacun s'arrête là où il touche son voisin, comme des bulles serrées les unes contre les
+ * autres. Les molécules qui ne sont pas rassemblées restent au-delà, dans l'ordre de leur création.
  *
- * <p>Au cœur de tout, les assemblages formés ({@link Game#formAssembly(String)}) : chacun est un
- * bloc de plusieurs centaines de molécules, bien plus gros qu'un amas. Il ne se dessine pas comme
- * eux : son corps est opaque, de la couleur de sa matière, sous un contour clair et épais ; ses
- * molécules de plusieurs sortes y sont mêlées, chacune réduite à un grain anguleux de sa couleur ;
- * et il porte son nom. On ne revoit ses molécules qu'en s'approchant tout près.
+ * <p>Au cœur de tout, les assemblages formés ({@link Game#formAssembly(String)}) : chacun est un bloc de plusieurs
+ * centaines de molécules, bien plus gros qu'un amas. Il ne se dessine pas comme eux : son corps est opaque, de la
+ * couleur de sa matière, sous un contour clair et épais ; ses molécules de plusieurs sortes y sont mêlées, chacune
+ * réduite à un grain anguleux de sa couleur ; et il porte son nom. On ne revoit ses molécules qu'en s'approchant tout
+ * près.
  *
- * <p>Et les astres formés ({@link Game#formBody(String)}), qui sont faits de leurs assemblages.
- * Chacun a une clairière ronde, de la taille de ce qu'il contient : l'astre lui-même
- * ({@link BodyArt}) en occupe le milieu, et les blocs de ses assemblages restent autour de lui, en
- * couronne, chacun avec sa couleur, son contour, ses grains et son nom. Une planète est un globe
- * au milieu de ses roches, de ses eaux et de ses airs ; une étoile, une boule de feu dans son
- * hydrogène. Le trou noir supermassif tient le centre de tout, les plus gros astres autour de
- * lui, et aucun ne touche ni un autre astre, ni un bloc, ni un amas. Un astre reste net de très
- * loin, quand tout le reste est devenu du gaz.
+ * <p>Et les astres formés ({@link Game#formBody(String)}), qui sont faits de leurs assemblages. Chacun a une clairière
+ * ronde, de la taille de ce qu'il contient : l'astre lui-même ({@link BodyArt}) en occupe le milieu, et les blocs de
+ * ses assemblages restent autour de lui, en couronne, chacun avec sa couleur, son contour, ses grains et son nom. Une
+ * planète est un globe au milieu de ses roches, de ses eaux et de ses airs ; une étoile, une boule de feu dans son
+ * hydrogène. Le trou noir supermassif tient le centre de tout, les plus gros astres autour de lui, et aucun ne touche
+ * ni un autre astre, ni un bloc, ni un amas. Un astre reste net de très loin, quand tout le reste est devenu du gaz.
  *
- * <p>Enfin la galaxie ({@link Game#formGalaxy()}) : une fois formée, tout cela s'enroule en bras de
- * spirale ({@link Spiral}) autour du trou noir supermassif. Chaque molécule y devient un point, de
- * sa couleur mêlée à celle des étoiles ; les astres se rangent le long des bras, les plus gros
- * près du centre ; l'ensemble tourne, ses bras à la traîne. Le joueur peut toujours revenir à la
- * matière telle qu'elle était rangée ({@link #showGalaxy(boolean)}).
+ * <p>Enfin la galaxie ({@link Game#formGalaxy()}) : une fois formée, tout cela s'enroule en bras de spirale ({@link
+ * Spiral}) autour du trou noir supermassif. Chaque molécule y devient un point, de sa couleur mêlée à celle des étoiles
+ * ; les astres se rangent le long des bras, les plus gros près du centre ; l'ensemble tourne, ses bras à la traîne. Le
+ * joueur peut toujours revenir à la matière telle qu'elle était rangée ({@link #showGalaxy(boolean)}).
  *
- * <p>Le cœur est juste, les dessins ne le sont pas : les molécules s'y partagent la place à parts
- * égales, quelle que soit la taille de chacune. Une molécule lourde n'est donc pas dessinée
- * beaucoup plus grande qu'une légère, et aucun dessin ne dépasse du cœur, donc de l'espace.
+ * <p>Le cœur est juste, les dessins ne le sont pas : les molécules s'y partagent la place à parts égales, quelle que
+ * soit la taille de chacune. Une molécule lourde n'est donc pas dessinée beaucoup plus grande qu'une légère, et aucun
+ * dessin ne dépasse du cœur, donc de l'espace.
  *
  * <p>La vue se règle comme une caméra :
  * <ul>
- *   <li>la molette, ou {@link #zoom(double)}, rapproche ou éloigne ;</li>
- *   <li>on ne peut pas reculer plus loin que ce qu'il faut pour voir tout l'espace : plus il y en
- *       a, plus on peut dézoomer ({@link #fit()} y va d'un coup) ;</li>
- *   <li>tirer avec la souris déplace la vue, sans sortir de l'espace.</li>
- * </ul>
- * De très loin, la matière est un gaz : chaque molécule n'est plus qu'une bouffée de sa couleur,
- * et les bouffées se fondent en nuages qui remuent lentement ({@link #mist()}). La structure reste
- * pourtant lisible à travers eux (version 0.183) : par-dessus le gaz, net, chaque bloc d'assemblage
- * est un disque plein de la couleur de sa matière sous son contour clair, et chaque amas un anneau
- * fin de la couleur de son état, avec une légère lueur de cette couleur qui monte vers son bord.
- * Ces marques apparaissent avec le gaz et s'effacent avec lui ({@link #drawMistBodies}) : de près,
- * le dessin des amas et des blocs reprend. En s'approchant,
- * le gaz se dissipe et laisse voir les amas et leurs molécules : d'abord des points, puis leurs
- * atomes, leurs liaisons et leurs symboles ({@link MoleculeArt}). Tant que le joueur n'a pas rapproché la vue, elle suit
- * l'expansion et montre toujours tout l'espace.
+ * <li>la molette, ou {@link #zoom(double)}, rapproche ou éloigne ;</li>
+ * <li>on ne peut pas reculer plus loin que ce qu'il faut pour voir tout l'espace : plus il y en a, plus on peut
+ * dézoomer ({@link #fit()} y va d'un coup) ;</li>
+ * <li>tirer avec la souris déplace la vue, sans sortir de l'espace.</li>
+ * </ul> De très loin, la matière est un gaz : chaque molécule n'est plus qu'une bouffée de sa couleur, et les bouffées
+ * se fondent en nuages qui remuent lentement ({@link #mist()}). La structure reste pourtant lisible à travers eux :
+ * par-dessus le gaz, net, chaque bloc d'assemblage est un disque plein de la couleur de sa matière sous son contour
+ * clair, et chaque amas un anneau fin de la couleur de son état, avec une légère lueur de cette couleur qui monte vers
+ * son bord. Ces marques apparaissent avec le gaz et s'effacent avec lui ({@link #drawMistBodies}) : de près, le dessin
+ * des amas et des blocs reprend. En s'approchant, le gaz se dissipe et laisse voir les amas et leurs molécules :
+ * d'abord des points, puis leurs atomes, leurs liaisons et leurs symboles ({@link MoleculeArt}). Tant que le joueur n'a
+ * pas rapproché la vue, elle suit l'expansion et montre toujours tout l'espace.
  *
- * <p>L'ensemble tourne très lentement, et chaque molécule sur elle-même : c'est une image de
- * l'espace, pas une mesure.
+ * <p>L'ensemble tourne très lentement, et chaque molécule sur elle-même : c'est une image de l'espace, pas une mesure.
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
- * celle-ci est le bout ; le reste du programme ne voit que {@code SpaceView}. De la base au bout :
- * {@link SpaceViewBase}, {@link SpaceViewPlacement}, {@link SpaceViewPacking}. Quand une partie a besoin
- * d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que
- * fournissent les parties suivantes ».
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont celle-ci est le bout ; le
+ * reste du programme ne voit que {@code SpaceView}. De la base au bout : {@link SpaceViewBase}, {@link
+ * SpaceViewPlacement}, {@link SpaceViewPacking}. Quand une partie a besoin d'une méthode définie plus loin dans la
+ * chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les parties suivantes ».
  */
 public final class SpaceView extends SpaceViewPacking {
-
-    SpaceView(Game game) {
-        super(game);
-    }
+    SpaceView(Game game) { super(game); }
 
     /**
      * Fait avancer le temps de la vue et la redessine.
@@ -110,9 +98,9 @@ public final class SpaceView extends SpaceViewPacking {
         if (scale != null) {
             // L'amas de galaxies tourne lentement ; la toile de l'univers ne bouge pas.
             boolean still = scale == Cosmos.UNIVERSE && farDrawn;
-            // Un autre skin de la toile ou de l'amas (version 0.194) : redessinée sans attendre.
+            // Un autre skin de la toile ou de l'amas : redessinée sans attendre.
             boolean restyled = farDrawn && farSkin != game.chosenSkin(scale == Cosmos.UNIVERSE
-                    ? idle.core.universe.SkinVisual.COSMIC_WEB : idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+                    ? SkinVisual.COSMIC_WEB : SkinVisual.GALAXY_CLUSTER);
             if (!moved && !restyled && getWidth() == drawnWidth && getHeight() == drawnHeight && (still || beat % EVERY != 0)) return;
             redraw();
             return;
@@ -131,25 +119,25 @@ public final class SpaceView extends SpaceViewPacking {
     static final int CALM_FROM = 5_000;
 
     /**
-     * Les couleurs des corps dans les skins des amas et des blocs (version 0.194) : celles de la mise en place
+     * Les couleurs des corps dans les skins des amas et des blocs : celles de la mise en place
      * ({@code rims}, {@code inks}) quand aucun skin n'est choisi, sinon recalculées par {@link #tintBodies} quand
      * la mise en place ou le choix change.
      */
     private Color[] shownRims = rims;
     private Color[] shownInks = inks;
     private int tintedVersion = -1;
-    private idle.core.universe.Skin tintedPalette;
-    private idle.core.universe.Skin tintedClumps;
-    private idle.core.universe.Skin tintedBlocks;
+    private Skin tintedPalette;
+    private Skin tintedClumps;
+    private Skin tintedBlocks;
 
     /** Les sommets de la forme d'une place dans ces skins, gardés d'une image à l'autre pour ne rien allouer. */
     private final double[] pieceX = new double[6];
     private final double[] pieceY = new double[6];
 
     /** Les skins des amas, des blocs et du gaz lus pour l'image en cours ({@code null} : le Classique). */
-    private idle.core.universe.Skin clumpSkin;
-    private idle.core.universe.Skin blockSkin;
-    private idle.core.universe.Skin gasSkin;
+    private Skin clumpSkin;
+    private Skin blockSkin;
+    private Skin gasSkin;
 
     /**
      * Reprend les couleurs des corps dans les skins choisis, si la mise en place ou le choix a changé
@@ -203,10 +191,10 @@ public final class SpaceView extends SpaceViewPacking {
             return;
         }
         place();
-        // Les skins des amas, des blocs et du gaz (version 0.194), lus une fois par image.
-        clumpSkin = game.chosenSkin(idle.core.universe.SkinVisual.CLUMPS);
-        blockSkin = game.chosenSkin(idle.core.universe.SkinVisual.BLOCKS);
-        gasSkin = game.chosenSkin(idle.core.universe.SkinVisual.GAS);
+        // Les skins des amas, des blocs et du gaz, lus une fois par image.
+        clumpSkin = game.chosenSkin(SkinVisual.CLUMPS);
+        blockSkin = game.chosenSkin(SkinVisual.BLOCKS);
+        gasSkin = game.chosenSkin(SkinVisual.GAS);
         tintBodies();
         double fit = fitScale();
         if (Double.isNaN(scale) || following) scale = fit;
@@ -222,12 +210,12 @@ public final class SpaceView extends SpaceViewPacking {
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         g.setGlobalAlpha(1);
-        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+        Skin look = game.chosenSkin(SkinVisual.BIG_BANG);
         g.setFill(look == null ? VOID : skinVoid(look));
         g.fillRect(0, 0, w, h);
         double originX = w / 2 - centerX * scale;
         double originY = h / 2 - centerY * scale;
-        // Le skin du Big Bang (version 0.089) : tout le fond de la vue, puis l'espace créé à sa façon.
+        // Le skin du Big Bang : tout le fond de la vue, puis l'espace créé à sa façon.
         if (look != null) skinSky(g, w, h, look);
 
         // L'espace créé : un disque un peu plus clair que le vide. Son bord est tracé plus bas, par-dessus le gaz.
@@ -282,8 +270,7 @@ public final class SpaceView extends SpaceViewPacking {
             // La galaxie n'a plus ni amas ni blocs : sa lueur d'abord, sous ses points.
             double glow = heart * scale;
             if (glow > 1) {
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, originX, originY, glow, false,
-                        javafx.scene.paint.CycleMethod.NO_CYCLE, GALAXY_GLOW));
+                g.setFill(new RadialGradient(0, 0, originX, originY, glow, false, CycleMethod.NO_CYCLE, GALAXY_GLOW));
                 g.fillOval(originX - glow, originY - glow, 2 * glow, 2 * glow);
             }
         }
@@ -301,8 +288,8 @@ public final class SpaceView extends SpaceViewPacking {
                 // Un amas : sa couleur sous un fin liseré de la couleur de son état. Un bloc d'assemblage : la
                 // couleur de sa matière sous un contour clair, deux fois plus épais. De loin, un contour plus
                 // fin qu'un pixel n'est pas dessiné, et le corps est d'une seule couleur.
-                // Les skins des amas et des blocs (version 0.194) : d'autres formes et couleurs, le Néon un liseré double.
-                idle.core.universe.Skin pieces = block != null ? blockSkin : clumpSkin;
+                // Les skins des amas et des blocs : d'autres formes et couleurs, le Néon un liseré double.
+                Skin pieces = block != null ? blockSkin : clumpSkin;
                 double rim = block != null ? BLOCK_RIM : clumpSkin == null ? RIM : RIM * ClumpSkinArt.rimScale(clumpSkin);
                 if (rim * unit < 0.75) rim = 0;
                 for (int pass = rim > 0 ? 0 : 1; pass < 2; pass++) {
@@ -365,8 +352,8 @@ public final class SpaceView extends SpaceViewPacking {
         // Le gaz : une bouffée par molécule, de sa couleur, qui s'écarte un peu de sa place et y revient.
         // Tout ce qui est dessiné jusqu'ici est ensuite flouté d'un coup, et les bouffées deviennent des nuages.
         if (mist > 0) {
-            // Le skin du gaz (version 0.194) ne touche pas la poussière de la galaxie : la matière seule devient brume, fumée ou aurore.
-            idle.core.universe.Skin gas = swirled ? null : gasSkin;
+            // Le skin du gaz ne touche pas la poussière de la galaxie : la matière seule devient brume, fumée ou aurore.
+            Skin gas = swirled ? null : gasSkin;
             double puff = Math.max(1, (swirled ? SWIRL_PUFF : PUFF_SHARE) * unit * (gas == null ? 1 : ClumpSkinArt.puffScale(gas)));
             double churn = CHURN * unit * mist;
             g.setGlobalAlpha(Math.min(1, (swirled ? SWIRL_ALPHA : PUFF_ALPHA) * mist * (gas == null ? 1 : ClumpSkinArt.alphaScale(gas))));
@@ -414,7 +401,7 @@ public final class SpaceView extends SpaceViewPacking {
         }
 
         // Les astres, nets même de très loin : chacun au milieu de sa clairière, aussi grand qu'elle le permet, dans le skin choisi.
-        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+        Skin bodySkin = game.chosenSkin(SkinVisual.BODY);
         for (int body = 0; body < sky.length; body++) {
             double round = shown[body] * unit;
             double x = skyX[body];
@@ -433,7 +420,7 @@ public final class SpaceView extends SpaceViewPacking {
         }
 
         // Puis les molécules, celles qui tombent dans la vue seulement, dans leur skin : elles s'effacent à mesure que le gaz les remplace.
-        idle.core.universe.Skin moleculeSkin = game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE);
+        Skin moleculeSkin = game.chosenSkin(SkinVisual.MOLECULE);
         if (mist < 1) {
             g.setGlobalAlpha(1 - mist);
             for (int index = 0; index < count && swirled; index++) {
@@ -483,13 +470,12 @@ public final class SpaceView extends SpaceViewPacking {
     static final double MIST_GLOW = 0.3;
 
     /**
-     * Ce que le gaz laisse voir de loin (version 0.183), dessiné net par-dessus les nuages : chaque
-     * bloc d'assemblage redevient un disque plein de la couleur de sa matière ({@code inks}) sous un
-     * contour fin de la couleur de son bord ({@code rims}), et chaque amas un anneau fin de la couleur
-     * de son état, avec une lueur de cette couleur qui monte vers son bord. Tout cela a l'opacité du
-     * gaz ({@link #mist()}) : invisible de près, où le dessin des amas et des blocs reprend, entier de
-     * très loin. Les corps tournent avec le reste ; un corps trop petit à l'écran n'est pas redessiné,
-     * et un disque qui dépasserait du bord de l'espace est rogné à ce bord.
+     * Ce que le gaz laisse voir de loin, dessiné net par-dessus les nuages : chaque bloc d'assemblage redevient un
+     * disque plein de la couleur de sa matière ({@code inks}) sous un contour fin de la couleur de son bord ({@code
+     * rims}), et chaque amas un anneau fin de la couleur de son état, avec une lueur de cette couleur qui monte vers
+     * son bord. Tout cela a l'opacité du gaz ({@link #mist()}) : invisible de près, où le dessin des amas et des blocs
+     * reprend, entier de très loin. Les corps tournent avec le reste ; un corps trop petit à l'écran n'est pas
+     * redessiné, et un disque qui dépasserait du bord de l'espace est rogné à ce bord.
      */
     private void drawMistBodies(GraphicsContext g, double originX, double originY, double cosTurn, double sinTurn, double unit,
             double edge, double w, double h) {
@@ -505,9 +491,9 @@ public final class SpaceView extends SpaceViewPacking {
             if (blocks[cluster] != null) {
                 g.setFill(shownInks[cluster]);
             } else {
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, midX, midY, around, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, tint(rim, 0)), new javafx.scene.paint.Stop(0.6, tint(rim, 0.2 * MIST_GLOW)),
-                        new javafx.scene.paint.Stop(1, tint(rim, MIST_GLOW))));
+                g.setFill(new RadialGradient(0, 0, midX, midY, around, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, tint(rim, 0)), new Stop(0.6, tint(rim, 0.2 * MIST_GLOW)),
+                        new Stop(1, tint(rim, MIST_GLOW))));
             }
             g.fillOval(midX - around, midY - around, 2 * around, 2 * around);
             // Le contour, d'un pixel, tout entier dans le disque.
@@ -654,9 +640,7 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     /** Largeur du fond de la légende : un peu plus quand elle dit ce que vaut un point. */
-    private double legendWidth() {
-        return perDot > 1 ? 156 : 130;
-    }
+    private double legendWidth() { return perDot > 1 ? 156 : 130; }
 
     /** Nombre de lignes de la légende : les astres, les assemblages, chaque état qui a des molécules rassemblées, et ce que vaut un point. */
     private int legendLines() {
@@ -739,8 +723,8 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** Un fond d'étoiles fixes, les mêmes d'une image à l'autre, qui scintillent à peine. */
     private void drawStars(GraphicsContext g, double w, double h) {
-        // Le skin du Big Bang (version 0.089) habille aussi le fond de l'espace.
-        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+        // Le skin du Big Bang habille aussi le fond de l'espace.
+        Skin look = game.chosenSkin(SkinVisual.BIG_BANG);
         if (look != null) {
             skinStars(g, w, h, look);
             return;
@@ -758,11 +742,11 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     // ------------------------------------------------------------------
-    // Les skins du Big Bang (version 0.089) : le vide, le ciel entier, l'espace créé et son bord.
+    // Les skins du Big Bang : le vide, le ciel entier, l'espace créé et son bord.
     // Les six skins de la version 0.191 sont dessinés par SpaceSkinArt.
     // ------------------------------------------------------------------
 
-    private static Color skinVoid(idle.core.universe.Skin look) {
+    private static Color skinVoid(Skin look) {
         return switch (look) {
             case BANG_AURORA -> Color.web("#020d14");
             case BANG_SUPERNOVA -> Color.web("#0d0306");
@@ -780,7 +764,7 @@ public final class SpaceView extends SpaceViewPacking {
      * hauteur. Supernova : une nébuleuse de filaments rouges et orangés qui part d'un coin. Cristal :
      * un réseau de facettes sur toute la vue, des facettes allumées çà et là.
      */
-    private void skinSky(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+    private void skinSky(GraphicsContext g, double w, double h, Skin look) {
         if (SpaceSkinArt.draws(look)) {
             SpaceSkinArt.sky(g, w, h, look, time);
             return;
@@ -798,10 +782,10 @@ public final class SpaceView extends SpaceViewPacking {
                                 + Math.sin(x / w * 19 + band) * h * 0.02;
                         double tall = h * (0.35 + 0.12 * Math.sin(x / w * 11 + band * 2 + time * 0.3));
                         g.setGlobalAlpha(1);
-                        g.setFill(new javafx.scene.paint.LinearGradient(0, top, 0, top + tall, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                                new javafx.scene.paint.Stop(0, tint(tints[band], 0)),
-                                new javafx.scene.paint.Stop(0.25, tint(tints[band], 0.22)),
-                                new javafx.scene.paint.Stop(1, tint(tints[band], 0))));
+                        g.setFill(new LinearGradient(0, top, 0, top + tall, false, CycleMethod.NO_CYCLE,
+                                new Stop(0, tint(tints[band], 0)),
+                                new Stop(0.25, tint(tints[band], 0.22)),
+                                new Stop(1, tint(tints[band], 0))));
                         g.fillRect(x - w / steps, top, w / steps * 2, tall);
                     }
                 }
@@ -809,10 +793,10 @@ public final class SpaceView extends SpaceViewPacking {
             case BANG_SUPERNOVA -> {
                 double cx = w * 0.85, cy = h * 0.15;
                 double far = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy));
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, cx, cy, far, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, tint(Color.web("#ff9a3c"), 0.35)),
-                        new javafx.scene.paint.Stop(0.35, tint(Color.web("#a01e3a"), 0.22)),
-                        new javafx.scene.paint.Stop(1, tint(Color.web("#2a0610"), 0))));
+                g.setFill(new RadialGradient(0, 0, cx, cy, far, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, tint(Color.web("#ff9a3c"), 0.35)),
+                        new Stop(0.35, tint(Color.web("#a01e3a"), 0.22)),
+                        new Stop(1, tint(Color.web("#2a0610"), 0))));
                 g.setGlobalAlpha(1);
                 g.fillRect(0, 0, w, h);
                 // Les filaments : des traits qui rayonnent du reste de l'étoile jusqu'aux bords.
@@ -830,8 +814,8 @@ public final class SpaceView extends SpaceViewPacking {
                 // Le reste de l'étoile : un pulsar minuscule qui bat.
                 double beat = 0.6 + 0.4 * Math.sin(time * 6);
                 g.setGlobalAlpha(1);
-                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, cx, cy, small * 0.08, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, tint(Color.WHITE, 0.9 * beat)), new javafx.scene.paint.Stop(1, tint(Color.web("#ff9a3c"), 0))));
+                g.setFill(new RadialGradient(0, 0, cx, cy, small * 0.08, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, tint(Color.WHITE, 0.9 * beat)), new Stop(1, tint(Color.web("#ff9a3c"), 0))));
                 g.fillOval(cx - small * 0.08, cy - small * 0.08, small * 0.16, small * 0.16);
             }
             default -> {
@@ -863,23 +847,23 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     /** L'espace créé, rempli à la façon du skin : un voile d'aurore, une boule de feu, un cristal taillé. */
-    private void skinSpace(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+    private void skinSpace(GraphicsContext g, double x, double y, double r, Skin look) {
         if (SpaceSkinArt.draws(look)) {
             SpaceSkinArt.space(g, x, y, r, look, time);
             return;
         }
         g.setGlobalAlpha(1);
         switch (look) {
-            case BANG_AURORA -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, r, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                    new javafx.scene.paint.Stop(0, Color.web("#0f3a3a")), new javafx.scene.paint.Stop(0.7, Color.web("#122a40")),
-                    new javafx.scene.paint.Stop(1, Color.web("#2a1a4a"))));
-            case BANG_SUPERNOVA -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, r, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                    new javafx.scene.paint.Stop(0, Color.web("#3a1a10")), new javafx.scene.paint.Stop(0.75, Color.web("#2a0c12")),
-                    new javafx.scene.paint.Stop(1, Color.web("#5a1a10"))));
-            default -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                    new javafx.scene.paint.Stop(0, Color.web("#1c3050")), new javafx.scene.paint.Stop(1, Color.web("#0a1428"))));
+            case BANG_AURORA -> g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.web("#0f3a3a")), new Stop(0.7, Color.web("#122a40")),
+                    new Stop(1, Color.web("#2a1a4a"))));
+            case BANG_SUPERNOVA -> g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.web("#3a1a10")), new Stop(0.75, Color.web("#2a0c12")),
+                    new Stop(1, Color.web("#5a1a10"))));
+            default -> g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.web("#1c3050")), new Stop(1, Color.web("#0a1428"))));
         }
-        if (look == idle.core.universe.Skin.BANG_CRYSTAL) {
+        if (look == Skin.BANG_CRYSTAL) {
             // Un cristal à douze faces au lieu d'un disque, et ses facettes.
             int sides = 12;
             double[] xs = new double[sides], ys = new double[sides];
@@ -902,7 +886,7 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     /** Le bord de l'espace : une lisière qui ondule, un front de flammes, ou les arêtes du cristal. */
-    private void skinEdge(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+    private void skinEdge(GraphicsContext g, double x, double y, double r, Skin look) {
         if (SpaceSkinArt.draws(look)) {
             SpaceSkinArt.edge(g, x, y, r, look, time);
             return;
@@ -967,7 +951,7 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     /** Les étoiles sous un skin du Big Bang : vertes et douces, à branches, ou en losange. */
-    private void skinStars(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+    private void skinStars(GraphicsContext g, double w, double h, Skin look) {
         if (SpaceSkinArt.draws(look)) {
             SpaceSkinArt.stars(g, w, h, look, time, STAR_X, STAR_Y, STAR_PACE);
             return;

@@ -1,18 +1,18 @@
 package idle.ui.common;
 
 import idle.core.Game;
+import idle.core.state.GameState;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.input.*;
+import javafx.scene.layout.*;
 
 /**
- * La barre d'un plan (version 0.084) : sauvegarder ce qui est en place, le recharger, le copier en
+ * La barre d'un plan : sauvegarder ce qui est en place, le recharger, le copier en
  * texte ou coller un texte, et oublier le plan suivi. Elle sert à l'arbre de matière noire (ses
  * voies et ses liaisons) et aux systèmes solaires (leur disposition).
  *
@@ -20,7 +20,6 @@ import javafx.scene.layout.VBox;
  * présent ou absent, jusqu'à ce qu'il soit oublié.
  */
 public final class PlanBar extends VBox {
-
     private static final String BUTTON_STYLE = "-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-background-color: #141a26;";
 
@@ -64,8 +63,8 @@ public final class PlanBar extends VBox {
     private final Button paste = button("Coller un code");
     private final Button forget = button("Oublier le plan");
     private final FlowPane buttons;
-    /** Les emplacements de sauvegarde (version 0.086) : une liste, chacun avec ce qu'il contient. */
-    private final javafx.scene.control.ComboBox<String> slots = new javafx.scene.control.ComboBox<>();
+    /** Les emplacements de sauvegarde : une liste, chacun avec ce qu'il contient. */
+    private final ComboBox<String> slots = new ComboBox<>();
     private int slot = 0;
     private boolean filling = false;
     private Supplier<String> clipboardRead = PlanBar::readClipboard;
@@ -84,7 +83,7 @@ public final class PlanBar extends VBox {
             button.setStyle(BUTTON_STYLE + " -fx-text-fill: " + color + "; -fx-border-color: " + color + "88;");
         }
         slots.setFocusTraversable(false);
-        slots.setVisibleRowCount(idle.core.GameState.PLAN_SLOTS);
+        slots.setVisibleRowCount(GameState.PLAN_SLOTS);
         slots.setStyle("-fx-font-size: 12px;");
         slots.setOnAction(event -> {
             if (filling) return;
@@ -135,12 +134,6 @@ public final class PlanBar extends VBox {
         return button;
     }
 
-    /** Remplace le presse-papiers : pour les vérifications. */
-    public void setClipboard(Supplier<String> read, Consumer<String> write) {
-        clipboardRead = read;
-        clipboardWrite = write;
-    }
-
     private void report(Game.PlanLoad result, String empty) {
         if (result.empty()) {
             say(empty);
@@ -173,8 +166,8 @@ public final class PlanBar extends VBox {
     /** Recopie l'état du plan. */
     public void refresh() {
         status.setText(plan.active() ? "Plan suivi : " + plan.progress() : "Aucun plan suivi.");
-        java.util.List<String> texts = new java.util.ArrayList<>();
-        for (int i = 0; i < idle.core.GameState.PLAN_SLOTS; i++) texts.add(slotText(i));
+        List<String> texts = new ArrayList<>();
+        for (int i = 0; i < GameState.PLAN_SLOTS; i++) texts.add(slotText(i));
         if (!texts.equals(slots.getItems())) {
             filling = true;
             slots.getItems().setAll(texts);
@@ -189,34 +182,18 @@ public final class PlanBar extends VBox {
         forget.setDisable(!plan.active());
     }
 
-    /** Le message de la dernière action : pour les vérifications. */
-    public String noteText() {
-        return note.getText();
-    }
-
-    /** Le résumé du plan : pour les vérifications. */
-    public String statusText() {
-        return status.getText();
-    }
-
     /** La liste des emplacements : pour les vérifications. */
-    public javafx.scene.control.ComboBox<String> slots() {
-        return slots;
-    }
+    public ComboBox<String> slots() { return slots; }
 
     /** L'emplacement choisi, de 0 à 4 : pour les vérifications. */
-    public int slot() {
-        return slot;
-    }
+    public int slot() { return slot; }
 
     /** Un bouton, par sa place (0 sauvegarder, 1 charger, 2 copier, 3 coller, 4 oublier) : pour les vérifications. */
     public void press(int index) {
         new Button[] {save, load, copy, paste, forget}[index].fire();
     }
 
-    private static String readClipboard() {
-        return Clipboard.getSystemClipboard().getString();
-    }
+    private static String readClipboard() { return Clipboard.getSystemClipboard().getString(); }
 
     private static void writeClipboard(String text) {
         ClipboardContent content = new ClipboardContent();

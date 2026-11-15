@@ -1,6 +1,7 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.profile.Title;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,11 +10,10 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.160 : le défi final. La bulle des racines achetée, chaque dimension a un palier à atteindre ; la
+ * Le défi final. La bulle des racines achetée, chaque dimension a un palier à atteindre ; la
  * progression se compte en puissances de dix. Les dix paliers atteints, la partie est finie.
  */
 class DefiFinalTest {
-
     private static Game ten() {
         Game game = GameTestSupport.universe(10);
         game.state().setTreeBubbleBought(TreeBubble.ROOTS.ordinal(), true);
@@ -71,7 +71,7 @@ class DefiFinalTest {
         game.tick(0.1);
         assertTrue(game.isGameFinished(), "la partie est finie");
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.WORLD_ROOTS), "le titre");
+        assertTrue(game.hasTitle(Title.WORLD_ROOTS), "le titre");
         assertTrue(GameTestSupport.reread(game.state()).gameFinished(), "se sauve");
         StringBuilder old = new StringBuilder();
         for (String line : SaveCodec.write(game.state(), 0).split("\n")) if (!line.startsWith("gameFinished")) old.append(line).append('\n');

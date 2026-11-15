@@ -1,9 +1,9 @@
 package idle.ui.pages;
 
 import idle.core.Game;
-import idle.core.GameStats;
 import idle.core.Multipliers;
-import idle.core.StatsHistory;
+import idle.core.state.GameStats;
+import idle.core.state.StatsHistory;
 import idle.core.bigbang.BangChallenge;
 import idle.core.collider.ColliderAchievement;
 import idle.core.collider.Quark;
@@ -15,63 +15,57 @@ import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Statistiques » : tout ce que le jeu compte, rangé en sous-pages, une par
- * ressource. Chaque sous-page n'apparaît qu'avec la ressource dont elle parle :
+ * Contenu de l'onglet « Statistiques » : tout ce que le jeu compte, rangé en sous-pages, une par ressource. Chaque
+ * sous-page n'apparaît qu'avec la ressource dont elle parle :
  * <ul>
- *   <li>« Général » : toujours là ;</li>
- *   <li>« Achats » : dès le premier générateur (version 0.165) ;</li>
- *   <li>« Particules » : dès le premier générateur ;</li>
- *   <li>« Atomes » : dès la première fusion ;</li>
- *   <li>« Automatisation » : dès qu'un automatisme est débloqué ;</li>
- *   <li>« Tableau périodique » : dès que le tableau est ouvert ;</li>
- *   <li>« Matière noire » : dès la première explosion ;</li>
- *   <li>« Big Bang » : dès le premier Big Bang ;</li>
- *   <li>« Collisionneur » : dès la première explosion, avec lui (version 0.063) ;</li>
- *   <li>« Records » : toujours là, acte par acte (version 0.063).</li>
- * </ul>
- * Le journal des annonces, longtemps la dernière sous-page, est passé dans l'onglet Profil (version 0.147,
- * {@link ProfilePage}).
- * Une sous-page débloquée le reste, même si une explosion fait disparaître la ressource. À
- * l'intérieur d'une sous-page, certaines lignes n'apparaissent elles aussi qu'en avançant : le
- * multiplicateur des éléments n'a pas de sens avant le tableau périodique.
+ * <li>« Général » : toujours là ;</li>
+ * <li>« Achats » : dès le premier générateur ;</li>
+ * <li>« Particules » : dès le premier générateur ;</li>
+ * <li>« Atomes » : dès la première fusion ;</li>
+ * <li>« Automatisation » : dès qu'un automatisme est débloqué ;</li>
+ * <li>« Tableau périodique » : dès que le tableau est ouvert ;</li>
+ * <li>« Matière noire » : dès la première explosion ;</li>
+ * <li>« Big Bang » : dès le premier Big Bang ;</li>
+ * <li>« Collisionneur » : dès la première explosion, avec lui ;</li>
+ * <li>« Records » : toujours là, acte par acte.</li>
+ * </ul> Le journal des annonces, longtemps la dernière sous-page, est passé dans l'onglet Profil (version 0.147, {@link
+ * ProfilePage}). Une sous-page débloquée le reste, même si une explosion fait disparaître la ressource. À l'intérieur
+ * d'une sous-page, certaines lignes n'apparaissent elles aussi qu'en avançant : le multiplicateur des éléments n'a pas
+ * de sens avant le tableau périodique.
  *
- * <p>Chaque sous-page commence par ses courbes : un menu déroulant propose toutes les
- * statistiques de la sous-page qui évoluent avec le temps, et le graphique ({@link ChartPane})
- * trace celle qui est choisie. Les courbes viennent de l'historique que tient le jeu
- * ({@link StatsHistory}), qui relève une valeur par statistique suivie. Une courbe n'est
- * proposée qu'une fois sa statistique apparue dans la partie. Après la première explosion, deux
- * boutons choisissent la période : tout le jeu, ou la partie en cours.
+ * <p>Chaque sous-page commence par ses courbes : un menu déroulant propose toutes les statistiques de la sous-page qui
+ * évoluent avec le temps, et le graphique ({@link ChartPane}) trace celle qui est choisie. Les courbes viennent de
+ * l'historique que tient le jeu ({@link StatsHistory}), qui relève une valeur par statistique suivie. Une courbe n'est
+ * proposée qu'une fois sa statistique apparue dans la partie. Après la première explosion, deux boutons choisissent la
+ * période : tout le jeu, ou la partie en cours.
  *
- * <p>Les succès ont leur propre onglet ({@link AchievementsPage}) ; seule leur courbe est ici,
- * dans la vue d'ensemble de « Général ».
+ * <p>Les succès ont leur propre onglet ({@link AchievementsPage}) ; seule leur courbe est ici, dans la vue d'ensemble
+ * de « Général ».
  *
- * <p>Sous les courbes, les valeurs du moment, une ligne chacune. Une ligne dont la statistique
- * a une courbe se clique : le menu passe à cette courbe. Ce qui ne se trace pas reste en lignes
- * seulement : les records, les réglages, le détail par famille.
+ * <p>Sous les courbes, les valeurs du moment, une ligne chacune. Une ligne dont la statistique a une courbe se clique :
+ * le menu passe à cette courbe. Ce qui ne se trace pas reste en lignes seulement : les records, les réglages, le détail
+ * par famille.
  *
- * <p>Rien n'est calculé ici : les compteurs viennent de {@link GameStats}, les valeurs du moment
- * de {@link Game}. Seule la sous-page affichée est mise à jour.
+ * <p>Rien n'est calculé ici : les compteurs viennent de {@link GameStats}, les valeurs du moment de {@link Game}. Seule
+ * la sous-page affichée est mise à jour.
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
- * celle-ci est le bout ; le reste du programme ne voit que {@code StatsPage}. De la base au bout :
- * {@link StatsPageBase}, {@link StatsPageLines}. Quand une partie a besoin d'une méthode définie plus loin
- * dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les parties suivantes ».
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont celle-ci est le bout ; le
+ * reste du programme ne voit que {@code StatsPage}. De la base au bout : {@link StatsPageBase}, {@link StatsPageLines}.
+ * Quand une partie a besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous «
+ * Ce que fournissent les parties suivantes ».
  */
 public final class StatsPage extends StatsPageLines {
-
     public StatsPage(Game game, idle.core.history.PurchaseHistory purchaseHistory, idle.core.history.Pace pace) {
         super(game, purchaseHistory, pace);
     }
@@ -80,7 +74,7 @@ public final class StatsPage extends StatsPageLines {
     // Construction et affichage
     // ------------------------------------------------------------------
 
-    /** Le collisionneur (version 0.063) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
+    /** Le collisionneur : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
     void collider() {
         page("Collisionneur", "#6fe3ff", game::isColliderUnlocked, "à la première explosion");
         curves();
@@ -109,7 +103,7 @@ public final class StatsPage extends StatsPageLines {
         section("Générateurs et succès");
         row("Générateurs achetés", () -> Format.whole(game.colliderGeneratorsBoughtTotal()));
         row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
-        // Version 0.169 : ce que le collisionneur, les hadrons et le vide font au reste du jeu.
+        // Ce que le collisionneur, les hadrons et le vide font au reste du jeu.
         section("Ce qu'ils font au reste du jeu");
         row("Le collisionneur", () -> impacts(game, Multipliers.Aspect.COLLIDER, Multipliers.Quantity.COLLIDER_ENERGY));
         row("Les hadrons", () -> impacts(game, Multipliers.Aspect.HADRONS), game::isHadronsUnlocked);
@@ -152,7 +146,7 @@ public final class StatsPage extends StatsPageLines {
                 : String.format(java.util.Locale.FRANCE, "%.1f", value)) + " %";
     }
 
-    /** Le détail des multiplicateurs (version 0.123) : ce qui fait grandir chaque grandeur, aspect par aspect. */
+    /** Le détail des multiplicateurs : ce qui fait grandir chaque grandeur, aspect par aspect. */
     void multipliers() {
         page("Multiplicateurs", "#ffd27f", game::isStarted, "en créant le premier générateur");
         Label intro = new Label("D'où vient chaque grandeur : la part de chaque aspect du jeu dans ses ordres de grandeur, "
@@ -168,7 +162,7 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /**
-     * Vos achats (version 0.165) : la prochaine étape et le temps qu'elle demande, ce qui a fait gagner le plus de temps,
+     * Vos achats : la prochaine étape et le temps qu'elle demande, ce qui a fait gagner le plus de temps,
      * et les derniers achats avec leur prix, leur poids et le temps gagné ({@link PurchasesPane}).
      */
     void purchases() {
@@ -187,7 +181,7 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /**
-     * La chronologie (version 0.168) : la durée de chaque univers formé et de ses phases, le temps de chaque dimension,
+     * La chronologie : la durée de chaque univers formé et de ses phases, le temps de chaque dimension,
      * les paliers de la graine et le défi final ({@link TimelinePane}).
      */
     void timeline() {
@@ -205,19 +199,13 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /** Les lignes de la chronologie au dernier dessin : pour les vérifications. */
-    public List<String> timelineLines() {
-        return timelinePane.shown();
-    }
+    public List<String> timelineLines() { return timelinePane.shown(); }
 
-    /** Le skin de la frise des univers en place (version 0.198), ou {@code null} : pour les vérifications. */
-    public idle.core.universe.Skin timelineSkin() {
-        return timelinePane.skin();
-    }
+    /** Le skin de la frise des univers en place, ou {@code null} : pour les vérifications. */
+    public idle.core.universe.Skin timelineSkin() { return timelinePane.skin(); }
 
-    /** Le nombre de nœuds dans les lignes des univers de la frise (version 0.198) : pour les vérifications. */
-    public int timelineUniverseNodes() {
-        return timelinePane.universeNodes();
-    }
+    /** Le nombre de nœuds dans les lignes des univers de la frise : pour les vérifications. */
+    public int timelineUniverseNodes() { return timelinePane.universeNodes(); }
 
     // Sans valeur de départ : ils sont posés pendant la construction de la page, appelée par le constructeur de la base.
     private TimelinePane timelinePane;
@@ -232,27 +220,16 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /** Les lignes du détail affiché, « aspect | valeur | part » : pour les vérifications. */
-    public List<String> multiplierLines() {
-        return multiplierPane.shownLines();
-    }
+    public List<String> multiplierLines() { return multiplierPane.shownLines(); }
 
     /** Choisit la grandeur détaillée : pour les vérifications. */
-    public void chooseMultiplier(idle.core.Multipliers.Quantity quantity) {
-        multiplierPane.choose(quantity);
-    }
-
-    /** Déplie ou replie un aspect : pour les vérifications. */
-    public void toggleMultiplier(idle.core.Multipliers.Aspect aspect) {
-        multiplierPane.toggle(aspect);
-    }
+    public void chooseMultiplier(idle.core.Multipliers.Quantity quantity) { multiplierPane.choose(quantity); }
 
     /** Nombre de lignes du détail, facteurs dépliés compris : pour les vérifications. */
-    public int multiplierLineCount() {
-        return multiplierPane.lineCount();
-    }
+    public int multiplierLineCount() { return multiplierPane.lineCount(); }
 
     /**
-     * Les records, acte par acte (version 0.063). Les temps des étapes traversent la remise à zéro
+     * Les records, acte par acte. Les temps des étapes traversent la remise à zéro
      * du jeu ; les autres valent depuis le début de la partie.
      */
     void records() {
@@ -303,9 +280,7 @@ public final class StatsPage extends StatsPageLines {
     private static final String NOT_YET = "pas encore";
 
     /** Une durée record, ou « pas encore » (0 : jamais fait). */
-    private static String time(double seconds) {
-        return seconds > 0 ? Format.duration(seconds) : NOT_YET;
-    }
+    private static String time(double seconds) { return seconds > 0 ? Format.duration(seconds) : NOT_YET; }
 
     /** Le record d'une étape, toutes parties confondues, ou « pas encore ». */
     private void stepRecord(GameStats.Step step) {
@@ -417,9 +392,7 @@ public final class StatsPage extends StatsPageLines {
                 new Line(name, color, sample -> sample.value(stat)));
     }
 
-    Row row(String name, Supplier<String> text) {
-        return row(name, text, () -> true);
-    }
+    Row row(String name, Supplier<String> text) { return row(name, text, () -> true); }
 
     Row row(String name, Supplier<String> text, BooleanSupplier visible) {
         Label label = new Label(name);
@@ -481,9 +454,7 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /** Les courbes que le menu de la sous-page à l'écran propose : pour les vérifications. */
-    public List<String> offeredGraphs() {
-        return List.copyOf(selected.offered);
-    }
+    public List<String> offeredGraphs() { return List.copyOf(selected.offered); }
 
     /** Passe à la sous-page ouverte suivante ou précédente, en boucle. */
     public void step(int direction) {
@@ -556,7 +527,7 @@ public final class StatsPage extends StatsPageLines {
     /** Affiche les sous-pages débloquées et met à jour la courbe et les lignes de celle qui est à l'écran. */
     public void refresh() {
         current = game.stats();   // relève au passage le record de production
-        // Version 0.198 : les skins des graphiques et de la frise, communs à tous, pris au prochain dessin.
+        // Les skins des graphiques et de la frise, communs à tous, pris au prochain dessin.
         ChartPane.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.CHART), game.chosenSkin(idle.core.universe.SkinVisual.CHART_PALETTE));
         timelinePane.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TIMELINE));
         SubPage nextLocked = null;

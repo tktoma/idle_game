@@ -1,6 +1,9 @@
 package idle.ui.vacuum;
 
 import idle.core.Game;
+import idle.core.universe.SkinVisual;
+import idle.ui.Readiness;
+import idle.ui.universe.UniversePage;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.math.BigNum;
 import idle.ui.common.CanvasPane;
@@ -11,21 +14,17 @@ import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * L'onglet du vide (version 0.099, jouable depuis la 0.129) : le deuxième acte de la partie secondaire, ouvert dans le
+ * L'onglet du vide (jouable depuis la 0.129) : le deuxième acte de la partie secondaire, ouvert dans le
  * collisionneur au premier Big Bang du troisième univers. Le collisionneur y fait naître des paires de particules
  * virtuelles, qui coûtent de son énergie et de l'espace libre et donnent de l'énergie du vide ; celle-ci fond vers un
  * équilibre, affiché. Le réglage dit la part du collisionneur et de l'espace libre que le vide peut prendre. Le trou
@@ -33,9 +32,8 @@ import javafx.scene.layout.VBox;
  * qui précède) et « Améliorations » (les huit, en énergie du vide) ; la réserve et son équilibre restent en haut des deux.
  */
 public final class VoidPage extends VBox {
-
     /** La couleur du vide : celle de son sous-onglet dans la partie secondaire. */
-    public static final String COLOR = idle.ui.universe.UniversePage.VOID_COLOR;
+    public static final String COLOR = UniversePage.VOID_COLOR;
     /** La couleur du trou noir du vide : son texte ici, et sa nouveauté dans {@link idle.ui.PopupPane}. */
     public static final String HOLE_COLOR = "#ff9a3a";
 
@@ -76,7 +74,7 @@ public final class VoidPage extends VBox {
             Labels.centered(label, "-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
             label.setMaxWidth(860);
             // Le dessin prend la hauteur qui reste : les lignes gardent la leur, entières, sans « … ».
-            label.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+            label.setMinHeight(Region.USE_PREF_SIZE);
         }
         share.setMajorTickUnit(25);
         share.setMinorTickCount(4);
@@ -127,8 +125,8 @@ public final class VoidPage extends VBox {
                 + "de zéro avec le vide. L'allègement du ciel et la maturation plus courte servent le reste de la partie.");
 
         // « Paires » : le rythme, les coûts, le réglage, l'écume, le trou noir.
-        holeBox.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
-        note.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        holeBox.setMinHeight(Region.USE_PREF_SIZE);
+        note.setMinHeight(Region.USE_PREF_SIZE);
         pairsPane = new VBox(10, pairsLine, costLine, shareRow, pane, holeBox, note);
         pairsPane.setAlignment(Pos.TOP_CENTER);
         // « Améliorations » : les huit cartes.
@@ -138,7 +136,7 @@ public final class VoidPage extends VBox {
         Labels.transparent(scroll);
         upgradesPane = new VBox(scroll);
         VBox.setVgrow(scroll, Priority.ALWAYS);
-        javafx.scene.layout.StackPane pages = new javafx.scene.layout.StackPane(pairsPane, upgradesPane);
+        StackPane pages = new StackPane(pairsPane, upgradesPane);
         pages.setAlignment(Pos.TOP_CENTER);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
@@ -150,9 +148,7 @@ public final class VoidPage extends VBox {
     }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     public void select(int index) {
         selected = index == UPGRADES ? UPGRADES : PAIRS;
@@ -162,9 +158,7 @@ public final class VoidPage extends VBox {
         upgradesTab.setStyle(SubTabs.style(selected == UPGRADES, COLOR));
     }
 
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Passe au sous-onglet suivant ou précédent, en boucle. */
     public void step(int direction) {
@@ -172,14 +166,10 @@ public final class VoidPage extends VBox {
         refresh();
     }
 
-    public Button upgradesTab() {
-        return upgradesTab;
-    }
+    public Button upgradesTab() { return upgradesTab; }
 
     /** La réserve et son équilibre, en haut des deux sous-onglets : pour les vérifications. */
-    public Label energyLabel() {
-        return energy;
-    }
+    public Label energyLabel() { return energy; }
 
     /** Vrai s'il y a quelque chose à faire dans le vide : une amélioration à prendre, des particules à sacrifier. */
     public static boolean ready(Game game) {
@@ -192,7 +182,7 @@ public final class VoidPage extends VBox {
     public void refresh() {
         energy.setText("Énergie du vide : " + Format.count(game.voidEnergy()) + "   |   équilibre : "
                 + Format.count(BigNum.of(game.voidEquilibrium())));
-        upgradesTab.setText("Améliorations" + idle.ui.Readiness.dot(idle.ui.Readiness.Kind.VOID, ready(game)));
+        upgradesTab.setText("Améliorations" + Readiness.dot(Readiness.Kind.VOID, ready(game)));
         double rate = game.voidRate();
         pairsLine.setText(decimal(rate) + " paire" + (rate >= 2 ? "s" : "") + " par seconde (" + limitText(game.voidLimit()) + "), "
                 + Format.count(BigNum.of(game.voidPairs())) + " vivantes, " + decimal(game.voidPairLife()) + " s chacune. "
@@ -252,9 +242,8 @@ public final class VoidPage extends VBox {
     }
 
     /**
-     * Ce que le trou noir du vide retire à la maturation des deux trous noirs (version 0.177) : « La maturation du trou
-     * noir et du trou noir supermassif dure 17 % de moins (2 univers comptés). » ; avant le quatrième univers formé, ce
-     * qu'il fera.
+     * Ce que le trou noir du vide retire à la maturation des deux trous noirs : « La maturation du trou noir et du trou
+     * noir supermassif dure 17 % de moins (2 univers comptés). » ; avant le quatrième univers formé, ce qu'il fera.
      */
     public static String maturationText(Game game) {
         int counted = game.voidHoleUniverses();
@@ -325,11 +314,11 @@ public final class VoidPage extends VBox {
     }
 
     /**
-     * Ce que le vide retire au troisième acte de cet univers (version 0.132), pour les statistiques : « besoins du ciel −9 %,
+     * Ce que le vide retire au troisième acte de cet univers, pour les statistiques : « besoins du ciel −9 %,
      * maturation −49 %, rassemblement −48 % » ; « rien encore » sans amélioration de ces trois-là.
      */
     public static String actThreeCuts(Game game) {
-        java.util.List<String> cuts = new java.util.ArrayList<>();
+        List<String> cuts = new ArrayList<>();
         if (game.needShare() < 1) cuts.add("besoins du ciel −" + Math.round((1 - game.needShare()) * 100) + " %");
         if (game.maturationShare() < 1) cuts.add("maturation −" + Math.round((1 - game.maturationShare()) * 100) + " %");
         if (game.settleShare() < 1) cuts.add("rassemblement −" + Math.round((1 - game.settleShare()) * 100) + " %");
@@ -346,13 +335,11 @@ public final class VoidPage extends VBox {
     /** « 1 h 48 » : des heures, en heures et minutes. */
     private static String hours(double hours) {
         long minutes = Math.round(hours * 60);
-        return minutes / 60 + " h " + String.format(java.util.Locale.ROOT, "%02d", minutes % 60);
+        return minutes / 60 + " h " + String.format(Locale.ROOT, "%02d", minutes % 60);
     }
 
     /** « 24 min » : des secondes, en minutes entières. */
-    private static String minutesOf(double seconds) {
-        return Math.round(seconds / 60) + " min";
-    }
+    private static String minutesOf(double seconds) { return Math.round(seconds / 60) + " min"; }
 
     /** Une quantité qui peut être petite (une fraction d'énergie ou d'espace) : avec ses décimales sous mille. */
     private static String amount(BigNum value) {
@@ -372,25 +359,17 @@ public final class VoidPage extends VBox {
 
     /** Une image de l'écume : les paires de la partie, figées si les animations de l'univers sont coupées. */
     public void frame(double elapsed, boolean motion) {
-        view.skins(game.chosenSkin(idle.core.universe.SkinVisual.VOID_FOAM), game.chosenSkin(idle.core.universe.SkinVisual.VOID_PAIRS),
-                game.chosenSkin(idle.core.universe.SkinVisual.VOID_HOLE));
+        view.skins(game.chosenSkin(SkinVisual.VOID_FOAM), game.chosenSkin(SkinVisual.VOID_PAIRS),
+                game.chosenSkin(SkinVisual.VOID_HOLE));
         view.follow(game.voidPairsBorn(), game.voidPairs(), game.voidPairLife(), game.isVoidHoleOpen() ? game.voidMass() : -1);
         view.frame(elapsed, motion);
     }
 
-    public VoidView view() {
-        return view;
-    }
+    public VoidView view() { return view; }
 
-    public Slider share() {
-        return share;
-    }
+    public Slider share() { return share; }
 
-    public Button sacrificeButton() {
-        return sacrifice;
-    }
+    public Button sacrificeButton() { return sacrifice; }
 
-    public Card card(VoidUpgrade upgrade) {
-        return cards.get(upgrade);
-    }
+    public Card card(VoidUpgrade upgrade) { return cards.get(upgrade); }
 }

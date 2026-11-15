@@ -6,26 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.GluonMilestone;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.ui.FxTestSupport;
 import idle.ui.common.Card;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.151 : ce que font les hadrons, dans l'interface, sous Xvfb. Les bonus sous les cartes et les gluons en tête,
+ * Ce que font les hadrons, dans l'interface, sous Xvfb. Les bonus sous les cartes et les gluons en tête,
  * le sous-onglet « Paliers » et ses barres, le sous-onglet « Liaison » et son animation, qui démarre au clic « Lier » et
  * ne s'anime qu'à l'écran.
  */
 class HadronsBonusPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Un univers lancé après le premier, l'onglet des hadrons ouvert, trente quarks de chaque saveur en main. */
     private static Game open() {
@@ -66,7 +60,7 @@ class HadronsBonusPageTest {
             assertTrue(page.bonusText(Hadron.PROTON).startsWith("Atomes par fusion : ×1,08 → ×1,12"), page.bonusText(Hadron.PROTON));
             assertEquals(game.hadronBoost(Hadron.PROTON), 1 + Game.HADRON_BOOST_STEP * Math.log10(2), 1e-12);
             page.bindAllButton(Hadron.PROTON).fire();
-            // Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée.
+            // L'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée.
             long protons = (long) Math.floor(15 * game.crossingGain() + 1e-9);
             assertTrue(page.gluonsLine().getText().startsWith("Gluons : " + protons * 3 + " "), page.gluonsLine().getText());
             assertFalse(page.bonusText(Hadron.PROTON).contains("Lier tout"), "plus rien à lier : " + page.bonusText(Hadron.PROTON));

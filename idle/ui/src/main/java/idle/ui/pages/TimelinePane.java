@@ -1,31 +1,27 @@
 package idle.ui.pages;
 
 import idle.core.Game;
-import idle.core.GameStats;
+import idle.core.state.GameStats;
 import idle.ui.common.Format;
 import idle.ui.universe.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * La chronologie de la partie (version 0.168) : la durée de chaque univers formé et de ses cinq phases, en barres à la
+ * La chronologie de la partie : la durée de chaque univers formé et de ses cinq phases, en barres à la
  * même échelle pour que le joueur voie sa courbe ; puis le temps de chaque dimension (ouverte, jouée, premier
  * automatisme, seuil, palier final) et sa part de la partie, à côté des paliers de la graine et du défi final.
  * Recomposée deux fois par seconde au plus, et seulement quand la sous-page est à l'écran.
  *
- * <p>Version 0.198 : le skin de la frise ({@link idle.core.universe.SkinVisual#TIMELINE}, {@link #setSkin}) redessine
+ * <p>Le skin de la frise ({@link idle.core.universe.SkinVisual#TIMELINE}, {@link #setSkin}) redessine
  * les lignes des univers en frise de musée, en pellicule de film ou en train ({@link TimelineSkinArt}) ; le reste de la
  * sous-page ne change pas.
  */
 final class TimelinePane extends VBox {
-
     static final double WIDTH = 640;
     /** La largeur de la barre de l'univers le plus long. */
     static final double BAR_WIDTH = 460;
@@ -47,7 +43,7 @@ final class TimelinePane extends VBox {
     private long writtenAt = 0;
     /** Le texte des lignes au dernier dessin : pour les vérifications. */
     private final List<String> shown = new ArrayList<>();
-    /** Le skin de la frise (version 0.198), ou {@code null} pour le Classique. */
+    /** Le skin de la frise, ou {@code null} pour le Classique. */
     private idle.core.universe.Skin skin;
 
     TimelinePane(Game game) {
@@ -96,16 +92,12 @@ final class TimelinePane extends VBox {
     }
 
     /** « 6 h 06 min » : une durée, NaN écrit « inconnue ». */
-    static String span(double seconds) {
-        return Double.isFinite(seconds) && seconds >= 0 ? at(seconds) : "inconnue";
-    }
+    static String span(double seconds) { return Double.isFinite(seconds) && seconds >= 0 ? at(seconds) : "inconnue"; }
 
     /** « 4,1 % » : une part, avec une décimale. */
-    static String share(double part) {
-        return String.format(Locale.FRANCE, "%.1f %%", 100 * part);
-    }
+    static String share(double part) { return String.format(Locale.FRANCE, "%.1f %%", 100 * part); }
 
-    /** Dessine les univers dans ce skin (version 0.198) ; {@code null}, ou un skin d'un autre visuel, remet le Classique ; un changement redessine tout de suite. */
+    /** Dessine les univers dans ce skin ; {@code null}, ou un skin d'un autre visuel, remet le Classique ; un changement redessine tout de suite. */
     void setSkin(idle.core.universe.Skin chosen) {
         idle.core.universe.Skin wanted = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.TIMELINE ? chosen : null;
         if (wanted == skin) return;
@@ -114,14 +106,10 @@ final class TimelinePane extends VBox {
     }
 
     /** Le skin de la frise en place, ou {@code null} : pour les vérifications. */
-    idle.core.universe.Skin skin() {
-        return skin;
-    }
+    idle.core.universe.Skin skin() { return skin; }
 
     /** Le nombre de lignes d'univers dessinées : pour les vérifications. */
-    int universeNodes() {
-        return universes.getChildren().size();
-    }
+    int universeNodes() { return universes.getChildren().size(); }
 
     /** Recompose la sous-page, deux fois par seconde au plus. */
     void refresh() {
@@ -275,7 +263,5 @@ final class TimelinePane extends VBox {
     }
 
     /** Les lignes du dernier dessin. */
-    List<String> shown() {
-        return List.copyOf(shown);
-    }
+    List<String> shown() { return List.copyOf(shown); }
 }

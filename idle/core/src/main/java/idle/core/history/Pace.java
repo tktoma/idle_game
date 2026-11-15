@@ -1,8 +1,7 @@
 package idle.core.history;
 
-import idle.core.Game;
-import idle.core.GameStats;
-import idle.core.Multipliers;
+import idle.core.*;
+import idle.core.state.GameStats;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.elements.PeriodicTable;
@@ -10,7 +9,7 @@ import idle.core.sky.Cosmos;
 import java.util.ArrayDeque;
 
 /**
- * « Prochaine étape dans… » (version 0.165) : le temps qu'il reste avant la prochaine étape datée de la partie
+ * « Prochaine étape dans… » : le temps qu'il reste avant la prochaine étape datée de la partie
  * ({@link Game#nextStep()}), au rythme des dix dernières minutes. Chaque étape a une mesure d'avancée, de 0 à 1, en
  * ordres de grandeur quand la ressource grandit vite ; le rythme est la pente de cette avancée sur la fenêtre, et le
  * temps restant (1 − avancée) / pente. Les formations du cosmos qui ne font qu'attendre que l'échelle d'avant se
@@ -18,7 +17,6 @@ import java.util.ArrayDeque;
  * sans rythme (rien n'avance), pas d'estimation.
  */
 public final class Pace {
-
     /** La fenêtre du rythme, en secondes de jeu. */
     public static final double WINDOW = 600;
     /** Le rythme ne se calcule qu'au-delà d'une minute de relevés. */
@@ -123,7 +121,7 @@ public final class Pace {
             samples.clear();
             return;
         }
-        // Une avancée ne recule pas (version 0.166) : une condition qui se perd un instant (les atomes, dépensés à chaque
+        // Une avancée ne recule pas : une condition qui se perd un instant (les atomes, dépensés à chaque
         // explosion) gardait le compteur muet, car il repartait de zéro à chaque recul. On garde le plus haut atteint vers
         // cette étape ; une vraie remise à zéro change d'étape et vide les relevés.
         if (!samples.isEmpty()) p = Math.max(p, samples.peekLast()[1]);
@@ -132,9 +130,7 @@ public final class Pace {
     }
 
     /** L'étape visée, ou {@code null} quand toutes sont atteintes dans cette partie. */
-    public GameStats.Step step() {
-        return step;
-    }
+    public GameStats.Step step() { return step; }
 
     /** Le temps qu'il reste avant l'étape, en secondes de jeu ; NaN sans estimation. */
     public double secondsLeft() {

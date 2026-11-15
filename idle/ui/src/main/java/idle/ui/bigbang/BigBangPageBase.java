@@ -1,6 +1,8 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.CycleChoice;
+import java.util.function.BooleanSupplier;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.molecules.Molecule;
@@ -18,28 +20,17 @@ import idle.ui.common.StableHeight;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
-/**
- * La page du Big Bang, première partie : ses sous-pages, ses cartes et sa construction.
- */
+/** La page du Big Bang, première partie : ses sous-pages, ses cartes et sa construction. */
 public abstract class BigBangPageBase extends VBox {
-
     /** La page entière : chaque partie de la chaîne est une {@link BigBangPage}. */
-    final BigBangPage self() {
-        return (BigBangPage) this;
-    }
+    final BigBangPage self() { return (BigBangPage) this; }
 
     BigBangPageBase(Game game) {
         super(8);
@@ -313,11 +304,11 @@ public abstract class BigBangPageBase extends VBox {
 
         getChildren().add(StableHeight.of(countLabel));
         getChildren().add(StableHeight.of(sinceLabel));
-        // Le petit arbre du cycle (version 0.087) : trois choix, un seul jusqu'au prochain Big Bang.
+        // Le petit arbre du cycle : trois choix, un seul jusqu'au prochain Big Bang.
         cycleTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         cycleRow.setAlignment(Pos.CENTER);
         cycleRow.getChildren().add(cycleTitle);
-        for (idle.core.universe.CycleChoice choice : idle.core.universe.CycleChoice.values()) {
+        for (CycleChoice choice : CycleChoice.values()) {
             Button button = new Button(choice.label());
             button.setFocusTraversable(false);
             button.setOnAction(event -> {
@@ -346,13 +337,10 @@ public abstract class BigBangPageBase extends VBox {
     abstract int createAllShown();
     abstract Button pulseButton();
 
-
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
     private FlowPane subTabs;
 
-    public FlowPane subTabs() {
-        return subTabs;
-    }
+    public FlowPane subTabs() { return subTabs; }
 
     static final String CHIP_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
             + " -fx-background-radius: 12; -fx-border-radius: 12;";
@@ -362,14 +350,14 @@ public abstract class BigBangPageBase extends VBox {
     /** Taille du dessin d'une molécule sur sa carte, dans les états de la matière. */
     static final double PICTURE_WIDTH = 150;
     static final double PICTURE_HEIGHT = 80;
-    /** Taille du petit dessin d'une molécule dans l'en-tête de sa carte d'achat (version 0.178). */
+    /** Taille du petit dessin d'une molécule dans l'en-tête de sa carte d'achat. */
     static final double SMALL_PICTURE = 36;
 
     final Game game;
     final Label countLabel = new Label();
     final Label cycleTitle = new Label();
     final HBox cycleRow = new HBox(8);
-    final Map<idle.core.universe.CycleChoice, Button> cycleButtons = new java.util.EnumMap<>(idle.core.universe.CycleChoice.class);
+    final Map<CycleChoice, Button> cycleButtons = new EnumMap<>(CycleChoice.class);
     final Label sinceLabel = new Label();
     final Button moleculesTab = new Button("Molécules");
     final Button expansionTab = new Button("Expansion de la matière");
@@ -422,10 +410,10 @@ public abstract class BigBangPageBase extends VBox {
     final BangChallengesPane bangChallenges;
     /** La comète : le bouton qui la saisit, montré le temps qu'elle traverse l'expansion. */
     final Button cometButton = new Button();
-    /** L'anomalie du ciel à saisir (version 0.127), sous la comète. */
+    /** L'anomalie du ciel à saisir, sous la comète. */
     final Button skyEventButton = new Button();
     /** Vrai si le joueur veut voir les anomalies du ciel (un réglage). */
-    java.util.function.BooleanSupplier skyEventsShown = () -> true;
+    BooleanSupplier skyEventsShown = () -> true;
     /** L'impulsion, sur la page Expansion et au-dessus des molécules : deux boutons, la même action. */
     final Button pulseButton = pulseButton();
     final Button moleculesPulseButton = pulseButton();
@@ -448,7 +436,7 @@ public abstract class BigBangPageBase extends VBox {
     int bestVersion = -1;
     static final long BEST_EVERY_NANOS = 500_000_000L;
     /** Le nom, la formule et l'identifiant de chaque molécule, tels que la recherche les compare. */
-    final Map<Molecule, String> searchTexts = new java.util.HashMap<>();
+    final Map<Molecule, String> searchTexts = new HashMap<>();
 
     // Sous-page « Expansion de la matière »
     final VBox expansionPane = new VBox(6);

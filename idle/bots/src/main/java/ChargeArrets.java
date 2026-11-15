@@ -1,16 +1,11 @@
 import idle.core.Game;
+import java.io.*;
 import idle.core.save.SaveCodec;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Version 0.205 : ce que pèse dans le calcul d'une simulation tout ce qu'{@link AnalyseArrets} a mesuré inutile.
+ * Ce que pèse dans le calcul d'une simulation tout ce qu'{@link AnalyseArrets} a mesuré inutile.
  *
  * <p>Deux parties du premier univers (Speedrunner, graine 201, pas de 20 s), jouées l'une après l'autre : le témoin, puis
  * la même où chaque chose est coupée à partir du jalon où elle ne sert plus. Pour chaque tronçon entre deux jalons :
@@ -116,8 +111,8 @@ final class ChargeArrets {
         String quoi = args.length > 0 ? args[0] : "tout";
         Map<String, String> plan = plan(quoi);
         // Le planificateur du bot écrit ses étapes sur la sortie : elles sont tues pendant les trois parties.
-        java.io.PrintStream sortie = System.out;
-        System.setOut(new java.io.PrintStream(java.io.OutputStream.nullOutputStream()));
+        PrintStream sortie = System.out;
+        System.setOut(new PrintStream(OutputStream.nullOutputStream()));
         Partie temoin, coupee;
         try {
             joue(null); // une partie pour rien : la JVM chaude avant de chronométrer

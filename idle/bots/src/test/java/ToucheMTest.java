@@ -5,11 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.206 : tenir la touche M ne demande pas de décider vite. Le Speedrunner des audits (une décision toutes les
+ * Tenir la touche M ne demande pas de décider vite. Le Speedrunner des audits (une décision toutes les
  * 20 s, attention entière) la tient, par morceaux de deux secondes ; un profil moins attentif ou plus lent ne la tient pas.
  */
 class ToucheMTest {
-
     private static IdleProfiles24 bot(int profil) {
         return new IdleProfiles24(Bots.fresh(201), IdleProfiles24.PROFILES[profil - 1], 201, 20);
     }

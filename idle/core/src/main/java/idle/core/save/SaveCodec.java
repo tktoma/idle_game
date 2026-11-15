@@ -1,33 +1,28 @@
 package idle.core.save;
 
-import idle.core.GameState;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import idle.core.state.GameState;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.*;
 
 /**
- * La partie en texte, et retour : c'est ce qui s'écrit dans le fichier de sauvegarde, et ce que
- * le joueur copie pour emporter sa partie ailleurs.
+ * La partie en texte, et retour : c'est ce qui s'écrit dans le fichier de sauvegarde, et ce que le joueur copie pour
+ * emporter sa partie ailleurs.
  *
  * <p>Deux formes du même contenu :
  * <ul>
- *   <li>{@link #write} : le texte lisible, une ligne {@code clé=valeur} par champ, précédé d'une
- *       ligne d'en-tête qui porte le numéro de version du format. C'est le fichier ;</li>
- *   <li>{@link #export} : ce même texte compressé puis écrit en lettres et chiffres, sur une
- *       seule ligne, pour le presse-papiers.</li>
- * </ul>
- * {@link #read} relit les deux.
+ * <li>{@link #write} : le texte lisible, une ligne {@code clé=valeur} par champ, précédé d'une ligne d'en-tête qui
+ * porte le numéro de version du format. C'est le fichier ;</li>
+ * <li>{@link #export} : ce même texte compressé puis écrit en lettres et chiffres, sur une seule ligne, pour le
+ * presse-papiers.</li>
+ * </ul> {@link #read} relit les deux.
  *
- * <p>La sauvegarde ne contient que la partie ({@link GameState}, statistiques et historiques
- * compris). Les réglages de la fenêtre (affichage, sons, touches) n'en font pas partie : ils restent sur sa machine.
- * Ceux qui règlent le jeu lui-même (coupure des automatismes, ordres d'achat, plans…) sont dans la partie.
+ * <p>La sauvegarde ne contient que la partie ({@link GameState}, statistiques et historiques compris). Les réglages de
+ * la fenêtre (affichage, sons, touches) n'en font pas partie : ils restent sur sa machine. Ceux qui règlent le jeu
+ * lui-même (coupure des automatismes, ordres d'achat, plans…) sont dans la partie.
  */
 public final class SaveCodec {
-
     /** Premier mot de toute sauvegarde lisible. */
     private static final String HEADER = "idle-save";
     /** Numéro du format écrit par cette version du jeu. Une sauvegarde d'un format plus récent est refusée. */
@@ -44,13 +39,13 @@ public final class SaveCodec {
      * @param state   la partie
      * @param savedAt l'instant où elle a été écrite, en millisecondes depuis 1970 ; sert à compter l'absence du joueur
      * @param version le numéro de format de la sauvegarde relue
-     * @param meta    son nom et la version du jeu qui l'a écrite (version 0.127), vides pour une sauvegarde plus ancienne
+     * @param meta    son nom et la version du jeu qui l'a écrite, vides pour une sauvegarde plus ancienne
      */
     public record Save(GameState state, long savedAt, int version, Meta meta) {
     }
 
     /**
-     * Ce qu'une sauvegarde dit d'elle-même, en plus de la partie (version 0.127) : le nom que le joueur lui a donné
+     * Ce qu'une sauvegarde dit d'elle-même, en plus de la partie : le nom que le joueur lui a donné
      * (un point de reprise), et la version du jeu qui l'a écrite. Une version plus ancienne du jeu les ignore : le
      * format ne change pas.
      *
@@ -76,7 +71,7 @@ public final class SaveCodec {
     }
 
     /**
-     * Ce qu'une sauvegarde contient, en quelques chiffres, sans la charger (version 0.127) : pour la montrer avant de
+     * Ce qu'une sauvegarde contient, en quelques chiffres, sans la charger : pour la montrer avant de
      * l'importer ou de la reprendre.
      *
      * @param format         le numéro de format
@@ -96,9 +91,7 @@ public final class SaveCodec {
     public static final class Unreadable extends Exception {
         private static final long serialVersionUID = 1L;
 
-        public Unreadable(String message, Throwable cause) {
-            super(message, cause);
-        }
+        public Unreadable(String message, Throwable cause) { super(message, cause); }
     }
 
     /**
@@ -106,12 +99,10 @@ public final class SaveCodec {
      *
      * @param savedAt l'instant de la sauvegarde, en millisecondes depuis 1970
      */
-    public static String write(GameState state, long savedAt) {
-        return write(state, savedAt, Meta.NONE);
-    }
+    public static String write(GameState state, long savedAt) { return write(state, savedAt, Meta.NONE); }
 
     /**
-     * La partie en texte lisible, avec ce que la sauvegarde dit d'elle-même (version 0.127).
+     * La partie en texte lisible, avec ce que la sauvegarde dit d'elle-même.
      *
      * @param savedAt l'instant de la sauvegarde, en millisecondes depuis 1970
      * @param meta    son nom et la version du jeu
@@ -129,11 +120,9 @@ public final class SaveCodec {
     }
 
     /** La partie compressée, sur une seule ligne de lettres et de chiffres : pour le presse-papiers. */
-    public static String export(GameState state, long savedAt) {
-        return export(state, savedAt, Meta.NONE);
-    }
+    public static String export(GameState state, long savedAt) { return export(state, savedAt, Meta.NONE); }
 
-    /** La partie compressée, sur une seule ligne, avec ce qu'elle dit d'elle-même (version 0.127). */
+    /** La partie compressée, sur une seule ligne, avec ce qu'elle dit d'elle-même. */
     public static String export(GameState state, long savedAt, Meta meta) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -153,13 +142,10 @@ public final class SaveCodec {
      * @throws Unreadable si le texte n'est pas une sauvegarde, s'il est abîmé, ou s'il vient d'une
      *                    version plus récente du jeu
      */
-    public static Save read(String text) throws Unreadable {
-        return parse(text).load(new GameState());
-    }
+    public static Save read(String text) throws Unreadable { return parse(text).load(new GameState()); }
 
     /** Le texte découpé en lignes {@code clé=valeur}, et le numéro de format de son en-tête. */
     private record Parsed(SaveData data, int version) {
-
         /** Charge la partie dans {@code state} et la rend sous forme de {@link Save}. */
         Save load(GameState state) throws Unreadable {
             try {
@@ -194,7 +180,7 @@ public final class SaveCodec {
     }
 
     /**
-     * Ce qu'une sauvegarde contient, sans rien charger dans la partie en cours (version 0.127).
+     * Ce qu'une sauvegarde contient, sans rien charger dans la partie en cours.
      *
      * @throws Unreadable si le texte ne se relit pas
      */

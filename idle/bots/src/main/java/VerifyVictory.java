@@ -1,4 +1,5 @@
 import idle.core.*;
+import idle.core.state.*;
 import idle.core.sky.*;
 import java.nio.file.*;
 import java.util.*;
@@ -6,7 +7,7 @@ import java.util.*;
 /**
  * Contrôle indépendant de la sauvegarde de victoire.
  *
- * <p>Version 0.126 : la victoire est celle du jeu, et rien d'autre : l'univers formé ({@code hasCosmos(UNIVERSE)}, ce que
+ * <p>La victoire est celle du jeu, et rien d'autre : l'univers formé ({@code hasCosmos(UNIVERSE)}, ce que
  * vérifie l'écran de fin). Avant, il fallait aussi exactement 8 Big Bangs, la galaxie, l'amas, tous les astres mûrs et
  * trois systèmes encore en place : une sauvegarde écrite par le moteur actuel, qui remet tout à zéro dès que l'univers se
  * forme, était donc refusée, et un univers formé après un neuvième Big Bang aussi. Ces chiffres restent affichés, pris

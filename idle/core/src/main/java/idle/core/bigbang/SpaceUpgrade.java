@@ -5,19 +5,17 @@ import idle.core.molecules.Molecule;
 import idle.core.upgrades.Effect;
 
 /**
- * Une amélioration liée à l'espace : elle est acquise d'elle-même dès que l'expansion de la
- * matière a créé assez d'espace en tout. C'est l'espace gagné depuis le premier Big Bang qui
- * compte, pas celui qui reste libre : elle ne dépense rien, et remplir l'espace de molécules ne
- * l'éloigne pas.
+ * Une amélioration liée à l'espace : elle est acquise d'elle-même dès que l'expansion de la matière a créé assez
+ * d'espace en tout. C'est l'espace gagné depuis le premier Big Bang qui compte, pas celui qui reste libre : elle ne
+ * dépense rien, et remplir l'espace de molécules ne l'éloigne pas.
  *
- * @param id       identifiant stable (sert de clé dans la sauvegarde)
- * @param name     nom affiché
- * @param space    espace que l'expansion doit avoir créé en tout
+ * @param id identifiant stable (sert de clé dans la sauvegarde)
+ * @param name nom affiché
+ * @param space espace que l'expansion doit avoir créé en tout
  * @param requires identifiant de l'amélioration qu'il faut déjà posséder, ou {@code null}
- * @param effect   ce qu'elle ouvre
+ * @param effect ce qu'elle ouvre
  */
 public record SpaceUpgrade(String id, String name, BigNum space, String requires, Effect effect) {
-
     /**
      * Ce qu'ouvre une amélioration d'espace.
      *
@@ -39,9 +37,8 @@ public record SpaceUpgrade(String id, String name, BigNum space, String requires
     public record OpenBodies() implements Effect {}
 
     /**
-     * Donne l'automatisme « Appui automatique » : la matière noire grossit comme si le joueur
-     * tenait le clic sur elle, sans qu'il ait à le faire ({@link Game#isAutoHolding()}). Il se
-     * règle dans l'onglet Automatisation.
+     * Donne l'automatisme « Appui automatique » : la matière noire grossit comme si le joueur tenait le clic sur elle,
+     * sans qu'il ait à le faire ({@link Game#isAutoHolding()}). Il se règle dans l'onglet Automatisation.
      */
     public record AutoHold() implements Effect {}
 
@@ -52,9 +49,8 @@ public record SpaceUpgrade(String id, String name, BigNum space, String requires
     public record HoldCreate() implements Effect {}
 
     /**
-     * Donne les gestes groupés : tout rassembler, tout assembler, former tous les astres prêts, d'un
-     * seul clic chacun ({@link Game#formAllSubstances()}, {@link Game#formAllAssemblies()},
-     * {@link Game#formAllBodies()}).
+     * Donne les gestes groupés : tout rassembler, tout assembler, former tous les astres prêts, d'un seul clic chacun
+     * ({@link Game#formAllSubstances()}, {@link Game#formAllAssemblies()}, {@link Game#formAllBodies()}).
      */
     public record BulkForm() implements Effect {}
 
@@ -84,12 +80,11 @@ public record SpaceUpgrade(String id, String name, BigNum space, String requires
     }
 
     /**
-     * Multiplie pour de bon une grandeur du jeu : les atomes de chaque fusion, les particules de
-     * chaque création, ou l'espace que l'expansion ajoute chaque seconde
-     * ({@link Game#spaceUpgradeBoost(Molecule.Stat)}). Les premières rendent court le chemin du Big
-     * Bang suivant, que le joueur doit refaire depuis un seul générateur.
+     * Multiplie pour de bon une grandeur du jeu : les atomes de chaque fusion, les particules de chaque création, ou
+     * l'espace que l'expansion ajoute chaque seconde ({@link Game#spaceUpgradeBoost(Molecule.Stat)}). Les premières
+     * rendent court le chemin du Big Bang suivant, que le joueur doit refaire depuis un seul générateur.
      *
-     * @param stat   la grandeur multipliée
+     * @param stat la grandeur multipliée
      * @param factor ce par quoi elle l'est (2 = le double)
      */
     public record Boost(Molecule.Stat stat, double factor) implements Effect {

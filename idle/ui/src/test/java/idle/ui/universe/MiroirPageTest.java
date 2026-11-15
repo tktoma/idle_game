@@ -1,6 +1,13 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
+import idle.ui.common.Card;
+import idle.ui.common.Format;
+import java.util.Arrays;
+import java.util.List;
+import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,29 +18,22 @@ import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
 import idle.ui.Version;
 import idle.ui.automation.DimensionAutomationPane;
-import idle.ui.common.Card;
 import idle.ui.pages.StatsPage;
-import java.util.List;
 import javafx.scene.Scene;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.157 : le miroir, neuvième dimension, et les saisons de la graine, sous Xvfb. Le motif ne se montre que
+ * Le miroir, neuvième dimension, et les saisons de la graine, sous Xvfb. Le motif ne se montre que
  * pendant qu'il s'allume, une case à la fois ; on le refait à la souris, en miroir, et seules les cases reproduites se
  * voient ; un motif réussi donne des reflets et s'allonge, un motif manqué raccourcit ; la seconde chance permet une
- * erreur ; le plateau s'agrandit seul toutes les trois réussites (version 0.158) ; les améliorations s'achètent dans la
+ * erreur ; le plateau s'agrandit seul toutes les trois réussites ; les améliorations s'achètent dans la
  * fenêtre ; le miroir automatique joue seul. Les saisons se lisent dans la vue de la graine et remplissent le chrono ; le
  * miroir a sa section dans l'automatisation et ses lignes dans les statistiques.
  */
 class MiroirPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au neuvième univers : le miroir est ouvert. */
     private static Game ninth() {
@@ -59,7 +59,7 @@ class MiroirPageTest {
         }
     }
 
-    private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type, double x, double y) {
+    private static MouseEvent mouse(EventType<MouseEvent> type, double x, double y) {
         return new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1, false, false, false, false,
                 type == MouseEvent.MOUSE_PRESSED, false, false, false, false, false, null);
     }
@@ -126,7 +126,7 @@ class MiroirPageTest {
             assertEquals(4, game.mirrorLength(), "le suivant a une case de plus");
             window.frame(0.016, true);
             assertTrue(window.mirrorCountsText().startsWith("Motif de 4 cases · record 3 · réussis 1 · manqués 0"), window.mirrorCountsText());
-            assertTrue(window.mirrorHintText().endsWith("Dernier motif réussi : +" + idle.ui.common.Format.darkMatter(game.mirrorLastGain()) + "."),
+            assertTrue(window.mirrorHintText().endsWith("Dernier motif réussi : +" + Format.darkMatter(game.mirrorLastGain()) + "."),
                     window.mirrorHintText());
             // Manqué : une case qui n'est pas le reflet attendu.
             game.testSetMirrorPattern(List.of(new Game.MirrorCell(0, 0), new Game.MirrorCell(1, 1), new Game.MirrorCell(0, 2), new Game.MirrorCell(1, 3)));
@@ -194,9 +194,9 @@ class MiroirPageTest {
             window.frame(0.016, true);
             assertTrue(window.mirrorCountsText().endsWith("erreurs 1 / 1"), window.mirrorCountsText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 9);
+            FxTestSupport.openDimensionAutomations(game, 9);
             game.state().setGridShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.MIRROR_PLAY);
+            FxTestSupport.buyPlay(game, DimensionAutomation.MIRROR_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.mirrorHintText().startsWith("Miroir automatique"), window.mirrorHintText());
@@ -244,7 +244,7 @@ class MiroirPageTest {
             assertEquals(Game.SEASON_FILL * Game.Season.WINTER.fill(), game.seasonFillPerWatering(), 1e-9);
             page.frame(0.016, true);
             assertEquals("Hiver ×0.5 : 120 s · +0.1 s au chrono par arrosage", view.seasonText());
-            assertEquals(1, java.util.Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 9).count());
+            assertEquals(1, Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 9).count());
             assertFalse(page.dimensionsView().isMarked(9));
             game.state().setMirrorShardsEarned(Game.MIRROR_THRESHOLD);
             page.refresh();
@@ -258,7 +258,7 @@ class MiroirPageTest {
         FxTestSupport.fx(() -> {
             Game game = ninth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 9);
+            FxTestSupport.openDimensionAutomations(game, 9);
             game.state().setGridShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
@@ -266,17 +266,17 @@ class MiroirPageTest {
             assertTrue(pane.sectionShown(9));
             assertEquals("Dimension 9 : Le miroir", pane.headingText(9));
             assertTrue(pane.balanceText(9).startsWith("Payés en reflets"), pane.balanceText(9));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 9);
-            idle.ui.FxTestSupport.fillDimension(game, 9, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 9);
+            FxTestSupport.fillDimension(game, 9, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.MIRROR_PLAY_5S);
             assertEquals(Card.State.READY, play.state());
             assertTrue(play.text().contains("Reproduit le motif, une case toutes les 5 s"), play.text());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY_5S));
-            assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count(),
+            assertEquals(10, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count(),
                     "dix automatismes pour le miroir");
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

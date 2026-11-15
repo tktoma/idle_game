@@ -1,5 +1,8 @@
 package idle.core.universe;
 
+import idle.core.Enums;
+import java.util.*;
+
 /**
  * Les skins du deuxième univers (version 0.087 pour l'onglet, 0.88 pour la façon de les obtenir) :
  * des apparences de rechange pour les visuels du jeu. Chacun débloqué ajoute
@@ -29,7 +32,7 @@ public enum Skin {
     COLLIDER_NEON(SkinVisual.COLLIDER, "Néon", "Défi « Sans surchauffe »"),
     COLLIDER_PLASMA(SkinVisual.COLLIDER, "Plasma", "Défi « Pleine charge »"),
     COLLIDER_ICE(SkinVisual.COLLIDER, "Glace", "Défi « Un seul générateur »"),
-    // Version 0.185 : les essences de l'arbre, une par univers formé à partir du quatrième (SKINS.md).
+    // Les essences de l'arbre, une par univers formé à partir du quatrième (SKINS.md).
     TREE_BIRCH(SkinVisual.TREE, "Bouleau", "Univers 4 formé"),
     TREE_WILLOW(SkinVisual.TREE, "Saule pleureur", "Univers 5 formé"),
     TREE_MAPLE(SkinVisual.TREE, "Érable rouge", "Univers 6 formé"),
@@ -38,11 +41,11 @@ public enum Skin {
     TREE_SEQUOIA(SkinVisual.TREE, "Séquoia", "Univers 9 formé"),
     TREE_PINE(SkinVisual.TREE, "Pin", "Univers 10 formé"),
     TREE_PALM(SkinVisual.TREE, "Palmier", "Univers 11 formé"),
-    // Version 0.186 : les astres, par le nombre d'astres formés dans un univers (SKINS.md).
+    // Les astres, par le nombre d'astres formés dans un univers (SKINS.md).
     BODY_PLANETARIUM(SkinVisual.BODY, "Planétarium", "10 astres formés dans un univers"),
     BODY_ENGRAVING(SkinVisual.BODY, "Gravure", "20 astres formés dans un univers"),
     BODY_CARTOGRAPHY(SkinVisual.BODY, "Cartographie", "Les 35 astres formés dans un univers"),
-    // Version 0.187 : un skin par mini-jeu, débloqué par le seuil de sa dimension (SKINS.md).
+    // Un skin par mini-jeu, débloqué par le seuil de sa dimension (SKINS.md).
     LINE_RAILS(SkinVisual.LINE, "Rails et wagons", "Seuil de la ligne atteint"),
     PLANE_NOTEBOOK(SkinVisual.PLANE, "Feuille de cahier", "Seuil du plan atteint"),
     VOLUME_AQUARIUM(SkinVisual.VOLUME, "Aquarium", "Seuil du volume atteint"),
@@ -53,19 +56,19 @@ public enum Skin {
     GRID_MINESWEEPER(SkinVisual.GRID, "Démineur", "Seuil de la grille atteint"),
     MIRROR_STAINED(SkinVisual.MIRROR, "Vitrail", "Seuil du miroir atteint"),
     MIX_KALEIDOSCOPE(SkinVisual.MIX, "Kaléidoscope", "Seuil du mélange atteint"),
-    // Version 0.188 : les molécules (SKINS.md ; « Traits » demandait cent sortes, le catalogue en a 73 : toutes).
+    // Les molécules (SKINS.md ; « Traits » demandait cent sortes, le catalogue en a 73 : toutes).
     MOLECULE_SPACE_FILLING(SkinVisual.MOLECULE, "Boules pleines", "50 sortes de molécules créées"),
     MOLECULE_SKELETON(SkinVisual.MOLECULE, "Traits", "Les 73 sortes de molécules créées"),
     MOLECULE_PEARLS(SkinVisual.MOLECULE, "Perles", "20 sortes rassemblées"),
     MOLECULE_BRICKS(SkinVisual.MOLECULE, "Lego", "1 000 molécules créées"),
-    // Version 0.189 : les cadres de l'avatar, un par titre (SKINS.md).
+    // Les cadres de l'avatar, un par titre (SKINS.md).
     FRAME_ROUND(SkinVisual.AVATAR_FRAME, "Rond", "Titre « Alchimiste »"),
     FRAME_HEXAGON(SkinVisual.AVATAR_FRAME, "Hexagone", "Titre « Lecteur du tableau »"),
     FRAME_SHIELD(SkinVisual.AVATAR_FRAME, "Écusson", "Titre « Briseur de défis »"),
     FRAME_BAROQUE(SkinVisual.AVATAR_FRAME, "Cadre doré baroque", "Titre « Faiseur de Big Bang »"),
     FRAME_STAMP(SkinVisual.AVATAR_FRAME, "Timbre-poste", "Titre « Chasseur de comètes »"),
     FRAME_POLAROID(SkinVisual.AVATAR_FRAME, "Polaroid", "Titre « Créateur d'univers »"),
-    // Version 0.190 : le chrome (SKINS.md).
+    // Le chrome (SKINS.md).
     AMBIENT_PAPER(SkinVisual.AMBIENT, "Papier", "Une heure de jeu"),
     AMBIENT_SLATE(SkinVisual.AMBIENT, "Ardoise", "50 éléments découverts"),
     AMBIENT_NIGHT(SkinVisual.AMBIENT, "Nuit étoilée", "La galaxie formée"),
@@ -79,7 +82,7 @@ public enum Skin {
     CARD_GLASS(SkinVisual.CARD, "Tuile de verre", "Skin « Cristal » du Big Bang débloqué"),
     CARD_PLAYING(SkinVisual.CARD, "Carte à jouer", "Les dix défis réussis"),
     CARD_TAG(SkinVisual.CARD, "Étiquette", "Dix sondes revenues"),
-    // Version 0.191 : des skins de plus pour les huit visuels d'origine (SKINS.md, section 1).
+    // Des skins de plus pour les huit visuels d'origine (SKINS.md, section 1).
     FUSION_EMBER(SkinVisual.PARTICLE_FUSION, "Braise", "100 fusions"),
     FUSION_INK(SkinVisual.PARTICLE_FUSION, "Encre", "1 000 fusions"),
     FUSION_SWARM(SkinVisual.PARTICLE_FUSION, "Essaim", "100 générateurs en même temps"),
@@ -117,7 +120,7 @@ public enum Skin {
     COLLIDER_CIRCUIT(SkinVisual.COLLIDER, "Circuit imprimé", "100 générateurs du collisionneur achetés"),
     COLLIDER_STADIUM(SkinVisual.COLLIDER, "Stade", "1 000 générateurs du collisionneur achetés"),
     COLLIDER_MOBIUS(SkinVisual.COLLIDER, "Ruban de Möbius", "Skin « Glace » du collisionneur débloqué"),
-    // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau
+    // Les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau
     // (SKINS.md, sections 2 et 3). « Figées » et « Silence » sont libres : des réglages déguisés en skins.
     ICONS_CHALK(SkinVisual.TAB_ICONS, "Trait de craie", "50 atomes créés"),
     ICONS_PIXEL(SkinVisual.TAB_ICONS, "Pixel art", "Record de reconstruction en moins d'une minute"),
@@ -147,7 +150,7 @@ public enum Skin {
     PAGE_MEDALS(SkinVisual.TABLE_PAGE, "Médailles", "Un ensemble complet"),
     PAGE_CRUCIBLE(SkinVisual.TABLE_PAGE, "Creuset", "100 synthèses"),
     PAGE_SPECTRUM(SkinVisual.TABLE_PAGE, "Spectre", "Toutes les familles possédées"),
-    // Version 0.193 : la matière noire hors de la boule (SKINS.md, section 4) : l'échelle et la règle, l'arbre, les défis.
+    // La matière noire hors de la boule (SKINS.md, section 4) : l'échelle et la règle, l'arbre, les défis.
     // « Métro » demandait cinq branches, l'arbre en a quatre ; « Circuit » demandait l'arbre complet, que les bifurcations
     // et les cases sans limite rendent impossible : cent niveaux achetés en tout le remplacent.
     RULER_WOOD(SkinVisual.DARK_RULER, "Règle de bois", "10 explosions"),
@@ -160,7 +163,7 @@ public enum Skin {
     CHALLENGES_TAROT(SkinVisual.CHALLENGES, "Tarot", "3 défis réussis"),
     CHALLENGES_WANTED(SkinVisual.CHALLENGES, "Wanted", "6 défis réussis"),
     CHALLENGES_SEALS(SkinVisual.CHALLENGES, "Sceaux", "Les dix défis réussis"),
-    // Version 0.194 : le Big Bang au-delà des molécules (SKINS.md, section 5). Les trois palettes sont libres : des réglages
+    // Le Big Bang au-delà des molécules (SKINS.md, section 5). Les trois palettes sont libres : des réglages
     // d'accessibilité. Les blocs demandaient 10, 20, 30 et 40 assemblages, le catalogue en a 30 : 10, 15, 20 et tous. Le gaz se
     // compte en molécules de gaz rassemblées ; la galaxie, l'amas et la toile s'échelonnent sur les univers formés.
     PALETTE_PASTEL(SkinVisual.MOLECULE_PALETTE, "Pastel", "Libre : les couleurs CPK adoucies", true),
@@ -198,7 +201,7 @@ public enum Skin {
     PROBE_BALLOON(SkinVisual.PROBE, "Montgolfière", "25 voyages de sonde"),
     PROBE_BOTTLE(SkinVisual.PROBE, "Bouteille à la mer", "50 voyages de sonde"),
     PROBE_PIGEON(SkinVisual.PROBE, "Pigeon", "100 voyages de sonde"),
-    // Version 0.195 : le reste du collisionneur.
+    // Le reste du collisionneur.
     DETECTOR_EYE(SkinVisual.DETECTOR, "Œil", "100 collisions"),
     DETECTOR_LANTERN(SkinVisual.DETECTOR, "Lanterne", "250 collisions"),
     DETECTOR_BELL(SkinVisual.DETECTOR, "Cloche", "500 collisions"),
@@ -212,7 +215,7 @@ public enum Skin {
     QUARK_FLIGHT_BALLOONS(SkinVisual.QUARK_FLIGHT, "Ballons", "10 hadrons liés"),
     QUARK_FLIGHT_BUTTERFLIES(SkinVisual.QUARK_FLIGHT, "Papillons", "25 hadrons liés"),
     QUARK_FLIGHT_SCRABBLE(SkinVisual.QUARK_FLIGHT, "Lettres de Scrabble", "50 hadrons liés"),
-    // Version 0.195 : les hadrons.
+    // Les hadrons.
     QUARKS_MARBLES(SkinVisual.QUARKS, "Billes de verre", "10 hadrons liés"),
     QUARKS_FRUITS(SkinVisual.QUARKS, "Fruits", "50 hadrons liés"),
     QUARKS_NOTES(SkinVisual.QUARKS, "Notes de musique", "100 hadrons liés"),
@@ -224,7 +227,7 @@ public enum Skin {
     HADRON_BACK_BLACKBOARD(SkinVisual.HADRON_BACKGROUND, "Tableau noir", "Palier « Mémoire des liaisons » (1 000 gluons)"),
     HADRON_BACK_LAB(SkinVisual.HADRON_BACKGROUND, "Table de laboratoire", "Palier « Automatismes liés » (10 000 gluons)"),
     HADRON_BACK_STORM(SkinVisual.HADRON_BACKGROUND, "Ciel d'orage", "Palier « Éléments liés » (50 000 gluons)"),
-    // Version 0.195 : le vide.
+    // Le vide.
     FOAM_SOAP(SkinVisual.VOID_FOAM, "Bulles de savon", "Le vide ouvert"),
     FOAM_BEER(SkinVisual.VOID_FOAM, "Mousse de bière", "Une amélioration du vide au niveau 1"),
     FOAM_FILM(SkinVisual.VOID_FOAM, "Pellicule", "Une amélioration du vide au niveau 2"),
@@ -237,7 +240,7 @@ public enum Skin {
     VOID_HOLE_IRIS(SkinVisual.VOID_HOLE, "Iris", "Le trou noir du vide ouvert, 3 univers comptés"),
     VOID_HOLE_KNOT(SkinVisual.VOID_HOLE, "Nœud de bois", "Le trou noir du vide ouvert, 4 univers comptés"),
     VOID_HOLE_TEA(SkinVisual.VOID_HOLE, "Tourbillon de thé", "Le trou noir du vide ouvert, 5 univers comptés"),
-    // Version 0.196 : l'univers : les bulles, leur naissance, leurs liens, le lancement, la graine et son établi.
+    // L'univers : les bulles, leur naissance, leurs liens, le lancement, la graine et son établi.
     BUBBLE_SOAP(SkinVisual.UNIVERSE_BUBBLE, "Bulle de savon", "Univers 1 formé"),
     BUBBLE_SNOWGLOBE(SkinVisual.UNIVERSE_BUBBLE, "Boule à neige", "Univers 2 formé"),
     BUBBLE_ORRERY(SkinVisual.UNIVERSE_BUBBLE, "Globe d'orrery", "Univers 3 formé"),
@@ -287,7 +290,7 @@ public enum Skin {
     SEASONS_CARDS(SkinVisual.SEASONS, "Cartes à jouer", "Un cycle complet des saisons depuis l'ouverture de la fenêtre"),
     SEASONS_WHEEL(SkinVisual.SEASONS, "Roue de couleurs", "2 cycles complets des saisons depuis l'ouverture de la fenêtre"),
     SEASONS_STAINED(SkinVisual.SEASONS, "Vitrail", "3 cycles complets des saisons depuis l'ouverture de la fenêtre"),
-    // Version 0.197 : l'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les mini-jeux.
+    // L'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les mini-jeux.
     TREE_AUTUMN(SkinVisual.TREE_SEASON, "Automne figé", "Les saisons débloquées"),
     TREE_WINTER(SkinVisual.TREE_SEASON, "Hiver figé", "Les saisons débloquées, 10 univers formés"),
     TREE_SPRING(SkinVisual.TREE_SEASON, "Printemps figé", "Les saisons débloquées, 11 univers formés"),
@@ -329,7 +332,7 @@ public enum Skin {
     DIM_PALETTE_MONO(SkinVisual.DIMENSION_PALETTE, "Monochrome", "Libre : une option d'accessibilité", true),
     DIM_PALETTE_RAINBOW(SkinVisual.DIMENSION_PALETTE, "Arc-en-ciel saturé", "Libre : une option d'accessibilité", true),
     DIM_PALETTE_SEPIA(SkinVisual.DIMENSION_PALETTE, "Sépia", "Libre : une option d'accessibilité", true),
-    // Version 0.198 : le profil, les succès et les statistiques (SKINS.md, section 8, première partie).
+    // Le profil, les succès et les statistiques (SKINS.md, section 8, première partie).
     AVATAR_LINE(SkinVisual.AVATAR_STYLE, "Trait", "25 succès obtenus"),
     AVATAR_PIXEL(SkinVisual.AVATAR_STYLE, "Pixel", "50 succès obtenus"),
     AVATAR_CHALK(SkinVisual.AVATAR_STYLE, "Craie", "75 succès obtenus"),
@@ -357,7 +360,7 @@ public enum Skin {
     TIMELINE_MUSEUM(SkinVisual.TIMELINE, "Musée", "3 univers formés"),
     TIMELINE_FILM(SkinVisual.TIMELINE, "Pellicule", "5 univers formés"),
     TIMELINE_TRAIN(SkinVisual.TIMELINE, "Train", "7 univers formés"),
-    // Version 0.199 : les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur (SKINS.md, section 8).
+    // Les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur (SKINS.md, section 8).
     TOAST_POSTIT(SkinVisual.TOAST, "Post-it", "20 notifications reçues depuis l'ouverture du jeu"),
     TOAST_TELEGRAM(SkinVisual.TOAST, "Télégramme", "50 notifications reçues depuis l'ouverture du jeu"),
     TOAST_COMIC(SkinVisual.TOAST, "Bulle de BD", "100 notifications reçues depuis l'ouverture du jeu"),
@@ -382,7 +385,7 @@ public enum Skin {
     CURSOR_WATERING_CAN(SkinVisual.CURSOR, "Arrosoir", "Succès « Jeune pousse »"),
     CURSOR_MAGNIFIER(SkinVisual.CURSOR, "Loupe", "Succès « À mi-chemin »"),
     CURSOR_WAND(SkinVisual.CURSOR, "Baguette", "Succès « Dix explosions »"),
-    // Version 0.200 : les sons : la banque de sons, le son du Big Bang, le métronome de la boucle (SKINS.md, section 8).
+    // Les sons : la banque de sons, le son du Big Bang, le métronome de la boucle (SKINS.md, section 8).
     SOUND_WOOD(SkinVisual.SOUND_BANK, "Bois", "1 h de jeu"),
     SOUND_GLASS(SkinVisual.SOUND_BANK, "Verre", "2 h de jeu"),
     SOUND_BITS(SkinVisual.SOUND_BANK, "8 bits", "5 h de jeu"),
@@ -397,167 +400,167 @@ public enum Skin {
     METRONOME_DROP(SkinVisual.METRONOME, "Goutte d'eau", "Le seuil de la boucle atteint, 7 univers formés"),
     METRONOME_HEART(SkinVisual.METRONOME, "Battement de cœur", "Le seuil de la boucle atteint, 8 univers formés");
 
-    /** Les banques de sons à débloquer (version 0.200) et les heures de jeu qui les ouvrent ; le silence partiel est libre. */
+    /** Les banques de sons à débloquer et les heures de jeu qui les ouvrent ; le silence partiel est libre. */
     public static final Skin[] SOUND_BANKS = {SOUND_WOOD, SOUND_GLASS, SOUND_BITS, SOUND_ORCHESTRA, SOUND_NATURE};
     public static final int[] SOUND_BANK_HOURS = {1, 2, 5, 10, 20};
-    /** Les sons du Big Bang (version 0.200) et les Big Bangs qui les ouvrent. */
+    /** Les sons du Big Bang et les Big Bangs qui les ouvrent. */
     public static final Skin[] BANG_SOUNDS = {BANG_SOUND_CHIME, BANG_SOUND_WIND, BANG_SOUND_ORGAN};
     public static final int[] BANG_SOUND_BANGS = {5, 10, 20};
-    /** Les tics du métronome (version 0.200) : le seuil de la boucle, le premier dès là, les suivants à {@code FIRST_METRONOME_UNIVERSE + i - 1} univers. */
+    /** Les tics du métronome : le seuil de la boucle, le premier dès là, les suivants à {@code FIRST_METRONOME_UNIVERSE + i - 1} univers. */
     public static final Skin[] METRONOMES = {METRONOME_WOOD, METRONOME_METAL, METRONOME_DROP, METRONOME_HEART};
     public static final int FIRST_METRONOME_UNIVERSE = 6;
 
-    /** Les skins des notifications (version 0.199) et les notifications reçues depuis l'ouverture du jeu qui les débloquent (compte non sauvegardé). */
+    /** Les skins des notifications et les notifications reçues depuis l'ouverture du jeu qui les débloquent (compte non sauvegardé). */
     public static final Skin[] TOASTS = {TOAST_POSTIT, TOAST_TELEGRAM, TOAST_COMIC, TOAST_RECEIPT, TOAST_SCROLL};
     public static final int[] TOAST_NOTIFICATIONS = {20, 50, 100, 200, 500};
-    /** Les skins des panneaux (version 0.199) et les heures de jeu qui les débloquent. */
+    /** Les skins des panneaux et les heures de jeu qui les débloquent. */
     public static final Skin[] PANELS = {PANEL_BOOK, PANEL_CINEMA, PANEL_BOARD};
     public static final int[] PANEL_HOURS = {5, 10, 20};
-    /** Les skins de la transition entre univers (version 0.199) : {@code TRANSITIONS[n - 1]} à n univers formés. */
+    /** Les skins de la transition entre univers : {@code TRANSITIONS[n - 1]} à n univers formés. */
     public static final Skin[] TRANSITIONS = {TRANSITION_WHITE, TRANSITION_PAGE, TRANSITION_IRIS, TRANSITION_HOLE};
-    /** Les skins de l'écran de fin (version 0.199) : la partie finie, le premier dès là, les suivants à {@code FIRST_ENDING_UNIVERSE + i - 1} univers. */
+    /** Les skins de l'écran de fin : la partie finie, le premier dès là, les suivants à {@code FIRST_ENDING_UNIVERSE + i - 1} univers. */
     public static final Skin[] ENDINGS = {ENDING_CREDITS, ENDING_CERTIFICATE, ENDING_PHOTO};
     public static final int FIRST_ENDING_UNIVERSE = 10;
-    /** Les skins du bouton de démarrage (version 0.199) : la partie finie, le premier dès là, les suivants à {@code FIRST_START_UNIVERSE + i - 1} univers. */
+    /** Les skins du bouton de démarrage : la partie finie, le premier dès là, les suivants à {@code FIRST_START_UNIVERSE + i - 1} univers. */
     public static final Skin[] START_BUTTONS = {START_SWITCH, START_SEED, START_MATCH, START_DETONATOR};
     public static final int FIRST_START_UNIVERSE = 9;
-    /** Les skins du curseur (version 0.199) et les succès, d'un onglet différent chacun, qui les débloquent. */
+    /** Les skins du curseur et les succès, d'un onglet différent chacun, qui les débloquent. */
     public static final Skin[] CURSORS = {CURSOR_GLASS_HAND, CURSOR_SHOOTING_STAR, CURSOR_WATERING_CAN, CURSOR_MAGNIFIER, CURSOR_WAND};
     public static final String[] CURSOR_ACHIEVEMENTS = {"step_automation", "feat_comet", "late_seed_half", "step_half_table", "step_explosions"};
 
     /** Le repère « tous les succès » des paliers de la version 0.198 : le jeu le remplace par la taille de son catalogue. */
     public static final int ALL_ACHIEVEMENTS = -1;
-    /** Les styles des avatars (version 0.198) et les succès obtenus qui les débloquent ; le dernier demande tous les succès ({@code ALL_ACHIEVEMENTS}). */
+    /** Les styles des avatars et les succès obtenus qui les débloquent ; le dernier demande tous les succès ({@code ALL_ACHIEVEMENTS}). */
     public static final Skin[] AVATAR_STYLES = {AVATAR_LINE, AVATAR_PIXEL, AVATAR_CHALK, AVATAR_STAINED};
     public static final int[] AVATAR_STYLE_ACHIEVEMENTS = {25, 50, 75, ALL_ACHIEVEMENTS};
-    /** Les skins des albums (version 0.198) : le premier à {@code ALBUM_ENTRIES} entrées trouvées, puis {@code ALBUMS[n]} à n albums complets. */
+    /** Les skins des albums : le premier à {@code ALBUM_ENTRIES} entrées trouvées, puis {@code ALBUMS[n]} à n albums complets. */
     public static final Skin[] ALBUMS = {ALBUM_ILLUSTRATED, ALBUM_STICKERS, ALBUM_STAMPS, ALBUM_CARDS, ALBUM_HERBARIUM};
     public static final int ALBUM_ENTRIES = 50;
-    /** Les tuiles des succès (version 0.198) et les succès obtenus qui les débloquent ; le dernier demande tous les succès. */
+    /** Les tuiles des succès et les succès obtenus qui les débloquent ; le dernier demande tous les succès. */
     public static final Skin[] TILES = {TILES_MEDALS, TILES_BADGES, TILES_STARS, TILES_TROPHIES, TILES_STAMPS};
     public static final int[] TILE_ACHIEVEMENTS = {25, 50, 75, 90, ALL_ACHIEVEMENTS};
-    /** Les succès non obtenus (version 0.198) et les succès obtenus qui les débloquent. */
+    /** Les succès non obtenus et les succès obtenus qui les débloquent. */
     public static final Skin[] LOCKED_SKINS = {LOCKED_SILHOUETTE, LOCKED_QUESTION, LOCKED_PUZZLE};
     public static final int[] LOCKED_ACHIEVEMENTS = {10, 20, 30};
-    /** Les courbes des statistiques (version 0.198) et les heures de jeu qui les débloquent. */
+    /** Les courbes des statistiques et les heures de jeu qui les débloquent. */
     public static final Skin[] CHARTS = {CHART_GRAPH_PAPER, CHART_OSCILLOSCOPE, CHART_PENCIL, CHART_WATERCOLOR};
     public static final int[] CHART_HOURS = {1, 5, 10, 20};
-    /** La frise des univers (version 0.198) et les univers formés qui la débloquent. */
+    /** La frise des univers et les univers formés qui la débloquent. */
     public static final Skin[] TIMELINES = {TIMELINE_MUSEUM, TIMELINE_FILM, TIMELINE_TRAIN};
     public static final int[] TIMELINE_UNIVERSES = {3, 5, 7};
 
-    /** Les saisons figées de l'arbre (version 0.197) : les saisons débloquées, puis {@code FIRST_TREE_SEASON_UNIVERSE + i} univers formés. */
+    /** Les saisons figées de l'arbre : les saisons débloquées, puis {@code FIRST_TREE_SEASON_UNIVERSE + i} univers formés. */
     public static final Skin[] TREE_SEASONS = {TREE_AUTUMN, TREE_WINTER, TREE_SPRING};
     public static final int FIRST_TREE_SEASON_UNIVERSE = 9;
-    /** Les arbres de fantaisie (version 0.197) : {@code TREE_FANTASIES[n - 1]} avec des bulles de n paliers différents achetées. */
+    /** Les arbres de fantaisie : {@code TREE_FANTASIES[n - 1]} avec des bulles de n paliers différents achetées. */
     public static final Skin[] TREE_FANTASIES = {TREE_CRYSTAL, TREE_CORAL, TREE_CIRCUIT, TREE_CLOUDS, TREE_INVERTED, TREE_PIXEL};
-    /** Les sols de l'arbre (version 0.197) : {@code GROUNDS[n - 2]} à la graine au palier n. */
+    /** Les sols de l'arbre : {@code GROUNDS[n - 2]} à la graine au palier n. */
     public static final Skin[] GROUNDS = {GROUND_GRASS, GROUND_SAND, GROUND_SNOW, GROUND_MOSS, GROUND_PAVING, GROUND_WATER};
     public static final int FIRST_GROUND_STAGE = 2;
-    /** Les skins des bulles de l'arbre (version 0.197) et les bulles achetées qui les débloquent ; le dernier demande toutes les bulles (19). */
+    /** Les skins des bulles de l'arbre et les bulles achetées qui les débloquent ; le dernier demande toutes les bulles (19). */
     public static final Skin[] TREE_BUBBLE_SKINS = {BUBBLES_FRUITS, BUBBLES_LANTERNS, BUBBLES_DEW, BUBBLES_GEMS, BUBBLES_SEEDS};
     public static final int[] TREE_BUBBLE_COUNTS = {5, 10, 15, 18, 19};
-    /** Les skins des liens entre les bulles (version 0.197) et les bulles achetées qui les débloquent. */
+    /** Les skins des liens entre les bulles et les bulles achetées qui les débloquent. */
     public static final Skin[] BUBBLE_LINK_SKINS = {BUBBLE_LINKS_BRANCHES, BUBBLE_LINKS_LIGHT, BUBBLE_LINKS_ROOTS};
     public static final int[] BUBBLE_LINK_COUNTS = {10, 15, 19};
-    /** Les skins de la carte des dimensions (version 0.197) et les dimensions ouvertes qui les débloquent. */
+    /** Les skins de la carte des dimensions et les dimensions ouvertes qui les débloquent. */
     public static final Skin[] MAPS = {MAP_PLANETS, MAP_PEARLS, MAP_MENHIRS, MAP_TOWER, MAP_DIAL};
     public static final int[] MAP_DIMENSIONS = {2, 4, 6, 8, 10};
-    /** Les remplissages du défi final (version 0.197) : le défi fini, le premier dès là, les suivants à {@code FIRST_FINALE_UNIVERSE + i - 1} univers. */
+    /** Les remplissages du défi final : le défi fini, le premier dès là, les suivants à {@code FIRST_FINALE_UNIVERSE + i - 1} univers. */
     public static final Skin[] FINALES = {FINALE_WATER, FINALE_SAND, FINALE_LIGHT, FINALE_IVY};
     public static final int FIRST_FINALE_UNIVERSE = 9;
-    /** Les cadres des mini-jeux (version 0.197) et les dimensions ouvertes qui les débloquent. */
+    /** Les cadres des mini-jeux et les dimensions ouvertes qui les débloquent. */
     public static final Skin[] FRAMES = {FRAME_PORTHOLE, FRAME_GILDED, FRAME_CRT, FRAME_BOOK};
     public static final int[] FRAME_DIMENSIONS = {4, 6, 8, 10};
 
     /**
-     * Les skins des bulles des univers (version 0.196) : {@code UNIVERSE_BUBBLES[n - 1]} à l'univers n formé. Version 0.203 :
+     * Les skins des bulles des univers : {@code UNIVERSE_BUBBLES[n - 1]} à l'univers n formé. Version 0.203 :
      * le ballon noué, la planète-fruit et l'œuf retirés, il en reste trois, aux univers 1, 2 et 3.
      */
     public static final Skin[] UNIVERSE_BUBBLES = {BUBBLE_SOAP, BUBBLE_SNOWGLOBE, BUBBLE_ORRERY};
-    /** Les skins de la naissance (version 0.196), un par univers formé à partir du cinquième. */
+    /** Les skins de la naissance, un par univers formé à partir du cinquième. */
     public static final Skin[] BIRTHS = {BIRTH_HATCHING, BIRTH_BUD, BIRTH_FIREWORKS, BIRTH_PAGE};
     public static final int FIRST_BIRTH_UNIVERSE = 5;
-    /** Les skins des liens entre les univers (version 0.196), un par univers formé à partir du septième. */
+    /** Les skins des liens entre les univers, un par univers formé à partir du septième. */
     public static final Skin[] LINKS = {LINKS_THREAD, LINKS_IVY, LINKS_CIRCUIT, LINKS_CONSTELLATION};
     public static final int FIRST_LINKS_UNIVERSE = 7;
-    /** Les skins du lancement (version 0.196), un par univers formé à partir du cinquième. */
+    /** Les skins du lancement, un par univers formé à partir du cinquième. */
     public static final Skin[] LAUNCHES = {LAUNCH_ROCKET, LAUNCH_SPROUT, LAUNCH_STONE, LAUNCH_LAMP, LAUNCH_CURTAIN};
     public static final int FIRST_LAUNCH_UNIVERSE = 5;
-    /** Les skins de la graine (version 0.196) : {@code SEEDS[n - 1]} à son palier n. */
+    /** Les skins de la graine : {@code SEEDS[n - 1]} à son palier n. */
     public static final Skin[] SEEDS = {SEED_WALNUT, SEED_ACORN, SEED_AVOCADO, SEED_PIP, SEED_SUNFLOWER, SEED_EGG, SEED_GEM};
-    /** Les trois premiers skins de l'arrosoir (version 0.196) et les arrosages de la graine en cours qui les débloquent. */
+    /** Les trois premiers skins de l'arrosoir et les arrosages de la graine en cours qui les débloquent. */
     public static final Skin[] CANS = {CAN_TEAPOT, CAN_PITCHER, CAN_CLOUD};
     public static final long[] CAN_WATERINGS = {10, 100, 1_000};
-    /** Les skins de l'étagère (version 0.196) : l'étage du chrono acheté, et {@code FIRST_SHELF_UNIVERSE + i} univers formés. */
+    /** Les skins de l'étagère : l'étage du chrono acheté, et {@code FIRST_SHELF_UNIVERSE + i} univers formés. */
     public static final Skin[] SHELVES = {SHELF_STONE, SHELF_WORKSHOP, SHELF_BAMBOO, SHELF_CLOUD};
     public static final int FIRST_SHELF_UNIVERSE = 3;
-    /** Les skins du tuyau (version 0.196) et ses niveaux qui les débloquent. */
+    /** Les skins du tuyau et ses niveaux qui les débloquent. */
     public static final Skin[] HOSES = {HOSE_VINE, HOSE_FOUNTAIN, HOSE_CHANNEL, HOSE_PIPETTE};
     public static final int[] HOSE_LEVELS = {2, 4, 6, 10};
-    /** Les skins du chrono (version 0.196) : le chrono plein, le premier dès là, les suivants à {@code FIRST_CHRONO_UNIVERSE + i - 1} univers. */
+    /** Les skins du chrono : le chrono plein, le premier dès là, les suivants à {@code FIRST_CHRONO_UNIVERSE + i - 1} univers. */
     public static final Skin[] CHRONOS = {CHRONO_HOURGLASS, CHRONO_POCKET_WATCH, CHRONO_SUNDIAL, CHRONO_METRONOME};
     public static final int FIRST_CHRONO_UNIVERSE = 3;
-    /** Les skins du rond de croissance (version 0.196) et les ronds cueillis qui les débloquent. */
+    /** Les skins du rond de croissance et les ronds cueillis qui les débloquent. */
     public static final Skin[] RINGS = {RING_FAIRY, RING_HALO, RING_SUNRISE};
     public static final long[] RING_CAUGHT = {5, 20, 50};
-    /** Les skins de la météo (version 0.196) et les orages qui les débloquent. */
+    /** Les skins de la météo et les orages qui les débloquent. */
     public static final Skin[] WEATHERS = {WEATHER_TV, WEATHER_UKIYOE, WEATHER_PASTEL};
     public static final long[] WEATHER_STORMS = {1, 5, 10};
-    /** Les skins des saisons (version 0.196) : {@code SEASON_SKINS[n - 1]} au n-ième cycle complet. */
+    /** Les skins des saisons : {@code SEASON_SKINS[n - 1]} au n-ième cycle complet. */
     public static final Skin[] SEASON_SKINS = {SEASONS_CARDS, SEASONS_WHEEL, SEASONS_STAINED};
 
-    /** Les skins du détecteur (version 0.195) et les nombres de collisions qui les débloquent. */
+    /** Les skins du détecteur et les nombres de collisions qui les débloquent. */
     public static final Skin[] DETECTORS = {DETECTOR_EYE, DETECTOR_LANTERN, DETECTOR_BELL, DETECTOR_CAMERA};
     public static final int[] DETECTOR_COLLISIONS = {100, 250, 500, 1_000};
-    /** Les skins des éclairs du croisement (version 0.195) et les nombres de croisements qui les débloquent. */
+    /** Les skins des éclairs du croisement et les nombres de croisements qui les débloquent. */
     public static final Skin[] LIGHTNINGS = {LIGHTNING_GOLD, LIGHTNING_ICE, LIGHTNING_ROOTS};
     public static final int[] LIGHTNING_CROSSINGS = {1_000, 2_500, 5_000};
-    /** Les skins des quarks qui s'envolent (version 0.195) et les nombres de hadrons liés qui les débloquent. */
+    /** Les skins des quarks qui s'envolent et les nombres de hadrons liés qui les débloquent. */
     public static final Skin[] QUARK_FLIGHTS = {QUARK_FLIGHT_BALLOONS, QUARK_FLIGHT_BUTTERFLIES, QUARK_FLIGHT_SCRABBLE};
     public static final int[] QUARK_FLIGHT_HADRONS = {10, 25, 50};
-    /** Les trois premiers skins des quarks de la liaison (version 0.195) et les nombres de hadrons liés qui les débloquent ; le Puzzle demande chaque sorte. */
+    /** Les trois premiers skins des quarks de la liaison et les nombres de hadrons liés qui les débloquent ; le Puzzle demande chaque sorte. */
     public static final Skin[] QUARK_SKINS = {QUARKS_MARBLES, QUARKS_FRUITS, QUARKS_NOTES};
     public static final int[] QUARK_SKIN_HADRONS = {10, 50, 100};
-    /** Les skins des gluons (version 0.195) et les nombres de gluons qui les débloquent. */
+    /** Les skins des gluons et les nombres de gluons qui les débloquent. */
     public static final Skin[] GLUON_SKINS = {GLUONS_SPRINGS, GLUONS_RUBBER, GLUONS_WOOL, GLUONS_LIGHTNING};
     public static final int[] GLUON_SKIN_GLUONS = {100, 250, 500, 1_000};
-    /** Les skins de l'écume du vide (version 0.195) : le premier au vide ouvert, les suivants à une amélioration du vide au niveau 1, 2, 3. */
+    /** Les skins de l'écume du vide : le premier au vide ouvert, les suivants à une amélioration du vide au niveau 1, 2, 3. */
     public static final Skin[] FOAMS = {FOAM_SOAP, FOAM_BEER, FOAM_FILM, FOAM_TV};
-    /** Les skins des paires du vide (version 0.195) et les nombres de paires nées qui les débloquent. */
+    /** Les skins des paires du vide et les nombres de paires nées qui les débloquent. */
     public static final Skin[] PAIR_SKINS = {PAIRS_TWINS, PAIRS_MAGNETS, PAIRS_YINYANG};
     public static final int[] PAIR_SKIN_BORN = {100, 1_000, 10_000};
-    /** Les skins du trou noir du vide (version 0.195) : {@code VOID_HOLES[n - 1]} quand il est ouvert et compte n univers. */
+    /** Les skins du trou noir du vide : {@code VOID_HOLES[n - 1]} quand il est ouvert et compte n univers. */
     public static final Skin[] VOID_HOLES = {VOID_HOLE_MANHOLE, VOID_HOLE_WELL, VOID_HOLE_IRIS, VOID_HOLE_KNOT, VOID_HOLE_TEA};
 
-    /** Les skins de la galaxie (version 0.194), dans l'ordre : le premier avec la galaxie formée, puis un par univers formé à partir du deuxième. */
+    /** Les skins de la galaxie, dans l'ordre : le premier avec la galaxie formée, puis un par univers formé à partir du deuxième. */
     public static final Skin[] GALAXIES = {GALAXY_NAUTILUS, GALAXY_YARN, GALAXY_FINGERPRINT, GALAXY_WHIRLPOOL, GALAXY_FIREWORK};
-    /** Les skins de l'amas de galaxies (version 0.194) : le premier avec l'amas formé, puis un par univers formé à partir du deuxième. */
+    /** Les skins de l'amas de galaxies : le premier avec l'amas formé, puis un par univers formé à partir du deuxième. */
     public static final Skin[] CLUSTERS = {CLUSTER_GRAPES, CLUSTER_LANTERNS, CLUSTER_BEES};
-    /** Les skins de la toile de l'univers (version 0.194) : un par univers formé, du premier au quatrième. */
+    /** Les skins de la toile de l'univers : un par univers formé, du premier au quatrième. */
     public static final Skin[] WEBS = {WEB_NEURONS, WEB_LACE, WEB_DEW, WEB_METRO};
-    /** Les skins des blocs d'assemblage (version 0.194) et les nombres d'assemblages formés qui les débloquent. */
+    /** Les skins des blocs d'assemblage et les nombres d'assemblages formés qui les débloquent. */
     public static final Skin[] BLOCKS = {BLOCKS_STONE, BLOCKS_INGOTS, BLOCKS_CRYSTALS, BLOCKS_ICE};
     public static final int[] BLOCKS_FORMED = {10, 15, 20, 30};
-    /** Les skins des sondes (version 0.194) et les nombres de voyages qui les débloquent. */
+    /** Les skins des sondes et les nombres de voyages qui les débloquent. */
     public static final Skin[] PROBES = {PROBE_PAPER, PROBE_BALLOON, PROBE_BOTTLE, PROBE_PIGEON};
     public static final int[] PROBE_RUNS = {10, 25, 50, 100};
 
-    /** Les skins du fond des particules (version 0.192), dans l'ordre des paliers de particules créées qui les débloquent : 1e6, 1e9… 1e24. */
+    /** Les skins du fond des particules, dans l'ordre des paliers de particules créées qui les débloquent : 1e6, 1e9… 1e24. */
     public static final Skin[] DUSTS = {DUST_SNOW, DUST_RAIN, DUST_POLLEN, DUST_FIREFLIES, DUST_BUBBLES, DUST_GOLD, DUST_ASH};
     /** L'exposant du premier palier de {@link #DUSTS}, et l'écart entre deux paliers. */
     public static final int FIRST_DUST_EXPONENT = 6;
     public static final int DUST_EXPONENT_STEP = 3;
 
-    /** Les skins des dix dimensions (version 0.187), dans l'ordre : {@code DIMENSION_SKINS[n - 1]} pour la dimension n. */
+    /** Les skins des dix dimensions, dans l'ordre : {@code DIMENSION_SKINS[n - 1]} pour la dimension n. */
     public static final Skin[] DIMENSION_SKINS = {LINE_RAILS, PLANE_NOTEBOOK, VOLUME_AQUARIUM, DURATION_VINYL, LOOP_ARCHERY, BRANE_WEB,
         CLICKER_BUBBLES, GRID_MINESWEEPER, MIRROR_STAINED, MIX_KALEIDOSCOPE};
 
-    /** Les skins des astres (version 0.186) et les nombres d'astres formés qui les débloquent. */
+    /** Les skins des astres et les nombres d'astres formés qui les débloquent. */
     public static final Skin[] BODIES = {BODY_PLANETARIUM, BODY_ENGRAVING, BODY_CARTOGRAPHY};
     public static final int[] BODIES_FORMED = {10, 20, 35};
 
-    /** Les essences de l'arbre (version 0.185), dans l'ordre des univers qui les débloquent : la première au quatrième. */
+    /** Les essences de l'arbre, dans l'ordre des univers qui les débloquent : la première au quatrième. */
     public static final Skin[] TREES = {TREE_BIRCH, TREE_WILLOW, TREE_MAPLE, TREE_CHERRY, TREE_BAOBAB, TREE_SEQUOIA, TREE_PINE, TREE_PALM};
     /** L'univers formé qui débloque la première essence. */
     public static final int FIRST_TREE_UNIVERSE = 4;
@@ -570,21 +573,21 @@ public enum Skin {
     public static final double BONUS = 0.02;
 
     /**
-     * Version 0.206 : le nombre d'univers formés à partir duquel le dernier skin d'un visuel peut se débloquer : dix,
+     * Le nombre d'univers formés à partir duquel le dernier skin d'un visuel peut se débloquer : dix,
      * c'est-à-dire le onzième univers. Les skins d'un visuel s'étalent ainsi sur toute la partie (voir
      * {@link #minUniverses()}) au lieu de tomber presque tous dans le deuxième univers.
      */
     public static final int LAST_SKIN_UNIVERSE = 10;
 
     /**
-     * Les skins qui se gagnent par une action du joueur (version 0.206) : une épreuve, la fusion prismatique, les paliers
+     * Les skins qui se gagnent par une action du joueur : une épreuve, la fusion prismatique, les paliers
      * du noyau dense, le record de reconstruction. Ils ne s'étalent pas : ils viennent dès le deuxième univers, quand
      * l'action est faite, et ne prennent pas de place dans l'échelonnement des autres skins de leur visuel.
      */
-    private static final java.util.Set<Skin> WON = java.util.EnumSet.of(FUSION_LONE, DARK_CONTRACTED, BANG_CRYSTAL, BEAM_GOLD,
+    private static final Set<Skin> WON = EnumSet.of(FUSION_LONE, DARK_CONTRACTED, BANG_CRYSTAL, BEAM_GOLD,
             COLLIDER_NEON, COLLIDER_PLASMA, COLLIDER_ICE, FUSION_PRISM, ATOM_DENSE, TABLE_LEAD, ATOM_STELLAR, TABLE_GOLD, FUSION_FLASH);
 
-    /** L'univers formé que chaque skin attend (version 0.206), calculé une fois d'après l'ordre des skins de son visuel. */
+    /** L'univers formé que chaque skin attend, calculé une fois d'après l'ordre des skins de son visuel. */
     private static final int[] MIN_UNIVERSES = computeMinUniverses();
 
     private final SkinVisual visual;
@@ -592,12 +595,10 @@ public enum Skin {
     private final String source;
     private final boolean free;
 
-    /** L'identifiant, calculé une fois (version 0.170) : le jeu le demande à chaque pas pour chaque skin. */
+    /** L'identifiant, calculé une fois : le jeu le demande à chaque pas pour chaque skin. */
     private final String id;
 
-    Skin(SkinVisual visual, String label, String source) {
-        this(visual, label, source, false);
-    }
+    Skin(SkinVisual visual, String label, String source) { this(visual, label, source, false); }
 
     /** Version 0.192 : {@code free} vrai pour un skin libre, dès le début et sans bonus (un réglage déguisé en skin). */
     Skin(SkinVisual visual, String label, String source, boolean free) {
@@ -605,47 +606,33 @@ public enum Skin {
         this.label = label;
         this.source = source;
         this.free = free;
-        this.id = name().toLowerCase(java.util.Locale.ROOT);
+        this.id = name().toLowerCase(Locale.ROOT);
     }
 
-    /** Vrai pour un skin libre (version 0.192) : ouvert dès l'onglet Skins, sans bonus (palettes d'accessibilité, versions figées ou silencieuses). */
-    public boolean isFree() {
-        return free;
-    }
+    /** Vrai pour un skin libre : ouvert dès l'onglet Skins, sans bonus (palettes d'accessibilité, versions figées ou silencieuses). */
+    public boolean isFree() { return free; }
 
     /** L'identifiant gardé dans la sauvegarde. */
-    public String id() {
-        return id;
-    }
+    public String id() { return id; }
 
-    public SkinVisual visual() {
-        return visual;
-    }
+    public SkinVisual visual() { return visual; }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Comment on l'obtient. */
-    public String source() {
-        return source;
-    }
+    public String source() { return source; }
 
     /**
-     * Version 0.206 : le nombre d'univers formés qu'il faut au moins pour débloquer ce skin, en plus de sa condition
+     * Le nombre d'univers formés qu'il faut au moins pour débloquer ce skin, en plus de sa condition
      * propre. Les skins payants se répartissent à parts égales entre le deuxième univers (un univers formé) et le onzième
      * ({@link #LAST_SKIN_UNIVERSE}), une trentaine par univers, et ceux d'un même visuel viennent dans l'ordre où ils sont
      * déclarés : le premier skin d'un visuel vient aux univers 2 à 4, le dernier vers la fin. Un skin gagné par une action
      * ({@link #isWon()}) vient dès le deuxième univers ; un skin libre n'attend rien (0).
      */
-    public int minUniverses() {
-        return MIN_UNIVERSES[ordinal()];
-    }
+    public int minUniverses() { return MIN_UNIVERSES[ordinal()]; }
 
-    /** Vrai pour un skin gagné par une action du joueur (version 0.206) : il n'attend pas d'univers au-delà du deuxième. */
-    public boolean isWon() {
-        return WON.contains(this);
-    }
+    /** Vrai pour un skin gagné par une action du joueur : il n'attend pas d'univers au-delà du deuxième. */
+    public boolean isWon() { return WON.contains(this); }
 
     private static int[] computeMinUniverses() {
         Skin[] all = values();
@@ -654,24 +641,22 @@ public enum Skin {
         // Chaque skin payant prend rang dans son visuel (le k-ième de n : rang k/n) ; tous les rangs du jeu, triés, se
         // coupent en dix parts égales, une par univers : autant de skins à chaque univers, et les skins d'un visuel dans
         // l'ordre où ils sont déclarés.
-        java.util.List<Skin> paid = new java.util.ArrayList<>();
-        java.util.Map<Skin, Double> rank = new java.util.EnumMap<>(Skin.class);
+        List<Skin> paid = new ArrayList<>();
+        Map<Skin, Double> rank = new EnumMap<>(Skin.class);
         for (SkinVisual visual : SkinVisual.values()) {
-            java.util.List<Skin> ofVisual = new java.util.ArrayList<>();
+            List<Skin> ofVisual = new ArrayList<>();
             for (Skin skin : all) if (skin.visual == visual && !skin.free && !WON.contains(skin)) ofVisual.add(skin);
             for (int k = 0; k < ofVisual.size(); k++) rank.put(ofVisual.get(k), k / (double) ofVisual.size());
             paid.addAll(ofVisual);
         }
-        paid.sort(java.util.Comparator.comparingDouble(rank::get));   // tri stable : à rang égal, l'ordre des visuels
+        paid.sort(Comparator.comparingDouble(rank::get));   // tri stable : à rang égal, l'ordre des visuels
         for (int i = 0; i < paid.size(); i++) out[paid.get(i).ordinal()] = 1 + i * LAST_SKIN_UNIVERSE / paid.size();
         return out;
     }
 
     /** Version 0.214 : les skins par identifiant ; l'interface en cherche une dizaine à chaque image. */
-    private static final java.util.Map<String, Skin> BY_ID = idle.core.Enums.index(values(), Skin::id);
+    private static final Map<String, Skin> BY_ID = Enums.index(values(), Skin::id);
 
     /** Le skin de cet identifiant, ou {@code null}. */
-    public static Skin byId(String id) {
-        return id == null ? null : BY_ID.get(id);
-    }
+    public static Skin byId(String id) { return id == null ? null : BY_ID.get(id); }
 }

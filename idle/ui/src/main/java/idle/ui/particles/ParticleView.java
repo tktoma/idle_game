@@ -5,32 +5,25 @@ import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
 
 /**
- * Animation d'un générateur : des poussières convergent vers le centre,
- * le noyau grossit, et quand il est complet une particule est créée (onde + remise à zéro).
+ * Animation d'un générateur : des poussières convergent vers le centre, le noyau grossit, et quand il est complet une
+ * particule est créée (onde + remise à zéro).
  *
- * <p>Depuis la version 0.061, l'allure suit la vitesse du générateur ({@link #intensity(double)}) :
- * lent, des poussières bleues et un noyau calme ; plus vite, les poussières laissent des traînées
- * et tournent en spirale, des anneaux d'accrétion apparaissent et tournent, le noyau bat plus
- * vite et se couronne de rayons ; très vite, la couleur passe du bleu au violet puis à l'or, et des
- * arcs d'énergie jaillissent du noyau.
+ * <p>Depuis la version 0.061, l'allure suit la vitesse du générateur ({@link #intensity(double)}) : lent, des
+ * poussières bleues et un noyau calme ; plus vite, les poussières laissent des traînées et tournent en spirale, des
+ * anneaux d'accrétion apparaissent et tournent, le noyau bat plus vite et se couronne de rayons ; très vite, la couleur
+ * passe du bleu au violet puis à l'or, et des arcs d'énergie jaillissent du noyau.
  *
- * <p>À sa création, le générateur joue une animation de naissance : un cercle se
- * resserre sur le centre pendant qu'une salve de poussières s'y précipite, puis un
- * éclat marque l'allumage.
+ * <p>À sa création, le générateur joue une animation de naissance : un cercle se resserre sur le centre pendant qu'une
+ * salve de poussières s'y précipite, puis un éclat marque l'allumage.
  *
- * <p>Purement décoratif : cette classe ne modifie jamais le jeu, elle reçoit
- * seulement l'avancement et la vitesse de création à chaque image.
+ * <p>Purement décoratif : cette classe ne modifie jamais le jeu, elle reçoit seulement l'avancement et la vitesse de
+ * création à chaque image.
  */
 public final class ParticleView extends Canvas {
-
     /** Taille pour laquelle les dimensions ci-dessous sont exprimées ; le reste est mis à l'échelle. */
     private static final double REFERENCE_SIZE = 200;
     /** Nombre de poussières qui arrivent pendant la formation d'une particule. */
@@ -72,21 +65,16 @@ public final class ParticleView extends Canvas {
     private static boolean creationLook = true;
 
     /** Allume ou coupe l'onde et les poussières de chaque création (réglage « Création de particules »). */
-    public static void setCreationLook(boolean on) {
-        creationLook = on;
-    }
+    public static void setCreationLook(boolean on) { creationLook = on; }
 
     /** Allume ou coupe l'allure qui suit la vitesse, pour tous les générateurs (réglage « Allure des générateurs »). */
-    public static void setSpeedLook(boolean on) {
-        speedLook = on;
-    }
+    public static void setSpeedLook(boolean on) { speedLook = on; }
     /**
-     * Le skin de la fusion (version 0.089), pour tous les générateurs : {@code null} pour le classique.
-     * « Éclair » : des éclairs qui convergent, un noyau en étoile, des ondes en dents de scie.
-     * « Prisme » : des éclats triangulaires aux couleurs de l'arc-en-ciel, un cristal hexagonal à facettes.
-     * « Solitaire » : en noir et blanc, une seule lune sur son orbite et un anneau qui se remplit.
-     * Les six skins de la version 0.191 (braise, encre, essaim, horloge, verre soufflé, pixel) sont
-     * dessinés par {@link ParticleSkinArt}.
+     * Le skin de la fusion, pour tous les générateurs : {@code null} pour le classique. « Éclair » : des éclairs qui
+     * convergent, un noyau en étoile, des ondes en dents de scie. « Prisme » : des éclats triangulaires aux couleurs de
+     * l'arc-en-ciel, un cristal hexagonal à facettes. « Solitaire » : en noir et blanc, une seule lune sur son orbite
+     * et un anneau qui se remplit. Les six skins de la version 0.191 (braise, encre, essaim, horloge, verre soufflé,
+     * pixel) sont dessinés par {@link ParticleSkinArt}.
      */
     private static Skin skin;
 
@@ -96,9 +84,7 @@ public final class ParticleView extends Canvas {
     }
 
     /** Le skin dessiné : pour les vérifications. */
-    public static Skin skin() {
-        return skin;
-    }
+    public static Skin skin() { return skin; }
 
     /** L'angle des anneaux d'accrétion, qui tournent plus vite avec la vitesse. */
     private double spin = 0;
@@ -130,7 +116,7 @@ public final class ParticleView extends Canvas {
         sinceLastRing += dt;
         boolean fast = rate > FAST_RATE;
         // La vitesse s'installe en une demi-seconde : pas de saut quand un palier l'accélère d'un coup.
-        // Un effet coupé l'est tout de suite : rien ne finit de s'éteindre (version 0.067).
+        // Un effet coupé l'est tout de suite : rien ne finit de s'éteindre.
         if (speedLook) intensity += (intensity(rate) - intensity) * Math.min(1, dt * 2);
         else intensity = 0;
         if (!speedLook) arcs.clear();
@@ -180,9 +166,7 @@ public final class ParticleView extends Canvas {
     }
 
     /** La vitesse lissée, de 0 à 1 : pour les vérifications. */
-    public double intensity() {
-        return intensity;
-    }
+    public double intensity() { return intensity; }
 
     private void spawnDust(double dt, double rate) {
         // Très vite, moins de poussières, mais chacune avec sa traînée : la vue reste lisible.
@@ -482,25 +466,17 @@ public final class ParticleView extends Canvas {
         return coreRadius * scale * birth * birth;
     }
 
-    /** Les poussières en route, pour les skins dessinés à côté (version 0.191). */
-    List<Dust> dust() {
-        return dust;
-    }
+    /** Les poussières en route, pour les skins dessinés à côté. */
+    List<Dust> dust() { return dust; }
 
-    /** L'âge de chaque onde de création, en secondes (version 0.191). */
-    List<Double> rings() {
-        return rings;
-    }
+    /** L'âge de chaque onde de création, en secondes. */
+    List<Double> rings() { return rings; }
 
-    /** Les arcs d'énergie en cours : leur angle et leur âge (version 0.191). */
-    List<double[]> arcs() {
-        return arcs;
-    }
+    /** Les arcs d'énergie en cours : leur angle et leur âge. */
+    List<double[]> arcs() { return arcs; }
 
-    /** Le temps écoulé, en secondes (version 0.191). */
-    double time() {
-        return time;
-    }
+    /** Le temps écoulé, en secondes. */
+    double time() { return time; }
 
     /** Un polygone régulier, plein ou en contour. */
     static void polygon(GraphicsContext g, double cx, double cy, double r, int sides, double turn, boolean fill) {

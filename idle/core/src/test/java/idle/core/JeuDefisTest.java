@@ -1,35 +1,24 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.PeriodicTable;
+import idle.core.achievements.*;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.util.List;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : les défis, les succès et la simulation d'une première partie.
- */
+/** Les règles du jeu : les défis, les succès et la simulation d'une première partie. */
 class JeuDefisTest extends GameTestSupport {
-
-
     @Nested
     class Defis {
-
         /** Partie après quelques explosions : {@code darkMatter} matières noires gagnées, tableau débloqué. */
         private Game darkGame(double darkMatter) {
             Game game = newGame();
@@ -39,9 +28,7 @@ class JeuDefisTest extends GameTestSupport {
             return game;
         }
 
-        private void fillTable(Game game) {
-            GameTestSupport.fillTableToMax(game);
-        }
+        private void fillTable(Game game) { GameTestSupport.fillTableToMax(game); }
 
         @Test
         void ilYADixDefisChacunAvecSaContrainteEtSaRecompense() {
@@ -432,7 +419,6 @@ class JeuDefisTest extends GameTestSupport {
 
     @Nested
     class Succes {
-
         /** Partie de test (vitesse à 10, générateur à 100 puis 1000) avec le vrai catalogue de succès. */
         private Game gameWithAchievements() {
             Game game = new Game(new GameState(),
@@ -445,7 +431,7 @@ class JeuDefisTest extends GameTestSupport {
 
         @Test
         void leCatalogueCompteCinquanteSuccesDontAuMoinsVingtAvecUnBonusPropre() {
-            // Version 0.174 : 99, avec les dix-sept succès du deuxième univers et les quinze de la fin de partie ;
+            // 99, avec les dix-sept succès du deuxième univers et les quinze de la fin de partie ;
             // 0.178 : 97, les deux succès de collection sont partis avec les collections.
             assertEquals(97, Achievements.DEFAULT.size());
             assertEquals(97, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
@@ -740,7 +726,6 @@ class JeuDefisTest extends GameTestSupport {
 
     @Nested
     class Simulation {
-
         /** Joue en achetant tout dès que possible, jusqu'à pouvoir fusionner. Renvoie la durée en minutes. */
         private double minutesUntilFusion(Game game) {
             double dt = 0.05;
@@ -756,11 +741,10 @@ class JeuDefisTest extends GameTestSupport {
         }
 
         /**
-         * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit
-         * débloquer le dixième générateur en 33 à 47 minutes avec le catalogue du jeu, premier
-         * élan compris (version 0.125, tempo 12 ; 50 à 70 minutes de la 0.095 à la 0.124, 3 min 30 à 6 minutes avant).
-         * Si ce test échoue après un changement dans {@link Upgrades}, c'est que la durée
-         * de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
+         * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit débloquer le dixième générateur en
+         * 33 à 47 minutes avec le catalogue du jeu, premier élan compris (tempo 12 ; 50 à 70 minutes de la 0.095 à la
+         * 0.124, 3 min 30 à 6 minutes avant). Si ce test échoue après un changement dans {@link Upgrades}, c'est que la
+         * durée de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
          */
         @Test
         void laPremierePartieDureEnvironQuaranteMinutes() {
@@ -782,11 +766,10 @@ class JeuDefisTest extends GameTestSupport {
         }
 
         /**
-         * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
-         * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
-         * économiser pour Persistance) doit créer son trentième atome entre 1 h 35 et 2 h, premier
-         * élan compris (version 0.125, tempo 12 ; 2 h 20 à 2 h 50 de la 0.096 à la 0.124, 22 à 34 minutes avant la 0.095).
-         * Là, la création a pris tout son élan. Plus tôt, le début perd son intérêt ;
+         * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui dépense ses atomes au
+         * fur et à mesure dans les améliorations les moins chères (sans économiser pour Persistance) doit créer son
+         * trentième atome entre 1 h 35 et 2 h, premier élan compris (tempo 12 ; 2 h 20 à 2 h 50 de la 0.096 à la 0.124,
+         * 22 à 34 minutes avant la 0.095). Là, la création a pris tout son élan. Plus tôt, le début perd son intérêt ;
          * plus tard, il faut tout racheter à la main des dizaines de fois.
          */
         @Test
@@ -811,7 +794,7 @@ class JeuDefisTest extends GameTestSupport {
             assertTrue(game.isAutomationUnlocked());
             assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
             assertEquals(0, game.levelOf("atom_keep"));
-            assertValue(8, game.costOf("atom_keep"));      // version 0.167 : le premier de cinq niveaux (25 avant)
+            assertValue(8, game.costOf("atom_keep"));      // Le premier de cinq niveaux (25 avant)
             assertTrue(minutes >= 95 && minutes <= 120, "trentième atome créé après " + minutes + " min");
             assertEquals(1, game.firstRunSlowdown(), 0, "trente atomes : la création a tout son élan");
         }

@@ -1,17 +1,16 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * Le clicker, septième dimension (version 0.155) : une surface carrée, de 0 à 1 sur chaque axe, où chaque clic donne
+ * Le clicker, septième dimension : une surface carrée, de 0 à 1 sur chaque axe, où chaque clic donne
  * des étincelles (la ressource). Plus le joueur clique vite, plus chaque clic rapporte : la cadence se compte sur les
  * deux dernières secondes. Une fois débloquées, des zones ×2 apparaissent un temps sur la surface ; elles peuvent se
  * superposer, et un clic là où plusieurs se chevauchent rapporte d'autant plus. Améliorations ({@link ClickerUpgrade}) :
@@ -23,7 +22,6 @@ import java.util.random.RandomGenerator;
  * les orages et renforcent le bonus.
  */
 public abstract class GameClicker extends GameBrane {
-
     GameClicker(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -50,19 +48,13 @@ public abstract class GameClicker extends GameBrane {
 
         private final Price price;
 
-        ClickerUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        ClickerUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
 
         /** Vrai pour celles qui demandent les zones débloquées. */
-        public boolean needsZones() {
-            return ordinal() > ZONES.ordinal();
-        }
+        public boolean needsZones() { return ordinal() > ZONES.ordinal(); }
     }
 
     /** Une zone posée sur la surface : son centre, son rayon, et le temps qu'il lui reste. */
@@ -78,32 +70,20 @@ public abstract class GameClicker extends GameBrane {
             this.left = lifetime;
         }
 
-        public double x() {
-            return x;
-        }
+        public double x() { return x; }
 
-        public double y() {
-            return y;
-        }
+        public double y() { return y; }
 
-        public double radius() {
-            return radius;
-        }
+        public double radius() { return radius; }
 
         /** Le temps qu'il lui reste, en secondes. */
-        public double left() {
-            return left;
-        }
+        public double left() { return left; }
 
         /** Sa durée entière, en secondes. */
-        public double lifetime() {
-            return lifetime;
-        }
+        public double lifetime() { return lifetime; }
 
         /** Vrai si le point (px, py) est dedans. */
-        public boolean contains(double px, double py) {
-            return Math.hypot(px - x, py - y) <= radius + 1e-12;
-        }
+        public boolean contains(double px, double py) { return Math.hypot(px - x, py - y) <= radius + 1e-12; }
     }
 
     /** La cadence se compte sur les {@value} dernières secondes. */
@@ -123,13 +103,11 @@ public abstract class GameClicker extends GameBrane {
      * Les clics automatiques, au meilleur endroit : un par action de leur palier (version 0.209 ; six par seconde de la
      * 0.155 à la 0.208).
      */
-    public double clickerAutoRate() {
-        return 1 / dimensionPlayPeriod(7);
-    }
+    public double clickerAutoRate() { return 1 / dimensionPlayPeriod(7); }
     /** En jeu ouvert (pas au plus de {@value} s), l'automatisme clique vraiment ; au-delà, il compte ses clics d'un coup. */
     public static final double CLICKER_PLAYED_STEP = 1;
 
-    private final java.util.Random clickerRandom = new java.util.Random(7);
+    private final Random clickerRandom = new Random(7);
     private final List<ClickerZone> clickerZones = new ArrayList<>();
     private final ArrayDeque<Double> clickerRecent = new ArrayDeque<>();
     private double clickerClock, clickerZoneTimer, clickerAutoTimer, clickerLastGain;
@@ -137,37 +115,25 @@ public abstract class GameClicker extends GameBrane {
     private int clickerBestStack;
 
     /** Vrai dès que la septième dimension est ouverte : au septième univers. */
-    public boolean isClickerOpen() {
-        return dimensionsUnlocked() >= 7;
-    }
+    public boolean isClickerOpen() { return dimensionsUnlocked() >= 7; }
 
-    public int clickerLevel(ClickerUpgrade upgrade) {
-        return state.clickerLevel(upgrade.ordinal());
-    }
+    public int clickerLevel(ClickerUpgrade upgrade) { return state.clickerLevel(upgrade.ordinal()); }
 
     /** Ce que donne un clic, avant la cadence et les zones : 1, plus 1 par niveau de gain, et le bonus des omégas. */
-    public double clickerValue() {
-        return (1 + clickerLevel(ClickerUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double clickerValue() { return (1 + clickerLevel(ClickerUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA); }
 
     /** Les clics par seconde, comptés sur les deux dernières secondes. */
-    public double clickerRate() {
-        return clickerRecent.size() / CLICKER_WINDOW;
-    }
+    public double clickerRate() { return clickerRecent.size() / CLICKER_WINDOW; }
 
     /** Ce que la cadence ajoute pour chaque clic par seconde. */
-    public double clickerSpeedStep() {
-        return CLICKER_SPEED + CLICKER_SPEED_STEP * clickerLevel(ClickerUpgrade.SPEED);
-    }
+    public double clickerSpeedStep() { return CLICKER_SPEED + CLICKER_SPEED_STEP * clickerLevel(ClickerUpgrade.SPEED); }
 
     /** Le multiplicateur de cadence pour {@code rate} clics par seconde. */
     public double clickerSpeedFactor(double rate) {
         return 1 + clickerSpeedStep() * Math.min(CLICKER_MAX_RATE, Math.max(0, rate));
     }
 
-    public boolean areClickerZonesUnlocked() {
-        return clickerLevel(ClickerUpgrade.ZONES) > 0;
-    }
+    public boolean areClickerZonesUnlocked() { return clickerLevel(ClickerUpgrade.ZONES) > 0; }
 
     /** Le multiplicateur d'une zone. */
     public double clickerZoneFactor() {
@@ -193,13 +159,9 @@ public abstract class GameClicker extends GameBrane {
     }
 
     /** Les zones à la fois au plus : 0 avant de les débloquer, puis 1 et une de plus par niveau. */
-    public int clickerMaxZones() {
-        return areClickerZonesUnlocked() ? 1 + clickerLevel(ClickerUpgrade.ZONE_COUNT) : 0;
-    }
+    public int clickerMaxZones() { return areClickerZonesUnlocked() ? 1 + clickerLevel(ClickerUpgrade.ZONE_COUNT) : 0; }
 
-    public List<ClickerZone> clickerZones() {
-        return Collections.unmodifiableList(clickerZones);
-    }
+    public List<ClickerZone> clickerZones() { return Collections.unmodifiableList(clickerZones); }
 
     /** Combien de zones couvrent le point (x, y). */
     public int clickerStackAt(double x, double y) {
@@ -213,23 +175,15 @@ public abstract class GameClicker extends GameBrane {
         return clickerValue() * clickerSpeedFactor((clickerRecent.size() + 1) / CLICKER_WINDOW) * clickerStackMultiplier(clickerStackAt(x, y));
     }
 
-    public long clickerClicks() {
-        return clickerClicks;
-    }
+    public long clickerClicks() { return clickerClicks; }
 
     /** Les clics de l'automatisme depuis le lancement. */
-    public long clickerAutoClicks() {
-        return clickerAutoClicks;
-    }
+    public long clickerAutoClicks() { return clickerAutoClicks; }
 
-    public double clickerLastGain() {
-        return clickerLastGain;
-    }
+    public double clickerLastGain() { return clickerLastGain; }
 
     /** Le plus de zones superposées sous un clic depuis le lancement. */
-    public int clickerBestStack() {
-        return clickerBestStack;
-    }
+    public int clickerBestStack() { return clickerBestStack; }
 
     /**
      * Un clic en ({@code x}, {@code y}) : il compte pour la cadence, puis rapporte selon elle et les zones qui couvrent
@@ -317,7 +271,7 @@ public abstract class GameClicker extends GameBrane {
     private void advanceClicker(double dt) {
         clickerClock += dt;
         while (!clickerRecent.isEmpty() && clickerRecent.peekFirst() < clickerClock - CLICKER_WINDOW) clickerRecent.removeFirst();
-        for (java.util.Iterator<ClickerZone> it = clickerZones.iterator(); it.hasNext(); ) {
+        for (Iterator<ClickerZone> it = clickerZones.iterator(); it.hasNext(); ) {
             ClickerZone zone = it.next();
             zone.left -= dt;
             if (zone.left <= 0) it.remove();
@@ -345,14 +299,10 @@ public abstract class GameClicker extends GameBrane {
     }
 
     /** Vrai quand l'automatisme du clicker joue (automatisation des dimensions, version 0.155). */
-    boolean isClickerAutomatic() {
-        return isDimensionPlayed(7);
-    }
+    boolean isClickerAutomatic() { return isDimensionPlayed(7); }
 
     /** Prix du prochain niveau, en étincelles ; infini une fois au plus haut. */
-    public double clickerCost(ClickerUpgrade upgrade) {
-        return upgrade.cost(clickerLevel(upgrade));
-    }
+    public double clickerCost(ClickerUpgrade upgrade) { return upgrade.cost(clickerLevel(upgrade)); }
 
     public boolean canBuyClicker(ClickerUpgrade upgrade) {
         return isClickerOpen() && (!upgrade.needsZones() || areClickerZonesUnlocked()) && clickerLevel(upgrade) < upgrade.max()
@@ -367,9 +317,7 @@ public abstract class GameClicker extends GameBrane {
     }
 
     @Override
-    boolean buyClickerUpgrade(int index) {
-        return buyClicker(ClickerUpgrade.values()[index]);
-    }
+    boolean buyClickerUpgrade(int index) { return buyClicker(ClickerUpgrade.values()[index]); }
 
     // ------------------------------------------------------------------
     // La météo, pour la graine
@@ -383,13 +331,9 @@ public abstract class GameClicker extends GameBrane {
 
         private final String label;
 
-        Weather(String label) {
-            this.label = label;
-        }
+        Weather(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     /** Le ciel variable dure 60 s ; ensuite, beau temps deux fois sur trois, orage sinon. */
@@ -404,19 +348,13 @@ public abstract class GameClicker extends GameBrane {
     private long sunnySpells, storms;
 
     /** Vrai une fois la météo là : le clicker ouvert, l'univers formé (elle tombe sur la graine). */
-    public boolean isWeatherUnlocked() {
-        return isClickerOpen() && isUniverseFormed();
-    }
+    public boolean isWeatherUnlocked() { return isClickerOpen() && isUniverseFormed(); }
 
     /** Le temps qu'il fait ; variable tant que la météo n'est pas là. */
-    public Weather weather() {
-        return isWeatherUnlocked() ? weather : Weather.VARIABLE;
-    }
+    public Weather weather() { return isWeatherUnlocked() ? weather : Weather.VARIABLE; }
 
     /** Ce qu'il reste au temps qu'il fait, en secondes. */
-    public double weatherLeft() {
-        return isWeatherUnlocked() ? Math.max(0, weatherLeft) : 0;
-    }
+    public double weatherLeft() { return isWeatherUnlocked() ? Math.max(0, weatherLeft) : 0; }
 
     public double weatherSunSeconds() {
         return WEATHER_SUN_SECONDS + WEATHER_SUN_SECONDS_STEP * seedUpgradeLevel(SeedUpgrade.WEATHER_SUN);
@@ -439,20 +377,14 @@ public abstract class GameClicker extends GameBrane {
         };
     }
 
-    public long sunnySpells() {
-        return sunnySpells;
-    }
+    public long sunnySpells() { return sunnySpells; }
 
     @Override
-    public long storms() {
-        return storms;
-    }
+    public long storms() { return storms; }
 
     /** L'arrosage par seconde, sous la météo : un bonus au beau temps, un léger malus à l'orage, sur tout le reste. */
     @Override
-    public double wateringBoost() {
-        return super.wateringBoost() * weatherFactor();
-    }
+    public double wateringBoost() { return super.wateringBoost() * weatherFactor(); }
 
     void runWeather(double dt) {
         if (!isWeatherUnlocked() || dt <= 0) return;

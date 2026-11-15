@@ -1,7 +1,7 @@
 package idle.ui.universe;
 
 /**
- * La caméra du volume (version 0.128) : de quoi dessiner le cube en perspective, du dehors comme de son centre,
+ * La caméra du volume : de quoi dessiner le cube en perspective, du dehors comme de son centre,
  * et retrouver la direction d'un clic. Sans JavaFX : de simples calculs, vérifiables seuls.
  *
  * <p>Le cube va de −1 à 1 sur les trois axes. La caméra le tourne d'abord de {@code yaw} autour de l'axe vertical,
@@ -10,7 +10,6 @@ package idle.ui.universe;
  * focale de {@code focal} pixels.
  */
 public final class VolumeCamera {
-
     /** Ce qui est plus près que cela de l'œil n'est pas dessiné : un trait qui passe derrière est coupé là. */
     public static final double NEAR = 0.02;
     /** Le regard ne monte ni ne descend au-delà de cet angle (en radians) : on ne passe pas la tête à l'envers. */
@@ -40,14 +39,10 @@ public final class VolumeCamera {
     }
 
     /** Un point du cube à l'écran, ou {@code null} s'il est derrière l'œil. */
-    public double[] project(double x, double y, double z) {
-        return screen(toView(x, y, z));
-    }
+    public double[] project(double x, double y, double z) { return screen(toView(x, y, z)); }
 
     /** La direction, dans le repère du cube, du regard qui passe par ce point de l'écran. */
-    public double[] ray(double sx, double sy) {
-        return toCube((sx - centerX) / focal, (sy - centerY) / focal, 1);
-    }
+    public double[] ray(double sx, double sy) { return toCube((sx - centerX) / focal, (sy - centerY) / focal, 1); }
 
     /**
      * Le regard suit la souris tenue : le cube glisse avec elle, comme une photo panoramique qu'on fait tourner.

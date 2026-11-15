@@ -1,29 +1,24 @@
 package idle.ui.probes;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.core.probes.Probe;
 import idle.core.probes.ProbeDestination;
 import java.util.List;
 import java.util.function.LongConsumer;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
- * Les sondes dessinées : le hangar à gauche, une trajectoire par sonde vers sa destination à
- * droite, et la sonde qui avance au fil de son voyage. Arrivée, elle brille au-dessus de sa
- * destination : un clic dessus ouvre son butin.
+ * Les sondes dessinées : le hangar à gauche, une trajectoire par sonde vers sa destination à droite, et la sonde qui
+ * avance au fil de son voyage. Arrivée, elle brille au-dessus de sa destination : un clic dessus ouvre son butin.
  *
- * <p>Version 0.194 : les skins des sondes ({@link ProbeSkinArt}, {@link idle.core.universe.SkinVisual#PROBE})
- * changent le ciel, la trajectoire et la sonde ; le hangar et les destinations restent.
+ * <p>Les skins des sondes ({@link ProbeSkinArt}, {@link idle.core.universe.SkinVisual#PROBE}) changent le ciel, la
+ * trajectoire et la sonde ; le hangar et les destinations restent.
  */
 public final class ProbesView extends Canvas {
-
     private static final Color BACK = Color.web("#0a0806");
     private static final Color PATH = Color.web("#6b5a3e");
     private static final Color LIT = Color.web("#ffcf8a");
@@ -37,18 +32,14 @@ public final class ProbesView extends Canvas {
 
     private final Game game;
     private double time;
-    /** Le skin des sondes de l'image en cours (version 0.194) : {@code null} pour le Classique. */
-    private idle.core.universe.Skin skin;
+    /** Le skin des sondes de l'image en cours : {@code null} pour le Classique. */
+    private Skin skin;
 
     /** La couleur des textes vifs, dans le skin en cours. */
-    private Color lit() {
-        return skin == null ? LIT : ProbeSkinArt.text(skin);
-    }
+    private Color lit() { return skin == null ? LIT : ProbeSkinArt.text(skin); }
 
     /** La couleur des textes discrets, dans le skin en cours. */
-    private Color dim() {
-        return skin == null ? DIM : ProbeSkinArt.dim(skin);
-    }
+    private Color dim() { return skin == null ? DIM : ProbeSkinArt.dim(skin); }
 
     /** @param onLanded ce que fait un clic sur une sonde arrivée : ouvrir son butin, par son numéro */
     ProbesView(Game game, LongConsumer onLanded) {
@@ -61,9 +52,7 @@ public final class ProbesView extends Canvas {
     }
 
     /** La hauteur qu'il faut pour ce nombre de voies. */
-    public static double heightFor(int lanes) {
-        return 70 + 52 * Math.max(1, lanes);
-    }
+    public static double heightFor(int lanes) { return 70 + 52 * Math.max(1, lanes); }
 
     private double laneY(int lane, int lanes) {
         double h = getHeight();
@@ -71,13 +60,9 @@ public final class ProbesView extends Canvas {
         return 20 + span * (lane + 0.5) / Math.max(1, lanes);
     }
 
-    private double baseX() {
-        return 62;
-    }
+    private double baseX() { return 62; }
 
-    private double targetX() {
-        return getWidth() - 110;
-    }
+    private double targetX() { return getWidth() - 110; }
 
     /** La sonde la plus proche de ce point, sur sa voie : pour le clic. */
     Probe probeAt(double x, double y) {
@@ -117,7 +102,7 @@ public final class ProbesView extends Canvas {
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
-        skin = game.chosenSkin(idle.core.universe.SkinVisual.PROBE);
+        skin = game.chosenSkin(SkinVisual.PROBE);
         if (ProbeSkinArt.draws(skin)) {
             ProbeSkinArt.background(g, skin, w, h, time);
         } else {
@@ -181,7 +166,7 @@ public final class ProbesView extends Canvas {
         }
         int done = (int) Math.floor(t * STEPS);
         if (skin != null) {
-            // Dans un skin (version 0.194), la trajectoire suit la sonde : pointillés, condensation, fil, plumes.
+            // Dans un skin, la trajectoire suit la sonde : pointillés, condensation, fil, plumes.
             ProbeSkinArt.path(g, skin, XS, YS, STEPS, done, time);
         } else {
             g.setStroke(PATH);

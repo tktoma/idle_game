@@ -1,8 +1,7 @@
 package idle.ui.collider;
 
 import idle.core.universe.Skin;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -21,8 +20,7 @@ import javafx.scene.paint.Color;
  * </ul>
  */
 final class BeamSkinArt {
-
-    /** Le papier noir du skin « Encre » (version 0.203). */
+    /** Le papier noir du skin « Encre ». */
     static final Color PAPER = Color.web("#0d0e12");
     private static final Color INK = Color.web("#e9e6dd");
     private static final Color ICE = Color.web("#cfefff");
@@ -37,9 +35,7 @@ final class BeamSkinArt {
     private final List<double[]> stains = new ArrayList<>();
     private boolean wasCrossing;
 
-    BeamSkinArt(EnergyView view) {
-        this.view = view;
-    }
+    BeamSkinArt(EnergyView view) { this.view = view; }
 
     /** Vrai pour les faisceaux dessinés ici : ceux de la version 0.191. */
     static boolean draws(Skin beam) {
@@ -57,9 +53,7 @@ final class BeamSkinArt {
     }
 
     /** Ce que la vue garde d'un croisement : pour les vérifications. */
-    int remains() {
-        return snow.size() + stains.size();
-    }
+    int remains() { return snow.size() + stains.size(); }
 
     /** Oublie ce qui restait : le joueur a changé de faisceau. */
     void clear() {

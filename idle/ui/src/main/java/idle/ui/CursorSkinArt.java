@@ -2,19 +2,18 @@ package idle.ui;
 
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
+import javafx.scene.shape.ArcType;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javafx.scene.ImageCursor;
-import javafx.scene.SnapshotParameters;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.*;
+import javafx.scene.canvas.*;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
 /**
- * Les cinq skins du curseur (version 0.199) : une image de 32 pixels dessinée au code (pas de fichier image), posée sur
+ * Les cinq skins du curseur : une image de 32 pixels dessinée au code (pas de fichier image), posée sur
  * la fenêtre par un {@link ImageCursor}. Le curseur système reste le classique. Chaque curseur a sa pointe : le bout du
  * doigt, le cœur de l'étoile, le bec de l'arrosoir, le centre de la loupe, le bout de la baguette.
  * <ul>
@@ -26,7 +25,6 @@ import javafx.scene.paint.Color;
  * </ul>
  */
 final class CursorSkinArt {
-
     static final int SIZE = 32;
     private static final Map<Skin, ImageCursor> CURSORS = new EnumMap<>(Skin.class);
 
@@ -34,18 +32,14 @@ final class CursorSkinArt {
     }
 
     /** Vrai pour les skins du curseur. */
-    static boolean handles(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.CURSOR;
-    }
+    static boolean handles(Skin skin) { return skin != null && skin.visual() == SkinVisual.CURSOR; }
 
     /**
-     * Le skin à montrer sur cet onglet ; {@code null} pour le curseur système. Version 0.203 : tous se montrent partout.
+     * Le skin à montrer sur cet onglet ; {@code null} pour le curseur système. Tous se montrent partout.
      * Avant, l'arrosoir ne se montrait que sur l'univers et la loupe que sur le Big Bang : choisis depuis l'onglet Skins,
      * ils semblaient ne rien changer.
      */
-    static Skin shownOn(Skin skin, GameAppBase.Tab tab) {
-        return handles(skin) ? skin : null;
-    }
+    static Skin shownOn(Skin skin, GameAppBase.Tab tab) { return handles(skin) ? skin : null; }
 
     /** Le curseur de ce skin, dessiné une fois ; {@code null} pour un skin qui n'en a pas. */
     static ImageCursor cursor(Skin skin) {
@@ -111,7 +105,7 @@ final class CursorSkinArt {
                 g.strokeLine(12, 17, 4, 10);                 // le bec
                 g.setStroke(Color.web("#e9f7dc"));
                 g.setLineWidth(1.5);
-                g.strokeArc(14, 8, 10, 10, 0, 180, javafx.scene.shape.ArcType.OPEN);   // la poignée
+                g.strokeArc(14, 8, 10, 10, 0, 180, ArcType.OPEN);   // la poignée
                 g.setFill(Color.web("#9fd0ff"));
                 g.fillOval(1, 4, 3, 4);                      // trois gouttes
                 g.fillOval(4, 2, 3, 4);
@@ -131,7 +125,7 @@ final class CursorSkinArt {
                 g.strokeLine(19, 19, 29, 29);                // le manche
                 g.setStroke(Color.color(1, 1, 1, 0.8));
                 g.setLineWidth(1.5);
-                g.strokeArc(6, 6, 8, 8, 100, 60, javafx.scene.shape.ArcType.OPEN);     // le reflet
+                g.strokeArc(6, 6, 8, 8, 100, 60, ArcType.OPEN);     // le reflet
             }
             case CURSOR_WAND -> {
                 g.setStroke(Color.web("#3a2a16"));
@@ -170,16 +164,13 @@ final class CursorSkinArt {
      * mouvement de la souris laisse une étincelle qui s'éteint en {@link #LIFE} secondes.
      */
     static final class Trail extends Canvas {
-
         static final double LIFE = 0.6;
         private static final int MAX_SPARKS = 60;
         /** Les étincelles : x, y, âge en secondes. */
         private final List<double[]> sparks = new ArrayList<>();
         private boolean active;
 
-        Trail() {
-            setMouseTransparent(true);
-        }
+        Trail() { setMouseTransparent(true); }
 
         /** Allume ou éteint la traînée ; éteinte, les étincelles restantes s'effacent. */
         void setActive(boolean active) {
@@ -190,9 +181,7 @@ final class CursorSkinArt {
             }
         }
 
-        boolean isActive() {
-            return active;
-        }
+        boolean isActive() { return active; }
 
         /** La souris est passée là (en coordonnées du calque) : une étincelle de plus. */
         void move(double x, double y) {
@@ -202,9 +191,7 @@ final class CursorSkinArt {
         }
 
         /** Les étincelles encore allumées. */
-        int sparks() {
-            return sparks.size();
-        }
+        int sparks() { return sparks.size(); }
 
         /** Prend la taille de la fenêtre. */
         void fit(double width, double height) {

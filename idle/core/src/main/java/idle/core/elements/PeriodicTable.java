@@ -1,6 +1,7 @@
 package idle.core.elements;
 
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Le tableau périodique : les 118 éléments, rangés par numéro atomique, chacun avec son effet.
@@ -30,9 +31,7 @@ import java.util.List;
  * durée du tableau. Plus forts, la seconde moitié du tableau se remplirait en une heure.
  */
 public final class PeriodicTable {
-
-    public static final List<Element> ELEMENTS = List.of(
-            new Element(1, "H", "Hydrogène", ElementCategory.NONMETAL,
+    public static final List<Element> ELEMENTS = List.of(new Element(1, "H", "Hydrogène", ElementCategory.NONMETAL,
                     new ElementEffect.UpgradeBoost(ElementEffect.UpgradeTarget.DOUBLING, 0.10)),
             new Element(2, "He", "Hélium", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.PARTICLES, 2.00)),
@@ -48,8 +47,7 @@ public final class PeriodicTable {
                     new ElementEffect.UpgradeBoost(ElementEffect.UpgradeTarget.PATIENCE, 0.05)),
             new Element(8, "O", "Oxygène", ElementCategory.NONMETAL,
                     new ElementEffect.UpgradeBoost(ElementEffect.UpgradeTarget.CATALYST, 0.002)),
-            new Element(9, "F", "Fluor", ElementCategory.HALOGEN,
-                    new ElementEffect.DoubleDraw(0.05)),
+            new Element(9, "F", "Fluor", ElementCategory.HALOGEN, new ElementEffect.DoubleDraw(0.05)),
             new Element(10, "Ne", "Néon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.SPEED, 1.50)),
             new Element(11, "Na", "Sodium", ElementCategory.ALKALI_METAL,
@@ -64,8 +62,7 @@ public final class PeriodicTable {
                     new ElementEffect.UpgradeBoost(ElementEffect.UpgradeTarget.YIELD, 0.01)),
             new Element(16, "S", "Soufre", ElementCategory.NONMETAL,
                     new ElementEffect.UpgradeBoost(ElementEffect.UpgradeTarget.SPEED, 0.005)),
-            new Element(17, "Cl", "Chlore", ElementCategory.HALOGEN,
-                    new ElementEffect.DoubleDraw(0.05)),
+            new Element(17, "Cl", "Chlore", ElementCategory.HALOGEN, new ElementEffect.DoubleDraw(0.05)),
             new Element(18, "Ar", "Argon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.ATOMS, 1.15)),
             new Element(19, "K", "Potassium", ElementCategory.ALKALI_METAL,
@@ -100,8 +97,7 @@ public final class PeriodicTable {
                     new ElementEffect.Synergy(ElementEffect.SynergySource.AVAILABLE_ATOMS, ElementEffect.Stat.SPEED, 0.005)),
             new Element(34, "Se", "Sélénium", ElementCategory.NONMETAL,
                     new ElementEffect.Synergy(ElementEffect.SynergySource.GENERATORS, ElementEffect.Stat.SPEED, 0.02)),
-            new Element(35, "Br", "Brome", ElementCategory.HALOGEN,
-                    new ElementEffect.DoubleDraw(0.10)),
+            new Element(35, "Br", "Brome", ElementCategory.HALOGEN, new ElementEffect.DoubleDraw(0.10)),
             new Element(36, "Kr", "Krypton", ElementCategory.NOBLE_GAS,
                     new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.40)),
             new Element(37, "Rb", "Rubidium", ElementCategory.ALKALI_METAL,
@@ -136,8 +132,7 @@ public final class PeriodicTable {
                     new ElementEffect.Synergy(ElementEffect.SynergySource.AUTOMATIONS, ElementEffect.Stat.PARTICLES, 0.10)),
             new Element(52, "Te", "Tellure", ElementCategory.METALLOID,
                     new ElementEffect.Synergy(ElementEffect.SynergySource.DISTINCT_ELEMENTS, ElementEffect.Stat.ATOMS, 0.001)),
-            new Element(53, "I", "Iode", ElementCategory.HALOGEN,
-                    new ElementEffect.Luck(0.10)),
+            new Element(53, "I", "Iode", ElementCategory.HALOGEN, new ElementEffect.Luck(0.10)),
             new Element(54, "Xe", "Xénon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.SYNTHESIS, 0.50)),
             new Element(55, "Cs", "Césium", ElementCategory.ALKALI_METAL,
@@ -200,44 +195,27 @@ public final class PeriodicTable {
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.ATOM_UPGRADES, 0.05)),
             new Element(84, "Po", "Polonium", ElementCategory.POST_TRANSITION_METAL,
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.SYNTHESIS, 0.05)),
-            new Element(85, "At", "Astate", ElementCategory.HALOGEN,
-                    new ElementEffect.Luck(0.15)),
-            new Element(86, "Rn", "Radon", ElementCategory.NOBLE_GAS,
-                    new ElementEffect.DoubleDraw(0.25)),
+            new Element(85, "At", "Astate", ElementCategory.HALOGEN, new ElementEffect.Luck(0.15)),
+            new Element(86, "Rn", "Radon", ElementCategory.NOBLE_GAS, new ElementEffect.DoubleDraw(0.25)),
             new Element(87, "Fr", "Francium", ElementCategory.ALKALI_METAL,
                     new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.11)),
             new Element(88, "Ra", "Radium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.05)),
-            new Element(89, "Ac", "Actinium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(90, "Th", "Thorium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(91, "Pa", "Protactinium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(92, "U", "Uranium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(93, "Np", "Neptunium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(94, "Pu", "Plutonium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(95, "Am", "Américium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(96, "Cm", "Curium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(97, "Bk", "Berkélium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(98, "Cf", "Californium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(99, "Es", "Einsteinium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(100, "Fm", "Fermium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(101, "Md", "Mendélévium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(102, "No", "Nobélium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
-            new Element(103, "Lr", "Lawrencium", ElementCategory.ACTINIDE,
-                    new ElementEffect.MultiplyProduction(2.00)),
+            new Element(89, "Ac", "Actinium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(90, "Th", "Thorium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(91, "Pa", "Protactinium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(92, "U", "Uranium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(93, "Np", "Neptunium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(94, "Pu", "Plutonium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(95, "Am", "Américium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(96, "Cm", "Curium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(97, "Bk", "Berkélium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(98, "Cf", "Californium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(99, "Es", "Einsteinium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(100, "Fm", "Fermium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(101, "Md", "Mendélévium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(102, "No", "Nobélium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
+            new Element(103, "Lr", "Lawrencium", ElementCategory.ACTINIDE, new ElementEffect.MultiplyProduction(2.00)),
             new Element(104, "Rf", "Rutherfordium", ElementCategory.TRANSITION_METAL,
                     new ElementEffect.GeneratorBoost(2, ElementEffect.Stat.SPEED, 1.50)),
             new Element(105, "Db", "Dubnium", ElementCategory.TRANSITION_METAL,
@@ -264,10 +242,8 @@ public final class PeriodicTable {
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.ATOM_UPGRADES, 0.10)),
             new Element(116, "Lv", "Livermorium", ElementCategory.POST_TRANSITION_METAL,
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.SYNTHESIS, 0.10)),
-            new Element(117, "Ts", "Tennesse", ElementCategory.HALOGEN,
-                    new ElementEffect.Luck(0.25)),
-            new Element(118, "Og", "Oganesson", ElementCategory.NOBLE_GAS,
-                    new ElementEffect.MultiplyEverything(1.25)));
+            new Element(117, "Ts", "Tennesse", ElementCategory.HALOGEN, new ElementEffect.Luck(0.25)),
+            new Element(118, "Og", "Oganesson", ElementCategory.NOBLE_GAS, new ElementEffect.MultiplyEverything(1.25)));
 
     /**
      * L'élément qui porte ce symbole (« Fe »).
@@ -301,8 +277,8 @@ public final class PeriodicTable {
         return family;
     }
 
-    private static final java.util.Map<ElementCategory, List<Element>> FAMILIES = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final java.util.Map<Integer, List<Element>> ROWS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<ElementCategory, List<Element>> FAMILIES = new ConcurrentHashMap<>();
+    private static final Map<Integer, List<Element>> ROWS = new ConcurrentHashMap<>();
 
     /** Nombre de périodes (de lignes) du tableau. */
     public static final int PERIODS = 7;

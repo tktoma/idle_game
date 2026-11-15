@@ -1,5 +1,10 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.profile.Title;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -12,19 +17,15 @@ import idle.core.GameGrid.GridUpgrade;
 import idle.core.GameUniverse.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.156 : la grille, huitième dimension. Un cube de 1 000 de côté où des points sont cachés ; sonder une case
+ * La grille, huitième dimension. Un cube de 1 000 de côté où des points sont cachés ; sonder une case
  * rapporte d'autant plus que son centre est proche d'un point, et beaucoup plus si le point est dedans. Et la graine
  * profonde, qui multiplie l'arrosage par √(log10 E) de l'énergie du vide récupérée.
  */
 class GrilleTest {
-
-    private static Game eight() {
-        return GameTestSupport.universe(8);
-    }
+    private static Game eight() { return GameTestSupport.universe(8); }
 
     @Test
     void laGrilleSOuvreAuHuitiemeUnivers() {
@@ -80,7 +81,7 @@ class GrilleTest {
         assertEquals(0, game.probeGrid(10, 10, 10).triesLeft());
         assertFalse(game.gridPoints().get(0).equals(new GridPoint(500.5, 500.5, 500.5)));
         assertEquals(3, game.gridTriesLeft(0), "le suivant a ses trois essais");
-        // Version 0.158 : chaque point a son numéro ; l'interface oublie les essais des points partis.
+        // Chaque point a son numéro ; l'interface oublie les essais des points partis.
         long first = game.gridLastProbe().pointId();
         assertFalse(game.isGridPointAlive(first), "parti ailleurs, il a un autre numéro");
         assertTrue(game.isGridPointAlive(game.gridPointId(0)));
@@ -95,7 +96,7 @@ class GrilleTest {
         game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), GridUpgrade.DIVISION.max());
         assertEquals(500, game.gridCellSize(), 1e-12);
         int found = 0;
-        java.util.Random random = new java.util.Random(3);
+        Random random = new Random(3);
         for (int n = 0; n < 400; n++) {
             game.tick(0.6);
             GridProbe probe = game.probeGrid(random.nextInt(2), random.nextInt(2), random.nextInt(2));
@@ -136,7 +137,7 @@ class GrilleTest {
         game.state().setGridShards(1e15);
         for (GridUpgrade upgrade : GridUpgrade.values()) assertTrue(game.buyGrid(upgrade), upgrade.toString());
         assertEquals(700, game.gridDivisions());
-        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.gridValue(), 1e-9);
+        assertEquals(2 * game.hadronBoost(Hadron.OMEGA), game.gridValue(), 1e-9);
         assertEquals(1, game.gridReveal());
         assertEquals(2, game.gridPointCount());
         assertEquals(2, game.gridPoints().size(), "un point de plus, caché aussitôt");
@@ -151,7 +152,7 @@ class GrilleTest {
     void lAutomatismeEssaieSeul() {
         Game game = eight();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
-        // Version 0.209 : le palier de deux secondes (la cadence de l'automatisme d'avant).
+        // Le palier de deux secondes (la cadence de l'automatisme d'avant).
         game.state().addDimensionAutomation(DimensionAutomation.GRID_PROBE_2S.name());
         for (int i = 0; i < 1_200; i++) game.tick(0.05);
         assertEquals(30, game.gridAutoProbes(), 1, "un essai toutes les deux secondes");
@@ -161,7 +162,7 @@ class GrilleTest {
         game.tick(200);
         assertEquals(130, game.gridAutoProbes(), 2, "une absence les compte aussi");
         assertEquals(100, game.gridFound(), 2, "réduite à deux cases par côté, il trouve à chaque fois");
-        assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
+        assertEquals(11, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
         assertEquals(8, DimensionAutomation.GRID_PROBE.paidWith(), "payés en repères de la grille (version 0.209)");
     }
 
@@ -189,7 +190,7 @@ class GrilleTest {
         game.state().setGridShardsEarned(GameUniverse.GRID_THRESHOLD);
         assertTrue(game.isDimensionThresholdReached(8));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.GRID_SEEKER));
+        assertTrue(game.hasTitle(Title.GRID_SEEKER));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.gridLevel(GridUpgrade.GAIN.ordinal()));
         StringBuilder old = new StringBuilder();

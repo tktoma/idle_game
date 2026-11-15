@@ -2,15 +2,11 @@ package idle.ui.universe;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les skins du lancement de l'univers suivant (version 0.196), dessinés à côté de {@link LaunchView} : avant l'éclat
+ * Les skins du lancement de l'univers suivant, dessinés à côté de {@link LaunchView} : avant l'éclat
  * ({@link LaunchView#LAUNCH_AT}) quelque chose se prépare au centre, à l'éclat l'univers se lance, puis l'image s'efface.
  * <ul>
  * <li>« Fusée de papier » : une fusée pliée monte du bas jusqu'au centre, puis file vers les onglets en laissant une
@@ -26,7 +22,6 @@ import javafx.scene.shape.StrokeLineCap;
  * </ul>
  */
 final class LaunchSkinArt {
-
     private static final Color PAPER = Color.web("#f4efe2");
     private static final Color PAPER_FOLD = Color.web("#b9b0a0");
     private static final Color FLAME = Color.web("#ffb347");

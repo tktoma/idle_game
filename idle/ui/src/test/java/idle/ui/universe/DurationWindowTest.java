@@ -7,19 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.ui.FxTestSupport;
 import javafx.scene.input.KeyCode;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.134 : la fenêtre de la durée, sous Xvfb. Le bouton du milieu se tient à la souris ou à la barre d'espace,
+ * La fenêtre de la durée, sous Xvfb. Le bouton du milieu se tient à la souris ou à la barre d'espace,
  * les spirales avancent, le relâchement donne les éclats ; les améliorations attendent que le bouton soit relâché.
  */
 class DurationWindowTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au quatrième univers. */
     private static Game fourth() {

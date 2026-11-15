@@ -2,18 +2,12 @@ package idle.ui.vacuum;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 import javafx.scene.shape.ArcType;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * Les skins du vide (version 0.195), dessinés à côté de {@link VoidView} pour la garder lisible.
+ * Les skins du vide, dessinés à côté de {@link VoidView} pour la garder lisible.
  * <ul>
  * <li>L'écume : « Bulles de savon » (des bulles irisées qui montent lentement sur un fond nuit), « Mousse de bière »
  * (un fond ambré, des bulles qui montent, la mousse blanche en haut), « Pellicule » (un sépia granuleux, des rayures
@@ -27,7 +21,6 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  */
 final class VoidSkinArt {
-
     private static final Color NIGHT = Color.web("#0a1020");
     private static final Color BEER = Color.web("#c47a12");
     private static final Color BEER_DEEP = Color.web("#7a4a08");

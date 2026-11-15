@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,11 +10,10 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.137 : l'arrosoir remplace le bouton de la graine. Il se débloque sur son étagère ; penché sur la graine,
+ * L'arrosoir remplace le bouton de la graine. Il se débloque sur son étagère ; penché sur la graine,
  * il verse un arrosage par seconde, le premier la fait germer ; relâché, il ne verse plus.
  */
 class ArrosoirTest {
-
     /** Le premier univers formé, l'objectif de la dimension 1 atteint : la graine peut être arrosée. */
     private static Game ready() {
         Game game = GameTestSupport.universe(1);
@@ -78,7 +79,7 @@ class ArrosoirTest {
 
     @Test
     void laGraineBoitSansLeSeuilDeLaDimensionUn() {
-        // Version 0.139 : les seuils des dimensions ne retiennent plus la graine.
+        // Les seuils des dimensions ne retiennent plus la graine.
         Game game = ready();
         game.state().setDimensionShardsEarned(0);
         assertTrue(game.canTendSeed());

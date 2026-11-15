@@ -1,22 +1,13 @@
 import idle.core.Game;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import idle.core.math.BigNum;
+import java.util.random.RandomGenerator;
+import java.io.*;
+import java.lang.reflect.*;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * La mémoire d'un bot écrite à côté d'une sauvegarde (version 0.168), pour qu'une partie jouée en plusieurs tranches de
+ * La mémoire d'un bot écrite à côté d'une sauvegarde, pour qu'une partie jouée en plusieurs tranches de
  * calcul reste la même partie. Une sauvegarde du jeu ne garde que la partie : reprise, le bot repartait avec une mémoire
  * neuve et un autre hasard, et jouait autrement (en 0.166, 90 h 40 au lieu de 110 h 44). Ici, champ par champ comme
  * {@link AnalyseCopie}, la mémoire de jeu du bot (les champs de {@link IdleProfiles24} et de ses parents, ses politiques
@@ -28,7 +19,6 @@ import java.util.Random;
  * reste jouable, un peu moins fidèle.
  */
 final class AnalyseMemoire {
-
     private AnalyseMemoire() {}
 
     /** La clé du hasard de la partie elle-même, à côté des champs du bot. */
@@ -98,11 +88,11 @@ final class AnalyseMemoire {
     static Object coder(Object v) {
         if (v == null || v instanceof String || v instanceof Number || v instanceof Boolean || v instanceof Character || v instanceof Enum<?>
                 || v instanceof Random) return v;
-        if (v instanceof idle.core.math.BigNum b) return new Grand(b.toString());
+        if (v instanceof BigNum b) return new Grand(b.toString());
         if (v instanceof Game) return INCONNU;
         try {
             if (v.getClass().isRecord()) {
-                java.lang.reflect.RecordComponent[] rc = v.getClass().getRecordComponents();
+                RecordComponent[] rc = v.getClass().getRecordComponents();
                 Object[] vals = new Object[rc.length];
                 for (int i = 0; i < rc.length; i++) {
                     rc[i].getAccessor().setAccessible(true);
@@ -121,7 +111,7 @@ final class AnalyseMemoire {
                 if (y == INCONNU) return INCONNU;
                 el.add(y);
             }
-            return new Suite(v instanceof java.util.Set<?>, el);
+            return new Suite(v instanceof Set<?>, el);
         }
         if (v instanceof Map<?, ?> m) {
             List<Object> k = new ArrayList<>(), w = new ArrayList<>();
@@ -139,10 +129,10 @@ final class AnalyseMemoire {
 
     /** L'inverse de {@link #coder}. */
     static Object decoder(Object c) throws ReflectiveOperationException {
-        if (c instanceof Grand g) return idle.core.math.BigNum.parse(g.texte());
+        if (c instanceof Grand g) return BigNum.parse(g.texte());
         if (c instanceof Enregistrement e) {
             Class<?> type = Class.forName(e.classe());
-            java.lang.reflect.RecordComponent[] rc = type.getRecordComponents();
+            RecordComponent[] rc = type.getRecordComponents();
             Class<?>[] types = new Class<?>[rc.length];
             Object[] vals = new Object[rc.length];
             for (int i = 0; i < rc.length; i++) {
@@ -154,7 +144,7 @@ final class AnalyseMemoire {
             return constructor.newInstance(vals);
         }
         if (c instanceof Suite s) {
-            Collection<Object> out = s.ensemble() ? new java.util.LinkedHashSet<>() : new ArrayList<>();
+            Collection<Object> out = s.ensemble() ? new LinkedHashSet<>() : new ArrayList<>();
             for (Object x : s.elements()) out.add(decoder(x));
             return out;
         }
@@ -250,8 +240,8 @@ final class AnalyseMemoire {
             return false;
         }
         if (existing != null && existing.getClass().isArray() && value != null && value.getClass() == existing.getClass()) {
-            int n = java.lang.reflect.Array.getLength(existing);
-            if (n != java.lang.reflect.Array.getLength(value)) return false;
+            int n = Array.getLength(existing);
+            if (n != Array.getLength(value)) return false;
             System.arraycopy(value, 0, existing, 0, n);
             return true;
         }
@@ -286,7 +276,7 @@ final class AnalyseMemoire {
         try {
             Field f = champHasard(game);
             Object existing = f == null ? null : f.get(game);
-            if (f == null || !(value instanceof java.util.random.RandomGenerator)) return false;
+            if (f == null || !(value instanceof RandomGenerator)) return false;
             if (existing != null && existing.getClass() != value.getClass()) return false;
             f.set(game, value);
             return true;
@@ -315,7 +305,5 @@ final class AnalyseMemoire {
     }
 
     /** Les chemins des champs écrits : pour les vérifications. */
-    static List<String> chemins(Map<String, byte[]> memoire) {
-        return new ArrayList<>(memoire.keySet());
-    }
+    static List<String> chemins(Map<String, byte[]> memoire) { return new ArrayList<>(memoire.keySet()); }
 }

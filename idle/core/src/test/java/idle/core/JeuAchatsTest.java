@@ -1,29 +1,21 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.util.List;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : les paliers de vitesse, le couplage, les achats groupés, le temps restant et la surcharge.
- */
+/** Les règles du jeu : les paliers de vitesse, le couplage, les achats groupés, le temps restant et la surcharge. */
 class JeuAchatsTest extends GameTestSupport {
-
-
     @Nested
     class PaliersDeVitesse {
-
         /** Une vitesse qui n'accélère rien, mais triple les particules tous les cinq niveaux. */
         private final Upgrade stepped = new Upgrade("speed", "Vitesse", Resource.PARTICLES,
                 BigNum.of(1), 1, Upgrade.NO_LIMIT, new Effect.MultiplySpeed(1, 5, 3));
@@ -124,7 +116,6 @@ class JeuAchatsTest extends GameTestSupport {
 
     @Nested
     class Couplage {
-
         /** +50 % de particules par niveau et par autre générateur. */
         private final Upgrade coupling = new Upgrade("coupling", "Couplage", Resource.PARTICLES,
                 BigNum.of(1), 1, Upgrade.NO_LIMIT, new Effect.MultiplyByGenerators(0.5));
@@ -216,7 +207,6 @@ class JeuAchatsTest extends GameTestSupport {
 
     @Nested
     class AchatsGroupes {
-
         /** Vitesse à 10, 15, 23, 34, 51… particules ; générateur à 100 puis 1000, deux au plus. */
         private Game simpleGame(double particles) {
             Game game = new Game(new GameState(), List.of(SPEED, GENERATOR), List.of(AUTO_FUSION), new Random(42));
@@ -310,7 +300,6 @@ class JeuAchatsTest extends GameTestSupport {
 
     @Nested
     class TempsRestant {
-
         @Test
         void leTempsAvantUnAchatSuitLaProduction() {
             Game game = newGame();                            // une particule toutes les ONE_PARTICLE secondes
@@ -382,7 +371,6 @@ class JeuAchatsTest extends GameTestSupport {
 
     @Nested
     class Surcharge {
-
         private final Upgrade overload = new Upgrade("over", "Surcharge", Resource.ATOMS,
                 BigNum.of(1), 1, Upgrade.NO_LIMIT, new Effect.Overload(1.5));
 

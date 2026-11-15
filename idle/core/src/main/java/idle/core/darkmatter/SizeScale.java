@@ -4,19 +4,16 @@ import idle.core.math.BigNum;
 import java.util.List;
 
 /**
- * L'échelle des grandeurs : des repères connus, du proton à l'univers observable, rangés du
- * plus petit au plus grand. Elle sert à situer la taille de la matière noire à mesure qu'elle grossit.
+ * L'échelle des grandeurs : des repères connus, du proton à l'univers observable, rangés du plus petit au plus grand.
+ * Elle sert à situer la taille de la matière noire à mesure qu'elle grossit.
  *
- * <p>Les tailles sont des ordres de grandeur, en mètres : assez justes pour se repérer, pas
- * pour faire de la physique.
+ * <p>Les tailles sont des ordres de grandeur, en mètres : assez justes pour se repérer, pas pour faire de la physique.
  */
 public final class SizeScale {
-
     /** Une année-lumière, en mètres. */
     public static final BigNum LIGHT_YEAR = BigNum.of(9.46, 15);
 
-    public static final List<Landmark> LANDMARKS = List.of(
-            new Landmark("proton", BigNum.of(1, -15)),
+    public static final List<Landmark> LANDMARKS = List.of(new Landmark("proton", BigNum.of(1, -15)),
             new Landmark("noyau d'uranium", BigNum.of(1.5, -14)),
             new Landmark("atome d'hydrogène", BigNum.of(1, -10)),
             new Landmark("hélice d'ADN", BigNum.of(2, -9)),

@@ -13,23 +13,17 @@ import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * L'onglet des hadrons (version 0.149) : les gluons y lient les quarks du collisionneur en hadrons. Il se propose dans
+ * L'onglet des hadrons : les gluons y lient les quarks du collisionneur en hadrons. Il se propose dans
  * le collisionneur avec la bulle de l'arbuste, au milieu, et s'y paie en énergie, comme le vide ; la bulle du jeune
  * arbre, à gauche, l'ouvre dès le début de l'univers.
  *
@@ -37,10 +31,10 @@ import javafx.scene.layout.VBox;
  * <ul>
  *   <li>« Gluons » : les quarks en main ; les nucléons (proton, neutron), et les particules exotiques, que la bulle du
  *       cœur de l'arbre-monde ouvre. Chaque hadron a sa carte (nom, formule, phrase, recette, nombre possédé), sous elle
- *       son bonus (version 0.151) — ce qu'il vaut, ce qu'il vaudrait avec un de plus et avec « Lier tout » — et deux
+ *       son bonus — ce qu'il vaut, ce qu'il vaudrait avec un de plus et avec « Lier tout » — et deux
  *       boutons, « Lier 1 » et « Lier tout » ;</li>
- *   <li>« Paliers » (version 0.151) : les cinq paliers de gluons, ce qu'ils font garder, atteints ou ce qu'il manque ;</li>
- *   <li>« Liaison » (version 0.151) : la vue dessinée ({@link BindingView}) où l'on voit les quarks se lier, et dessous
+ *   <li>« Paliers » : les cinq paliers de gluons, ce qu'ils font garder, atteints ou ce qu'il manque ;</li>
+ *   <li>« Liaison » : la vue dessinée ({@link BindingView}) où l'on voit les quarks se lier, et dessous
  *       un bouton par hadron ouvert, qui en lie un.</li>
  * </ul>
  *
@@ -48,7 +42,6 @@ import javafx.scene.layout.VBox;
  * hadrons ou l'affichage ont changé.
  */
 public final class HadronsPage extends VBox {
-
     /** La couleur des hadrons : le rouge d'une charge de couleur, celle que portent les quarks liés par les gluons. */
     public static final String COLOR = "#ff8a7a";
     /** Les saveurs qui se gardent en main : le top se désintègre avant d'être lié. */
@@ -61,7 +54,7 @@ public final class HadronsPage extends VBox {
     private static final double GAUGE_WIDTH = 320;
 
     private final Game game;
-    /** Les sous-onglets : les gluons, les paliers (version 0.151), la liaison (version 0.151). */
+    /** Les sous-onglets : les gluons, les paliers, la liaison. */
     public static final int GLUONS = 0, MILESTONES = 1, BINDING = 2;
     private final Button gluonsTab = new Button("Gluons");
     private final Button milestonesTab = new Button("Paliers");
@@ -81,7 +74,7 @@ public final class HadronsPage extends VBox {
     private final Map<Hadron, Button> bindAll = new EnumMap<>(Hadron.class);
     private final Map<GluonMilestone, Card> milestoneCards = new EnumMap<>(GluonMilestone.class);
     private final Map<GluonMilestone, Region> gauges = new EnumMap<>(GluonMilestone.class);
-    /** Le jalon des racines (version 0.169) : dix paliers de gluons, sous les paliers, avec la bulle des racines. */
+    /** Le jalon des racines : dix paliers de gluons, sous les paliers, avec la bulle des racines. */
     private Card rootsCard;
     private final Region rootsGauge = new Region();
     private final Label milestonesNote = new Label();
@@ -244,9 +237,7 @@ public final class HadronsPage extends VBox {
     }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     /** Choisit un sous-onglet : {@link #GLUONS}, {@link #MILESTONES} ou {@link #BINDING}. */
     public void select(int index) {
@@ -258,9 +249,7 @@ public final class HadronsPage extends VBox {
         }
     }
 
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Passe au sous-onglet suivant ou précédent, en boucle. */
     public void step(int direction) {
@@ -269,9 +258,7 @@ public final class HadronsPage extends VBox {
     }
 
     /** Une image : la vue de la liaison n'avance que si son sous-onglet est à l'écran. */
-    public void frame(double elapsed, boolean motion) {
-        if (selected == BINDING) view.frame(elapsed, motion);
-    }
+    public void frame(double elapsed, boolean motion) { if (selected == BINDING) view.frame(elapsed, motion); }
 
     /** Vrai s'il y a quelque chose à faire : des quarks assez pour lier un hadron ouvert. */
     public static boolean ready(Game game) {
@@ -291,7 +278,7 @@ public final class HadronsPage extends VBox {
 
     /** « 2 quarks haut et 1 quark bas » : la même recette, en toutes lettres. */
     private static String recipeWords(Hadron hadron) {
-        java.util.List<String> parts = new java.util.ArrayList<>();
+        List<String> parts = new ArrayList<>();
         for (Map.Entry<Quark, Integer> need : hadron.recipe().entrySet()) {
             parts.add(need.getValue() + (need.getValue() > 1 ? " quarks " : " quark ") + need.getKey().label());
         }
@@ -417,81 +404,47 @@ public final class HadronsPage extends VBox {
     }
 
     /** La phrase qui dit ce que font les hadrons : pour les vérifications. */
-    public Label effectNote() {
-        return effectNote;
-    }
+    public Label effectNote() { return effectNote; }
 
     /** La phrase des exotiques fermées : pour les vérifications. */
-    public Label exoticNote() {
-        return exoticNote;
-    }
+    public Label exoticNote() { return exoticNote; }
 
     /** Les cartes des exotiques : cachées tant qu'elles sont fermées. */
-    public TileGrid exoticGrid() {
-        return exoticGrid;
-    }
+    public TileGrid exoticGrid() { return exoticGrid; }
 
     /** En tête de page : les gluons et les paliers atteints. */
-    public Label gluonsLine() {
-        return gluonsLine;
-    }
+    public Label gluonsLine() { return gluonsLine; }
 
-    public Button gluonsTab() {
-        return gluonsTab;
-    }
+    public Button gluonsTab() { return gluonsTab; }
 
-    public Button milestonesTab() {
-        return milestonesTab;
-    }
+    public Button milestonesTab() { return milestonesTab; }
 
-    public Button bindingTab() {
-        return bindingTab;
-    }
+    public Button bindingTab() { return bindingTab; }
 
-    public Card card(Hadron hadron) {
-        return cards.get(hadron);
-    }
+    public Card card(Hadron hadron) { return cards.get(hadron); }
 
     /** Le bonus écrit sous la carte d'un hadron : pour les vérifications. */
-    public String bonusText(Hadron hadron) {
-        return bonuses.get(hadron).getText();
-    }
+    public String bonusText(Hadron hadron) { return bonuses.get(hadron).getText(); }
 
-    public Button bindOneButton(Hadron hadron) {
-        return bindOne.get(hadron);
-    }
+    public Button bindOneButton(Hadron hadron) { return bindOne.get(hadron); }
 
-    public Button bindAllButton(Hadron hadron) {
-        return bindAll.get(hadron);
-    }
+    public Button bindAllButton(Hadron hadron) { return bindAll.get(hadron); }
 
     /** La carte du jalon des racines. */
-    public Card rootsCard() {
-        return rootsCard;
-    }
+    public Card rootsCard() { return rootsCard; }
 
     /** La largeur de la barre remplie du jalon des racines, sur {@link #GAUGE_WIDTH} : pour les vérifications. */
-    public double rootsGaugeShare() {
-        return rootsGauge.getPrefWidth() / GAUGE_WIDTH;
-    }
+    public double rootsGaugeShare() { return rootsGauge.getPrefWidth() / GAUGE_WIDTH; }
 
     /** La carte d'un palier de gluons. */
-    public Card milestoneCard(GluonMilestone milestone) {
-        return milestoneCards.get(milestone);
-    }
+    public Card milestoneCard(GluonMilestone milestone) { return milestoneCards.get(milestone); }
 
     /** La largeur de la barre remplie d'un palier, sur {@link #GAUGE_WIDTH} : pour les vérifications. */
-    public double gaugeShare(GluonMilestone milestone) {
-        return gauges.get(milestone).getPrefWidth() / GAUGE_WIDTH;
-    }
+    public double gaugeShare(GluonMilestone milestone) { return gauges.get(milestone).getPrefWidth() / GAUGE_WIDTH; }
 
     /** Le bouton du sous-onglet « Liaison » qui lie un hadron. */
-    public Button bindHereButton(Hadron hadron) {
-        return bindHere.get(hadron);
-    }
+    public Button bindHereButton(Hadron hadron) { return bindHere.get(hadron); }
 
     /** La vue de la liaison. */
-    public BindingView view() {
-        return view;
-    }
+    public BindingView view() { return view; }
 }

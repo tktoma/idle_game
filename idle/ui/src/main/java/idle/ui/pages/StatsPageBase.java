@@ -3,9 +3,9 @@ package idle.ui.pages;
 import idle.core.history.Pace;
 import idle.core.history.PurchaseHistory;
 import idle.core.Game;
-import idle.core.GameStats;
 import idle.core.Resource;
-import idle.core.StatsHistory;
+import idle.core.state.GameStats;
+import idle.core.state.StatsHistory;
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
 import idle.core.elements.Element;
@@ -25,28 +25,15 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
-/**
- * La page des statistiques, première partie : sa construction et ses sous-pages.
- */
+/** La page des statistiques, première partie : sa construction et ses sous-pages. */
 public abstract class StatsPageBase extends VBox {
-
     /** La page entière : chaque partie de la chaîne est une {@link StatsPage}. */
-    final StatsPage self() {
-        return (StatsPage) this;
-    }
+    final StatsPage self() { return (StatsPage) this; }
 
     StatsPageBase(Game game, PurchaseHistory purchaseHistory, Pace pace) {
         super(8);
@@ -130,7 +117,6 @@ public abstract class StatsPageBase extends VBox {
     abstract void select(SubPage page);
     public abstract void refresh();
 
-
     static final String STATS_COLOR = "#7fe0d4";
     static final String NAME_STYLE = "-fx-font-size: 13px; -fx-text-fill: #b9c7d6;";
     static final String VALUE_STYLE = "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;";
@@ -213,9 +199,7 @@ public abstract class StatsPageBase extends VBox {
     final FlowPane subTabs = new FlowPane();
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public FlowPane subTabs() {
-        return subTabs;
-    }
+    public FlowPane subTabs() { return subTabs; }
     final StackPane stack = new StackPane();
     final Label nextLabel = new Label();
     // Le choix de la période des graphiques, proposé après la première explosion.
@@ -506,8 +490,7 @@ public abstract class StatsPageBase extends VBox {
                     copies += count;
                     most += game.maxCopiesOf(element);     // les molécules relèvent certains plafonds un à un
                 }
-                return discovered + " / " + members.size() + ", " + copies + " / "
-                        + most + " ex.   (chance "
+                return discovered + " / " + members.size() + ", " + copies + " / " + most + " ex.   (chance "
                         + ElementText.percent(game.categoryChance(category)) + ")";
             });
         }
@@ -530,8 +513,7 @@ public abstract class StatsPageBase extends VBox {
                         true, Format::clock, value -> "+" + ElementText.percent(Math.pow(10, value)), false, Double.NaN, Double.NaN),
                 new Line("Croissance", ChartPane.VIOLET, sample -> sample.value(StatsHistory.Stat.DARK_GROWTH)));
         log("Résistance", "ce qui divise la croissance", ChartPane.ORANGE, StatsHistory.Stat.DARK_RESISTANCE, () -> true);
-        curve("Temps d'appui", () -> true,
-                () -> new ChartPane("Temps d'appui", "cumulé depuis le début du jeu",
+        curve("Temps d'appui", () -> true, () -> new ChartPane("Temps d'appui", "cumulé depuis le début du jeu",
                         true, Format::clock, Format::clock, false, 0, Double.NaN),
                 new Line("Appui", ChartPane.VIOLET, sample -> sample.value(StatsHistory.Stat.HOLD_TIME)));
         count("Paliers de taille", "sur " + SizeScale.MILESTONES.size(), ChartPane.TEAL, StatsHistory.Stat.LANDMARKS, () -> true);

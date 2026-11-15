@@ -3,29 +3,24 @@ package idle.ui.particles;
 import idle.core.universe.Skin;
 import idle.ui.particles.ParticleView.Dust;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 
 /**
- * Les six skins de la fusion de la version 0.191, dessinés à côté de {@link ParticleView} pour le
- * garder lisible. Mêmes mouvements que le classique (poussières qui convergent, ondes à chaque
- * particule créée, noyau qui grossit avec l'avancement), autres formes :
+ * Les six skins de la fusion de la version 0.191, dessinés à côté de {@link ParticleView} pour le garder lisible. Mêmes
+ * mouvements que le classique (poussières qui convergent, ondes à chaque particule créée, noyau qui grossit avec
+ * l'avancement), autres formes :
  * <ul>
- * <li>« Braise » : des braises orangées qui rougeoient en approchant, des étincelles qui montent, un
- * charbon craquelé qui luit par les fentes ;</li>
- * <li>« Encre » : un rond de papier crème, des gouttes d'encre bleu nuit qui se diffusent en halo,
- * une tache au centre ;</li>
+ * <li>« Braise » : des braises orangées qui rougeoient en approchant, des étincelles qui montent, un charbon craquelé
+ * qui luit par les fentes ;</li>
+ * <li>« Encre » : un rond de papier crème, des gouttes d'encre bleu nuit qui se diffusent en halo, une tache au centre
+ * ;</li>
  * <li>« Essaim » : une nuée de petits points qui tournent autour du centre, une ruche qui grossit ;</li>
- * <li>« Horloge » : un cadran, trois aiguilles qui portent les poussières vers le pivot, la fusion
- * fait un tic ;</li>
+ * <li>« Horloge » : un cadran, trois aiguilles qui portent les poussières vers le pivot, la fusion fait un tic ;</li>
  * <li>« Verre soufflé » : des bulles translucides irisées au reflet blanc, qui éclatent en arrivant ;</li>
  * <li>« Pixel » : tout en carrés nets alignés sur une grille, seize couleurs 8 bits.</li>
  * </ul>
  */
 final class ParticleSkinArt {
-
     /** Les seize couleurs du skin « Pixel » : noir, bleu nuit, bleu, bleu clair, blanc, jaune, orange, rouge. */
     private static final Color[] PALETTE = {Color.web("#000000"), Color.web("#1d2b53"), Color.web("#29adff"), Color.web("#83c6ff"),
         Color.web("#fff1e8"), Color.web("#ffec27"), Color.web("#ffa300"), Color.web("#ff004d")};
@@ -458,9 +453,7 @@ final class ParticleSkinArt {
     }
 
     /** La coordonnée ramenée sur la grille de pas {@code px}. */
-    private static double snap(double v, double px) {
-        return Math.floor(v / px) * px;
-    }
+    private static double snap(double v, double px) { return Math.floor(v / px) * px; }
 
     /** Un anneau de carrés alignés sur la grille. */
     private static void pixelRing(GraphicsContext g, double cx, double cy, double r, double px, Color color) {

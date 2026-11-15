@@ -1,20 +1,16 @@
 package idle.ui.pages;
 
-import idle.core.GameStats;
+import idle.core.state.GameStats;
 import idle.core.universe.Skin;
 import javafx.geometry.Pos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.canvas.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 
 /**
- * La frise des univers dans ses skins (version 0.198, {@link idle.core.universe.SkinVisual#TIMELINE}). Chaque univers
+ * La frise des univers dans ses skins ({@link idle.core.universe.SkinVisual#TIMELINE}). Chaque univers
  * formé garde sa ligne : son titre, puis sa barre en cinq phases à l'échelle du plus long. « Musée » : une ligne de
  * temps verticale en laiton à gauche, un cartel de papier crème pour le titre, la barre dans un cadre doré sur velours
  * sombre. « Pellicule » : la barre devient un bout de film noir, perforé en haut et en bas, chaque phase un photogramme ;
@@ -22,7 +18,6 @@ import javafx.scene.shape.ArcType;
  * partage entre les phases, roues et attelage ; une locomotive tire le premier.
  */
 final class TimelineSkinArt {
-
     /** La hauteur de la barre dessinée, selon le skin. */
     private static final double FILM_HEIGHT = 30, TRAIN_HEIGHT = 34, MUSEUM_HEIGHT = 18;
     private static final Color BRASS = Color.web("#c9a24a"), VELVET = Color.web("#2a2420"), PLAQUE = Color.web("#f4f1e8");
@@ -71,7 +66,7 @@ final class TimelineSkinArt {
                 bead.setStyle("-fx-background-color: #c9a24a; -fx-background-radius: 6;");
                 VBox rail = new VBox(0, bead, line);
                 rail.setAlignment(Pos.TOP_CENTER);
-                VBox.setVgrow(line, javafx.scene.layout.Priority.ALWAYS);
+                VBox.setVgrow(line, Priority.ALWAYS);
                 VBox exhibit = new VBox(4, name, museum(p, scale));
                 exhibit.setAlignment(Pos.TOP_LEFT);
                 HBox box = new HBox(10, rail, exhibit);

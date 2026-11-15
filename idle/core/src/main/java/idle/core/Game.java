@@ -1,28 +1,17 @@
 package idle.core;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.Challenges;
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.PeriodicTable;
+import idle.core.state.*;
+import idle.core.profile.Title;
+import idle.core.sky.*;
+
+import idle.core.achievements.*;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.probes.Probe;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
@@ -30,61 +19,54 @@ import java.util.random.RandomGenerator;
  *
  * <p>Il y a deux ressources :
  * <ul>
- *   <li>les <b>particules</b>, créées en continu par les générateurs. Chaque générateur
- *       forme les siennes à son rythme, indépendamment des autres. Une partie neuve
- *       n'en a aucun : le joueur crée le premier avec {@link #start()}, les suivants s'achètent ;</li>
- *   <li>les <b>atomes</b>, obtenus avec {@link #fuse()} : une fois tous les générateurs
- *       débloqués, ils fusionnent en un atome et la partie repart d'un seul générateur.
- *       Les atomes se dépensent en améliorations définitives.</li>
+ * <li>les <b>particules</b>, créées en continu par les générateurs. Chaque générateur forme les siennes à son rythme,
+ * indépendamment des autres. Une partie neuve n'en a aucun : le joueur crée le premier avec {@link #start()}, les
+ * suivants s'achètent ;</li>
+ * <li>les <b>atomes</b>, obtenus avec {@link #fuse()} : une fois tous les générateurs débloqués, ils fusionnent en un
+ * atome et la partie repart d'un seul générateur. Les atomes se dépensent en améliorations définitives.</li>
  * </ul>
  *
- * <p>Une fois {@link #UNLOCK_TOTAL_ATOMS} atomes créés, deux choses se débloquent ensemble.
- * D'abord les automatismes ({@link Automation}) : le jeu achète alors lui-même les améliorations
- * payées en particules, voire fusionne tout seul. Un automatisme agit à intervalles réguliers ;
- * sa cadence s'améliore avec des atomes jusqu'à un plafond, puis avec des éléments.
+ * <p>Une fois {@link #UNLOCK_TOTAL_ATOMS} atomes créés, deux choses se débloquent ensemble. D'abord les automatismes
+ * ({@link Automation}) : le jeu achète alors lui-même les améliorations payées en particules, voire fusionne tout seul.
+ * Un automatisme agit à intervalles réguliers ; sa cadence s'améliore avec des atomes jusqu'à un plafond, puis avec des
+ * éléments.
  *
- * <p>Ensuite le tableau périodique : le joueur dépense des atomes pour
- * {@linkplain #synthesize() synthétiser} des
- * éléments tirés au sort. Chaque élément a son propre effet ({@link ElementEffect}), et le
- * premier élément unique obtenu débloque la synthèse automatique. Chaque élément a un nombre
- * maximal d'exemplaires : quand tous l'ont atteint, le tableau est complet.
+ * <p>Ensuite le tableau périodique : le joueur dépense des atomes pour {@linkplain #synthesize() synthétiser} des
+ * éléments tirés au sort. Chaque élément a son propre effet ({@link ElementEffect}), et le premier élément unique
+ * obtenu débloque la synthèse automatique. Chaque élément a un nombre maximal d'exemplaires : quand tous l'ont atteint,
+ * le tableau est complet.
  *
- * <p>Un tableau dont les 118 éléments sont découverts peut {@linkplain #explode() exploser},
- * sans attendre d'être complet : toute la matière disparaît, la partie repart du premier
- * générateur, et il reste de la <b>matière noire</b>, la troisième ressource.
- * Le joueur la fait grossir ({@link #growDarkMatter(double)}), et elle ouvre un arbre
- * d'améliorations définitives ({@link DarkUpgrade}), payées en particules, en atomes, ou
- * débloquées par sa taille.
+ * <p>Un tableau dont les 118 éléments sont découverts peut {@linkplain #explode() exploser}, sans attendre d'être
+ * complet : toute la matière disparaît, la partie repart du premier générateur, et il reste de la <b>matière noire</b>,
+ * la troisième ressource. Le joueur la fait grossir ({@link #growDarkMatter(double)}), et elle ouvre un arbre
+ * d'améliorations définitives ({@link DarkUpgrade}), payées en particules, en atomes, ou débloquées par sa taille.
  *
- * <p>Les particules gardent leur intérêt jusqu'au bout grâce au rendement de fusion
- * ({@link #fusionYield()}) : plus la production est forte au moment de fusionner, plus la
- * fusion rapporte d'atomes.
+ * <p>Les particules gardent leur intérêt jusqu'au bout grâce au rendement de fusion ({@link #fusionYield()}) : plus la
+ * production est forte au moment de fusionner, plus la fusion rapporte d'atomes.
  *
  * <p>L'interface n'a besoin que de trois choses :
  * <ul>
- *   <li>appeler {@link #tick(double)} régulièrement ;</li>
- *   <li>lire l'état pour l'afficher ({@link #state()}, {@link #speed(int)}, {@link #generatorCount()}) ;</li>
- *   <li>envoyer les actions du joueur ({@link #start()}, {@link #buy(String)}, {@link #fuse()},
- *       {@link #synthesize()}…).</li>
+ * <li>appeler {@link #tick(double)} régulièrement ;</li>
+ * <li>lire l'état pour l'afficher ({@link #state()}, {@link #speed(int)}, {@link #generatorCount()}) ;</li>
+ * <li>envoyer les actions du joueur ({@link #start()}, {@link #buy(String)}, {@link #fuse()}, {@link
+ * #synthesize()}…).</li>
  * </ul>
  *
- * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
- * celle-ci est le bout ; le reste du programme ne voit que {@code Game}. De la base au bout :
- * {@link GameBase}, {@link GameSystems}, {@link GameDarkTree}, {@link GameCollider}, {@link GamePlans},
- * {@link GameAtoms}, {@link GameUniverse}, {@link GameMolecules}, {@link GameMatterAutomation},
- * {@link GameParticles}, {@link GameDarkMatter}, {@link GameBigBang}, {@link GameVoid}. Quand une partie a besoin d'une
- * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
- * les parties suivantes ».
+ * <p>Le code est rangé en parties : une chaîne de classes abstraites, une par thème, dont celle-ci est le bout ; le
+ * reste du programme ne voit que {@code Game}. De la base au bout : {@link GameBase}, {@link GameSystems}, {@link
+ * GameDarkTree}, {@link GameCollider}, {@link GamePlans}, {@link GameAtoms}, {@link GameUniverse}, {@link
+ * GameMolecules}, {@link GameMatterAutomation}, {@link GameParticles}, {@link GameDarkMatter}, {@link GameBigBang},
+ * {@link GameVoid}. Quand une partie a besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite
+ * en tête, sous « Ce que fournissent les parties suivantes ».
  */
 public final class Game extends GameFinale {
-
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
         this(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random());
     }
 
     /**
-     * Nouvelle partie avec les catalogues par défaut, et un hasard de synthèse tiré de cette graine (version 0.127) :
+     * Nouvelle partie avec les catalogues par défaut, et un hasard de synthèse tiré de cette graine :
      * la fenêtre la note dans le rapport de bug, pour rejouer les mêmes tirages.
      */
     public Game(long seed) {
@@ -92,9 +74,7 @@ public final class Game extends GameFinale {
     }
 
     /** Partie sans aucun automatisme au catalogue. */
-    public Game(GameState state, List<Upgrade> catalog) {
-        this(state, catalog, List.of());
-    }
+    public Game(GameState state, List<Upgrade> catalog) { this(state, catalog, List.of()); }
 
     /** Partie reprise depuis un état existant, avec un hasard imprévisible pour la synthèse. */
     public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog) {
@@ -107,9 +87,7 @@ public final class Game extends GameFinale {
      * @param random source de hasard de la synthèse ; les tests en passent une reproductible
      */
     public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
-                RandomGenerator random) {
-        this(state, catalog, automationCatalog, DarkUpgrades.DEFAULT, random);
-    }
+                RandomGenerator random) { this(state, catalog, automationCatalog, DarkUpgrades.DEFAULT, random); }
 
     /** Comme le précédent, avec un arbre d'améliorations de matière noire sur mesure. Sans succès. */
     public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
@@ -118,9 +96,8 @@ public final class Game extends GameFinale {
     }
 
     /**
-     * Partie complète, avec son catalogue de succès. Les autres constructeurs n'en ont aucun :
-     * leurs parties ne reçoivent donc aucun bonus de succès, ce qui garde les tests et les
-     * simulations indépendants du catalogue.
+     * Partie complète, avec son catalogue de succès. Les autres constructeurs n'en ont aucun : leurs parties ne
+     * reçoivent donc aucun bonus de succès, ce qui garde les tests et les simulations indépendants du catalogue.
      */
     public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
                 List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
@@ -131,14 +108,10 @@ public final class Game extends GameFinale {
     // Le démarrage
     // ------------------------------------------------------------------
 
-    public boolean isStarted() {
-        return state.started();
-    }
+    public boolean isStarted() { return state.started(); }
 
     /** Crée le premier générateur. Sans effet si c'est déjà fait. */
-    public void start() {
-        state.setStarted(true);
-    }
+    public void start() { state.setStarted(true); }
 
     /**
      * Recommence le jeu de zéro : tout est effacé, jusqu'à la matière noire, son arbre et les
@@ -146,14 +119,13 @@ public final class Game extends GameFinale {
      */
     public void reset() {
         state.reset();
-        // Un remboursement pas encore annoncé parlait de la partie effacée (version 0.126).
+        // Un remboursement pas encore annoncé parlait de la partie effacée.
         forkRefund = BigNum.ZERO;
     }
 
     /**
-     * L'état de la partie vient d'être remplacé par celui d'une sauvegarde : tout ce que le jeu
-     * avait calculé d'avance est oublié, et ce que la sauvegarde nomme sans que le jeu le
-     * connaisse (une molécule disparue depuis) est écarté.
+     * L'état de la partie vient d'être remplacé par celui d'une sauvegarde : tout ce que le jeu avait calculé d'avance
+     * est oublié, et ce que la sauvegarde nomme sans que le jeu le connaisse (une molécule disparue depuis) est écarté.
      *
      * @return le nombre d'identifiants inconnus écartés ; 0 pour une sauvegarde de cette version du jeu
      */
@@ -164,8 +136,8 @@ public final class Game extends GameFinale {
         newAchievements.clear();
         newRecords.clear();
         // Une sauvegarde d'avant la 0.083 dont l'univers est formé : la remise à zéro de l'univers ne s'était pas faite.
-        // Version 0.110 : de même pour un univers atteint par l'échelle du cosmos seule, sans avoir été formé.
-        // Version 0.113 : cette remise à zéro rattrape la formation de l'univers d'avant ; elle ne compte pas un
+        // De même pour un univers atteint par l'échelle du cosmos seule, sans avoir été formé.
+        // Cette remise à zéro rattrape la formation de l'univers d'avant ; elle ne compte pas un
         // univers de plus (une sauvegarde d'avant la 0.083 en gagnait un, et son bonus de matière noire doublait).
         if (state.cosmosLevel() >= Cosmos.values().length) {
             state.setUniverseFormed(false);
@@ -201,14 +173,14 @@ public final class Game extends GameFinale {
         achievementTimer = 0;
         moleculeAutomationTimer = 0;
         moleculeAutomationTurn = 0;
-        // Une partie relue ou remise à zéro ne reprend pas au milieu d'une plongée dans le volume (version 0.128),
-        // ni bouton de la durée tenu (version 0.134).
+        // Une partie relue ou remise à zéro ne reprend pas au milieu d'une plongée dans le volume,
+        // ni bouton de la durée tenu.
         leaveVolume();
         dropDuration();
     }
 
-    private static java.util.Set<String> challengeIds() {
-        java.util.Set<String> ids = new java.util.HashSet<>();
+    private static Set<String> challengeIds() {
+        Set<String> ids = new HashSet<>();
         for (Challenge challenge : Challenges.ALL) ids.add(challenge.id());
         return ids;
     }
@@ -231,7 +203,7 @@ public final class Game extends GameFinale {
 
     /**
      * Fait avancer le jeu comme {@link #tick(double)}, mais pendant une absence rejouée : l'accord
-     * d'absence (version 0.071) peut alors y tenter les défis ouverts.
+     * d'absence peut alors y tenter les défis ouverts.
      */
     public void tickAway(double dt) {
         away = true;
@@ -243,7 +215,7 @@ public final class Game extends GameFinale {
     }
 
     /**
-     * En absence (version 0.073) : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
+     * En absence : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
      * d'absence, si elle est payable. Qui ne choisit pas joue le style de l'absence.
      */
     private void takeAbsencePaths() {
@@ -258,7 +230,7 @@ public final class Game extends GameFinale {
     }
 
     /**
-     * Les sondes en absence (version 0.086) : une sonde arrivée vide son butin et repart pour le même
+     * Les sondes en absence : une sonde arrivée vide son butin et repart pour le même
      * voyage, comme le ferait le joueur. Joueur présent, rien ne change : le butin attend son clic,
      * et les sondes restent un à-côté, jamais une obligation.
      */
@@ -284,7 +256,7 @@ public final class Game extends GameFinale {
     private final List<String> awayPaths = new ArrayList<>();
     private final List<String> awayChallengesStarted = new ArrayList<>();
 
-    /** Ce que l'absence rejouée a fait à la place du joueur (version 0.073), puis l'oublie. */
+    /** Ce que l'absence rejouée a fait à la place du joueur, puis l'oublie. */
     public List<String> takeAwayPaths() {
         List<String> taken = new ArrayList<>(awayPaths);
         awayPaths.clear();
@@ -313,11 +285,11 @@ public final class Game extends GameFinale {
      * Part du temps passé jeu fermé qui est rejouée au retour ({@link Absence}) : un dixième au
      * début, et de plus en plus à mesure que les actes passent, jusqu'à tout le temps une fois
      * l'univers formé. Le jeu fermé avance donc toujours moins vite que le jeu ouvert, sauf à la fin.
-     * Version 0.126 : une fois le premier univers formé, tout le temps est rejoué, aussi dans les parties suivantes.
+     * Une fois le premier univers formé, tout le temps est rejoué, aussi dans les parties suivantes.
      */
     public double offlineRate() {
         if (isUniverseFormed()) return OFFLINE_RATE_UNIVERSE;
-        // Les voies d'absence de l'arbre (version 0.070) en rendent une part de plus, jusqu'à tout le temps.
+        // Les voies d'absence de l'arbre en rendent une part de plus, jusqu'à tout le temps.
         if (state.bigBangs() > 0) return Math.min(1, OFFLINE_RATE_BIG_BANG + darkOfflineBonus());
         if (isDarkMatterUnlocked()) return Math.min(1, OFFLINE_RATE_DARK_MATTER + darkOfflineBonus());
         return OFFLINE_RATE_PARTICLES;
@@ -342,7 +314,7 @@ public final class Game extends GameFinale {
         if (dt < 0 || Double.isNaN(dt) || Double.isInfinite(dt)) {
             throw new IllegalArgumentException("Durée invalide : " + dt);
         }
-        // Le chrono (version 0.139) : il se remplit, et en jeu il fait passer le temps plus vite, tout le jeu compris.
+        // Le chrono : il se remplit, et en jeu il fait passer le temps plus vite, tout le jeu compris.
         dt = runChrono(dt, !away);
         if (away) {
             takeAbsencePaths();
@@ -363,7 +335,7 @@ public final class Game extends GameFinale {
         runSkyEvents(dt);
         refillPulses(dt);
         runCollider(dt);
-        // Le vide (version 0.129) : ses paires prennent leur part du collisionneur qui vient de produire.
+        // Le vide : ses paires prennent leur part du collisionneur qui vient de produire.
         runVoid(dt);
         runHadrons();
         runProbes(dt);
@@ -372,36 +344,36 @@ public final class Game extends GameFinale {
         runAutoForm(dt);
         runPlans(dt);
         runSecondUniverse(dt);
-        // L'automatisation des dimensions (version 0.150) achète d'abord, puis les dimensions se jouent.
+        // L'automatisation des dimensions achète d'abord, puis les dimensions se jouent.
         runDimensionAutomation();
         runLine(dt);
         runPlane(dt);
-        // Le volume (version 0.128) ne se joue qu'au premier plan : une absence met fin à la plongée.
+        // Le volume ne se joue qu'au premier plan : une absence met fin à la plongée.
         if (away && isInVolume() && !isVolumeAutomatic()) leaveVolume();
         runVolume(dt);
-        // La durée (version 0.134) aussi : une absence relâche le bouton tenu, qui donne ce qu'il avait.
+        // La durée aussi : une absence relâche le bouton tenu, qui donne ce qu'il avait.
         if (away && isDurationHeld() && !isDurationAutomatic()) releaseDuration();
         runDuration(dt);
-        // La boucle et le rond de croissance (version 0.153).
+        // La boucle et le rond de croissance.
         runLoop(dt);
         runBloom(dt);
-        // La brane (version 0.154).
+        // La brane.
         runBrane(dt);
-        // Le clicker et la météo (version 0.155).
+        // Le clicker et la météo.
         runClicker(dt);
         runWeather(dt);
-        // La grille (version 0.156).
+        // La grille.
         runGrid(dt);
-        // Le miroir et les saisons (version 0.157).
+        // Le miroir et les saisons.
         runMirror(dt);
         runSeasons(dt);
-        // Le mélange (version 0.158), après les autres : il compte ce qu'elles ont donné à ce pas.
+        // Le mélange, après les autres : il compte ce qu'elles ont donné à ce pas.
         runMix(dt);
-        // Le défi final (version 0.160).
+        // Le défi final.
         runFinale();
-        // Les moments de la partie secondaire, pour l'onglet Statistiques (version 0.168).
+        // Les moments de la partie secondaire, pour l'onglet Statistiques.
         noteMoments(dt);
-        // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
+        // L'arrosoir se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);
         runBubbles(dt);
@@ -418,7 +390,7 @@ public final class Game extends GameFinale {
     }
 
     // ------------------------------------------------------------------
-    // Les bulles de l'arbre qui produisent seules (version 0.148)
+    // Les bulles de l'arbre qui produisent seules
     // ------------------------------------------------------------------
 
     /** La bulle de l'arbuste, à droite : une fusion de ce qu'on a, en atomes, toutes les {@value} secondes, sans fusionner. */
@@ -472,7 +444,7 @@ public final class Game extends GameFinale {
     /** L'amélioration « Persistance », que la bulle de l'arbuste, à droite, offre. */
     private static final String PERSISTENCE = "atom_keep";
 
-    /** Le pas de temps des automatismes sans délai (version 0.152). */
+    /** Le pas de temps des automatismes sans délai. */
     static final double INSTANT_STEP = 0.25;
 
     /** Fait passer le temps : la production, puis les automatismes à leur rythme. */
@@ -491,7 +463,7 @@ public final class Game extends GameFinale {
         double remaining = dt;
         do {
             double part = Math.min(remaining, maxStep);
-            // Version 0.126 : un pas s'arrête là où finit un bonus minuté, pour qu'il compte exactement le temps qui lui reste.
+            // Un pas s'arrête là où finit un bonus minuté, pour qu'il compte exactement le temps qui lui reste.
             double bonusLeft = timedBonusLeft();
             if (bonusLeft > 0 && bonusLeft < part) part = Math.min(remaining, Math.max(bonusLeft, 1e-9));
             step(part);
@@ -517,7 +489,7 @@ public final class Game extends GameFinale {
     }
 
     /**
-     * Fait s'écouler les bonus de production minutés (version 0.126) : juste après la production du même pas, et
+     * Fait s'écouler les bonus de production minutés : juste après la production du même pas, et
      * non plus avant elle. Un gros pas, celui d'une absence, leur donne ainsi exactement le temps qui leur reste.
      */
     private void runTimedBonuses(double dt) {
@@ -567,7 +539,7 @@ public final class Game extends GameFinale {
             state.setParticles(state.particles().add(gain));
             state.stats().addParticles(gain);
         }
-        // La fuite (version 0.115) : sa vitesse grandit avec le temps passé sans amélioration achetée par le joueur.
+        // La fuite : sa vitesse grandit avec le temps passé sans amélioration achetée par le joueur.
         double leak = leakLossPerSecond();
         if (leak > 0 && dt > 0) state.setParticles(state.particles().multiply(Math.exp(Math.log(1 - leak) * dt)));
         state.setTimePlayed(state.timePlayed() + dt);
@@ -607,7 +579,7 @@ public final class Game extends GameFinale {
         boolean run = stats.runHistory().isDue(stats.runTime());
         if (!whole && !run) return;
         double[] values = measure();
-        Map<String, Double> delays = new java.util.HashMap<>();
+        Map<String, Double> delays = new HashMap<>();
         for (Automation automation : automations.values()) {
             if (ownsAutomation(automation.id())) delays.put(automation.id(), automationInterval(automation.id()));
         }
@@ -617,10 +589,9 @@ public final class Game extends GameFinale {
     }
 
     /**
-     * Les relevés d'un historique, suivis d'un relevé de l'instant (version 0.064). Les relevés
-     * s'espacent avec le temps de jeu (plusieurs minutes après quelques heures) : sans ce dernier
-     * point, une courbe toute neuve, ou une statistique apparue depuis le dernier relevé, resterait
-     * vide jusqu'au suivant. Le relevé de l'instant n'est pas gardé.
+     * Les relevés d'un historique, suivis d'un relevé de l'instant. Les relevés s'espacent avec le temps de jeu
+     * (plusieurs minutes après quelques heures) : sans ce dernier point, une courbe toute neuve, ou une statistique
+     * apparue depuis le dernier relevé, resterait vide jusqu'au suivant. Le relevé de l'instant n'est pas gardé.
      *
      * @param run vrai pour l'historique de la partie en cours, faux pour celui de tout le jeu
      */
@@ -631,7 +602,7 @@ public final class Game extends GameFinale {
         if (!state.started()) return samples;
         double time = run ? stats.runTime() : state.timePlayed();
         if (!samples.isEmpty() && samples.get(samples.size() - 1).time() >= time) return samples;
-        Map<String, Double> delays = new java.util.HashMap<>();
+        Map<String, Double> delays = new HashMap<>();
         for (Automation automation : automations.values()) {
             if (ownsAutomation(automation.id())) delays.put(automation.id(), automationInterval(automation.id()));
         }
@@ -751,9 +722,7 @@ public final class Game extends GameFinale {
     }
 
     /** La puissance de dix d'une quantité, ou {@code NaN} tant qu'elle est nulle : la courbe ne commence qu'ensuite. */
-    private static double power(BigNum value) {
-        return value.sign() > 0 ? value.log10() : Double.NaN;
-    }
+    private static double power(BigNum value) { return value.sign() > 0 ? value.log10() : Double.NaN; }
 
     /** Niveaux de vitesse en tout, offerts compris : la somme sur les améliorations de vitesse du catalogue. */
     private int totalSpeedLevels() {
@@ -774,10 +743,10 @@ public final class Game extends GameFinale {
     }
 
     // ------------------------------------------------------------------
-    // Le profil du joueur (version 0.147) : nom, avatar, titres et albums
+    // Le profil du joueur : nom, avatar, titres et albums
     // ------------------------------------------------------------------
 
-    private final List<idle.core.profile.Title> newTitles = new java.util.ArrayList<>();
+    private final List<Title> newTitles = new ArrayList<>();
 
     /**
      * Note les titres que la partie vient de mériter et ce que les albums n'avaient pas encore : les molécules créées,
@@ -786,67 +755,61 @@ public final class Game extends GameFinale {
      */
     void checkProfile() {
         double now = state.timePlayed();
-        for (idle.core.profile.Title title : idle.core.profile.Title.values()) {
+        for (Title title : Title.values()) {
             if (state.earnedTitles().containsKey(title.name()) || !title.isReachedBy(this)) continue;
             state.earnTitle(title.name(), now);
             newTitles.add(title);
         }
         if (!isBigBangUnlocked() && state.foundMolecules().isEmpty()) return;
-        for (idle.core.molecules.Molecule molecule : molecules()) {
+        for (Molecule molecule : molecules()) {
             if (moleculeCount(molecule.id()) > 0) state.noteFound("molecules", molecule.id(), now);
             if (hasSubstance(molecule.id())) state.noteFound("substances", molecule.id(), now);
         }
-        for (idle.core.sky.Assembly assembly : assemblies()) {
+        for (Assembly assembly : assemblies()) {
             if (hasAssembly(assembly.id())) state.noteFound("assemblies", assembly.id(), now);
         }
-        for (idle.core.sky.Body body : bodies()) {
+        for (Body body : bodies()) {
             if (hasBody(body.id())) state.noteFound("bodies", body.id(), now);
         }
     }
 
     /** Les titres obtenus depuis la dernière lecture, dans l'ordre : pour les annoncer. */
-    public List<idle.core.profile.Title> takeNewTitles() {
-        List<idle.core.profile.Title> taken = List.copyOf(newTitles);
+    public List<Title> takeNewTitles() {
+        List<Title> taken = List.copyOf(newTitles);
         newTitles.clear();
         return taken;
     }
 
     /** Vrai si le joueur a ce titre. */
-    public boolean hasTitle(idle.core.profile.Title title) {
-        return state.earnedTitles().containsKey(title.name());
-    }
+    public boolean hasTitle(Title title) { return state.earnedTitles().containsKey(title.name()); }
 
     /** Les titres obtenus, dans l'ordre du catalogue. */
-    public List<idle.core.profile.Title> titles() {
-        List<idle.core.profile.Title> earned = new java.util.ArrayList<>();
-        for (idle.core.profile.Title title : idle.core.profile.Title.values()) if (hasTitle(title)) earned.add(title);
+    public List<Title> titles() {
+        List<Title> earned = new ArrayList<>();
+        for (Title title : Title.values()) if (hasTitle(title)) earned.add(title);
         return earned;
     }
 
     /** Le temps de jeu auquel ce titre a été obtenu, ou {@code NaN}. */
-    public double titleEarnedAt(idle.core.profile.Title title) {
-        return state.earnedTitles().getOrDefault(title.name(), Double.NaN);
-    }
+    public double titleEarnedAt(Title title) { return state.earnedTitles().getOrDefault(title.name(), Double.NaN); }
 
     /** Le titre porté : celui choisi s'il est obtenu, sinon le plus avancé obtenu ; {@code null} sans titre. */
-    public idle.core.profile.Title currentTitle() {
-        idle.core.profile.Title chosen = idle.core.profile.Title.named(state.chosenTitle());
+    public Title currentTitle() {
+        Title chosen = Title.named(state.chosenTitle());
         if (chosen != null && hasTitle(chosen)) return chosen;
-        List<idle.core.profile.Title> earned = titles();
+        List<Title> earned = titles();
         return earned.isEmpty() ? null : earned.get(earned.size() - 1);
     }
 
     /** Porte ce titre ; faux s'il n'est pas obtenu. {@code null} revient au plus avancé. */
-    public boolean chooseTitle(idle.core.profile.Title title) {
+    public boolean chooseTitle(Title title) {
         if (title != null && !hasTitle(title)) return false;
         state.setChosenTitle(title == null ? "" : title.name());
         return true;
     }
 
     /** Le nom du joueur, ou « Joueur » tant qu'il n'en a pas choisi. */
-    public String playerName() {
-        return state.playerName().isEmpty() ? DEFAULT_PLAYER_NAME : state.playerName();
-    }
+    public String playerName() { return state.playerName().isEmpty() ? DEFAULT_PLAYER_NAME : state.playerName(); }
 
     /** Le nom affiché tant que le joueur n'en a pas choisi. */
     public static final String DEFAULT_PLAYER_NAME = "Joueur";

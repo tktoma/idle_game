@@ -1,26 +1,20 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.GluonMilestone;
-import idle.core.collider.Hadron;
+import idle.core.collider.*;
 import idle.core.math.BigNum;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.151 : ce que font les hadrons. Chaque sorte renforce une grandeur ou baisse un prix, ×(1 + 0,25 × log₁₀(1 + n)) ;
+ * Ce que font les hadrons. Chaque sorte renforce une grandeur ou baisse un prix, ×(1 + 0,25 × log₁₀(1 + n)) ;
  * chaque quark lié compte un gluon, et les paliers de gluons font garder à l'explosion et au Big Bang.
  */
 class HadronsBonusTest {
-
-    private static double boost(long count) {
-        return 1 + Game.HADRON_BOOST_STEP * Math.log10(1 + (double) count);
-    }
+    private static double boost(long count) { return 1 + Game.HADRON_BOOST_STEP * Math.log10(1 + (double) count); }
 
     @Test
     void leBonusGranditAvecLeLogarithme() {
@@ -30,7 +24,7 @@ class HadronsBonusTest {
         assertEquals(1.75, game.hadronBoost(Hadron.PROTON), 1e-9, "mille protons : ×1,75");
         for (Hadron hadron : Hadron.values()) assertFalse(hadron.bonus().isBlank(), hadron.toString());
         assertEquals(List.of(Hadron.J_PSI, Hadron.B_MESON, Hadron.UPSILON),
-                java.util.Arrays.stream(Hadron.values()).filter(Hadron::lowersCost).toList());
+                Arrays.stream(Hadron.values()).filter(Hadron::lowersCost).toList());
     }
 
     @Test

@@ -1,36 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.darkmatter.DarkEffect;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.darkmatter.SizeScale;
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.ElementSet;
-import idle.core.elements.PeriodicTable;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : l'arbre de matière noire.
- */
+/** Les règles du jeu : l'arbre de matière noire. */
 class JeuArbreTest extends GameTestSupport {
-
-
     @Nested
     class ArbreDeMatiereNoire {
-
         private static final double START = Game.DARK_MATTER_START_SIZE.toDouble();
 
         /** Partie démarrée, avec assez de matière noire (20) pour que toutes les cases soient accessibles. */
@@ -42,13 +28,9 @@ class JeuArbreTest extends GameTestSupport {
         }
 
         /** Donne directement {@code level} niveaux d'une amélioration de matière noire. */
-        private void give(Game game, String id, int level) {
-            game.state().setDarkLevel(id, level);
-        }
+        private void give(Game game, String id, int level) { game.state().setDarkLevel(id, level); }
 
-        private void fillTable(Game game) {
-            GameTestSupport.fillTableToMax(game);
-        }
+        private void fillTable(Game game) { GameTestSupport.fillTableToMax(game); }
 
         // ----- L'arbre lui-même -----
 
@@ -56,7 +38,7 @@ class JeuArbreTest extends GameTestSupport {
         void troisBranchesDontChaqueCaseDemandeCelleDuDessus() {
             Map<DarkUpgrade.Branch, Integer> count = new EnumMap<>(DarkUpgrade.Branch.class);
             Map<DarkUpgrade.Branch, String> previous = new EnumMap<>(DarkUpgrade.Branch.class);
-            Map<String, String> forkParent = new java.util.HashMap<>();
+            Map<String, String> forkParent = new HashMap<>();
             for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
                 if (dark.isLink()) continue;                    // les liaisons (0.70) sont vérifiées à part
                 count.merge(dark.branch(), 1, Integer::sum);
@@ -80,7 +62,7 @@ class JeuArbreTest extends GameTestSupport {
             assertEquals(12, count.get(DarkUpgrade.Branch.ATOMS).intValue());
             assertEquals(15, count.get(DarkUpgrade.Branch.SIZE).intValue());        // + Fond diffus et Mur de Planck (0.97)
             assertEquals(6, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
-            assertEquals(7, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::fork).filter(java.util.Objects::nonNull).distinct().count());
+            assertEquals(7, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::fork).filter(Objects::nonNull).distinct().count());
             assertEquals(10, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isLink).count());   // six liaisons, quatre accords
             assertEquals(4, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isAccord).count());
             assertEquals(62, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
@@ -123,7 +105,7 @@ class JeuArbreTest extends GameTestSupport {
         void lesParticulesSontDepenseesEtLePrixMonte() {
             Game game = darkGame();
             game.state().setParticles(BigNum.of(25));
-            assertValue(20, game.darkCostOf("dark_density"));       // version 0.124 : 20 particules, puis ×2,51·10¹⁷
+            assertValue(20, game.darkCostOf("dark_density"));       // 20 particules, puis ×2,51·10¹⁷
             assertTrue(game.buyDark("dark_density"));
             assertValue(5, game.state().particles());
             assertEquals(1, game.darkLevelOf("dark_density"));

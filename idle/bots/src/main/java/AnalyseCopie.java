@@ -1,20 +1,11 @@
 import idle.core.Game;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import idle.core.math.BigNum;
+import java.io.*;
+import java.lang.reflect.*;
+import java.util.*;
 
 /**
- * La copie d'un bot pour une partie d'essai (version 0.161). Copier la partie ne suffit pas : le bot a sa mémoire (une
+ * La copie d'un bot pour une partie d'essai. Copier la partie ne suffit pas : le bot a sa mémoire (une
  * fusion qu'il a coupée lui-même, une réserve qu'il gère, ses politiques et leurs compteurs, son hasard), et un bot
  * neuf sur une partie en cours se trompe (mesuré : sans elle, la copie n'explose plus). Ici, champ par champ, la
  * mémoire du bot passe à un bot neuf construit sur la copie de la partie : les nombres et les textes tels quels, le
@@ -22,7 +13,6 @@ import java.util.Random;
  * dupliquées. La partie elle-même ({@link Game}) n'est jamais recopiée par ce chemin : chaque bot garde la sienne.
  */
 final class AnalyseCopie {
-
     private AnalyseCopie() {}
 
     /** Recopie la mémoire de {@code source} dans {@code cible}, de la même classe ou d'une classe parente commune. */
@@ -52,7 +42,7 @@ final class AnalyseCopie {
                 field.set(cible, new StringBuilder(sb));
             } else if (value instanceof List<?> list) {
                 field.set(cible, new ArrayList<>(list));
-            } else if (value instanceof java.util.Set<?> set) {
+            } else if (value instanceof Set<?> set) {
                 field.set(cible, new LinkedHashSet<>(set));
             } else if (value instanceof Map<?, ?> map) {
                 field.set(cible, new HashMap<>(map));
@@ -70,7 +60,7 @@ final class AnalyseCopie {
 
     private static boolean immuable(Object value) {
         return value instanceof Number || value instanceof String || value instanceof Boolean || value instanceof Character
-                || value instanceof Enum<?> || value.getClass().isRecord() || value instanceof idle.core.math.BigNum;
+                || value instanceof Enum<?> || value.getClass().isRecord() || value instanceof BigNum;
     }
 
     /** Un hasard qui tirera la même suite que l'original, sans toucher à l'original. */

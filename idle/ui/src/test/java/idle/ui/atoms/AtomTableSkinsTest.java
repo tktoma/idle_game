@@ -1,34 +1,28 @@
 package idle.ui.atoms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.elements.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.elements.ElementCategory;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.Scene;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les skins de l'atome et du tableau périodique, sous Xvfb. Chaque skin de l'atome dessine le
+ * Les skins de l'atome et du tableau périodique, sous Xvfb. Chaque skin de l'atome dessine le
  * grand atome à tous les remplissages, avec ses copies et l'arrivée d'une orbe, sans exception ; chaque skin du
  * tableau peint les cases (pas obtenues, possédées, au maximum, uniques, visées) et donne à au moins une case un
  * style différent du classique ; « Minuscule » réduit les cases de moitié ; sans skin, tout revient au classique.
  */
 class AtomTableSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Les skins d'un visuel, dans l'ordre du catalogue. */
     private static List<Skin> skinsOf(SkinVisual visual) {
@@ -143,8 +137,8 @@ class AtomTableSkinsTest {
             for (int k = 0; k < watched.length; k++) assertEquals(classic.get(k), page.cellStyle(watched[k]), "classique, case " + watched[k]);
             assertEquals(classicSize, page.shownCellSize(), 1e-9);
             assertEquals("", page.tableStyle());
-            assertEquals("Fe\n" + game.maxCopiesOf(idle.core.elements.PeriodicTable.element(26)) + "/"
-                    + game.maxCopiesOf(idle.core.elements.PeriodicTable.element(26)), page.cellText(26));
+            assertEquals("Fe\n" + game.maxCopiesOf(PeriodicTable.element(26)) + "/"
+                    + game.maxCopiesOf(PeriodicTable.element(26)), page.cellText(26));
             return null;
         });
     }

@@ -1,22 +1,13 @@
 import idle.core.Game;
 import idle.core.save.SaveCodec;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
- * Les univers d'une partie de référence joués en parallèle (version 0.170), pour qu'une simulation de onze univers ne
+ * Les univers d'une partie de référence joués en parallèle, pour qu'une simulation de onze univers ne
  * prenne plus onze fois le temps d'un univers.
  *
  * <p>Le principe : une partie jouée d'un trait écrit un <em>jalon</em> à chaque univers lancé (la sauvegarde du jeu et la
@@ -52,9 +43,7 @@ public final class UniversParalleles {
     private UniversParalleles() {}
 
     /** Le nom du jalon écrit quand {@code formes} univers sont formés et le suivant lancé. */
-    static String nomJalon(int formes) {
-        return "apres_univers_" + formes + ".save";
-    }
+    static String nomJalon(int formes) { return "apres_univers_" + formes + ".save"; }
 
     /**
      * Une tranche de partie : le bot des profils ({@link IdleProfiles24}, le même que celui de {@code FreshUniverseAudit}),
@@ -188,9 +177,7 @@ public final class UniversParalleles {
         return out.length() == 0 ? "aucun écart (?)" : out.toString();
     }
 
-    private static String abrege(String s) {
-        return s.length() <= 80 ? s : s.substring(0, 77) + "…";
-    }
+    private static String abrege(String s) { return s.length() <= 80 ? s : s.substring(0, 77) + "…"; }
 
     /** Le jalon de départ de la tranche {@code k} dans un dossier : la partie neuve pour la première, sinon {@code apres_univers_(k-1)}. */
     static Path jalonDepart(Path dossier, int k) {
@@ -281,8 +268,8 @@ public final class UniversParalleles {
         StringBuilder evenements = new StringBuilder("univers,evenement,heure_reelle_h,heure_jeu_h\n");
         for (int k = 1; k <= univers; k++) {
             Resultat r = resultat[k];
-            Files.copy(r.jalon(), sortie.resolve(r.jalon().getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(AnalyseMemoire.fichier(r.jalon()), sortie.resolve(AnalyseMemoire.fichier(r.jalon()).getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(r.jalon(), sortie.resolve(r.jalon().getFileName()), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(AnalyseMemoire.fichier(r.jalon()), sortie.resolve(AnalyseMemoire.fichier(r.jalon()).getFileName()), StandardCopyOption.REPLACE_EXISTING);
             for (String e : r.evenements()) evenements.append(e).append('\n');
             Path ancien = k < univers ? reference.resolve(nomJalon(k)) : reference.resolve("fin.save");
             boolean pareil = Files.exists(ancien) && identiques(r.jalon(), ancien);
@@ -367,24 +354,22 @@ public final class UniversParalleles {
             CIBLE.set(cible);
         }
 
-        static void debrancher() {
-            CIBLE.remove();
-        }
+        static void debrancher() { CIBLE.remove(); }
 
         @Override
-        public void write(int b) throws java.io.IOException {
+        public void write(int b) throws IOException {
             OutputStream cible = CIBLE.get();
             (cible == null ? ORIGINE : cible).write(b);
         }
 
         @Override
-        public void write(byte[] b, int off, int len) throws java.io.IOException {
+        public void write(byte[] b, int off, int len) throws IOException {
             OutputStream cible = CIBLE.get();
             (cible == null ? ORIGINE : cible).write(b, off, len);
         }
 
         @Override
-        public void flush() throws java.io.IOException {
+        public void flush() throws IOException {
             OutputStream cible = CIBLE.get();
             (cible == null ? ORIGINE : cible).flush();
         }

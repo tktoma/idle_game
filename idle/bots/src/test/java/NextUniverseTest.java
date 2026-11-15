@@ -1,33 +1,30 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.bigbang.*;
+import idle.core.darkmatter.Challenges;
+import idle.core.elements.ElementCategory;
+import idle.core.math.BigNum;
+import idle.core.sky.SkyEvent;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.bigbang.BangChallenge;
 import idle.core.universe.CycleChoice;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Locale;
-import java.util.Random;
+import java.nio.file.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.130 : les bots jouent l'univers suivant. La politique du deuxième univers ne fait rien dans le premier,
+ * Les bots jouent l'univers suivant. La politique du deuxième univers ne fait rien dans le premier,
  * l'univers visé décide quand s'arrêter, et les profils comme le bot V2 enchaînent sur l'univers 2.
  */
 class NextUniverseTest {
-
     /** La partie que le Speedrunner (graine 201) laisse en formant le premier univers : le départ de l'univers 2. */
     static final Path UNIVERSE_ONE = Path.of("sauvegardes", "reference", "checkpoint_universe1_speedrunner.save");
 
-    private static Game fresh() {
-        return Bots.fresh(42);
-    }
+    private static Game fresh() { return Bots.fresh(42); }
 
-    private static Game load(Path save) throws Exception {
-        return Bots.load(save, 42);
-    }
+    private static Game load(Path save) throws Exception { return Bots.load(save, 42); }
 
     @Test
     void rienNeChangeDansLePremierUnivers() {
@@ -86,15 +83,15 @@ class NextUniverseTest {
         game.testFormUniverse();
         game.startNextUniverse();
         game.state().setExplosions(1);   // la matière noire existe : les défis se montrent
-        for (var challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
+        for (var challenge : Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
         assertTrue(game.baseChallengesDone());
         assertTrue(game.challenges().size() > game.completedChallenges(), "la fuite s'est montrée, pas encore réussie");
         // La politique des bots compte les dix défis de toujours : la fuite manquante ne retient pas la préparation.
         game.state().setBigBangs(1);
-        game.state().setDarkMatter(idle.core.math.BigNum.of(1, 6));
-        game.state().setParticles(idle.core.math.BigNum.of(1, 200_000));
+        game.state().setDarkMatter(BigNum.of(1, 6));
+        game.state().setParticles(BigNum.of(1, 200_000));
         game.achievements().stream().limit(Game.BIG_BANG_ACHIEVEMENTS).forEach(a -> game.state().addAchievement(a.id()));
-        assertTrue(game.isBigBangConditionMet(idle.core.bigbang.BigBangCondition.PARTICLES));
+        assertTrue(game.isBigBangConditionMet(BigBangCondition.PARTICLES));
         assertTrue(FirstUniversePolicy.finalBangPreparation(game), "le Big Bang se prépare sans attendre la fuite");
     }
 
@@ -193,7 +190,7 @@ class NextUniverseTest {
     void lesBotsSaisissentLesAnomaliesDuCiel() {
         Game game = fresh();
         game.state().setBigBangs(1);
-        game.state().setSkyEvent(idle.core.sky.SkyEvent.PARTICLE_WIND.name());
+        game.state().setSkyEvent(SkyEvent.PARTICLE_WIND.name());
         game.state().setSkyEventVisible(100);
         RobotCosmosPlanner bot = new RobotCosmosPlanner(game, 20);
         assertTrue(bot.catchSkyEvent());
@@ -201,7 +198,7 @@ class NextUniverseTest {
         assertEquals(Game.WIND_FACTOR, game.windMultiplier(), 1e-9);
         assertFalse(bot.catchSkyEvent(), "plus rien à saisir");
         // Sans anomalie visible, rien ; la propriété idle.sansAnomalies les fait ignorer.
-        game.state().setSkyEvent(idle.core.sky.SkyEvent.PARTICLE_WIND.name());
+        game.state().setSkyEvent(SkyEvent.PARTICLE_WIND.name());
         game.state().setSkyEventVisible(100);
         System.setProperty("idle.sansAnomalies", "true");
         try {
@@ -213,18 +210,14 @@ class NextUniverseTest {
     }
 
     /** Un hasard par graine, mélangé : les premiers tirages de graines voisines se ressemblent trop. */
-    private static Random mixed(int seed) {
-        return new Random(new Random(seed * 0x9E3779B97F4A7C15L).nextLong());
-    }
+    private static Random mixed(int seed) { return new Random(new Random(seed * 0x9E3779B97F4A7C15L).nextLong()); }
 
     /** Un hasard qui refuse d'être tiré : l'expert ne doit en consommer aucun. */
     private static final class NoRandom extends Random {
         private static final long serialVersionUID = 1L;
 
         @Override
-        protected int next(int bits) {
-            throw new AssertionError("l'expert ne tire pas de hasard");
-        }
+        protected int next(int bits) { throw new AssertionError("l'expert ne tire pas de hasard"); }
     }
 
     @Test
@@ -297,7 +290,7 @@ class NextUniverseTest {
     @Test
     void laFamilleChoisieUneFoisNeChangePlus() {
         Game game = everythingOffered();
-        game.state().setPreferredFamily(idle.core.elements.ElementCategory.NOBLE_GAS.name());
+        game.state().setPreferredFamily(ElementCategory.NOBLE_GAS.name());
         NextUniversePolicy once = new NextUniversePolicy(IdleProfiles24.STYLES[16], new Random(1));
         for (int i = 0; i < 30; i++) once.play(game);
         assertEquals(0, once.families, "AFKOpen n'y revient pas");
@@ -305,14 +298,14 @@ class NextUniverseTest {
 
     @Test
     void lesDefisDeBigBangCommencentParCeuxQuiNeRemettentRienAZero() throws Exception {
-        // Version 0.135 : le premier univers garde l'ordre du catalogue ; ensuite, le ciel figé et la barre haute d'abord.
+        // Le premier univers garde l'ordre du catalogue ; ensuite, le ciel figé et la barre haute d'abord.
         RobotCosmosPlanner first = new RobotCosmosPlanner(fresh(), 20);
-        assertEquals(java.util.List.of(idle.core.bigbang.BangChallenge.values()), first.bangChallengeOrder(false));
+        assertEquals(List.of(BangChallenge.values()), first.bangChallengeOrder(false));
         RobotCosmosPlanner later = new RobotCosmosPlanner(load(UNIVERSE_ONE), 20);
         assertTrue(later.g.isSecondUniverse());
         var order = later.bangChallengeOrder(true);
-        assertEquals(idle.core.bigbang.BangChallenge.FROZEN, order.get(0), "gratuit quand le Big Bang est prêt");
-        assertEquals(idle.core.bigbang.BangChallenge.RAISED, order.get(1), "ne remet rien à zéro non plus");
-        assertEquals(idle.core.bigbang.BangChallenge.values().length, order.size(), "tous, une fois chacun");
+        assertEquals(BangChallenge.FROZEN, order.get(0), "gratuit quand le Big Bang est prêt");
+        assertEquals(BangChallenge.RAISED, order.get(1), "ne remet rien à zéro non plus");
+        assertEquals(BangChallenge.values().length, order.size(), "tous, une fois chacun");
     }
 }

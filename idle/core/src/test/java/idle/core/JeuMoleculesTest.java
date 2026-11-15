@@ -1,31 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.molecules.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : les molécules.
- */
+/** Les règles du jeu : les molécules. */
 class JeuMoleculesTest extends GameTestSupport {
-
-
     @Nested
     class LesMolecules {
-
         private static final int H = 1;
         private static final int C = 6;
         private static final int O = 8;
@@ -160,7 +151,7 @@ class JeuMoleculesTest extends GameTestSupport {
             assertTrue(game.canCreateMolecule(WATER));
             game.state().addSpaceUpgrade("space_acid");
             assertFalse(game.canCreateMolecule("SiO2"));   // le quartz est un minéral, pas un sel
-            assertTrue(game.createMolecule(SALT));         // version 0.178 : les sels sont au rayon des acides
+            assertTrue(game.createMolecule(SALT));         // Les sels sont au rayon des acides
             game.state().addSpaceUpgrade("space_mineral");
             assertTrue(game.createMolecule("SiO2"));
         }
@@ -226,7 +217,7 @@ class JeuMoleculesTest extends GameTestSupport {
             state.addMolecules("H2", 4);
             state.addMolecules("H2", 0);
             assertEquals(List.of("H2O", "H2O", "H2O", "NaCl", "H2O", "H2O", "H2", "H2", "H2", "H2"),
-                    new java.util.ArrayList<>(state.moleculeLog()));
+                    new ArrayList<>(state.moleculeLog()));
             assertEquals(10, state.moleculeLog().size());
             assertEquals("H2O", state.moleculeLog().get(0));
             assertEquals("NaCl", state.moleculeLog().get(3));
@@ -237,14 +228,14 @@ class JeuMoleculesTest extends GameTestSupport {
             assertThrows(IllegalArgumentException.class, () -> state.addMolecules("H2", -1));
             // Les molécules en trop partent en commençant par les dernières créées.
             state.setMoleculeCount("H2O", 2);
-            assertEquals(List.of("H2O", "H2O", "NaCl", "H2", "H2", "H2", "H2"), new java.util.ArrayList<>(state.moleculeLog()));
+            assertEquals(List.of("H2O", "H2O", "NaCl", "H2", "H2", "H2", "H2"), new ArrayList<>(state.moleculeLog()));
             state.setMoleculeCount("NaCl", 0);
-            assertEquals(List.of("H2O", "H2O", "H2", "H2", "H2", "H2"), new java.util.ArrayList<>(state.moleculeLog()));
+            assertEquals(List.of("H2O", "H2O", "H2", "H2", "H2", "H2"), new ArrayList<>(state.moleculeLog()));
             assertEquals(0, state.moleculeCount("NaCl"));
             assertFalse(state.molecules().containsKey("NaCl"));
             state.setMoleculeCount("H2", 1);
             state.setMoleculeCount("H2O", 3);
-            assertEquals(List.of("H2O", "H2O", "H2", "H2O"), new java.util.ArrayList<>(state.moleculeLog()));
+            assertEquals(List.of("H2O", "H2O", "H2", "H2O"), new ArrayList<>(state.moleculeLog()));
             // Des millions de molécules ne coûtent qu'une suite.
             state.addMolecules("H2", 5_000_000);
             assertEquals(5_000_004, state.moleculeLog().size());
@@ -311,7 +302,7 @@ class JeuMoleculesTest extends GameTestSupport {
         void uneMoleculeOccupeDixUnitesDEspaceParProtonSelonSonEtat() {
             Game game = gameAfterBigBang();
             assertValue(280, game.moleculeVolume(SALT));          // un cristal : dix par proton
-            assertValue(1280, game.moleculeVolume("S8"));         // un ancien solide (version 0.178) : un cristal, pareil
+            assertValue(1280, game.moleculeVolume("S8"));         // un ancien solide : un cristal, pareil
             assertValue(200, game.moleculeVolume(WATER));         // un liquide : le double
             assertValue(400, game.moleculeVolume("H2"));          // un gaz : vingt fois plus
         }
@@ -423,12 +414,12 @@ class JeuMoleculesTest extends GameTestSupport {
 
         @Test
         void unPlafondReleveEstToujoursCeluiDUnElementDeLaFormule() {
-            Map<Molecule.Kind, java.util.Set<Integer>> raised = new EnumMap<>(Molecule.Kind.class);
+            Map<Molecule.Kind, Set<Integer>> raised = new EnumMap<>(Molecule.Kind.class);
             for (Molecule molecule : Molecules.DEFAULT) {
                 if (molecule.bonus() instanceof Molecule.Uncap uncap) {
                     assertTrue(molecule.recipe().containsKey(uncap.element()), molecule.id());
                     assertFalse(PeriodicTable.element(uncap.element()).category().unique(), molecule.id());
-                    raised.computeIfAbsent(molecule.kind(), each -> new java.util.HashSet<>()).add(uncap.element());
+                    raised.computeIfAbsent(molecule.kind(), each -> new HashSet<>()).add(uncap.element());
                     // Hors des petites molécules, c'est toujours un métal ou un métalloïde.
                     if (molecule.kind() != Molecule.Kind.SIMPLE) {
                         ElementCategory family = PeriodicTable.element(uncap.element()).category();
@@ -436,14 +427,14 @@ class JeuMoleculesTest extends GameTestSupport {
                     }
                 }
             }
-            java.util.Set<Integer> simple = raised.get(Molecule.Kind.SIMPLE);
+            Set<Integer> simple = raised.get(Molecule.Kind.SIMPLE);
             assertEquals(6, simple.size());                                // H, O, N, S, C, Si
             assertTrue(simple.contains(H) && simple.contains(C) && simple.contains(O));
             // La chimie du carbone n'a pas de métal : aucun plafond relevé.
             assertFalse(raised.containsKey(Molecule.Kind.ORGANIC));
             assertEquals(5, raised.get(Molecule.Kind.ACID).size());        // Na, K, Li, Ca, Mg : les sels
             assertTrue(raised.get(Molecule.Kind.MINERAL).contains(24));    // la chromite, pour le chrome
-            // Version 0.178 : les matériaux ont rejoint les minéraux, et deux molécules d'un même rayon peuvent relever le
+            // Les matériaux ont rejoint les minéraux, et deux molécules d'un même rayon peuvent relever le
             // même plafond (le quartz et le carbure de silicium, la chromite et l'oxyde de chrome) : leurs relèvements s'ajoutent.
             assertEquals(9, raised.get(Molecule.Kind.MINERAL).size());     // Si, Fe, Ca, Mg, Ti, Cr, W, Zr, K
         }

@@ -1,5 +1,9 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.profile.Title;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,15 +16,12 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.153 : la boucle, cinquième dimension. Un point tourne sur chaque cercle ; un clic dans une zone rapporte des
+ * La boucle, cinquième dimension. Un point tourne sur chaque cercle ; un clic dans une zone rapporte des
  * nœuds, selon la part touchée (bord, « bien », centre), puis le cercle attend un instant. Et le rond de croissance,
  * près de la graine, qui accélère l'arrosage pour un temps.
  */
 class BoucleTest {
-
-    private static Game five() {
-        return GameTestSupport.universe(5);
-    }
+    private static Game five() { return GameTestSupport.universe(5); }
 
     @Test
     void laBoucleSOuvreAuCinquiemeUnivers() {
@@ -90,7 +91,7 @@ class BoucleTest {
         game.tick(200);
         // 200 s, un tour en 20 s, une zone : dix passages, dix « bien ».
         assertEquals(10 * game.loopReward(LoopHit.GOOD), game.state().loopShardsEarned(), 1e-6);
-        assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 5).count(), "onze pour la boucle");
+        assertEquals(11, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 5).count(), "onze pour la boucle");
         assertEquals(5, DimensionAutomation.LOOP_PLAY.paidWith(), "payés en nœuds de la boucle (version 0.209)");
     }
 
@@ -131,7 +132,7 @@ class BoucleTest {
         game.state().setLoopShardsEarned(GameUniverse.LOOP_THRESHOLD);
         assertTrue(game.isDimensionThresholdReached(5));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.LOOP_DANCER));
+        assertTrue(game.hasTitle(Title.LOOP_DANCER));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.loopLevel(LoopUpgrade.GAIN.ordinal()));
         assertEquals(game.state().loopShards(), back.loopShards(), 1e-6);
@@ -160,7 +161,7 @@ class BoucleTest {
         Game game = five();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
         game.state().addDimensionAutomation(DimensionAutomation.LOOP_PLAY.name());
-        java.util.List<Double> before = game.loopZones(0);
+        List<Double> before = game.loopZones(0);
         for (int frame = 0; frame < 200 * 20; frame++) game.tick(0.05);
         long clicks = game.loopAutoClicks();
         // Au moins un clic par passage ; souvent plus, car la zone touchée se repose devant le point.
@@ -180,7 +181,7 @@ class BoucleTest {
         for (int click = 0; click < 300; click++) {
             game.tick(0.5);
             for (int ring = 0; ring < game.loopRings(); ring++) {
-                java.util.List<Double> zones = game.loopZones(ring);
+                List<Double> zones = game.loopZones(ring);
                 assertEquals(GameLoop.MAX_ZONES, zones.size());
                 for (int a = 0; a < zones.size(); a++) {
                     for (int b = a + 1; b < zones.size(); b++) {

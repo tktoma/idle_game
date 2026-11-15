@@ -8,31 +8,23 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementSet;
-import idle.core.elements.PeriodicTable;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.elements.*;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.192 : les skins de la page du tableau périodique hors cases, sous Xvfb. « Médailles » pose une médaille sur
+ * Les skins de la page du tableau périodique hors cases, sous Xvfb. « Médailles » pose une médaille sur
  * chaque tuile, de bronze, d'argent ou d'or selon l'avancement ; « Creuset » pose le creuset sur la carte de synthèse et
  * le fait fumer ; « Spectre » donne à chaque ligne de la légende une bande de raies de sa couleur ; sans skin, tout
  * revient au classique, la légende au caractère près, et les cases ne changent pas.
  */
 class TablePageSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

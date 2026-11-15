@@ -5,26 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les huit boules et les six animations de la matière noire, sous Xvfb. Chaque skin se laisse
+ * Les huit boules et les six animations de la matière noire, sous Xvfb. Chaque skin se laisse
  * choisir et dessine, image après image, la boule au repos puis pressée, du proton à l'univers observable (la
  * croissance qui allonge les fissures de l'œuf et la flamme de la lanterne), à deux tailles de vue, sans
  * exception ; un skin d'un autre visuel ramène au classique.
  */
 class DarkMatterSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Les skins d'un visuel, dans l'ordre du catalogue. */
     private static List<Skin> skinsOf(SkinVisual visual) {

@@ -1,6 +1,9 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
+import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,25 +18,20 @@ import idle.ui.common.Card;
 import idle.ui.pages.StatsPage;
 import java.util.List;
 import javafx.scene.Scene;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.154 : la brane, sixième dimension, et la lumière astrale de la graine, sous Xvfb. La membrane se tire à la
+ * La brane, sixième dimension, et la lumière astrale de la graine, sous Xvfb. La membrane se tire à la
  * souris (appui, glissé, relâché) : une onde part du point appuyé, touche les points en direct puis par ses rebonds sur
- * les bords, et chaque passage donne des ondes ; une seule onde à la fois (version 0.155), qui rebondit plusieurs fois
+ * les bords, et chaque passage donne des ondes ; une seule onde à la fois, qui rebondit plusieurs fois
  * si elle porte loin, ses rebonds marqués d'un éclat et comptés dans le gain ; les améliorations s'achètent dans la
  * fenêtre ; la tirée automatique joue seule. La lumière astrale est dans la branche « Brane » de la graine ; la brane a
  * sa section dans l'automatisation, ses lignes dans les statistiques et son rond vert ; la version suit.
  */
 class BranePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au sixième univers : la brane est ouverte. */
     private static Game sixth() {
@@ -61,7 +59,7 @@ class BranePageTest {
     }
 
     /** Un geste de la souris (bouton gauche) en ce point de la vue, comme JavaFX le donne. */
-    private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type, double x, double y) {
+    private static MouseEvent mouse(EventType<MouseEvent> type, double x, double y) {
         return new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1, false, false, false, false,
                 type != MouseEvent.MOUSE_RELEASED, false, false, false, false, false, null);
     }
@@ -197,9 +195,9 @@ class BranePageTest {
             assertEquals(0.35 * 1.3, game.braneMaxReach(), 1e-9);
             assertTrue(window.braneButton(Game.BraneUpgrade.GAIN).getText().startsWith("Gain : chaque passage vaut 2 → 3 ondes"));
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 6);
+            FxTestSupport.openDimensionAutomations(game, 6);
             game.state().setLoopShards(1e9);
-            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.BRANE_PULL);
+            FxTestSupport.buyPlay(game, DimensionAutomation.BRANE_PULL);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.braneHintText().startsWith("Tirée automatique"), window.braneHintText());
@@ -251,7 +249,7 @@ class BranePageTest {
         FxTestSupport.fx(() -> {
             Game game = sixth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-            idle.ui.FxTestSupport.openDimensionAutomations(game, 6);
+            FxTestSupport.openDimensionAutomations(game, 6);
             game.state().setLoopShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);
@@ -259,8 +257,8 @@ class BranePageTest {
             assertTrue(pane.sectionShown(6));
             assertEquals("Dimension 6 : La brane", pane.headingText(6));
             assertTrue(pane.balanceText(6).startsWith("Payés en ondes"), pane.balanceText(6));
-            idle.ui.FxTestSupport.buyUpgradesOnly(game, 6);
-            idle.ui.FxTestSupport.fillDimension(game, 6, 1e9);
+            FxTestSupport.buyUpgradesOnly(game, 6);
+            FxTestSupport.fillDimension(game, 6, 1e9);
             pane.refresh();
             Card play = pane.card(DimensionAutomation.BRANE_PULL_5S);
             assertEquals(Card.State.READY, play.state());
@@ -268,7 +266,7 @@ class BranePageTest {
             assertEquals(Card.State.LOCKED, pane.card(DimensionAutomation.BRANE_PULL_2S).state());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL_5S));
-            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

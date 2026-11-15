@@ -6,31 +6,22 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.Challenges;
-import idle.core.darkmatter.DarkUpgrade;
+import idle.core.darkmatter.*;
 import idle.core.math.BigNum;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.193 : les skins de la matière noire hors de la boule, sous Xvfb. L'échelle des grandeurs dessine ses
- * trois skins du proton à l'univers observable, à deux tailles ; l'arbre pose ses vignettes et change ses traits
- * sous ses quatre skins, à deux largeurs et à plusieurs niveaux ; les défis posent leurs vignettes sous leurs trois
- * skins, avant et après une réussite, et les lames du tarot se retournent à l'arrivée de la fuite. Le Classique ne
- * garde rien de tout cela.
+ * Les skins de la matière noire hors de la boule, sous Xvfb. L'échelle des grandeurs dessine ses trois skins du proton
+ * à l'univers observable, à deux tailles ; l'arbre pose ses vignettes et change ses traits sous ses quatre skins, à
+ * deux largeurs et à plusieurs niveaux ; les défis posent leurs vignettes sous leurs trois skins, avant et après une
+ * réussite, et les lames du tarot se retournent à l'arrivée de la fuite. Le Classique ne garde rien de tout cela.
  */
 class DarkPanesSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

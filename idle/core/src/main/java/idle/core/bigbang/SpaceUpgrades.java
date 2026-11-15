@@ -8,27 +8,24 @@ import java.util.List;
  * Catalogue des améliorations liées à l'espace : chacune est acquise d'elle-même quand l'expansion a créé assez
  * d'espace en tout, sans rien dépenser.
  *
- * <p>Six d'entre elles multiplient une grandeur pour de bon ({@link SpaceUpgrade.Boost}). Les
- * deux premières viennent dans les vingt minutes qui suivent un Big Bang : dix fois plus d'atomes,
- * dix fois plus de particules. Après un Big Bang tout repart d'un seul générateur, et sans elles
- * le joueur passerait une vingtaine d'heures à refaire le chemin avant de revoir un tableau
- * périodique garni, donc avant sa première molécule ; avec elles, deux à trois heures. Les deux
- * inflations doublent chacune l'expansion, à 4 000 et 30 000 d'espace ; ensuite ce sont les paliers
- * de Big Bang qui l'accélèrent ({@link BigBangMilestones}).
+ * <p>Six d'entre elles multiplient une grandeur pour de bon ({@link SpaceUpgrade.Boost}). Les deux premières viennent
+ * dans les vingt minutes qui suivent un Big Bang : dix fois plus d'atomes, dix fois plus de particules. Après un Big
+ * Bang tout repart d'un seul générateur, et sans elles le joueur passerait une vingtaine d'heures à refaire le chemin
+ * avant de revoir un tableau périodique garni, donc avant sa première molécule ; avec elles, deux à trois heures. Les
+ * deux inflations doublent chacune l'expansion, à 4 000 et 30 000 d'espace ; ensuite ce sont les paliers de Big Bang
+ * qui l'accélèrent ({@link BigBangMilestones}).
  *
- * <p>Trois autres ouvrent, l'une après l'autre, le rassemblement des molécules en gaz, liquides,
- * solides, cristaux et métaux ({@link Game#formSubstance(String)}), les assemblages de plusieurs
- * sortes de molécules ({@link Game#formAssembly(String)}), puis les astres
- * ({@link Game#formBody(String)}). Une donne l'appui automatique sur la matière noire. Les sept
- * dernières ouvrent un à un les rayons du catalogue de molécules, chacune après la précédente : au
- * premier Big Bang, seules les petites molécules sont là.
+ * <p>Trois autres ouvrent, l'une après l'autre, le rassemblement des molécules en gaz, liquides, solides, cristaux et
+ * métaux ({@link Game#formSubstance(String)}), les assemblages de plusieurs sortes de molécules ({@link
+ * Game#formAssembly(String)}), puis les astres ({@link Game#formBody(String)}). Une donne l'appui automatique sur la
+ * matière noire. Les sept dernières ouvrent un à un les rayons du catalogue de molécules, chacune après la précédente :
+ * au premier Big Bang, seules les petites molécules sont là.
  *
- * <p>Ces seuils sont passés par la simulation du troisième acte : un joueur présent voit le
- * rassemblement après cinquante minutes, les assemblages et les astres vers cinq heures, le
- * dernier rayon vers dix heures, avec deux Big Bangs de plus en route.
+ * <p>Ces seuils sont passés par la simulation du troisième acte : un joueur présent voit le rassemblement après
+ * cinquante minutes, les assemblages et les astres vers cinq heures, le dernier rayon vers dix heures, avec deux Big
+ * Bangs de plus en route.
  */
 public final class SpaceUpgrades {
-
     public static final List<SpaceUpgrade> DEFAULT = List.of(
             // Ce que le Big Bang laisse derrière lui : de quoi refaire vite le chemin jusqu'au suivant.
             new SpaceUpgrade("space_primordial_atoms", "Matière primordiale", BigNum.of(300), null,
@@ -54,7 +51,7 @@ public final class SpaceUpgrades {
             new SpaceUpgrade("space_auto_hold", "Appui automatique", BigNum.of(6_000), null,
                     new SpaceUpgrade.AutoHold()),
             // Le confort : créer en tenant le clic, puis tout rassembler, assembler ou former d'un geste.
-            // Version 0.047 : moins chères, pour venir dès les premières minutes après le Big Bang (avant 800 et 15 000).
+            // Moins chères, pour venir dès les premières minutes après le Big Bang (avant 800 et 15 000).
             new SpaceUpgrade("space_hold_create", "Création continue", BigNum.of(100), null,
                     new SpaceUpgrade.HoldCreate()),
             new SpaceUpgrade("space_bulk_form", "Gestes groupés", BigNum.of(1_500), "space_states",
@@ -68,8 +65,7 @@ public final class SpaceUpgrades {
                     new SpaceUpgrade.AutoForm()),
             new SpaceUpgrade("space_creation_pace_2", "Cadence de création II", BigNum.of(20_000_000), "space_creation_pace",
                     new SpaceUpgrade.CreationPace(1)),
-            // Version 0.178 : trois rayons à ouvrir au lieu de sept, aux seuils des anciens acides, minéraux et
-            // chimie organique.
+            // Trois rayons à ouvrir au lieu de sept, aux seuils des anciens acides, minéraux et chimie organique.
             shelf("space_acid", Molecule.Kind.ACID, 2_000, null),
             shelf("space_mineral", Molecule.Kind.MINERAL, 20_000, "space_acid"),
             shelf("space_organic", Molecule.Kind.ORGANIC, 200_000, "space_mineral"));

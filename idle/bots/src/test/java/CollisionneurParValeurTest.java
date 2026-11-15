@@ -5,17 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.bigbang.BangChallenge;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
+import idle.core.collider.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.174 : le collisionneur s'achète par valeur dès le deuxième univers, et les défis de Big Bang laissent la barre
+ * Le collisionneur s'achète par valeur dès le deuxième univers, et les défis de Big Bang laissent la barre
  * haute de côté une fois la maturation supprimée par l'arbre ancien.
  */
 class CollisionneurParValeurTest {
-
     /** Le troisième univers, juste après son premier Big Bang : le collisionneur repart de zéro. */
     private static Game thirdUniverse() {
         Game game = Bots.fresh(42);

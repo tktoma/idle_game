@@ -3,27 +3,19 @@ package idle.ui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import idle.ui.common.Card;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.210 : une carte qui agit le dit, avec son état d'avant (à portée : un achat ; allumée ou éteinte : un
+ * Une carte qui agit le dit, avec son état d'avant (à portée : un achat ; allumée ou éteinte : un
  * interrupteur), au clic comme au clic tenu ; une carte hors de portée ne dit rien. C'est ce qui fait sonner les achats.
  */
 class CartesSonnentTest {
-
     @BeforeAll
-    static void start() {
-        FxTestSupport.start();
-    }
+    static void start() { FxTestSupport.start(); }
 
     @AfterEach
-    void unplug() {
-        Card.setOnActed(null);
-    }
+    void unplug() { Card.setOnActed(null); }
 
     @Test
     void uneCarteQuiAgitLeDitAvecSonEtat() {

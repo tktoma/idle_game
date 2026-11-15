@@ -10,23 +10,18 @@ import idle.core.universe.SkinVisual;
 import idle.ui.FxTestSupport;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.input.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les sept anneaux et les cinq faisceaux du collisionneur, sous Xvfb. Chaque combinaison d'un
+ * Les sept anneaux et les cinq faisceaux du collisionneur, sous Xvfb. Chaque combinaison d'un
  * anneau et d'un faisceau dessine la vue à deux tailles, les faisceaux loin l'un de l'autre puis au croisement,
  * croisement capté compris, sans exception ; la comète et l'encre laissent quelque chose au détecteur ; sous le
  * ruban de Möbius, un faisceau passe dessus pendant que l'autre passe dessous.
  */
 class ColliderSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

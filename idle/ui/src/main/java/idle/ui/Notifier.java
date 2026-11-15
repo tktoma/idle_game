@@ -1,36 +1,23 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.GameStats;
+import idle.core.sky.Cosmos;
+import idle.core.universe.Skin;
+import idle.ui.universe.Dimension;
+import java.util.function.BooleanSupplier;
+import idle.core.state.GameStats;
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BangAchievement;
-import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.collider.ColliderAchievement;
-import idle.core.collider.GluonMilestone;
-import idle.core.collider.Quark;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.Landmark;
-import idle.core.darkmatter.SizeScale;
-import idle.core.elements.Element;
-import idle.core.elements.ElementSet;
-import idle.core.elements.PeriodicTable;
+import idle.core.bigbang.*;
+import idle.core.collider.*;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeReward;
 import idle.core.profile.Title;
 import idle.core.upgrades.Automation;
-import idle.ui.common.AchievementText;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
+import idle.ui.common.*;
 import idle.ui.darkmatter.ChallengesPane;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Repère ce qui vient de se passer dans le jeu, pour l'annoncer au joueur : nouvel élément,
@@ -41,11 +28,10 @@ import java.util.Set;
  * du joueur sont donc annoncés de la même façon. Ce qui recule (un tableau vidé par une
  * explosion, une partie remise à zéro) n'est jamais annoncé : il se contente de reprendre ses repères.
  *
- * <p>Les titres du profil (version 0.147) s'annoncent un par un, « Nouveau titre : … ». Ceux qu'une partie relue
+ * <p>Les titres du profil s'annoncent un par un, « Nouveau titre : … ». Ceux qu'une partie relue
  * méritait déjà ne s'annoncent pas : ils tombent ensemble à la première seconde de jeu, et la file est vidée sans bruit.
  */
 final class Notifier {
-
     /** Au-delà, les messages d'un même relevé sont résumés : rien ne sert d'en empiler vingt. */
     private static final int MAX_PER_POLL = 4;
     /** Les paliers de vitesse ne sont annoncés qu'au début : ensuite ils tombent par dizaines. */
@@ -55,25 +41,25 @@ final class Notifier {
     private boolean primed = false;
     /** Vrai si les améliorations du collisionneur étaient déjà ouvertes au dernier relevé. */
     private boolean colliderUpgradesSeen = false;
-    /** Version 0.132 : le vide qui se propose, son trou noir, et les améliorations du troisième acte au plus haut, annoncés une fois. */
+    /** Le vide qui se propose, son trou noir, et les améliorations du troisième acte au plus haut, annoncés une fois. */
     private boolean voidOfferedSeen = false, voidHoleSeen = false;
-    private final java.util.EnumSet<Game.VoidUpgrade> voidMaxedSeen = java.util.EnumSet.noneOf(Game.VoidUpgrade.class);
-    /** Version 0.149 : les hadrons qui se proposent dans le collisionneur, annoncés une fois par univers, comme le vide. */
+    private final EnumSet<Game.VoidUpgrade> voidMaxedSeen = EnumSet.noneOf(Game.VoidUpgrade.class);
+    /** Les hadrons qui se proposent dans le collisionneur, annoncés une fois par univers, comme le vide. */
     private boolean hadronsOfferedSeen = false;
     /** Version 0.160 : les paliers du défi final atteints, et la fin de la partie, au dernier relevé. */
     private final boolean[] finalTiersSeen = new boolean[Game.MAX_DIMENSIONS + 1];
     private boolean finishedSeen;
     /**
-     * Version 0.151 : les paliers de gluons atteints au dernier relevé. Chacun s'annonce une fois, quand il est atteint ;
+     * Les paliers de gluons atteints au dernier relevé. Chacun s'annonce une fois, quand il est atteint ;
      * ceux qu'une partie relue avait déjà sont pris au premier relevé, sans bruit. Un univers qui reprend les hadrons
      * les fait redescendre : atteint de nouveau, il s'annonce de nouveau.
      */
-    private final java.util.EnumSet<GluonMilestone> gluonMilestonesSeen = java.util.EnumSet.noneOf(GluonMilestone.class);
-    /** Les paliers du jalon des racines déjà annoncés (version 0.169). */
+    private final EnumSet<GluonMilestone> gluonMilestonesSeen = EnumSet.noneOf(GluonMilestone.class);
+    /** Les paliers du jalon des racines déjà annoncés. */
     private int rootTiersSeen;
     /** Les succès du collisionneur déjà gagnés au dernier relevé. */
-    private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
-    private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
+    private final EnumSet<ColliderAchievement> colliderAchievementsSeen = EnumSet.noneOf(ColliderAchievement.class);
+    private final EnumSet<BangAchievement> bangAchievementsSeen = EnumSet.noneOf(BangAchievement.class);
     private boolean started;
     private Set<Integer> elements = new HashSet<>();
     private final Map<String, Double> setStrengths = new HashMap<>();
@@ -84,13 +70,13 @@ final class Notifier {
     private int speedMilestones;
     /** L'énergie produite au dernier relevé : pour annoncer une fois les paliers des trous noirs. */
     private double blackHoleEnergySeen = 0;
-    /** Les jalons du cosmos déjà vus (version 0.068) : « CLUSTER:GAS »… */
-    private final java.util.Set<String> cosmosMilestonesSeen = new HashSet<>();
+    /** Les jalons du cosmos déjà vus : « CLUSTER:GAS »… */
+    private final Set<String> cosmosMilestonesSeen = new HashSet<>();
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
     private final Set<String> challengesDone = new HashSet<>();
-    /** Version 0.206 : le défi de matière noire en cours et les univers formés au dernier relevé, pour les annonces des défis. */
+    /** Le défi de matière noire en cours et les univers formés au dernier relevé, pour les annonces des défis. */
     private Challenge challenge;
     private int universes;
     /** Version 0.206 : Noyaux sombres déjà à portée au dernier relevé (annoncée une fois, quand elle le devient). */
@@ -101,39 +87,33 @@ final class Notifier {
     private int moleculeKinds;
     private int bangChallengesDone;
     private BangChallenge bangChallenge;
-    /** Le ralentissement du premier élan au dernier relevé (version 0.095, par paliers en 0.096). */
+    /** Le ralentissement du premier élan au dernier relevé. */
     private double slowSeen = 1;
-    /** Les skins débloqués au dernier relevé (version 0.089) : chacun s'annonce avec le bonus cumulé. */
-    private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
-    /** Version 0.214 : la version des skins au dernier relevé ; tant qu'elle ne bouge pas, les deux cents skins ne sont pas repassés. */
+    /** Les skins débloqués au dernier relevé : chacun s'annonce avec le bonus cumulé. */
+    private final EnumSet<Skin> skinsSeen = EnumSet.noneOf(Skin.class);
+    /** La version des skins au dernier relevé ; tant qu'elle ne bouge pas, les deux cents skins ne sont pas repassés. */
     private int skinsVersionSeen = -1;
 
-    private static final idle.core.universe.Skin[] NO_SKINS = {};
+    private static final Skin[] NO_SKINS = {};
 
-    /** Le début de l'annonce d'un titre (version 0.147) : « Nouveau titre : Étincelle ». */
+    /** Le début de l'annonce d'un titre : « Nouveau titre : Étincelle ». */
     static final String NEW_TITLE = "Nouveau titre : ";
     /**
      * Les titres que la partie remplissait déjà au premier relevé, sans les avoir encore notés : une sauvegarde d'avant
      * les titres les reçoit tous à la première seconde de jeu. Ils arrivent sans être annoncés.
      */
-    private final java.util.EnumSet<Title> quietTitles = java.util.EnumSet.noneOf(Title.class);
+    private final EnumSet<Title> quietTitles = EnumSet.noneOf(Title.class);
 
-    /** Vrai si le joueur veut voir les anomalies du ciel (version 0.127, un réglage). */
-    private java.util.function.BooleanSupplier skyEventsShown = () -> true;
+    /** Vrai si le joueur veut voir les anomalies du ciel (un réglage). */
+    private BooleanSupplier skyEventsShown = () -> true;
 
-    Notifier(Game game) {
-        this.game = game;
-    }
+    Notifier(Game game) { this.game = game; }
 
     /** Annonce ou tait les anomalies du ciel selon ce réglage. */
-    void showSkyEvents(java.util.function.BooleanSupplier shown) {
-        skyEventsShown = shown;
-    }
+    void showSkyEvents(BooleanSupplier shown) { skyEventsShown = shown; }
 
     /** La partie vient d'être remplacée par une autre : le prochain relevé reprend ses repères sans rien annoncer. */
-    void forget() {
-        primed = false;
-    }
+    void forget() { primed = false; }
 
     /** Ce qui s'est passé depuis le dernier appel, du plus ancien au plus récent. Vide la plupart du temps. */
     List<News> poll() {
@@ -167,11 +147,11 @@ final class Notifier {
         boolean top = false;
         for (Game.CollisionResult result : collisions) if (result.quark() == Quark.TOP) top = true;
         if (top) add(news, Notice.COLLIDER, "Collision : un quark top ! À utiliser dans " + Format.wait(game.topLeft()) + ", dans l'onglet du collisionneur.");
-        // Le défi final (version 0.160) : chaque palier atteint, puis la fin de la partie.
+        // Le défi final : chaque palier atteint, puis la fin de la partie.
         for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
             boolean tier = game.isFinalChallengeOpen() && game.isFinalTierReached(d);
             if (tier && !finalTiersSeen[d]) {
-                add(news, Notice.FINAL, "Défi final : " + idle.ui.universe.Dimension.of(d).label() + " atteint son palier ("
+                add(news, Notice.FINAL, "Défi final : " + Dimension.of(d).label() + " atteint son palier ("
                         + game.finalTiersReached() + " / " + Game.MAX_DIMENSIONS + ").");
             }
             finalTiersSeen[d] = tier;
@@ -217,21 +197,21 @@ final class Notifier {
             add(news, Notice.ACHIEVEMENTS, "Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
         }
 
-        // Le premier élan (version 0.095, par paliers en 0.096) : chaque palier s'annonce.
+        // Le premier élan : chaque palier s'annonce.
         double slow = game.firstRunSlowdown();
         if (slow < slowSeen) {
             add(news, Notice.START, slow <= 1 ? "La création a pris tout son élan : elle va à pleine vitesse."
                     : (game.stats().fusions() <= 1 ? "Premier atome" : Game.FIRST_ATOMS_UNTIL + " atomes")
-                            + " : la création prend de l'élan, encore " + idle.ui.common.ElementText.number(slow) + " fois moins vite qu'à plein régime.");
+                            + " : la création prend de l'élan, encore " + ElementText.number(slow) + " fois moins vite qu'à plein régime.");
         }
         slowSeen = slow;
-        // Un skin débloqué (version 0.089) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
+        // Un skin débloqué : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
         int skinsVersion = game.state().skinsVersion();
-        for (idle.core.universe.Skin skin : skinsVersion == skinsVersionSeen ? NO_SKINS : idle.core.universe.Skin.values()) {
+        for (Skin skin : skinsVersion == skinsVersionSeen ? NO_SKINS : Skin.values()) {
             if (skinsSeen.contains(skin) || skin.isFree() || !game.hasSkin(skin)) continue;
             skinsSeen.add(skin);
-            add(news, Notice.COSMETICS, "Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
-                    + ElementText.percent(idle.core.universe.Skin.BONUS) + " à toutes les ressources, soit +"
+            add(news, Notice.COSMETICS, "Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(Locale.ROOT) + "). +"
+                    + ElementText.percent(Skin.BONUS) + " à toutes les ressources, soit +"
                     + ElementText.percent(game.skinBoost() - 1) + " au total, choisi ou non.");
         }
         skinsVersionSeen = skinsVersion;
@@ -249,7 +229,7 @@ final class Notifier {
                     ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
                     : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
         }
-        // Les deux trous noirs (version 0.062) : l'énergie produite qu'ils demandent est atteinte.
+        // Les deux trous noirs : l'énergie produite qu'ils demandent est atteinte.
         double produced = game.colliderEnergyProduced();
         if (blackHoleEnergySeen < Game.BLACK_HOLE_ENERGY && produced >= Game.BLACK_HOLE_ENERGY) {
             add(news, Notice.COLLIDER, "Collisionneur : assez d'énergie produite pour le trou noir.");
@@ -258,12 +238,12 @@ final class Notifier {
             add(news, Notice.COLLIDER, "Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
         }
         blackHoleEnergySeen = produced;
-        // Les jalons de la fin de partie (version 0.068) : un état de la matière réuni pour l'amas ou l'univers.
-        for (idle.core.sky.Cosmos scale : new idle.core.sky.Cosmos[] {idle.core.sky.Cosmos.CLUSTER, idle.core.sky.Cosmos.UNIVERSE}) {
+        // Les jalons de la fin de partie : un état de la matière réuni pour l'amas ou l'univers.
+        for (Cosmos scale : new Cosmos[] {Cosmos.CLUSTER, Cosmos.UNIVERSE}) {
             if (game.hasCosmos(scale)) continue;
-            for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {
+            for (Molecule.State matter : scale.matter().keySet()) {
                 if (game.isCosmosMilestoneMet(scale, matter) && cosmosMilestonesSeen.add(scale.name() + ":" + matter.name())) {
-                    add(news, Notice.SKY, "Jalon : " + idle.ui.common.MatterText.plural(matter) + " réunis pour " + scale.phrase()
+                    add(news, Notice.SKY, "Jalon : " + MatterText.plural(matter) + " réunis pour " + scale.phrase()
                             + ". Toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " % (" + game.cosmosMilestones() + "/10).");
                 }
             }
@@ -344,14 +324,14 @@ final class Notifier {
                 add(news, Notice.CHALLENGES, "Nouveau défi : " + each.name());
             }
         }
-        // Version 0.206 : Noyaux sombres arrive à portée : c'est l'amélioration de matière noire qui compte le plus.
+        // Noyaux sombres arrive à portée : c'est l'amélioration de matière noire qui compte le plus.
         if (game.isDarkAvailable(Game.KEY_DARK_UPGRADE) && !keyAvailable) {
             String keyName = game.darkUpgrades().stream().filter(each -> each.id().equals(Game.KEY_DARK_UPGRADE)).map(DarkUpgrade::name).findFirst().orElse("Noyaux sombres");
             add(news, Notice.EXPLOSION, "« " + keyName + " » à portée dans l'arbre : "
                     + "l'amélioration de matière noire qui compte le plus (atomes par fusion × toute la matière noire gagnée). "
                     + "Sans elle, l'univers suivant dure trois fois plus longtemps ; les autres achats en matière noire l'attendent.");
         }
-        // Version 0.206 : un défi commencé, un défi abandonné, et le poids des défis à chaque univers formé.
+        // Un défi commencé, un défi abandonné, et le poids des défis à chaque univers formé.
         Challenge active = game.activeChallenge();
         if (active != null && active != challenge) {
             add(news, Notice.CHALLENGES, "Défi « " + active.name() + " » commencé : " + lower(ChallengesPane.shortRule(active))
@@ -419,7 +399,7 @@ final class Notifier {
                     : (reached - landmarks) + " paliers de taille, jusqu'à : " + landmark.name());
         }
         if (game.canExplode() && !canExplode) {
-            // Version 0.206 : pendant un défi, l'explosion le termine : c'est dit.
+            // Pendant un défi, l'explosion le termine : c'est dit.
             add(news, game.activeChallenge() != null ? Notice.CHALLENGES : Notice.EXPLOSION, game.activeChallenge() != null
                     ? "Défi « " + game.activeChallenge().name() + " » : le tableau est assez lourd, l'explosion le réussit"
                     : "Le tableau périodique peut exploser");
@@ -432,17 +412,14 @@ final class Notifier {
         return news;
     }
 
-    /** Une nouvelle : sa catégorie (version 0.146), qui se coupe dans les réglages, et sa phrase. */
+    /** Une nouvelle : sa catégorie, qui se coupe dans les réglages, et sa phrase. */
     record News(Notice kind, String text) { }
 
-    private static void add(List<News> news, Notice kind, String text) {
-        news.add(new News(kind, text));
-    }
+    private static void add(List<News> news, Notice kind, String text) { news.add(new News(kind, text)); }
 
     /**
      * Les phrases à afficher, au plus {@link #MAX_PER_POLL} : au-delà, les dernières se résument (« … et 3 autres
-     * nouvelles »). Version 0.146 : le résumé se fait après le tri des catégories coupées, pour ne compter que ce qui
-     * s'affiche.
+     * nouvelles »). Le résumé se fait après le tri des catégories coupées, pour ne compter que ce qui s'affiche.
      */
     static List<String> summarize(List<String> texts) {
         if (texts.size() <= MAX_PER_POLL) return texts;
@@ -468,7 +445,7 @@ final class Notifier {
         finishedSeen = game.isGameFinished();
         slowSeen = game.firstRunSlowdown();
         skinsSeen.clear();
-        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
+        for (Skin skin : Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
         skinsVersionSeen = game.state().skinsVersion();
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
         voidOfferedSeen = game.isVoidOffered();
@@ -489,17 +466,17 @@ final class Notifier {
         }
         blackHoleEnergySeen = game.colliderEnergyProduced();
         cosmosMilestonesSeen.clear();
-        for (idle.core.sky.Cosmos scale : idle.core.sky.Cosmos.values()) {
-            for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {
+        for (Cosmos scale : Cosmos.values()) {
+            for (Molecule.State matter : scale.matter().keySet()) {
                 if (game.isCosmosMilestoneMet(scale, matter)) cosmosMilestonesSeen.add(scale.name() + ":" + matter.name());
             }
         }
         // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
-        java.util.Set<Integer> owned = game.state().elements().keySet();
+        Set<Integer> owned = game.state().elements().keySet();
         if (!elements.equals(owned)) elements = new HashSet<>(owned);
         setStrengths.clear();
         for (ElementSet set : game.elementSets()) setStrengths.put(set.id(), game.setStrength(set));
-        java.util.Set<String> bought = game.state().ownedAutomations();
+        Set<String> bought = game.state().ownedAutomations();
         if (!automations.equals(bought)) automations = new HashSet<>(bought);
         tableUnlocked = game.isPeriodicTableUnlocked();
         synthesisUnlocked = game.isSynthesisAutomationUnlocked();

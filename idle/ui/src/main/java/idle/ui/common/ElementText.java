@@ -1,7 +1,7 @@
 package idle.ui.common;
 
 import idle.core.elements.ElementEffect;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * Les textes qui décrivent l'effet d'un élément du tableau périodique.
@@ -10,18 +10,14 @@ import java.util.Locale;
  * est ajouté dans core, le compilateur signale qu'il manque ici.
  */
 public final class ElementText {
-
     /** Ce que fait un élément, en une phrase, pour un exemplaire. */
     public static String describe(ElementEffect effect) {
         return switch (effect) {
-            case ElementEffect.GeneratorBoost boost ->
-                    "Générateur " + boost.generator() + " : "
+            case ElementEffect.GeneratorBoost boost -> "Générateur " + boost.generator() + " : "
                             + (boost.stat() == ElementEffect.Stat.SPEED ? "vitesse" : "particules")
                             + " ×" + number(boost.factor());
-            case ElementEffect.Add add ->
-                    "+" + percent(add.bonus()) + " " + of(add.stat());
-            case ElementEffect.Multiply multiply ->
-                    capitalized(multiply.stat()) + " ×" + number(multiply.factor());
+            case ElementEffect.Add add -> "+" + percent(add.bonus()) + " " + of(add.stat());
+            case ElementEffect.Multiply multiply -> capitalized(multiply.stat()) + " ×" + number(multiply.factor());
             case ElementEffect.MultiplyProduction production ->
                     "Particules ×" + number(production.factor()) + " et vitesse ×" + number(production.factor());
             case ElementEffect.MultiplyEverything everything ->
@@ -118,9 +114,7 @@ public final class ElementText {
     }
 
     /** 0.3 → « 30 % », 0.025 → « 2.5 % ». */
-    public static String percent(double fraction) {
-        return number(fraction * 100) + " %";
-    }
+    public static String percent(double fraction) { return number(fraction * 100) + " %"; }
 
     /** Deux décimales au plus, sans zéros inutiles : 2.0 → « 2 », 1.25 → « 1.25 ». */
     public static String number(double value) {
@@ -140,7 +134,7 @@ public final class ElementText {
     }
 
     /** Les nombres déjà mis en forme par {@link #number(double)}, jusqu'à {@link #REMEMBERED} : au-delà, on repart de rien. */
-    private static final java.util.Map<Double, String> NUMBERS = new java.util.HashMap<>();
+    private static final Map<Double, String> NUMBERS = new HashMap<>();
     private static final int REMEMBERED = 4096;
 
     private ElementText() {}

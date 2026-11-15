@@ -6,35 +6,28 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
-import idle.core.GameUniverse;
+import idle.core.*;
 import idle.core.profile.Title;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Version 0.198 : les styles des avatars ({@link SkinVisual#AVATAR_STYLE}) et les huit avatars de plus, sous Xvfb. Chaque
+ * Les styles des avatars ({@link SkinVisual#AVATAR_STYLE}) et les huit avatars de plus, sous Xvfb. Chaque
  * style redessine chacun des vingt avatars aux deux tailles du profil, dans chaque cadre, sans exception et autrement que
  * le Classique ; une image importée reste la même ; le profil met le style sur l'en-tête et la galerie ; les nouveaux
  * avatars s'ouvrent par leur titre ou leur condition.
  */
 class AvatarStyleTest {
-
     @TempDir
     Path data;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> styles() {
         List<Skin> styles = new ArrayList<>();

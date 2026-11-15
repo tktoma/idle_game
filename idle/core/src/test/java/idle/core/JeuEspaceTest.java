@@ -1,34 +1,23 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.BigBangMilestones;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.bigbang.SpaceUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.bigbang.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.molecules.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : les améliorations d'espace et les états de la matière.
- */
+/** Les règles du jeu : les améliorations d'espace et les états de la matière. */
 class JeuEspaceTest extends GameTestSupport {
-
-
     @Nested
     class AmeliorationsDEspace {
-
         private Game game(double space) {
             Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
@@ -39,7 +28,7 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void leCatalogueOuvreChaqueRayonEtLaFusion() {
             List<SpaceUpgrade> upgrades = SpaceUpgrades.DEFAULT;
-            assertEquals(19, upgrades.size());                       // version 0.178 : trois rayons payants au lieu de sept
+            assertEquals(19, upgrades.size());                       // Trois rayons payants au lieu de sept
             assertEquals(19, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoGather).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoForm).count());
@@ -310,7 +299,7 @@ class JeuEspaceTest extends GameTestSupport {
             GameTestSupport.bangs(game, 2);
             assertTrue(game.isMoleculeAutomationUnlocked());
             assertTrue(game.isMoleculeAutomationEnabled());
-            assertTrue(game.isAutoCreatingMolecules());               // version 0.178 : en marche dès qu'acquise, même sans amas confié
+            assertTrue(game.isAutoCreatingMolecules());               // En marche dès qu'acquise, même sans amas confié
             game.tick(60);
             assertEquals(3, game.moleculeCount("H2O"));               // mais rien à faire : ni liste de courses, ni amas confié
             // Seul un amas peut lui être confié.
@@ -460,7 +449,7 @@ class JeuEspaceTest extends GameTestSupport {
 
         @Test
         void deuxCentMilleDEspaceGagneOuvreToutLeCatalogue() {
-            // Version 0.178 : le dernier rayon, la chimie du carbone, s'ouvre à 200 000 (le million des terres rares avant).
+            // Le dernier rayon, la chimie du carbone, s'ouvre à 200 000 (le million des terres rares avant).
             Game game = game(199_999);
             assertFalse(game.isSpaceUpgradeAvailable("space_organic"));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
@@ -533,7 +522,6 @@ class JeuEspaceTest extends GameTestSupport {
 
     @Nested
     class EtatsDeLaMatiere {
-
         private static final String WATER = "H2O";
 
         /** Après un premier Big Bang, rassemblement ouvert, beaucoup d'espace, et {@code count} molécules de chaque sorte demandée. */
@@ -557,7 +545,7 @@ class JeuEspaceTest extends GameTestSupport {
                 // Les minéraux sont tous des cristaux.
                 if (molecule.kind() == Molecule.Kind.MINERAL) assertEquals(Molecule.State.CRYSTAL, molecule.state(), molecule.id());
             }
-            // Version 0.178 : trois états (le solide et le métal ont rejoint le cristal) sur 73 molécules.
+            // Trois états (le solide et le métal ont rejoint le cristal) sur 73 molécules.
             assertEquals(Map.of(Molecule.State.GAS, 11, Molecule.State.LIQUID, 2, Molecule.State.CRYSTAL, 1), small);
             assertEquals(Map.of(Molecule.State.GAS, 18, Molecule.State.LIQUID, 15, Molecule.State.CRYSTAL, 40), all);
             assertEquals(Molecule.State.LIQUID, state(WATER));
@@ -598,7 +586,7 @@ class JeuEspaceTest extends GameTestSupport {
                 assertTrue(matter.exponent() > 1 && matter.exponent() <= 1.5, matter + " : " + matter.exponent());
                 assertTrue(matter.particles() + matter.atoms() > 0, matter + " n'ajoute ni particules ni atomes");
             }
-            assertEquals(3, Molecule.State.values().length);                 // version 0.178 : gaz, liquide, cristal
+            assertEquals(3, Molecule.State.values().length);                 // Gaz, liquide, cristal
             assertTrue(Molecule.State.CRYSTAL.exponent() > Molecule.State.LIQUID.exponent());
             assertTrue(Molecule.State.LIQUID.exponent() > Molecule.State.GAS.exponent());
             assertTrue(Molecule.State.GAS.spaceFactor() > Molecule.State.LIQUID.spaceFactor());

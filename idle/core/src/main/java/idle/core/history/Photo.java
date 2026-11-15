@@ -1,14 +1,8 @@
 package idle.core.history;
 
-import idle.core.GameState;
+import idle.core.state.GameState;
 import idle.core.save.SaveData;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Une photo de la partie (version 0.161 pour le bot analyste ; version 0.165, dans le moteur, pour l'historique des achats
@@ -18,7 +12,6 @@ import java.util.Set;
  * que le joueur a fait : ce qui est monté (achats, niveaux, choses obtenues) et ce qui a baissé (ce qu'il a payé).
  */
 public final class Photo {
-
     /** Un nombre, gardé en signe et en ordres de grandeur : 4,2e27316531 se compare encore. */
     public record Nombre(int signe, double log10) {
         public static final Nombre ZERO = new Nombre(0, Double.NEGATIVE_INFINITY);
@@ -48,9 +41,7 @@ public final class Photo {
             return signe == 0 ? 0 : signe * (log10 > 308 ? Double.POSITIVE_INFINITY : Math.pow(10, log10));
         }
 
-        public boolean greater(Nombre other) {
-            return compareTo(other) > 0;
-        }
+        public boolean greater(Nombre other) { return compareTo(other) > 0; }
 
         public int compareTo(Nombre other) {
             if (signe != other.signe) return Integer.compare(signe, other.signe);
@@ -85,13 +76,9 @@ public final class Photo {
 
     /** Ce qui a changé entre deux photos, pour une clé (et une sous-clé pour les tables). */
     public record Changement(String cle, String sousCle, Nombre avant, Nombre apres, String ajoute, String retire) {
-        public boolean monte() {
-            return avant != null && apres != null && apres.greater(avant);
-        }
+        public boolean monte() { return avant != null && apres != null && apres.greater(avant); }
 
-        public boolean baisse() {
-            return avant != null && apres != null && avant.greater(apres);
-        }
+        public boolean baisse() { return avant != null && apres != null && avant.greater(apres); }
     }
 
     /** Les clés qui bougent sans que le joueur y soit pour rien : le temps, les statistiques, le ciel. */
@@ -101,15 +88,13 @@ public final class Photo {
     private final Map<String, String> brut = new LinkedHashMap<>();
 
     /** Les valeurs brutes, clé par clé, telles que la sauvegarde les écrit. */
-    public Map<String, String> brut() {
-        return java.util.Collections.unmodifiableMap(brut);
-    }
+    public Map<String, String> brut() { return Collections.unmodifiableMap(brut); }
 
     private Photo() {}
 
     public static Photo of(GameState state) {
         Photo etat = new Photo();
-        // Version 0.162 : la sauvegarde sans les statistiques, lue clé par clé sans passer par le texte : deux fois
+        // La sauvegarde sans les statistiques, lue clé par clé sans passer par le texte : deux fois
         // plus rapide (l'historique des statistiques était la première dépense de la partie analysée).
         SaveData data = new SaveData();
         state.save(data, false);

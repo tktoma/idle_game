@@ -1,19 +1,19 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.bigbang.BangChallenge;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.181 : le premier univers est plus court. Son premier Big Bang demande moins de particules et de matière
+ * Le premier univers est plus court. Son premier Big Bang demande moins de particules et de matière
  * noire (acte 2 du Speedrunner : 5 h 43 → 4 h 09), ses Big Bangs suivants moins de particules et dix fois moins d'atomes
  * (les sept Big Bangs : 6 h 52 → 5 h 41), et son élan de matière noire est plus fort après le premier Big Bang. Les
  * univers suivants gardent les seuils d'avant. Les défis d'explosion se corsent d'un facteur par univers formé.
  */
 class Rythme181Test {
-
     @Test
     void lePremierUniversDemandeMoinsQueLesSuivantsPourSesBigBangs() {
         Game game = GameTestSupport.realGame();
@@ -43,7 +43,7 @@ class Rythme181Test {
     void laBarreHauteSAppliqueAuxSeuilsDuPremierUnivers() {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
-        game.state().setActiveBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+        game.state().setActiveBangChallenge(BangChallenge.RAISED.name());
         assertEquals(30_000 * 1.5, game.bigBangParticles().log10(), 1e-6, "la barre haute : une fois et demie les ordres de grandeur");
         assertEquals(1e13, game.bigBangAtoms().toDouble(), 1, "cent fois les atomes");
         assertEquals(1000, game.bigBangDarkMatter().toDouble(), 1e-9, "deux fois la réserve ordinaire");

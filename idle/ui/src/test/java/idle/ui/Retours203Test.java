@@ -7,25 +7,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.universe.Skin;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.*;
+import javafx.scene.control.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.203 : la barre du profil de test. Ses outils défilent dans une zone bornée (un groupe à beaucoup de boutons ne
+ * La barre du profil de test. Ses outils défilent dans une zone bornée (un groupe à beaucoup de boutons ne
  * pousse plus la fenêtre, et les autres groupes restent à portée), et elle a un groupe « Animations » qui rejoue les
  * animations plein écran dans le skin choisi, sans rien changer à la partie.
  */
 class Retours203Test {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static Button button(Node node, String text) {
         if (node instanceof Button b && b.getText().equals(text)) return b;
@@ -77,9 +70,7 @@ class Retours203Test {
             boolean[] possible = {false};
             bar.setAnimations(new DebugBar.AnimationTools() {
                 @Override
-                public void explosion() {
-                    played[0]++;
-                }
+                public void explosion() { played[0]++; }
 
                 @Override
                 public boolean bigBang() {

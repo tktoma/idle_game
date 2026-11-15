@@ -9,18 +9,15 @@ import idle.core.Game;
 import idle.core.collider.Hadron;
 import idle.core.math.BigNum;
 import idle.ui.Sound.Cue;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.213 : les bruitages de la partie. Ce qui vient de se passer sonne, là où on le voit ; la première image ne
+ * Les bruitages de la partie. Ce qui vient de se passer sonne, là où on le voit ; la première image ne
  * sonne rien ; une catégorie coupée dans les réglages ne sonne pas. Sans affichage ni carte son.
  */
 class BruitagesTest {
-
     private static Game partie() {
         Game game = new Game(42L);
         game.start();

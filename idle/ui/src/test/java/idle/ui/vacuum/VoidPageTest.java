@@ -1,6 +1,7 @@
 package idle.ui.vacuum;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.control.Label;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,19 +12,15 @@ import idle.ui.FxTestSupport;
 import idle.ui.collider.ColliderPage;
 import idle.ui.common.Card;
 import idle.ui.universe.UniversePage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.129 : le vide dans l'interface, sous Xvfb. L'offre dans le collisionneur, la page du vide (réserve et
+ * Le vide dans l'interface, sous Xvfb. L'offre dans le collisionneur, la page du vide (réserve et
  * équilibre, réglage, améliorations — huit depuis 0.132 —, trou noir), l'écume qui suit les paires de la partie, le cumul dans la graine.
  */
 class VoidPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Le troisième univers, au premier Big Bang : le vide se propose. */
     private static Game third() {
@@ -87,7 +84,7 @@ class VoidPageTest {
             game.tick(10);
             VoidPage page = new VoidPage(game);
             page.refresh();
-            javafx.scene.control.Label energy = page.energyLabel();
+            Label energy = page.energyLabel();
             assertTrue(energy.getText().contains("Énergie du vide"));
             assertTrue(energy.getText().contains("équilibre : 250"), energy.getText());
             assertEquals(25, page.share().getValue(), 1e-9);

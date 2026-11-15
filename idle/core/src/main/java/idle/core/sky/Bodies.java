@@ -1,43 +1,39 @@
 package idle.core.sky;
 
 import idle.core.molecules.Molecule;
-import java.util.List;
+import java.util.*;
 
 /**
- * Catalogue des astres, par échelle ({@link Body.Tier}) : 30 corps du ciel, quatre amas de roches,
- * trois comètes, quatre astéroïdes, quatre lunes et six planètes, puis cinq étoiles, deux étoiles
- * mortes, un trou noir et le trou noir supermassif.
+ * Catalogue des astres, par échelle ({@link Body.Tier}) : 30 corps du ciel, quatre amas de roches, trois comètes,
+ * quatre astéroïdes, quatre lunes et six planètes, puis cinq étoiles, deux étoiles mortes, un trou noir et le trou noir
+ * supermassif.
  *
- * <p>Un astre est fait d'assemblages, et chaque assemblage du catalogue entre dans un astre et un
- * seul : un pour un amas, deux pour une comète, un astéroïde ou une lune, trois pour une planète,
- * un seul, mais énorme, pour une étoile, deux pour une étoile morte ou un trou noir, trois pour le
- * trou noir supermassif. Les 58 assemblages y trouvent tous leur place, et un astre plus gros est
- * donc aussi plus gros dans l'espace.
+ * <p>Un astre est fait d'assemblages, et chaque assemblage du catalogue entre dans un astre et un seul : un pour un
+ * amas, deux pour une comète, un astéroïde ou une lune, trois pour une planète, un seul, mais énorme, pour une étoile,
+ * deux pour une étoile morte ou un trou noir, trois pour le trou noir supermassif. Les 58 assemblages y trouvent tous
+ * leur place, et un astre plus gros est donc aussi plus gros dans l'espace.
  *
- * <p>Chaque astre au-delà des amas part d'astres de l'échelle d'en dessous : une comète glacée d'un
- * amas glacé, une lune rocheuse de deux astéroïdes, une géante gazeuse de deux lunes et d'un
- * astéroïde, une naine brune de la géante gazeuse, le Soleil de trois planètes, une naine blanche
- * de la géante rouge et du Soleil, un trou noir d'une étoile à neutrons. S'y ajoutent de la matière
- * rassemblée et des molécules, de plus en plus : quelques centaines de molécules pour un amas,
- * plusieurs milliers pour une planète, des dizaines de milliers de molécules de gaz pour une étoile
- * ou un trou noir. Un gaz occupe vingt fois la place d'un cristal ({@link Molecule.State#spaceFactor()}) :
- * c'est l'espace qui fait le prix d'un astre, et celui des étoiles vient de là.
+ * <p>Chaque astre au-delà des amas part d'astres de l'échelle d'en dessous : une comète glacée d'un amas glacé, une
+ * lune rocheuse de deux astéroïdes, une géante gazeuse de deux lunes et d'un astéroïde, une naine brune de la géante
+ * gazeuse, le Soleil de trois planètes, une naine blanche de la géante rouge et du Soleil, un trou noir d'une étoile à
+ * neutrons. S'y ajoutent de la matière rassemblée et des molécules, de plus en plus : quelques centaines de molécules
+ * pour un amas, plusieurs milliers pour une planète, des dizaines de milliers de molécules de gaz pour une étoile ou un
+ * trou noir. Un gaz occupe vingt fois la place d'un cristal ({@link Molecule.State#spaceFactor()}) : c'est l'espace qui
+ * fait le prix d'un astre, et celui des étoiles vient de là.
  *
- * <p>Ces nombres sont passés par la simulation du troisième acte, paliers de Big Bang compris
- * ({@link BigBangMilestones}). Un joueur présent qui enchaîne les Big Bangs jusqu'au cinquième forme
- * son premier amas onze heures après le premier Big Bang et la galaxie à seize heures ; en
- * s'arrêtant au quatrième, dix-sept heures ; au troisième, vingt-six heures et demie ; au deuxième,
- * trente-sept heures et demie. Le cinquième Big Bang garde l'arbre de matière noire : il ne coûte
- * qu'un quart d'heure de chemin à refaire au lieu de trois heures, et c'est ce qui le rend rentable.
- * Au-delà de la galaxie viennent l'amas de galaxies puis l'univers ({@link Cosmos}), à dix-huit et
+ * <p>Ces nombres sont passés par la simulation du troisième acte, paliers de Big Bang compris ({@link
+ * BigBangMilestones}). Un joueur présent qui enchaîne les Big Bangs jusqu'au cinquième forme son premier amas onze
+ * heures après le premier Big Bang et la galaxie à seize heures ; en s'arrêtant au quatrième, dix-sept heures ; au
+ * troisième, vingt-six heures et demie ; au deuxième, trente-sept heures et demie. Le cinquième Big Bang garde l'arbre
+ * de matière noire : il ne coûte qu'un quart d'heure de chemin à refaire au lieu de trois heures, et c'est ce qui le
+ * rend rentable. Au-delà de la galaxie viennent l'amas de galaxies puis l'univers ({@link Cosmos}), à dix-huit et
  * vingt-quatre heures du premier Big Bang.
  *
- * <p>Trois astres seulement augmentent l'espace : l'astéroïde glacé, la lune volcanique, et le trou
- * noir supermassif, tout à la fin. L'espace s'entretient lui-même : chaque astre de plus qui
- * l'accélère rendrait tous les suivants trop faciles.
+ * <p>Trois astres seulement augmentent l'espace : l'astéroïde glacé, la lune volcanique, et le trou noir supermassif,
+ * tout à la fin. L'espace s'entretient lui-même : chaque astre de plus qui l'accélère rendrait tous les suivants trop
+ * faciles.
  */
 public final class Bodies {
-
     private static final Molecule.State GAS = Molecule.State.GAS;
     private static final Molecule.State LIQUID = Molecule.State.LIQUID;
     private static final Molecule.State CRYSTAL = Molecule.State.CRYSTAL;
@@ -141,7 +137,7 @@ public final class Bodies {
             Body.of(Body.Tier.BLACK_HOLE, "black_hole", "Trou noir", Body.Look.VOID, "#ff9a3a", "#ffe0a0", Molecule.Stat.DARK_GROWTH)
                     .from("neutron_star", "blue_giant").made("accretion_disc")
                     .matter(GAS, 22000).matter(CRYSTAL, 6000).molecules("H2", 19000),
-            // Les matières exotiques (version 0.054), ouvertes au huitième Big Bang : sans assemblage, faites
+            // Les matières exotiques, ouvertes au huitième Big Bang : sans assemblage, faites
             // d'astres déjà formés et de beaucoup de matière rassemblée.
             Body.of(Body.Tier.EXOTIC, "pulsar", "Pulsar", Body.Look.BEAMING, "#e6f0ff", "#9ac8ff", Molecule.Stat.PARTICLES)
                     .from("neutron_star").matter(CRYSTAL, 18900),
@@ -159,21 +155,21 @@ public final class Bodies {
                     .matter(GAS, 30000).matter(CRYSTAL, 10000).matter(LIQUID, 6000).molecules("H2", 26000)));
 
     /**
-     * Ce que les astres demandent à partir des lunes, multiplié (version 0.054) : la route vers la
+     * Ce que les astres demandent à partir des lunes, multiplié : la route vers la
      * galaxie s'allonge en création, pas en attente. Les matières exotiques ont déjà leurs nombres.
      */
     static final double LATER_BODIES = 1.5;
 
     private static List<Body> longer(List<Body> catalog) {
-        List<Body> out = new java.util.ArrayList<>();
+        List<Body> out = new ArrayList<>();
         for (Body body : catalog) {
             if (body.tier().ordinal() < Body.Tier.MOON.ordinal() || body.tier() == Body.Tier.EXOTIC) {
                 out.add(body);
                 continue;
             }
-            java.util.Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+            Map<Molecule.State, Integer> matter = new EnumMap<>(Molecule.State.class);
             body.matter().forEach((state, count) -> matter.put(state, (int) Math.round(count * LATER_BODIES)));
-            java.util.Map<String, Integer> molecules = new java.util.LinkedHashMap<>();
+            Map<String, Integer> molecules = new LinkedHashMap<>();
             body.molecules().forEach((id, count) -> molecules.put(id, (int) Math.round(count * LATER_BODIES)));
             out.add(new Body(body.id(), body.name(), body.tier(), body.look(), body.tint(), body.accent(), body.stat(),
                     body.bodies(), body.assemblies(), matter, molecules));

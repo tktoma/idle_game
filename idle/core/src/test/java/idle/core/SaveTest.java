@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -8,36 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.achievements.Achievements;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.Collision;
-import idle.core.collider.CollisionTier;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.ElementCategory;
 import idle.core.math.BigNum;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeTrip;
-import idle.core.probes.ProbeUpgrade;
-import idle.core.save.SaveCodec;
-import idle.core.save.SaveData;
+import idle.core.probes.*;
+import idle.core.save.*;
 import idle.core.sky.SolarSystem;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.RecordComponent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.upgrades.*;
+import java.lang.reflect.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * La sauvegarde ({@link SaveCodec}) et le retour après une absence ({@link Absence}).
@@ -48,13 +31,12 @@ import org.junit.jupiter.api.Test;
  * chaque champ de sa valeur de départ : sans cela, un champ oublié passerait inaperçu.
  */
 class SaveTest {
-
     /** Ce qui se recalcule et ne fait pas partie de la sauvegarde. */
     private static final Set<String> DERIVED = Set.of("testBlocked", "elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
             "assembliesSeen", "bodiesSeen", "moleculeLog",
-            // Version 0.168 : vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
+            // Vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
             "momentsUndated",
-            // Version 0.202 : le compte des skins débloqués, gardé tant qu'ils ne changent pas.
+            // Le compte des skins débloqués, gardé tant qu'ils ne changent pas.
             "skinsVersion", "skinsCountVersion", "skinsCountUnlocked", "skinsCountCounted");
 
     // ------------------------------------------------------------------
@@ -93,8 +75,8 @@ class SaveTest {
         state.setColliderPhase(0.375);
         state.setColliderCrossings(1234);
         state.setColliderCaught(1233);
-        state.setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.LUCK, 4);
-        state.setColliderPaused(idle.core.collider.ColliderUpgrade.AUTO_BEAM, true);
+        state.setColliderUpgradeLevel(ColliderUpgrade.LUCK, 4);
+        state.setColliderPaused(ColliderUpgrade.AUTO_BEAM, true);
         state.setQuarks(Quark.UP, 7);
         state.setQuarks(Quark.CHARM, 2);
         state.setColliderEnergyProduced(4.5e9);
@@ -106,7 +88,7 @@ class SaveTest {
         state.setProbeLaunches(9);
         state.setProbeSamples(42);
         state.setProbeBoostLeft(90.5);
-        state.setCollisions(java.util.List.of(new Collision(CollisionTier.LOW, 12.25, true, true), new Collision(CollisionTier.HIGH, 900.5, false, false)));
+        state.setCollisions(List.of(new Collision(CollisionTier.LOW, 12.25, true, true), new Collision(CollisionTier.HIGH, 900.5, false, false)));
         state.setCollisionRuns(41);
         state.setTopLeft(33.5);
         state.setOverheatLeft(120.25);
@@ -160,7 +142,7 @@ class SaveTest {
         state.setCometVisible(12.5);
         state.setCometBoost(88.75);
         state.setCometsCaught(7);
-        // Les anomalies du ciel (version 0.127).
+        // Les anomalies du ciel.
         state.setSkyEvent("PARTICLE_WIND");
         state.setSkyEventVisible(42.5);
         state.setSkyEventWait(300.25);
@@ -172,7 +154,7 @@ class SaveTest {
         state.setDarkPlan(List.of("dark_a", "dark_b"));
         state.setSavedDarkPlan("arbre:dark_a,dark_b");
         state.setSavedDarkPlan(3, "arbre:dark_c");
-        state.setSystemPlan(List.of(new idle.core.sky.SolarSystem("etoile", List.of("p1", "p2"), List.of("l1"))));
+        state.setSystemPlan(List.of(new SolarSystem("etoile", List.of("p1", "p2"), List.of("l1"))));
         state.setSavedSystemPlan("systemes:etoile|p1,p2|l1;autre||");
         state.setForkResetArmed(true);
         state.setReplaying(true);
@@ -221,52 +203,52 @@ class SaveTest {
         state.setChronoSpeed(2.5);
         state.setTreeBubbles(0b1000000000000000101);   // la base, la bulle de droite du bonsaï, et le sommet (la 19e, bit 18)
         state.setVoidSpent(456.25);
-        // Version 0.148 : une bulle au niveau 4, et ce que le géant de gauche a versé au cumul.
+        // Une bulle au niveau 4, et ce que le géant de gauche a versé au cumul.
         state.setTreeBubbleLevel(1, 4);
         state.setVoidTrickled(78.5);
         state.setVoidCarried(321.5);
-        // Version 0.153 : la boucle.
+        // La boucle.
         state.setLoopShards(55.5);
         state.setLoopShardsEarned(4321.25);
         for (int i = 0; i < 6; i++) state.setLoopLevel(i, i + 2);
-        // Version 0.154 : la brane.
+        // La brane.
         state.setBraneShards(66.5);
         state.setBraneShardsEarned(5432.25);
         for (int i = 0; i < 5; i++) state.setBraneLevel(i, i + 3);
-        // Version 0.155 : le clicker.
+        // Le clicker.
         state.setClickerShards(77.5);
         state.setClickerShardsEarned(6543.25);
         for (int i = 0; i < 8; i++) state.setClickerLevel(i, i == 2 ? 1 : i + 1);
-        // Version 0.156 : la grille.
+        // La grille.
         state.setGridShards(88.5);
         state.setGridShardsEarned(7654.25);
         for (int i = 0; i < 6; i++) state.setGridLevel(i, i + 1);
-        // Version 0.157 : le miroir.
+        // Le miroir.
         state.setMirrorShards(99.5);
         state.setMirrorShardsEarned(8765.25);
         for (int i = 0; i < 5; i++) state.setMirrorLevel(i, i + 1);
-        // Version 0.158 : les réussites du miroir et le mélange.
+        // Les réussites du miroir et le mélange.
         state.setMirrorWins(12);
         state.setMixShards(111.5);
         state.setMixShardsEarned(9876.25);
         for (int i = 0; i < 11; i++) state.setMixLevel(i, i + 1);
-        // Version 0.159 : le mélange par étapes.
+        // Le mélange par étapes.
         state.setMixStage(5);
         state.setMixStageEarned(321.5);
-        // Version 0.160 : la fin de la partie.
+        // La fin de la partie.
         state.setGameFinished(true);
-        // Version 0.149 : les hadrons.
+        // Les hadrons.
         state.setHadronsOpen(true);
         state.setHadronsPrice(2.5e9);
-        state.setHadrons(idle.core.collider.Hadron.PROTON, 12);
-        state.setHadrons(idle.core.collider.Hadron.J_PSI, 3);
-        // Version 0.169 : l'univers formé que le jeu garde jusqu'au lancement, et les bulles déjà achetées à la formation.
+        state.setHadrons(Hadron.PROTON, 12);
+        state.setHadrons(Hadron.J_PSI, 3);
+        // L'univers formé que le jeu garde jusqu'au lancement, et les bulles déjà achetées à la formation.
         GameState held = new GameState();
         held.setHadronsOpen(true);
-        held.setHadrons(idle.core.collider.Hadron.NEUTRON, 7);
+        held.setHadrons(Hadron.NEUTRON, 7);
         state.bubbleKeep = held;
         state.bubbleKeepMask = 0b1010_0000_0000;
-        // Version 0.150 : deux automatismes des dimensions, dont un coupé. Version 0.209 : le palier de la visée sans
+        // Deux automatismes des dimensions, dont un coupé. Le palier de la visée sans
         // attente vient avec ceux, plus lents, d'avant lui (la relecture les ajoute s'ils manquent).
         state.addDimensionAutomation("LINE_YIELD");
         for (String tier : new String[] {"PLANE_AIM_5S", "PLANE_AIM_2S", "PLANE_AIM_1S", "PLANE_AIM_05S", "PLANE_AIM"}) state.addDimensionAutomation(tier);
@@ -294,7 +276,7 @@ class SaveTest {
         state.noteVoidHistory("3", 1234.5);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);
-        // Le profil et les albums (version 0.147), avec des caractères que la sauvegarde doit échapper.
+        // Le profil et les albums, avec des caractères que la sauvegarde doit échapper.
         state.setPlayerName("Zoé ; « la » 100 % = 1|2");
         state.setAvatar("custom");
         state.setChosenTitle("STAR_SMITH");
@@ -348,12 +330,12 @@ class SaveTest {
         stats.noteMoleculeCreation(1, 3, false);
         stats.noteStep(GameStats.Step.FIRST_MOLECULE, 5100.5);
         stats.noteStep(GameStats.Step.UNIVERSE, 245040);
-        // Version 0.168 : l'univers formé entre au journal, et la partie secondaire note ses moments.
+        // L'univers formé entre au journal, et la partie secondaire note ses moments.
         stats.archiveUniverse(1, 245040);
         stats.noteMoment("dimension.1.ouverte", 245040);
         stats.noteMoment("graine.1", 246000.5);
         stats.addDimensionPlay(1, 0.75);
-        // Une nouvelle partie (version 0.126) : ses étapes à elle se datent à part.
+        // Une nouvelle partie : ses étapes à elle se datent à part.
         stats.startUniverseSteps(250_000.5);
         stats.noteStep(GameStats.Step.FIRST_FUSION, 250_300.25);
         // Après les remises à zéro : ce qui court « depuis la dernière explosion » doit avoir une valeur aussi.
@@ -416,8 +398,8 @@ class SaveTest {
                 if (!sameNumber(x[i], y[i], loose)) found.add(path + "[" + i + "] : " + x[i] + " ≠ " + y[i]);
             }
         } else if (a instanceof int[] x && b instanceof int[] y) {
-            // Les niveaux des améliorations de la graine (version 0.139).
-            if (!java.util.Arrays.equals(x, y)) found.add(path + " : " + java.util.Arrays.toString(x) + " ≠ " + java.util.Arrays.toString(y));
+            // Les niveaux des améliorations de la graine.
+            if (!Arrays.equals(x, y)) found.add(path + " : " + Arrays.toString(x) + " ≠ " + Arrays.toString(y));
         } else if (a instanceof Map<?, ?> x && b instanceof Map<?, ?> y) {
             if (!x.keySet().equals(y.keySet())) found.add(path + " : clés " + x.keySet() + " ≠ " + y.keySet());
             for (Object key : x.keySet()) {
@@ -426,7 +408,7 @@ class SaveTest {
         } else if (a instanceof List<?> x && b instanceof List<?> y) {
             if (x.size() != y.size()) found.add(path + " : tailles " + x.size() + " ≠ " + y.size());
             for (int i = 0; i < Math.min(x.size(), y.size()); i++) compare(path + "[" + i + "]", x.get(i), y.get(i), loose, found);
-        } else if (a instanceof java.util.LinkedHashSet<?> x && b instanceof java.util.LinkedHashSet<?> y) {
+        } else if (a instanceof LinkedHashSet<?> x && b instanceof LinkedHashSet<?> y) {
             compare(path, new ArrayList<Object>(x), new ArrayList<Object>(y), loose, found);   // l'ordre compte
         } else if (a instanceof Collection<?> x && b instanceof Collection<?> y) {
             if (!Set.copyOf(x).equals(Set.copyOf(y))) found.add(path + " : " + x + " ≠ " + y);
@@ -448,9 +430,9 @@ class SaveTest {
                     if (field.getName().equals("logEnds")) {
                         // Seules comptent les suites réellement posées : le tableau est plus long que nécessaire.
                         int runs = ((GameState) a).moleculeLog().isEmpty() ? 0 : ((List<?>) read(a, "logKinds")).size();
-                        x = java.util.Arrays.copyOf((long[]) x, runs);
-                        y = java.util.Arrays.copyOf((long[]) y, Math.min(runs, ((long[]) y).length));
-                        if (!java.util.Arrays.equals((long[]) x, (long[]) y)) found.add(path + ".logEnds");
+                        x = Arrays.copyOf((long[]) x, runs);
+                        y = Arrays.copyOf((long[]) y, Math.min(runs, ((long[]) y).length));
+                        if (!Arrays.equals((long[]) x, (long[]) y)) found.add(path + ".logEnds");
                         continue;
                     }
                     compare(path + "." + field.getName(), x, y, loose, found);
@@ -524,7 +506,6 @@ class SaveTest {
 
     @Nested
     class Sauvegarde {
-
         @Test
         void laPartieDEssaiASortiChaqueChampDeSaValeurDeDepart() {
             assertEquals(List.of(), untouched("partie", richState(), new GameState()),
@@ -567,7 +548,7 @@ class SaveTest {
             assertEquals(12, read.voidEnergy().toDouble(), 1e-9);
         }
 
-        /** Version 0.213 : les quatre améliorations de l'univers (Brane, Bulk, Paysage, Omnivers) sont parties ; leurs niveaux, dans une ancienne sauvegarde, sont ignorés. */
+        /** Les quatre améliorations de l'univers (Brane, Bulk, Paysage, Omnivers) sont parties ; leurs niveaux, dans une ancienne sauvegarde, sont ignorés. */
         @Test
         void uneAncienneSauvegardeAvecDesAmeliorationsDeLUniversSeRelit() throws Exception {
             GameState state = new GameState();
@@ -699,7 +680,7 @@ class SaveTest {
 
         @Test
         void uneFamilleDeSyntheseInconnueNeRendPasLaSauvegardeIllisible() throws Exception {
-            // Version 0.126 : comme les autres noms d'une autre version, elle est écartée ; la synthèse repart sans cible.
+            // Comme les autres noms d'une autre version, elle est écartée ; la synthèse repart sans cible.
             String text = SaveCodec.write(richState(), 0);
             String changed = text.replaceFirst("\nsynthesisTarget=[A-Z_]+\n", "\nsynthesisTarget=INCONNUE\n");
             assertNotEquals(text, changed, "la partie d'essai doit avoir une cible");
@@ -758,7 +739,7 @@ class SaveTest {
 
         @Test
         void uneSauvegardeDAvantLesCinqNiveauxDePersistanceGardeTout() throws Exception {
-            // Version 0.167 : Persistance a cinq niveaux ; le seul niveau d'avant gardait tout, il devient le cinquième.
+            // Persistance a cinq niveaux ; le seul niveau d'avant gardait tout, il devient le cinquième.
             GameState state = new GameState();
             state.setLevel("atom_keep", 1);
             String text = SaveCodec.write(state, 0);
@@ -775,7 +756,7 @@ class SaveTest {
 
         @Test
         void laChronologieDesUniversEtDesDimensionsSeSauvegarde() throws Exception {
-            // Version 0.168 : le journal des univers, les moments de la partie secondaire et le temps passé dans chaque
+            // Le journal des univers, les moments de la partie secondaire et le temps passé dans chaque
             // dimension s'écrivent ; une sauvegarde d'avant n'a pas de moments, et ce qui est déjà atteint reste sans date.
             Game game = GameTestSupport.realGame();
             game.state().setTimePlayed(3_600);
@@ -811,7 +792,6 @@ class SaveTest {
 
     @Nested
     class PartieReelle {
-
         private Game play(GameState state, long seed) {
             return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
         }
@@ -926,7 +906,6 @@ class SaveTest {
 
     @Nested
     class RetourApresUneAbsence {
-
         private Game started() {
             Game game = GameTestSupport.realGame();
             return game;
@@ -1071,13 +1050,12 @@ class SaveTest {
         }
     }
 
-    /** Les courbes gardées dans la sauvegarde (version 0.064) : une colonne relue se réécrit à l'identique. */
+    /** Les courbes gardées dans la sauvegarde : une colonne relue se réécrit à l'identique. */
     @Nested
     class Courbes {
-
         @Test
         void uneColonneRelueSeReecritALIdentique() {
-            java.util.Random random = new java.util.Random(7);
+            Random random = new Random(7);
             double[] column = new double[5_000];
             for (int i = 0; i < column.length; i++) {
                 column[i] = switch (i % 5) {

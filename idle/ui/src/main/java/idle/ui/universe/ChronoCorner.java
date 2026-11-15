@@ -2,25 +2,19 @@ package idle.ui.universe;
 
 import idle.core.Game;
 import idle.ui.common.Format;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Le chrono hors de la sous-page Graine (version 0.182) : une fois son étage acheté, il se règle depuis n'importe quel
- * onglet, sans revenir à la sous-page Graine, où il reste aussi ({@link SeedUpgradesPane}). Le temps gardé,
- * l'accélération, et le curseur. Il disparaît sur la sous-page Graine (le chrono y est déjà) et tant que l'étage n'est
- * pas acheté.
- * <p>
- * Version 0.203 : une bande d'une ligne, rangée dans la mise en page (sous la ligne de l'objectif, et dans l'en-tête
- * de la fenêtre d'une dimension), au lieu d'une carte flottante en bas à gauche, qui passait par-dessus les cartes des
- * pages, les améliorations des dimensions et la colonne des onglets. Elle a sa place à elle : elle ne recouvre plus rien.
+ * Le chrono hors de la sous-page Graine : une fois son étage acheté, il se règle depuis n'importe quel onglet, sans
+ * revenir à la sous-page Graine, où il reste aussi ({@link SeedUpgradesPane}). Le temps gardé, l'accélération, et le
+ * curseur. Il disparaît sur la sous-page Graine (le chrono y est déjà) et tant que l'étage n'est pas acheté.
+ * <p> Une bande d'une ligne, rangée dans la mise en page (sous la ligne de l'objectif, et dans l'en-tête de la fenêtre
+ * d'une dimension), au lieu d'une carte flottante en bas à gauche, qui passait par-dessus les cartes des pages, les
+ * améliorations des dimensions et la colonne des onglets. Elle a sa place à elle : elle ne recouvre plus rien.
  */
 public final class ChronoCorner extends VBox {
-
     private final Game game;
     private final Label line = new Label();
     private final Slider speed = new Slider(1, 2, 1);
@@ -84,11 +78,7 @@ public final class ChronoCorner extends VBox {
     }
 
     /** Pour les vérifications. */
-    public Slider slider() {
-        return speed;
-    }
+    public Slider slider() { return speed; }
 
-    public Label text() {
-        return line;
-    }
+    public Label text() { return line; }
 }

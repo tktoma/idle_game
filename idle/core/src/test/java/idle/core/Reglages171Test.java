@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,17 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.bigbang.BangChallenge;
 import idle.core.math.BigNum;
-import idle.core.sky.Bodies;
-import idle.core.sky.Body;
+import idle.core.sky.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.171 : la maturation des défis de Big Bang du deuxième univers ×4 au lieu de ×5 (racine cubique de 2 par
- * défi), et les prix du vide étalés sur toute la partie : le premier niveau dix fois moins cher, le dernier trente fois
- * plus.
+ * La maturation des défis de Big Bang du deuxième univers ×4 au lieu de ×5 (racine cubique de 2 par défi), et les prix
+ * du vide étalés sur toute la partie : le premier niveau dix fois moins cher, le dernier trente fois plus.
  */
 class Reglages171Test {
-
     /** Le plus long des astres à mûrir, le trou noir supermassif. */
     private static Body supermassif(Game game) {
         Body longest = null;

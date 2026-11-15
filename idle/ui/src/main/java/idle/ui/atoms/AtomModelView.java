@@ -1,33 +1,29 @@
 package idle.ui.atoms;
 
 import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 
 /**
- * Grand atome de l'onglet « Atomes » : un noyau entouré d'orbes qui tournent sur des
- * couches concentriques. Il y a une orbe par atome disponible : une orbe apparaît à chaque
- * atome gagné et disparaît à chaque atome dépensé.
+ * Grand atome de l'onglet « Atomes » : un noyau entouré d'orbes qui tournent sur des couches concentriques. Il y a une
+ * orbe par atome disponible : une orbe apparaît à chaque atome gagné et disparaît à chaque atome dépensé.
  *
- * <p>Les couches se remplissent de l'intérieur vers l'extérieur, avec les capacités des
- * couches électroniques du dernier élément du tableau périodique : 2, 8, 18, 32, 32, 18, 8,
- * soit 118 orbes au maximum.
+ * <p>Les couches se remplissent de l'intérieur vers l'extérieur, avec les capacités des couches électroniques du
+ * dernier élément du tableau périodique : 2, 8, 18, 32, 32, 18, 8, soit 118 orbes au maximum.
  *
- * <p>Au-delà de 118 atomes (version 0.077), le grand atome ne change pas : des copies de lui,
- * complètes (noyau, couches et 118 orbes), apparaissent autour. Elles ne sont jamais plus
- * grandes que lui, ont des tailles variées et sont vues de biais, chacune sous son angle.
- * Il en vient de plus en plus à mesure que les atomes en trop grandissent, jusqu'à
- * {@link #MAX_COPIES}, où la vue est bien chargée. Les plus petites, comme plus lointaines,
- * sont plus pâles et passent derrière les grandes.
+ * <p>Au-delà de 118 atomes, le grand atome ne change pas : des copies de lui, complètes (noyau, couches et 118 orbes),
+ * apparaissent autour. Elles ne sont jamais plus grandes que lui, ont des tailles variées et sont vues de biais,
+ * chacune sous son angle. Il en vient de plus en plus à mesure que les atomes en trop grandissent, jusqu'à {@link
+ * #MAX_COPIES}, où la vue est bien chargée. Les plus petites, comme plus lointaines, sont plus pâles et passent
+ * derrière les grandes.
  *
- * <p>La vue occupe toute la largeur de la page ; le grand atome reste au centre, carré, à sa
- * taille d'avant ({@link #MAX_SIDE} pixels de côté au plus).
+ * <p>La vue occupe toute la largeur de la page ; le grand atome reste au centre, carré, à sa taille d'avant ({@link
+ * #MAX_SIDE} pixels de côté au plus).
  */
 final class AtomModelView extends Canvas {
-
     /** Nombre d'orbes que peut porter chaque couche, de la plus proche du noyau à la plus lointaine. */
     static final int[] SHELL_CAPACITIES = {2, 8, 18, 32, 32, 18, 8};
 
@@ -75,7 +71,7 @@ final class AtomModelView extends Canvas {
     private double layoutHeight = -1;
 
     /**
-     * Le skin de l'atome (version 0.089) : {@code null} pour le classique. « Noyau dense » : un noyau
+     * Le skin de l'atome : {@code null} pour le classique. « Noyau dense » : un noyau
      * de protons et de neutrons serrés, des couches en pointillés, des électrons bleus qui laissent
      * une traînée. « Noyau stellaire » : un petit soleil couronné de rayons, et des planètes de
      * toutes les couleurs sur leurs orbites. Les cinq skins de la version 0.191 (tableau noir, nuage
@@ -84,21 +80,15 @@ final class AtomModelView extends Canvas {
     private Skin skin;
 
     /** Le skin de l'atome : tout skin du visuel de l'atome, {@code null} sinon. */
-    void setSkin(Skin chosen) {
-        skin = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.ATOM ? chosen : null;
-    }
+    void setSkin(Skin chosen) { skin = chosen != null && chosen.visual() == SkinVisual.ATOM ? chosen : null; }
 
-    Skin skin() {
-        return skin;
-    }
+    Skin skin() { return skin; }
 
     private static final Color[] PLANETS = {Color.web("#7fc8ff"), Color.web("#ff9f6b"), Color.web("#9be7a8"),
             Color.web("#e2c48f"), Color.web("#c9a6ff"), Color.web("#ff7a9a")};
 
     /** @param size côté de la vue au départ, en pixels */
-    AtomModelView(double size) {
-        super(size, size);
-    }
+    AtomModelView(double size) { super(size, size); }
 
     /** Fixe le nombre d'orbes (plafonné à {@link #MAX_ORBS}). Une orbe ajoutée joue son apparition. */
     void setOrbs(int count) {
@@ -111,9 +101,7 @@ final class AtomModelView extends Canvas {
      * Les atomes au-delà des 118 orbes, en ordres de grandeur : {@code log10(atomes en trop + 1)}.
      * 0 quand il n'y en a pas.
      */
-    void setExtraDecades(double decades) {
-        extraDecades = Double.isFinite(decades) ? Math.max(0, decades) : 0;
-    }
+    void setExtraDecades(double decades) { extraDecades = Double.isFinite(decades) ? Math.max(0, decades) : 0; }
 
     /** Nombre de copies de l'atome affichées autour du grand : une dès le premier atome en trop, {@link #MAX_COPIES} au plus. */
     int copies() {
@@ -121,15 +109,8 @@ final class AtomModelView extends Canvas {
         return (int) Math.min(MAX_COPIES, Math.max(1, Math.floor(extraDecades * COPIES_PER_DECADE)));
     }
 
-    /** Les copies affichées, de la plus petite (au fond) à la plus grande : pour les vérifications. */
-    List<Copy> shownCopies() {
-        return sortedCopies(copies());
-    }
-
     /** Un atome vient d'être créé : le grand atome grossit d'un coup puis reprend sa taille. Les copies ne bougent pas. */
-    void celebrate() {
-        sinceArrive = 0;
-    }
+    void celebrate() { sinceArrive = 0; }
 
     /** Avance l'animation de {@code elapsed} secondes et redessine. */
     void frame(double elapsed) {

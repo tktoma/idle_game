@@ -1,24 +1,20 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.achievements.Achievements;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.upgrades.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.save.SaveCodec;
 import idle.core.universe.Skin;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Version 0.210 : les systèmes du jeu pris ensemble, et non plus un par un. Sept systèmes qui se posent sur une partie
+ * Les systèmes du jeu pris ensemble, et non plus un par un. Sept systèmes qui se posent sur une partie
  * (skins, galaxie, arbre de matière noire, univers formés, bulle du jeune arbre, améliorations en atomes, Big Bangs) se
  * combinent de toutes les façons possibles, 128 parties. Pour chacune, ce que chaque système vérifie seul doit encore tenir :
  *
@@ -33,7 +29,6 @@ import org.junit.jupiter.params.provider.MethodSource;
  * </ul>
  */
 class InteractionSystemesTest {
-
     /** Les systèmes combinés : chacun se pose sur une partie au premier univers formé, sans rien payer. */
     enum Systeme {
         SKINS {
@@ -50,9 +45,7 @@ class InteractionSystemesTest {
         },
         GALAXIE {
             @Override
-            void poser(Game game) {
-                game.state().setCosmosLevel(1);
-            }
+            void poser(Game game) { game.state().setCosmosLevel(1); }
         },
         MATIERE_NOIRE {
             @Override
@@ -72,9 +65,7 @@ class InteractionSystemesTest {
         },
         BULLE {
             @Override
-            void poser(Game game) {
-                game.state().setTreeBubbleLevel(GameUniverse.TreeBubble.YOUNG_RIGHT.ordinal(), 1);
-            }
+            void poser(Game game) { game.state().setTreeBubbleLevel(GameUniverse.TreeBubble.YOUNG_RIGHT.ordinal(), 1); }
         },
         ATOMES {
             @Override
@@ -86,9 +77,7 @@ class InteractionSystemesTest {
         },
         BIG_BANGS {
             @Override
-            void poser(Game game) {
-                GameTestSupport.bangs(game, 5);
-            }
+            void poser(Game game) { GameTestSupport.bangs(game, 5); }
         };
 
         abstract void poser(Game game);
@@ -118,14 +107,12 @@ class InteractionSystemesTest {
         return game;
     }
 
-    static Game partie(Set<Systeme> systemes) {
-        return partie(new ArrayList<>(systemes));
-    }
+    static Game partie(Set<Systeme> systemes) { return partie(new ArrayList<>(systemes)); }
 
     /** Une partie rechargée depuis sa sauvegarde, avec le même hasard. */
     static Game relue(Game game) {
-        return new Game(GameTestSupport.reread(game.state()), idle.core.upgrades.Upgrades.DEFAULT, idle.core.upgrades.Automations.DEFAULT,
-                idle.core.darkmatter.DarkUpgrades.DEFAULT, idle.core.achievements.Achievements.DEFAULT, new Random(42));
+        return new Game(GameTestSupport.reread(game.state()), Upgrades.DEFAULT, Automations.DEFAULT,
+                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
     }
 
     static String sauvegarde(Game game) {
@@ -145,9 +132,7 @@ class InteractionSystemesTest {
         return out;
     }
 
-    private static double tolerance(double value) {
-        return 1e-6 * Math.max(1, Math.abs(value));
-    }
+    private static double tolerance(double value) { return 1e-6 * Math.max(1, Math.abs(value)); }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("combinaisons")

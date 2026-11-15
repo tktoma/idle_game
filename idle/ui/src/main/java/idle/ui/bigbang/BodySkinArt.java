@@ -4,56 +4,44 @@ import idle.core.sky.Body;
 import idle.core.universe.Skin;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Paint;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.shape.StrokeLineJoin;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
 
 /**
- * Les trois skins des astres (version 0.186, {@link Skin#BODIES}) : une autre apparence pour chacun
- * des astres que {@link BodyArt} dessine, dans la même emprise que lui ({@link BodyArt#span},
- * {@link BodyArt#reachDown}…), sans ses couches de détail, qui sont faites pour le Classique.
+ * Les trois skins des astres ({@link Skin#BODIES}) : une autre apparence pour chacun des astres que {@link BodyArt}
+ * dessine, dans la même emprise que lui ({@link BodyArt#span}, {@link BodyArt#reachDown}…), sans ses couches de détail,
+ * qui sont faites pour le Classique.
  *
- * <p><b>Planétarium</b> : chaque astre est une sphère posée sur une fine tige de laiton qui descend
- * jusqu'au bas de son emprise, sur un petit socle. Les mondes solides, les cailloux et le noyau
- * d'une comète sont de laiton ({@link #BRASS}), les gaz, les nébuleuses et les étoiles de verre
- * dépoli ({@link #GLASS}) teinté de leur couleur, lumineux pour ce qui brille ; le trou noir est une
- * sphère d'obsidienne cerclée de laiton. Les textures laissent la place à deux ou trois reflets
- * nets. Les accessoires gardent la silhouette de chaque échelle : les anneaux d'une géante et le
- * disque d'un trou noir deviennent un anneau de laiton plat, les queues d'une comète un arc de
- * laiton gravé, les faisceaux d'une étoile à neutrons et les jets du cœur des aiguilles de laiton,
- * la chevelure d'une comète un globe de verre autour du noyau. Un globe sans accessoire n'a pas de
- * place sous lui : sa sphère est un peu plus petite que lui pour laisser passer la tige.
+ * <p><b>Planétarium</b> : chaque astre est une sphère posée sur une fine tige de laiton qui descend jusqu'au bas de son
+ * emprise, sur un petit socle. Les mondes solides, les cailloux et le noyau d'une comète sont de laiton ({@link
+ * #BRASS}), les gaz, les nébuleuses et les étoiles de verre dépoli ({@link #GLASS}) teinté de leur couleur, lumineux
+ * pour ce qui brille ; le trou noir est une sphère d'obsidienne cerclée de laiton. Les textures laissent la place à
+ * deux ou trois reflets nets. Les accessoires gardent la silhouette de chaque échelle : les anneaux d'une géante et le
+ * disque d'un trou noir deviennent un anneau de laiton plat, les queues d'une comète un arc de laiton gravé, les
+ * faisceaux d'une étoile à neutrons et les jets du cœur des aiguilles de laiton, la chevelure d'une comète un globe de
+ * verre autour du noyau. Un globe sans accessoire n'a pas de place sous lui : sa sphère est un peu plus petite que lui
+ * pour laisser passer la tige.
  *
- * <p><b>Gravure</b> : du noir ({@link #INK}) sur du blanc cassé ({@link #PAPER}), comme une planche
- * du XIX<sup>e</sup> siècle. Un astre est un disque de papier cerné d'un trait d'un pixel et demi,
- * modelé par des hachures parallèles qui se resserrent vers l'ombre, en bas à droite, et se croisent
- * dans le plus sombre ; cratères, continents, fissures et bandes sont des traits. Ce qui s'écarte du
- * disque est tracé en blanc cassé, pour se voir sur le ciel : les rayons d'une étoile, les queues
- * d'une comète en traits fins qui s'écartent, les anneaux d'une géante en ellipses et en hachures,
- * l'anneau de hachures circulaires autour du disque noir d'un trou noir, le cercle pointillé du halo
- * des mondes à air. Une nébuleuse est un disque de papier pointillé.
+ * <p><b>Gravure</b> : du noir ({@link #INK}) sur du blanc cassé ({@link #PAPER}), comme une planche du XIX<sup>e</sup>
+ * siècle. Un astre est un disque de papier cerné d'un trait d'un pixel et demi, modelé par des hachures parallèles qui
+ * se resserrent vers l'ombre, en bas à droite, et se croisent dans le plus sombre ; cratères, continents, fissures et
+ * bandes sont des traits. Ce qui s'écarte du disque est tracé en blanc cassé, pour se voir sur le ciel : les rayons
+ * d'une étoile, les queues d'une comète en traits fins qui s'écartent, les anneaux d'une géante en ellipses et en
+ * hachures, l'anneau de hachures circulaires autour du disque noir d'un trou noir, le cercle pointillé du halo des
+ * mondes à air. Une nébuleuse est un disque de papier pointillé.
  *
- * <p><b>Cartographie</b> : des globes vus un peu d'en haut, de la couleur de l'astre éclaircie, à
- * méridiens et parallèles ({@link #LINE}), l'équateur plus épais ; un graticule doré pour les
- * étoiles, clair sur fond sombre pour les trous noirs. Les anneaux et le disque restent, en traits ;
- * une comète a une flèche de trajectoire pointillée vers ses queues. Sous l'équateur, dans le globe,
- * un cartouche porte le nom de l'astre en petites capitales, quand le globe est assez grand
- * ({@link #NAME_FROM}) et le nom assez court pour y tenir.
+ * <p><b>Cartographie</b> : des globes vus un peu d'en haut, de la couleur de l'astre éclaircie, à méridiens et
+ * parallèles ({@link #LINE}), l'équateur plus épais ; un graticule doré pour les étoiles, clair sur fond sombre pour
+ * les trous noirs. Les anneaux et le disque restent, en traits ; une comète a une flèche de trajectoire pointillée vers
+ * ses queues. Sous l'équateur, dans le globe, un cartouche porte le nom de l'astre en petites capitales, quand le globe
+ * est assez grand ({@link #NAME_FROM}) et le nom assez court pour y tenir.
  *
- * <p>Rien n'est alloué par image : les gradients sont proportionnels à la forme qu'ils remplissent
- * et construits une fois, les pointes des polygones vivent dans des tableaux statiques, les polices
- * sont gardées, le nom en capitales est dans la palette de l'astre.
+ * <p>Rien n'est alloué par image : les gradients sont proportionnels à la forme qu'ils remplissent et construits une
+ * fois, les pointes des polygones vivent dans des tableaux statiques, les polices sont gardées, le nom en capitales est
+ * dans la palette de l'astre.
  */
 final class BodySkinArt {
-
     /** Le laiton du Planétarium : sa couleur, son ombre, son reflet ; le verre dépoli ; l'obsidienne. */
     static final Color BRASS = Color.web("#c9a24a");
     static final Color BRASS_SHADE = Color.web("#6e5420");
@@ -290,9 +278,8 @@ final class BodySkinArt {
     }
 
     /**
-     * Les queues d'une comète : un arc de laiton qui part du noyau le long des queues, bombé du côté
-     * de la queue de poussière, de plus en plus fin, gravé d'un sillon au milieu. Il reste dans les
-     * deux queues du Classique.
+     * Les queues d'une comète : un arc de laiton qui part du noyau le long des queues, bombé du côté de la queue de
+     * poussière, de plus en plus fin, gravé d'un sillon au milieu. Il reste dans les deux queues du Classique.
      */
     private static void brassArc(GraphicsContext g, double x, double y, double r) {
         double cos = Math.cos(BodyArt.TAIL);

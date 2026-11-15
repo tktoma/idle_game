@@ -1,20 +1,11 @@
 import idle.core.history.Noms;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import idle.core.darkmatter.*;
+import idle.core.upgrades.*;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Les détecteurs d'illogismes du bot analyste (version 0.164) : à la fin d'une partie, ils relisent ce que le bot a vu
+ * Les détecteurs d'illogismes du bot analyste : à la fin d'une partie, ils relisent ce que le bot a vu
  * et signalent ce qui semble ne pas tourner rond dans le jeu (ou dans la façon de jouer du bot). Chacun a un numéro
  * stable, une règle simple et des seuils écrits ici ; un signalement n'est pas une preuve, c'est un endroit où regarder.
  *
@@ -35,7 +26,6 @@ import java.util.Set;
  * </ol>
  */
 final class AnalyseIllogismes {
-
     private AnalyseIllogismes() {}
 
     /** À regarder de près, ou simplement à savoir. */
@@ -44,9 +34,7 @@ final class AnalyseIllogismes {
 
         final String label;
 
-        Gravite(String label) {
-            this.label = label;
-        }
+        Gravite(String label) { this.label = label; }
     }
 
     /** Un signalement : quel détecteur, sa gravité, ce qu'il a vu, et le détail. */
@@ -161,7 +149,7 @@ final class AnalyseIllogismes {
                     + " achats qui multiplient une grandeur par mille ou plus, et, tous achats réunis, pas une seconde gagnée vers les "
                     + "paliers : la grandeur qu'ils multiplient ne mène à rien ici.")));
         });
-        // 11 et 12 (version 0.166) : ce que le suivi a vu en continu.
+        // 11 et 12 : ce que le suivi a vu en continu.
         for (AnalyseSuivi.Episode e : bot.suivi.reserves) {
             out.add(new Illogisme(11, NOMS[11], Gravite.CREUSER, "Univers " + e.univers() + " : " + e.quoi() + " pendant " + AnalyseJournal.duree(e.duree()),
                     List.of("De " + AnalyseJournal.chrono(e.debut()) + " à " + AnalyseJournal.chrono(e.fin()) + ", " + e.detail() + ".",
@@ -203,7 +191,5 @@ final class AnalyseIllogismes {
         Files.writeString(dossier.resolve("illogismes.csv"), csv.toString());
     }
 
-    private static String q(String value) {
-        return "\"" + value.replace("\"", "\"\"") + "\"";
-    }
+    private static String q(String value) { return "\"" + value.replace("\"", "\"\"") + "\""; }
 }

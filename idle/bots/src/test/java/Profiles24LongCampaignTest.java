@@ -5,31 +5,24 @@ import idle.core.Game;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Locale;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+import java.util.stream.*;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.*;
 
 /**
  * Contrôle comparatif de 24 heures SIMULÉES (30 pour le profil 17 depuis la 0.126 ; premier univers seulement).
  *
- * Le profil 1 sert de témoin rapide ; 11, 12 et 17 sont les trois profils
- * historiquement bloqués. Chaque essai reprend exactement la graine utilisée
- * lors de la campagne des 24 profils de seize heures ({@code Profiles24CampaignTest}). Un profil lent ne doit
- * pas être déclaré gagnant simplement parce que le programme n'a pas planté.
+ * Le profil 1 sert de témoin rapide ; 11, 12 et 17 sont les trois profils historiquement bloqués. Chaque essai reprend
+ * exactement la graine utilisée lors de la campagne des 24 profils de seize heures ({@code Profiles24CampaignTest}). Un
+ * profil lent ne doit pas être déclaré gagnant simplement parce que le programme n'a pas planté.
  *
- * Version 0.172 : un test par profil, les quatre joués en même temps ({@code @Execution(CONCURRENT)} sur la méthode,
- * voir {@code junit-platform.properties} et {@link Profiles24CampaignTest}) : le contrôle prend le temps du plus long
- * (l'AFK, 30 h), pas la somme des quatre. Mêmes parties, mêmes lignes PROFIL24_LONG.
+ * Un test par profil, les quatre joués en même temps ({@code @Execution(CONCURRENT)} sur la méthode, voir {@code
+ * junit-platform.properties} et {@link Profiles24CampaignTest}) : le contrôle prend le temps du plus long (l'AFK, 30
+ * h), pas la somme des quatre. Mêmes parties, mêmes lignes PROFIL24_LONG.
  */
 class Profiles24LongCampaignTest {
     // L'absence de paramètre exécute les quatre profils en local.
@@ -63,14 +56,13 @@ class Profiles24LongCampaignTest {
         int startBangs = game.bigBangs();
         IdleProfiles24 bot = new IdleProfiles24(game, p, seed, 60);
         Path dir = out.resolve(String.format("%02d_%s", id, p.name()));
-        // Version 0.126 : depuis le rééquilibrage de la 0.125 (maturation ×3, rassemblements de 2 h), l'AFK (une
+        // Depuis le rééquilibrage de la 0.125 (maturation ×3, rassemblements de 2 h), l'AFK (une
         // décision par heure) forme la galaxie vers 26 h depuis ce point de départ (amas 36 h, univers 42 h) : il a
         // 30 h. Les trois autres gardent 24 h. Le jalon, lui, ne baisse pas.
         double hours = id == 17 ? 30 : 24;
         bot.execute(hours, dir);
         boolean win = game.hasCosmos(Cosmos.UNIVERSE);
-        // Le test long doit mesurer un vrai jalon, et pas seulement
-        // l'absence de crash (comme les tests courts).
+        // Le test long doit mesurer un vrai jalon, et pas seulement l'absence de crash (comme les tests courts).
         Cosmos minimum = id == 1 ? Cosmos.CLUSTER : Cosmos.GALAXY;
         if (win) VICTOIRES.incrementAndGet();
         assertTrue(game.state().started(), "Le jeu doit rester demarre : " + p.name());
@@ -92,8 +84,7 @@ class Profiles24LongCampaignTest {
                 game.state().space(), game.freeSpace(), game.isMoleculeAutomationEnabled());
         for (var shortage : game.shoppingList().matter().entrySet()) {
             Molecule.State state = shortage.getKey();
-            System.out.printf(
-                    "PROFIL24_LONG_MATTER,%d,%s,manque=%d,reuni=%d,sortes=%d%n",
+            System.out.printf("PROFIL24_LONG_MATTER,%d,%s,manque=%d,reuni=%d,sortes=%d%n",
                     id, state, shortage.getValue(), game.gatheredInState(state),
                     game.sortsInState(state));
             Molecule target = FirstUniversePolicy.matterTarget(game, state);
@@ -106,8 +97,7 @@ class Profiles24LongCampaignTest {
                         game.isMoleculeAutomated(target.id()),
                         game.isAutoCreatingMolecules(), game.moleculeAutomationInterval());
                 for (var ingredient : target.recipe().entrySet()) {
-                    System.out.printf(
-                            "PROFIL24_LONG_ELEMENT,%d,%s,numero=%d,stock=%d,cout=%d%n",
+                    System.out.printf("PROFIL24_LONG_ELEMENT,%d,%s,numero=%d,stock=%d,cout=%d%n",
                             id, state, ingredient.getKey(),
                             game.elementCount(ingredient.getKey()), ingredient.getValue());
                 }
@@ -115,8 +105,7 @@ class Profiles24LongCampaignTest {
         }
         // Les diagnostics complets precedents restent disponibles
         // meme si l'objectif minimal est manque : pas de faux succes.
-        assertTrue(win || game.hasCosmos(minimum),
-                p.name() + " doit atteindre au moins " + minimum
+        assertTrue(win || game.hasCosmos(minimum), p.name() + " doit atteindre au moins " + minimum
                 + " apres " + (int) hours + " h ; objectif=" + game.shoppingList().target());
     }
 

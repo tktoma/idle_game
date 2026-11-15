@@ -1,5 +1,10 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.profile.Title;
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,22 +16,19 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.154 : la brane, sixième dimension. On tire la membrane, une onde en part, grandit jusqu'à sa portée et
+ * La brane, sixième dimension. On tire la membrane, une onde en part, grandit jusqu'à sa portée et
  * rebondit sur les bords ; chaque point qu'elle touche donne des ondes, plus après un rebond, plus pour chaque point de
  * plus touché par la même onde. Et la lumière astrale, qui multiplie l'arrosage par seconde. Version 0.163 :
  * l'automatisme vise un point, et la brane avance pareil par grands pas (une absence, un bot) que image par image.
  */
 class BraneTest {
-
     private static Game six() {
         Game game = GameTestSupport.universe(6);
         game.testClearBrane();
         return game;
     }
 
-    private static void run(Game game, double seconds) {
-        for (double t = 0; t < seconds; t += 0.05) game.tick(0.05);
-    }
+    private static void run(Game game, double seconds) { for (double t = 0; t < seconds; t += 0.05) game.tick(0.05); }
 
     @Test
     void laBraneSOuvreAuSixiemeUnivers() {
@@ -110,7 +112,7 @@ class BraneTest {
         assertTrue(game.pullBrane(0, 0, 1), "éteinte, la suivante peut partir");
     }
 
-    /** Version 0.155 : l'onde rebondit plusieurs fois, et le point touché compte à chaque passage tant qu'elle court. */
+    /** L'onde rebondit plusieurs fois, et le point touché compte à chaque passage tant qu'elle court. */
     @Test
     void lOndeRebonditPlusieursFois() {
         Game game = six();
@@ -136,7 +138,7 @@ class BraneTest {
         Game game = six();
         game.state().setBraneShards(1e12);
         for (BraneUpgrade upgrade : BraneUpgrade.values()) assertTrue(game.buyBrane(upgrade), upgrade.toString());
-        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.braneValue(), 1e-9);
+        assertEquals(2 * game.hadronBoost(Hadron.OMEGA), game.braneValue(), 1e-9);
         assertEquals(GameBrane.BRANE_REACH * 1.3, game.braneMaxReach(), 1e-12);
         assertEquals(game.braneMaxReach() * 0.6, game.braneReach(0.5), 1e-12, "élasticité : une demi-tirée vaut 60 %");
         assertEquals(1.75, game.braneBounceFactor(), 1e-12);
@@ -151,7 +153,7 @@ class BraneTest {
         run(game, 60);
         assertTrue(game.braneWavesSent() >= 15, "une onde dès que la précédente s'éteint : " + game.braneWavesSent());
         assertTrue(game.braneTouches() > 0 && game.state().braneShardsEarned() > 0);
-        assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 6).count(), "dix pour la brane");
+        assertEquals(10, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 6).count(), "dix pour la brane");
         assertEquals(6, DimensionAutomation.BRANE_PULL.paidWith(), "payés en ondes de la brane (version 0.209)");
     }
 
@@ -173,7 +175,7 @@ class BraneTest {
         game.state().setBraneShardsEarned(GameUniverse.BRANE_THRESHOLD);
         assertTrue(game.isDimensionThresholdReached(6));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.BRANE_SURFER));
+        assertTrue(game.hasTitle(Title.BRANE_SURFER));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.braneLevel(BraneUpgrade.BOUNCE.ordinal()));
         StringBuilder old = new StringBuilder();
@@ -193,7 +195,7 @@ class BraneTest {
         double[][] corners = {{0.9, 0.9}, {-0.9, 0.9}, {0.9, -0.9}, {-0.9, -0.9}, {0.9, 0}, {-0.9, 0}};
         for (double[] c : corners) game.addBranePoint(c[0], c[1]);
         double[] aim = game.braneAutoAim();
-        assertTrue(java.util.Arrays.stream(corners).anyMatch(c -> c[0] == aim[0] && c[1] == aim[1]), "il vise un des points");
+        assertTrue(Arrays.stream(corners).anyMatch(c -> c[0] == aim[0] && c[1] == aim[1]), "il vise un des points");
         run(game, 120);
         assertTrue(game.braneTouches() >= 10, "les ondes touchent, les points partent et reviennent : " + game.braneTouches());
     }

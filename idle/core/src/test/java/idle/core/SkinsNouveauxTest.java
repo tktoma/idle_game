@@ -1,16 +1,21 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import idle.core.achievements.Achievement;
+import idle.core.collider.Hadron;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
+import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
+import idle.core.sky.*;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import org.junit.jupiter.api.Test;
 
 /** Les skins des versions 0.185 à 0.187 : les essences de l'arbre, les astres, les dix mini-jeux. */
 class SkinsNouveauxTest {
-
     @Test
     void uneEssenceParUniversFormeAPartirDuQuatrieme() {
         assertEquals(8, Skin.TREES.length);
@@ -46,7 +51,7 @@ class SkinsNouveauxTest {
         Game game = GameTestSupport.universe(2);
         game.state().setSkinsOpen(true);
         int formed = 0;
-        for (idle.core.sky.Body body : game.bodies()) {
+        for (Body body : game.bodies()) {
             game.state().addBody(body.id());
             formed++;
             game.tick(1);
@@ -104,7 +109,7 @@ class SkinsNouveauxTest {
         game.tick(1);
         assertSkin(game, Skin.TABS_BUTTONS, true, "dix heures");
         assertSkin(game, Skin.MOLECULE_SKELETON, false);
-        for (idle.core.molecules.Molecule molecule : game.molecules()) game.state().setMoleculeCount(molecule.id(), 1);
+        for (Molecule molecule : game.molecules()) game.state().setMoleculeCount(molecule.id(), 1);
         game.tick(1);
         assertSkins(game, true, "toutes les sortes créées", Skin.MOLECULE_SPACE_FILLING, Skin.MOLECULE_SKELETON);
         assertSkin(game, Skin.CARD_GLASS, false);
@@ -127,9 +132,9 @@ class SkinsNouveauxTest {
         assertSkin(game, Skin.TABLE_TINY, false, "aucun élément : pas de Minuscule");
         assertSkin(game, Skin.FUSION_EMBER, false);
         game.state().setElementCount(1, 1);
-        for (int i = 0; i < 100; i++) game.state().stats().noteFusion(idle.core.math.BigNum.of(1), 1);
+        for (int i = 0; i < 100; i++) game.state().stats().noteFusion(BigNum.of(1), 1);
         game.state().setExplosions(25);
-        game.state().setTotalAtoms(idle.core.math.BigNum.of(50));
+        game.state().setTotalAtoms(BigNum.of(50));
         game.state().setCollisionRuns(100);
         game.state().setCometsCaught(25);
         game.state().setBigBangs(5);
@@ -168,7 +173,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.COLLIDER, Skin.COLLIDER_STADIUM.visual());
     }
 
-    /** Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
+    /** Les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
     @Test
     void lesIconesLesSignesLesBullesLeFondLaFusionEtLaPageOntLeursConditions() {
         Game game = GameTestSupport.universe(2);
@@ -184,22 +189,22 @@ class SkinsNouveauxTest {
             assertSkin(game, skin, false, "pas avant sa condition : " + skin);
         }
         // Les icônes d'onglet.
-        game.state().setTotalAtoms(idle.core.math.BigNum.of(50));
+        game.state().setTotalAtoms(BigNum.of(50));
         game.state().setRebuildRecord(45);
         game.state().setGalaxy(true);
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.LEAVES_RIGHT.ordinal(), true);
         // Les signes d'état : un succès d'un onglet différent chacun ; les signes de la matière : les sortes rassemblées.
         game.state().addAchievement("step_fusions_100");
         int gathered = 0;
-        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+        for (Molecule molecule : game.molecules()) {
             if (gathered++ < 20) game.state().addSubstance(molecule.id());
         }
         // Les info-bulles : les heures de jeu ; le fond : les particules créées ; la fusion : les fusions.
         game.state().setTimePlayed(5 * 3600);
-        game.state().stats().addParticles(idle.core.math.BigNum.of(1, 12));
-        for (int i = 0; i < 100; i++) game.state().stats().noteFusion(idle.core.math.BigNum.of(1), 1);
+        game.state().stats().addParticles(BigNum.of(1, 12));
+        for (int i = 0; i < 100; i++) game.state().stats().noteFusion(BigNum.of(1), 1);
         // La page du tableau : un ensemble complet (les gaz nobles), cent synthèses.
-        for (idle.core.elements.Element noble : idle.core.elements.PeriodicTable.elements(idle.core.elements.ElementCategory.NOBLE_GAS)) {
+        for (Element noble : PeriodicTable.elements(ElementCategory.NOBLE_GAS)) {
             game.state().setElementCount(noble.number(), 1);
         }
         game.state().setSynthesisCount(100);
@@ -224,17 +229,17 @@ class SkinsNouveauxTest {
         // La suite : les autres succès, toutes les sortes, dix heures, toutes les familles, l'Éclair.
         game.state().addAchievement("step_set");
         game.state().addAchievement("step_explosions");
-        for (idle.core.molecules.Molecule molecule : game.molecules()) game.state().addSubstance(molecule.id());
+        for (Molecule molecule : game.molecules()) game.state().addSubstance(molecule.id());
         game.state().setTimePlayed(10 * 3600);
-        for (idle.core.elements.ElementCategory family : idle.core.elements.ElementCategory.values()) {
-            game.state().setElementCount(idle.core.elements.PeriodicTable.elements(family).get(0).number(), 1);
+        for (ElementCategory family : ElementCategory.values()) {
+            game.state().setElementCount(PeriodicTable.elements(family).get(0).number(), 1);
         }
         game.state().unlockSkin(Skin.FUSION_FLASH.id());
         game.tick(1);
         assertSkins(game, true, null, Skin.SIGNS_SHAPES, Skin.SIGNS_LETTERS);
         assertSkins(game, true, "toutes les sortes rassemblées", Skin.MATTER_DROPS, Skin.MATTER_ALCHEMY);
         assertSkin(game, Skin.TOOLTIP_TERMINAL, true);
-        assertEquals(idle.core.elements.ElementCategory.values().length, game.familiesOwned());
+        assertEquals(ElementCategory.values().length, game.familiesOwned());
         assertSkin(game, Skin.PAGE_SPECTRUM, true, "toutes les familles");
         assertSkin(game, Skin.GENERATORS_SHATTER, true, "l'Éclat suit l'Éclair");
         game.state().setRebuildRecord(0);
@@ -248,7 +253,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.TABLE_PAGE, Skin.PAGE_SPECTRUM.visual());
     }
 
-    /** Version 0.193 : l'échelle des grandeurs, l'arbre de matière noire et les défis, chacun à sa condition et pas avant. */
+    /** L'échelle des grandeurs, l'arbre de matière noire et les défis, chacun à sa condition et pas avant. */
     @Test
     void lEchelleLArbreEtLesDefisOntLeursConditions() {
         Game game = GameTestSupport.universe(2);
@@ -264,18 +269,18 @@ class SkinsNouveauxTest {
         assertEquals(0, game.darkBranchesOpened());
         // La règle : dix explosions ; l'arbre : une case par branche sauf la dernière, vingt-neuf cases ; trois défis.
         game.state().setExplosions(10);
-        java.util.List<idle.core.darkmatter.DarkUpgrade> cells = new java.util.ArrayList<>();
-        for (idle.core.darkmatter.DarkUpgrade dark : game.darkUpgrades()) if (!dark.isLink()) cells.add(dark);
+        List<DarkUpgrade> cells = new ArrayList<>();
+        for (DarkUpgrade dark : game.darkUpgrades()) if (!dark.isLink()) cells.add(dark);
         // Les trois branches qui ne se paient pas en matière noire sont entamées, une case d'abord par branche.
-        java.util.Set<idle.core.darkmatter.DarkUpgrade.Branch> opened = java.util.EnumSet.noneOf(idle.core.darkmatter.DarkUpgrade.Branch.class);
-        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
-            if (dark.branch() != idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER && opened.add(dark.branch())) game.state().setDarkLevel(dark.id(), 1);
+        Set<DarkUpgrade.Branch> opened = EnumSet.noneOf(DarkUpgrade.Branch.class);
+        for (DarkUpgrade dark : cells) {
+            if (dark.branch() != DarkUpgrade.Branch.DARK_MATTER && opened.add(dark.branch())) game.state().setDarkLevel(dark.id(), 1);
         }
-        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
+        for (DarkUpgrade dark : cells) {
             if (game.darkCellsBought() >= 29) break;
-            if (dark.branch() != idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER) game.state().setDarkLevel(dark.id(), 1);
+            if (dark.branch() != DarkUpgrade.Branch.DARK_MATTER) game.state().setDarkLevel(dark.id(), 1);
         }
-        java.util.List<idle.core.darkmatter.Challenge> challenges = idle.core.darkmatter.Challenges.DEFAULT;
+        List<Challenge> challenges = Challenges.DEFAULT;
         for (int i = 0; i < 3; i++) game.state().addCompletedChallenge(challenges.get(i).id());
         game.tick(1);
         assertSkin(game, Skin.RULER_WOOD, true, "dix explosions : le bois");
@@ -289,14 +294,14 @@ class SkinsNouveauxTest {
         // La suite : vingt explosions, le succès des paliers, une trentième case en matière noire (à cent niveaux), la galaxie, tous les défis.
         game.state().setExplosions(20);
         game.state().addAchievement("step_landmarks");
-        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
-            if (dark.branch() == idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER) {
+        for (DarkUpgrade dark : cells) {
+            if (dark.branch() == DarkUpgrade.Branch.DARK_MATTER) {
                 game.state().setDarkLevel(dark.id(), 71);
                 break;
             }
         }
         game.state().setGalaxy(true);
-        for (idle.core.darkmatter.Challenge challenge : challenges) game.state().addCompletedChallenge(challenge.id());
+        for (Challenge challenge : challenges) game.state().addCompletedChallenge(challenge.id());
         game.tick(1);
         assertSkin(game, Skin.RULER_ARCHITECT, true, "vingt explosions");
         assertSkin(game, Skin.RULER_CELESTIAL, true, "les 26 paliers");
@@ -313,7 +318,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.CHALLENGES, Skin.CHALLENGES_SEALS.visual());
     }
 
-    /** Version 0.194 : le Big Bang au-delà des molécules : chaque skin vient à sa condition, pas avant ; les palettes sont libres. */
+    /** Le Big Bang au-delà des molécules : chaque skin vient à sa condition, pas avant ; les palettes sont libres. */
     @Test
     void lesAmasLesBlocsLeGazLeCielLeCosmosLesSystemesEtLesSondesOntLeursConditions() {
         for (Skin skin : new Skin[] {Skin.PALETTE_PASTEL, Skin.PALETTE_SAFE, Skin.PALETTE_MONO}) {
@@ -336,20 +341,20 @@ class SkinsNouveauxTest {
         }
         // Cinq sortes rassemblées, dont un gaz à mille molécules ; dix assemblages ; quinze astres ; un système complet ; dix voyages.
         int gathered = 0;
-        for (idle.core.molecules.Molecule molecule : game.molecules()) {
-            if (gathered >= 5 || molecule.state() != idle.core.molecules.Molecule.State.GAS) continue;
+        for (Molecule molecule : game.molecules()) {
+            if (gathered >= 5 || molecule.state() != Molecule.State.GAS) continue;
             game.state().setMoleculeCount(molecule.id(), gathered == 0 ? 1_000 : 1);
             game.state().addSubstance(molecule.id());
             gathered++;
         }
         assertEquals(5, game.substancesFormed());
-        assertEquals(1_004, game.gatheredInState(idle.core.molecules.Molecule.State.GAS));
-        java.util.List<idle.core.sky.Assembly> assemblies = game.assemblies();
+        assertEquals(1_004, game.gatheredInState(Molecule.State.GAS));
+        List<Assembly> assemblies = game.assemblies();
         for (int i = 0; i < 10; i++) game.state().addAssembly(assemblies.get(i).id());
-        java.util.List<idle.core.sky.Body> bodies = game.bodies();
+        List<Body> bodies = game.bodies();
         for (int i = 0; i < 15; i++) game.state().addBody(bodies.get(i).id());
-        java.util.List<idle.core.sky.SolarSystem> systems = new java.util.ArrayList<>();
-        systems.add(new idle.core.sky.SolarSystem("yellow_sun", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
+        List<SolarSystem> systems = new ArrayList<>();
+        systems.add(new SolarSystem("yellow_sun", List.of("rocky_planet", "ocean_planet"), List.of()));
         game.state().setSolarSystems(systems);
         game.state().setProbeRuns(10);
         game.tick(1);
@@ -368,14 +373,14 @@ class SkinsNouveauxTest {
         assertSkin(game, Skin.PROBE_BALLOON, false, "pas vingt-cinq");
         // Tout le reste : toutes les sortes rassemblées (cent mille molécules de gaz), tous les assemblages et les astres, trois systèmes,
         // cent voyages, cinq univers.
-        for (idle.core.molecules.Molecule molecule : game.molecules()) {
-            game.state().setMoleculeCount(molecule.id(), molecule.state() == idle.core.molecules.Molecule.State.GAS ? 100_000 : 1);
+        for (Molecule molecule : game.molecules()) {
+            game.state().setMoleculeCount(molecule.id(), molecule.state() == Molecule.State.GAS ? 100_000 : 1);
             game.state().addSubstance(molecule.id());
         }
-        for (idle.core.sky.Assembly assembly : assemblies) game.state().addAssembly(assembly.id());
-        for (idle.core.sky.Body body : bodies) game.state().addBody(body.id());
-        systems.add(new idle.core.sky.SolarSystem("red_dwarf", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
-        systems.add(new idle.core.sky.SolarSystem("blue_giant", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
+        for (Assembly assembly : assemblies) game.state().addAssembly(assembly.id());
+        for (Body body : bodies) game.state().addBody(body.id());
+        systems.add(new SolarSystem("red_dwarf", List.of("rocky_planet", "ocean_planet"), List.of()));
+        systems.add(new SolarSystem("blue_giant", List.of("rocky_planet", "ocean_planet"), List.of()));
         game.state().setSolarSystems(systems);
         game.state().setProbeRuns(100);
         for (int k = 2; k <= 5; k++) assertTrue(game.testAddUniverse());
@@ -399,7 +404,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.195 : le reste du collisionneur, les hadrons et le vide. Chaque skin vient à sa condition, pas avant : les
+     * Le reste du collisionneur, les hadrons et le vide. Chaque skin vient à sa condition, pas avant : les
      * collisions, les croisements, trois épreuves, les hadrons liés et chaque sorte, les gluons et leurs paliers, le vide ouvert
      * et le plus haut niveau d'une amélioration, les paires nées, le trou noir du vide et les univers qu'il compte.
      */
@@ -431,57 +436,57 @@ class SkinsNouveauxTest {
             assertSkin(game, Skin.LIGHTNINGS[i], true, Skin.LIGHTNINGS[i].label());
         }
         // Les étincelles : une épreuve chacune.
-        game.state().addCompletedTrial(idle.core.universe.Trial.DETECTOR.name());
+        game.state().addCompletedTrial(Trial.DETECTOR.name());
         game.tick(1);
         assertSkin(game, Skin.SPARKS_PETALS, true);
         assertSkins(game, false, null, Skin.SPARKS_CONFETTI, Skin.SPARKS_EMBERS);
-        game.state().addCompletedTrial(idle.core.universe.Trial.NO_OVERHEAT.name());
-        game.state().addCompletedTrial(idle.core.universe.Trial.FULL_CHARGE.name());
+        game.state().addCompletedTrial(Trial.NO_OVERHEAT.name());
+        game.state().addCompletedTrial(Trial.FULL_CHARGE.name());
         game.tick(1);
         assertSkins(game, true, null, Skin.SPARKS_CONFETTI, Skin.SPARKS_EMBERS);
         // Les hadrons liés : l'envol des quarks et les quarks de la liaison ; les gluons (deux ou trois par hadron) et leurs paliers.
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 9);
+        game.state().setHadrons(Hadron.PROTON, 9);
         game.tick(1);
         assertEquals(9, game.hadronsMade());
         assertEquals(27, game.gluons());
         assertSkins(game, false, "neuf hadrons : rien", Skin.QUARK_FLIGHT_BALLOONS, Skin.QUARKS_MARBLES, Skin.GLUONS_SPRINGS);
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 10);
+        game.state().setHadrons(Hadron.PROTON, 10);
         game.tick(1);
         assertSkins(game, true, "dix hadrons", Skin.QUARK_FLIGHT_BALLOONS, Skin.QUARKS_MARBLES);
         assertSkins(game, false, "trente gluons", Skin.QUARK_FLIGHT_BUTTERFLIES, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 24);       // 34 hadrons, 78 gluons
+        game.state().setHadrons(Hadron.PION, 24);       // 34 hadrons, 78 gluons
         game.tick(1);
         assertSkin(game, Skin.QUARK_FLIGHT_BUTTERFLIES, true, "vingt-cinq hadrons");
         assertSkins(game, false, null, Skin.QUARK_FLIGHT_SCRABBLE, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 40);       // 50 hadrons, 110 gluons
+        game.state().setHadrons(Hadron.PION, 40);       // 50 hadrons, 110 gluons
         game.tick(1);
         assertSkins(game, true, null, Skin.QUARK_FLIGHT_SCRABBLE, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
         assertSkins(game, false, null, Skin.QUARKS_NOTES, Skin.GLUONS_RUBBER, Skin.QUARKS_PUZZLE);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 90);       // 100 hadrons, 210 gluons
+        game.state().setHadrons(Hadron.PION, 90);       // 100 hadrons, 210 gluons
         game.tick(1);
         assertSkin(game, Skin.QUARKS_NOTES, true, "cent hadrons");
         assertSkin(game, Skin.GLUONS_RUBBER, false, "210 gluons");
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 110);      // 250 gluons
+        game.state().setHadrons(Hadron.PION, 110);      // 250 gluons
         game.tick(1);
         assertSkin(game, Skin.GLUONS_RUBBER, true);
         assertSkin(game, Skin.GLUONS_WOOL, false);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 235);      // 500 gluons
+        game.state().setHadrons(Hadron.PION, 235);      // 500 gluons
         game.tick(1);
         assertSkin(game, Skin.GLUONS_WOOL, true);
         assertSkins(game, false, null, Skin.GLUONS_LIGHTNING, Skin.HADRON_BACK_BLACKBOARD);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 485);      // 1 000 gluons : le palier « Mémoire des liaisons »
+        game.state().setHadrons(Hadron.PION, 485);      // 1 000 gluons : le palier « Mémoire des liaisons »
         game.tick(1);
         assertSkins(game, true, null, Skin.GLUONS_LIGHTNING, Skin.HADRON_BACK_BLACKBOARD);
         assertSkin(game, Skin.HADRON_BACK_LAB, false);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 4_985);    // 10 000 gluons
+        game.state().setHadrons(Hadron.PION, 4_985);    // 10 000 gluons
         game.tick(1);
         assertSkin(game, Skin.HADRON_BACK_LAB, true);
         assertSkin(game, Skin.HADRON_BACK_STORM, false);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 24_985);   // 50 000 gluons
+        game.state().setHadrons(Hadron.PION, 24_985);   // 50 000 gluons
         game.tick(1);
         assertSkin(game, Skin.HADRON_BACK_STORM, true);
         assertSkin(game, Skin.QUARKS_PUZZLE, false, "deux sortes seulement");
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) game.state().setHadrons(hadron, 1);
+        for (Hadron hadron : Hadron.values()) game.state().setHadrons(hadron, 1);
         game.tick(1);
         assertSkin(game, Skin.QUARKS_PUZZLE, true, "chaque sorte liée");
         // Le vide : ouvert, puis une amélioration au niveau 1, 2, 3.
@@ -524,11 +529,11 @@ class SkinsNouveauxTest {
             game.tick(1);
             for (int i = 0; i < Skin.VOID_HOLES.length; i++) assertSkin(game, Skin.VOID_HOLES[i], i < n, Skin.VOID_HOLES[i] + " à " + n + " univers comptés");
         }
-        // Version 0.206 : les univers ajoutés ont vidé les hadrons ; remis pour que chaque skin de l'onglet, son univers
+        // Les univers ajoutés ont vidé les hadrons ; remis pour que chaque skin de l'onglet, son univers
         // venu, retrouve sa condition.
-        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) game.state().setHadrons(hadron, 1);
-        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 10);
-        game.state().setHadrons(idle.core.collider.Hadron.PION, 24_985);
+        for (Hadron hadron : Hadron.values()) game.state().setHadrons(hadron, 1);
+        game.state().setHadrons(Hadron.PROTON, 10);
+        game.state().setHadrons(Hadron.PION, 24_985);
         game.tick(1);
         for (Skin skin : Skin.values()) {
             if (skin.ordinal() >= Skin.DETECTOR_EYE.ordinal() && skin.ordinal() < Skin.BUBBLE_SOAP.ordinal()) assertSkin(game, skin, true, "tout est là : " + skin);
@@ -545,7 +550,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.VOID_HOLE, Skin.VOID_HOLE_TEA.visual());
     }
 
-    /** Version 0.209 : le bonus n'a plus de plafond (cent skins de la 0.192 à la 0.208) ; les skins libres ne comptent pas. */
+    /** Le bonus n'a plus de plafond (cent skins de la 0.192 à la 0.208) ; les skins libres ne comptent pas. */
     @Test
     void leBonusMonteSansPlafondEtIgnoreLesSkinsLibres() {
         Game game = GameTestSupport.universe(2);
@@ -568,7 +573,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.196 : l'univers. Les bulles, la naissance, les liens et le lancement suivent les univers formés ; la graine ses
+     * L'univers. Les bulles, la naissance, les liens et le lancement suivent les univers formés ; la graine ses
      * paliers ; l'arrosoir les arrosages, le tuyau et la terre fertile ; l'étagère et le chrono l'étage du chrono, le chrono
      * plein et les univers ; le tuyau ses niveaux ; le rond, la météo et les saisons leurs comptes depuis l'ouverture.
      */
@@ -685,7 +690,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.197 : l'arbre au-delà de ses essences (saisons figées, fantaisie, sol), ses bulles et leurs liens, la carte
+     * L'arbre au-delà de ses essences (saisons figées, fantaisie, sol), ses bulles et leurs liens, la carte
      * des dimensions, le remplissage du défi final, les cadres des mini-jeux ; la palette des dimensions est libre.
      */
     @Test
@@ -758,7 +763,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.198 : le profil, les succès et les statistiques. Les styles des avatars, les tuiles et les succès non
+     * Le profil, les succès et les statistiques. Les styles des avatars, les tuiles et les succès non
      * obtenus suivent les succès obtenus (le dernier palier : tous ceux du catalogue) ; les albums les entrées trouvées puis
      * les albums complets ; les courbes les heures de jeu ; la frise les univers formés ; la palette des courbes est libre.
      */
@@ -774,10 +779,10 @@ class SkinsNouveauxTest {
             assertEquals(skin.visual() == SkinVisual.CHART_PALETTE, skin.isFree(), "libre : " + skin);
         }
         // Les succès : un à un, les paliers tombent ; le dernier demande tout le catalogue.
-        java.util.List<idle.core.achievements.Achievement> catalog = new java.util.ArrayList<>(game.achievements());
+        List<Achievement> catalog = new ArrayList<>(game.achievements());
         assertTrue(catalog.size() > 90, "le dernier palier chiffré, 90, reste sous le catalogue : " + catalog.size());
         int got = 0;
-        for (idle.core.achievements.Achievement achievement : catalog) {
+        for (Achievement achievement : catalog) {
             if (!game.hasAchievement(achievement.id())) game.state().addAchievement(achievement.id());
             got = game.achievementCount();
             game.tick(1);
@@ -799,7 +804,7 @@ class SkinsNouveauxTest {
         assertEquals(0, game.albumEntriesFound());
         assertEquals(0, game.albumsComplete());
         int found = 0;
-        for (idle.core.sky.Body body : game.bodies()) {
+        for (Body body : game.bodies()) {
             game.state().noteFound("bodies", body.id(), 1);
             found++;
             game.tick(1);
@@ -809,7 +814,7 @@ class SkinsNouveauxTest {
         assertEquals(1, game.albumsComplete(), "les astres au complet");
         assertSkin(game, Skin.ALBUM_STICKERS, true);
         assertSkin(game, Skin.ALBUM_STAMPS, false);
-        for (idle.core.sky.Assembly assembly : game.assemblies()) {
+        for (Assembly assembly : game.assemblies()) {
             game.state().noteFound("assemblies", assembly.id(), 1);
             found++;
         }
@@ -817,12 +822,12 @@ class SkinsNouveauxTest {
         assertEquals(2, game.albumsComplete());
         assertSkins(game, true, found + " entrées, deux albums", Skin.ALBUM_ILLUSTRATED, Skin.ALBUM_STAMPS);
         assertSkin(game, Skin.ALBUM_CARDS, false);
-        for (idle.core.molecules.Molecule molecule : game.molecules()) game.state().noteFound("molecules", molecule.id(), 1);
+        for (Molecule molecule : game.molecules()) game.state().noteFound("molecules", molecule.id(), 1);
         game.tick(1);
         assertEquals(3, game.albumsComplete());
         assertSkin(game, Skin.ALBUM_CARDS, true);
         assertSkin(game, Skin.ALBUM_HERBARIUM, false);
-        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+        for (Molecule molecule : game.molecules()) {
             if (molecule.hasState()) game.state().noteFound("substances", molecule.id(), 1);
         }
         game.tick(1);
@@ -851,7 +856,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.199 : la fenêtre autour du jeu. Les notifications suivent celles affichées depuis l'ouverture (compte tenu
+     * La fenêtre autour du jeu. Les notifications suivent celles affichées depuis l'ouverture (compte tenu
      * par la fenêtre, non sauvegardé) ; les panneaux les heures de jeu ; la transition les univers formés ; l'écran de fin
      * et le bouton de démarrage la partie finie puis les univers formés ; le curseur un succès d'un onglet chacun.
      */
@@ -919,7 +924,7 @@ class SkinsNouveauxTest {
         assertEquals("5 h de jeu", Skin.PANEL_BOOK.source());
     }
 
-    /** Version 0.200 : les sons. Les banques suivent les heures de jeu, le son du Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers. */
+    /** Les sons. Les banques suivent les heures de jeu, le son du Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers. */
     @Test
     void lesBanquesDeSonsLeBigBangEtLeMetronomeOntLeursConditions() {
         Game game = GameTestSupport.universe(2);
@@ -967,7 +972,7 @@ class SkinsNouveauxTest {
     }
 
     /**
-     * Version 0.206 : un skin attend son univers ({@link Skin#minUniverses()}) en plus de sa condition. Vérifie que le skin
+     * Un skin attend son univers ({@link Skin#minUniverses()}) en plus de sa condition. Vérifie que le skin
      * est là quand sa condition est remplie et que son univers est atteint, et absent sinon.
      */
     private static void assertSkin(Game game, Skin skin, boolean condition) {

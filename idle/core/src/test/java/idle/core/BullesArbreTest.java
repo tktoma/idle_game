@@ -1,27 +1,28 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.math.BigNum;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.142 : les bulles de l'arbre. Au palier qui ouvre l'univers 4, une bulle à la base, sur la graine ; au palier
+ * Les bulles de l'arbre. Au palier qui ouvre l'univers 4, une bulle à la base, sur la graine ; au palier
  * suivant, deux sur le feuillage, qui attendent celle de la base. Elles se paient avec l'énergie du vide accumulée (ce
- * qu'il restait à la formation de chaque univers) ; leurs effets (version 0.148) ont leur test, BullesEffetsTest.
+ * qu'il restait à la formation de chaque univers) ; leurs effets ont leur test, BullesEffetsTest.
  */
 class BullesArbreTest {
-
     /** L'univers formé, la graine à ce palier, et de l'énergie du vide accumulée. */
     private static Game at(int stage, double accumulated) {
         Game game = GameTestSupport.realGame();
         game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        // Version 0.179 : la graine ne dépasse pas deux paliers d'avance sur les univers formés.
+        // La graine ne dépasse pas deux paliers d'avance sur les univers formés.
         while (game.universes() + Game.SEED_STAGES_AHEAD < stage) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         // Sous le nom de l'univers 1 : les univers ajoutés pour le palier (0.179) et ceux que les tests forment ne l'écrasent pas.
@@ -36,7 +37,7 @@ class BullesArbreTest {
         assertEquals(List.of(TreeBubble.SEED, TreeBubble.LEAVES_LEFT, TreeBubble.LEAVES_RIGHT), at(5, 0).treeBubblesShown(),
                 "puis deux sur le feuillage");
         assertEquals(6, at(6, 0).treeBubblesShown().size(), "puis trois à la cime");
-        // Version 0.143 : les schémas des paliers 7 à 11.
+        // Les schémas des paliers 7 à 11.
         int[] counts = {1, 3, 6, 8, 10, 12, 16, 19};
         for (int stage = 4; stage <= 11; stage++) {
             assertEquals(counts[stage - 4], at(stage, 0).treeBubblesShown().size(), "palier " + stage);
@@ -44,7 +45,7 @@ class BullesArbreTest {
     }
 
     /**
-     * Version 0.143 : les prix des dix-neuf bulles et leurs noms. Version 0.166 : les bulles qui naissent ensemble coûtent
+     * Les prix des dix-neuf bulles et leurs noms. Les bulles qui naissent ensemble coûtent
      * ensemble environ 1,4 fois la meilleure énergie du vide gardée à la formation d'un univers jusque-là (Speedrunner,
      * graine 201) : 26 000 pour la graine et le bonsaï (18 863 gardés à l'univers 3), 64 200 pour chacun des paliers de
      * l'arbuste, du jeune arbre, de l'arbre mûr et de l'arbre ancien et du géant (46 707 à l'univers 4), 208 000 pour
@@ -53,7 +54,7 @@ class BullesArbreTest {
     @Test
     void lesPrixEtLesNomsDesDixNeufBulles() {
         assertEquals(19, TreeBubble.values().length);
-        java.util.Map<Integer, Double> parPalier = new java.util.TreeMap<>();
+        Map<Integer, Double> parPalier = new TreeMap<>();
         for (TreeBubble bubble : TreeBubble.values()) parPalier.merge(bubble.stage() == 5 ? 4 : bubble.stage() == 10 ? 9 : bubble.stage(), bubble.cost(), Double::sum);
         assertEquals(26_000, parPalier.get(4), 1e-9, "la graine et le bonsaï naissent ensemble");
         for (int stage : new int[] {6, 7, 8, 9}) assertEquals(64_200, parPalier.get(stage), 300, "palier " + stage);

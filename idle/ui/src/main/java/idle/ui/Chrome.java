@@ -1,15 +1,14 @@
 package idle.ui;
 
 import idle.core.universe.Skin;
+import java.util.Random;
 import javafx.geometry.Insets;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
+import javafx.scene.text.*;
 
 /**
- * Le fond de la fenêtre (version 0.190, visuel {@link idle.core.universe.SkinVisual#AMBIENT}) : un dessin sous tout le
+ * Le fond de la fenêtre (visuel {@link idle.core.universe.SkinVisual#AMBIENT}) : un dessin sous tout le
  * jeu, dans la pile de la fenêtre, qui ne se voit que dans les marges et à travers un voile sombre sous les pages. Le skin
  * habille les bords, il ne touche pas à la lisibilité : textes et cartes restent sur leur fond presque noir.
  *
@@ -29,7 +28,6 @@ import javafx.scene.text.Text;
  * claire ; c'est admis, comme pour chaque dessin du jeu.
  */
 final class Chrome extends Canvas {
-
     /** Le fond de toujours, quand aucun skin n'est choisi : celui de la racine depuis la première version. */
     static final String CLASSIC_ROOT_STYLE = "-fx-background-color: #0b0e14;";
     /** Sous un skin : le voile sombre sous les pages, posé en retrait pour laisser le fond paraître dans les marges. */
@@ -56,7 +54,7 @@ final class Chrome extends Canvas {
     private static final Color CARTOUCHE_INK = Color.web("#ffffff", 0.75);
     private static final Font MONO = Font.font("Monospaced", 14);
     private static final Font MONO_SMALL = Font.font("Monospaced", 11);
-    private static final Font TITLE = Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 18);
+    private static final Font TITLE = Font.font("Monospaced", FontWeight.BOLD, 18);
     /** Le pas du quadrillage du Blueprint, et le nombre de pas entre deux lignes marquées. */
     private static final double GRID_STEP = 24;
     private static final int GRID_BOLD_EVERY = 5;
@@ -90,7 +88,7 @@ final class Chrome extends Canvas {
         setManaged(false);
         setMouseTransparent(true);
         setVisible(false);
-        java.util.Random random = new java.util.Random(SEED);
+        Random random = new Random(SEED);
         for (int i = 0; i < STARS; i++) {
             starX[i] = random.nextDouble();
             starY[i] = random.nextDouble();
@@ -112,9 +110,7 @@ final class Chrome extends Canvas {
     }
 
     /** Le skin du fond, ou {@code null} pour le Classique. */
-    Skin skin() {
-        return skin;
-    }
+    Skin skin() { return skin; }
 
     /** Change le skin : la toile se cache sans skin, sinon elle se redessine aussitôt. */
     void setSkin(Skin skin) {
@@ -125,14 +121,10 @@ final class Chrome extends Canvas {
     }
 
     /** Le style de la racine du jeu sous ce skin : celui de toujours sans skin, sinon le voile sombre. */
-    static String rootStyle(Skin skin) {
-        return skin == null ? CLASSIC_ROOT_STYLE : SKINNED_ROOT_STYLE;
-    }
+    static String rootStyle(Skin skin) { return skin == null ? CLASSIC_ROOT_STYLE : SKINNED_ROOT_STYLE; }
 
     /** La marge de la racine du jeu sous ce skin : aucune sans skin, sinon {@link #MARGIN} tout autour. */
-    static Insets rootPadding(Skin skin) {
-        return skin == null ? NO_PADDING : SKINNED_PADDING;
-    }
+    static Insets rootPadding(Skin skin) { return skin == null ? NO_PADDING : SKINNED_PADDING; }
 
     /** La toile prend la taille de la fenêtre, et se redessine si elle a changé. */
     void fit(double width, double height) {

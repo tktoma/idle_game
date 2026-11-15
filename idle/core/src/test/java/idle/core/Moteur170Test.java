@@ -4,27 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.ElementBonuses;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.universe.Skin;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.170 : le moteur calcule plus vite les mêmes nombres exactement. Le cumul des bonus des éléments lu dans le
+ * Le moteur calcule plus vite les mêmes nombres exactement. Le cumul des bonus des éléments lu dans le
  * tableau des exemplaires vaut celui lu dans la table ; le tirage des éléments, sans listes, respecte toujours les
  * plafonds et tire bien parmi ce qui reste ; l'identifiant d'un skin ne change pas.
  */
 class Moteur170Test extends GameTestSupport {
-
     @Test
     void lesBonusDesElementsSontLesMemesDepuisLaTableOuLeTableau() {
         Random random = new Random(170);
@@ -139,8 +130,6 @@ class Moteur170Test extends GameTestSupport {
 
     @Test
     void lIdentifiantDUnSkinEstSonNomEnMinuscules() {
-        for (Skin skin : Skin.values()) {
-            assertEquals(skin.name().toLowerCase(Locale.ROOT), skin.id());
-        }
+        for (Skin skin : Skin.values()) assertEquals(skin.name().toLowerCase(Locale.ROOT), skin.id());
     }
 }

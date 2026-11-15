@@ -1,21 +1,20 @@
 package idle.core.upgrades;
 
+import java.util.List;
+
 /**
  * Ce que fait une amélioration, par niveau acheté.
  *
- * <p>Interface scellée : la liste des effets possibles est fermée, donc le
- * compilateur signale tout {@code switch} qui oublierait un cas. Pour ajouter
- * un nouveau type d'effet, on ajoute un record ici et on le traite dans {@link Game}.
+ * <p>Interface scellée : la liste des effets possibles est fermée, donc le compilateur signale tout {@code switch} qui
+ * oublierait un cas. Pour ajouter un nouveau type d'effet, on ajoute un record ici et on le traite dans {@link Game}.
  */
 public sealed interface Effect {
-
     /**
      * Multiplie la vitesse de création de chaque générateur par {@code perLevel} à chaque niveau.
      *
-     * <p>Avec des paliers ({@code milestoneEvery > 0}), tous les {@code milestoneEvery} niveaux
-     * les particules de chaque création sont en plus multipliées par {@code milestoneFactor}.
-     * Le palier agit sur les particules et non sur la vitesse : l'animation des générateurs
-     * reste lisible.
+     * <p>Avec des paliers ({@code milestoneEvery > 0}), tous les {@code milestoneEvery} niveaux les particules de
+     * chaque création sont en plus multipliées par {@code milestoneFactor}. Le palier agit sur les particules et non
+     * sur la vitesse : l'animation des générateurs reste lisible.
      */
     record MultiplySpeed(double perLevel, int milestoneEvery, double milestoneFactor) implements Effect {
         public MultiplySpeed {
@@ -24,24 +23,17 @@ public sealed interface Effect {
         }
 
         /** Sans palier. */
-        public MultiplySpeed(double perLevel) {
-            this(perLevel, 0, 1);
-        }
+        public MultiplySpeed(double perLevel) { this(perLevel, 0, 1); }
 
-        public boolean hasMilestones() {
-            return milestoneEvery > 0 && milestoneFactor > 1;
-        }
+        public boolean hasMilestones() { return milestoneEvery > 0 && milestoneFactor > 1; }
 
         /** Nombre de paliers atteints avec {@code level} niveaux. */
-        public int milestonesAt(int level) {
-            return hasMilestones() ? Math.max(0, level) / milestoneEvery : 0;
-        }
+        public int milestonesAt(int level) { return hasMilestones() ? Math.max(0, level) / milestoneEvery : 0; }
     }
 
     /**
-     * Chaque générateur renforce les autres : multiplie les particules de chaque création par
-     * {@code 1 + perGenerator × niveau × (générateurs − 1)}. Sans effet avec un seul générateur,
-     * au plus fort juste avant la fusion.
+     * Chaque générateur renforce les autres : multiplie les particules de chaque création par {@code 1 + perGenerator ×
+     * niveau × (générateurs − 1)}. Sans effet avec un seul générateur, au plus fort juste avant la fusion.
      */
     record MultiplyByGenerators(double perGenerator) implements Effect {
         public MultiplyByGenerators {
@@ -56,9 +48,8 @@ public sealed interface Effect {
     record MultiplyParticles(double perLevel) implements Effect {}
 
     /**
-     * Multiplie les particules par {@code perLevel} à chaque niveau, comme
-     * {@link MultiplyParticles}, mais sans qu'aucun élément ne vienne le renforcer : c'est le
-     * puits d'atomes de la fin de partie, il doit rester prévisible.
+     * Multiplie les particules par {@code perLevel} à chaque niveau, comme {@link MultiplyParticles}, mais sans
+     * qu'aucun élément ne vienne le renforcer : c'est le puits d'atomes de la fin de partie, il doit rester prévisible.
      */
     record Overload(double perLevel) implements Effect {
         public Overload {
@@ -95,21 +86,17 @@ public sealed interface Effect {
      *
      * @param shares la part gardée à chaque niveau, de 0 à 1, en croissant
      */
-    record KeepUpgradesOnFusion(java.util.List<Double> shares) implements Effect {
+    record KeepUpgradesOnFusion(List<Double> shares) implements Effect {
         public KeepUpgradesOnFusion {
             if (shares == null || shares.isEmpty()) throw new IllegalArgumentException("Il faut au moins une part");
-            shares = java.util.List.copyOf(shares);
+            shares = List.copyOf(shares);
         }
 
         /** Un seul niveau, qui garde tout : la Persistance d'avant la version 0.167. */
-        public KeepUpgradesOnFusion() {
-            this(java.util.List.of(1.0));
-        }
+        public KeepUpgradesOnFusion() { this(List.of(1.0)); }
 
         /** La part gardée au niveau {@code level} : 0 sans niveau, la dernière au-delà. */
-        public double shareAt(int level) {
-            return level <= 0 ? 0 : shares.get(Math.min(level, shares.size()) - 1);
-        }
+        public double shareAt(int level) { return level <= 0 ? 0 : shares.get(Math.min(level, shares.size()) - 1); }
     }
 
     /**
@@ -120,10 +107,9 @@ public sealed interface Effect {
     record BulkAtomBuy() implements Effect {}
 
     /**
-     * Augmente les atomes gagnés à la fusion selon la production de particules : {@code +perDecade}
-     * chaque fois que la production par seconde est multipliée par dix au-delà de {@code threshold}
-     * (0.5 = +50 %). Sans effet sous le seuil.
-     * C'est ce qui donne un intérêt aux particules une fois les parties automatisées.
+     * Augmente les atomes gagnés à la fusion selon la production de particules : {@code +perDecade} chaque fois que la
+     * production par seconde est multipliée par dix au-delà de {@code threshold} (0.5 = +50 %). Sans effet sous le
+     * seuil. C'est ce qui donne un intérêt aux particules une fois les parties automatisées.
      */
     record MultiplyAtomsByProduction(double threshold, double perDecade) implements Effect {
         public MultiplyAtomsByProduction {

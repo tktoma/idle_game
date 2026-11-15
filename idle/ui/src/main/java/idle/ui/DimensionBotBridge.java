@@ -5,14 +5,13 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * Les bots des dimensions dans le profil de test (version 0.140) : le joueur appliqué de {@code DimensionBots}, celui
+ * Les bots des dimensions dans le profil de test : le joueur appliqué de {@code DimensionBots}, celui
  * qui règle les seuils (un quart d'heure par dimension), joue la ligne, le plan, le volume ou la durée de la partie en
  * cours, en direct ou en avance rapide.
  *
  * <p>Comme {@link BotBridge}, le pont trouve les bots à l'exécution, s'ils sont là ; sinon il le dit et ne fait rien.
  */
 final class DimensionBotBridge {
-
     /** La classe des bots des dimensions, dans le module {@code bots}, sans paquet. */
     static final String BOT_CLASS = "DimensionBots";
     /** Les noms des bots, dans l'ordre des dimensions. */
@@ -36,14 +35,10 @@ final class DimensionBotBridge {
         this.number = number;
     }
 
-    private static Class<?> botClass() {
-        return BotBridge.botClass(BOT_CLASS);
-    }
+    private static Class<?> botClass() { return BotBridge.botClass(BOT_CLASS); }
 
     /** Vrai si les bots des dimensions sont là. */
-    static boolean available() {
-        return botClass() != null;
-    }
+    static boolean available() { return botClass() != null; }
 
     /** Le bot de la dimension {@code number} (1 à 4) pour cette partie, ou {@code null} s'il n'est pas là. */
     static DimensionBotBridge of(Game game, int number) {
@@ -67,9 +62,7 @@ final class DimensionBotBridge {
     }
 
     /** La dimension que joue ce bot, de 1 à 4. */
-    int number() {
-        return number;
-    }
+    int number() { return number; }
 
     /** Sa dimension, pour les messages : « de la ligne », « du plan »… */
     String of() {

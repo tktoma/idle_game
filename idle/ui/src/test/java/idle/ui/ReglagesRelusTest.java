@@ -10,11 +10,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.214 : les réglages, l'ordre des onglets et les avatars se relisent par l'utilitaire commun
+ * Les réglages, l'ordre des onglets et les avatars se relisent par l'utilitaire commun
  * ({@link idle.core.Enums}). Un nom d'une autre version donne la valeur d'origine, comme avant ; un nom connu se relit.
  */
 class ReglagesRelusTest {
-
     @Test
     void unReglageInconnuRevientACeluiDOrigine() {
         NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();

@@ -6,22 +6,20 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * Les skins des icônes d'onglet (version 0.192), dessinés à côté de {@link TabIcon} pour le garder lisible.
- * Chaque icône se réduit à un petit modèle, des points et les traits qui les relient ({@link Model}), que
- * chaque skin rend à sa façon, le mouvement du classique compris :
+ * Les skins des icônes d'onglet, dessinés à côté de {@link TabIcon} pour le garder lisible. Chaque icône se réduit à un
+ * petit modèle, des points et les traits qui les relient ({@link Model}), que chaque skin rend à sa façon, le mouvement
+ * du classique compris :
  * <ul>
  * <li>« Trait de craie » : un seul trait blanc tremblé sur chaque lien, des ronds de craie aux points, un peu de
  * poussière ;</li>
  * <li>« Pixel art » : tout sur une grille de 12 × 12 cases, l'animation en deux images seulement, la couleur de
  * l'onglet ramenée à huit valeurs par canal ;</li>
- * <li>« Constellation » : les points deviennent des étoiles à quatre rayons qui scintillent, reliées par des
- * fils fins ;</li>
+ * <li>« Constellation » : les points deviennent des étoiles à quatre rayons qui scintillent, reliées par des fils fins
+ * ;</li>
  * <li>« Emoji » : des ronds pleins et vifs, cernés de sombre, un reflet blanc, les liens en traits épais.</li>
- * </ul>
- * « Figées » ne change pas le dessin : elle arrête le temps, dans {@link TabIcon}.
+ * </ul> « Figées » ne change pas le dessin : elle arrête le temps, dans {@link TabIcon}.
  */
 public final class TabIconSkinArt {
-
     /** Le côté de la grille du pixel art, en cases. */
     public static final int PIXEL_GRID = 12;
     /** Les deux images par seconde du pixel art : le temps n'avance que par pas d'une demi-seconde. */
@@ -76,29 +74,17 @@ public final class TabIconSkinArt {
             return first;
         }
 
-        public int points() {
-            return points;
-        }
+        public int points() { return points; }
 
-        public int linked() {
-            return linked / 2;
-        }
+        public int linked() { return linked / 2; }
 
-        double x(int index) {
-            return xs[index];
-        }
+        double x(int index) { return xs[index]; }
 
-        double y(int index) {
-            return ys[index];
-        }
+        double y(int index) { return ys[index]; }
 
-        int from(int link) {
-            return links[2 * link];
-        }
+        int from(int link) { return links[2 * link]; }
 
-        int to(int link) {
-            return links[2 * link + 1];
-        }
+        int to(int link) { return links[2 * link + 1]; }
     }
 
     /** Le modèle de cette icône à cet instant : les mêmes mouvements que le dessin classique, en points et en traits. */
@@ -302,9 +288,7 @@ public final class TabIconSkinArt {
         return Color.color(level(color.getRed()), level(color.getGreen()), level(color.getBlue()));
     }
 
-    private static double level(double channel) {
-        return Math.round(channel * 7) / 7.0;
-    }
+    private static double level(double channel) { return Math.round(channel * 7) / 7.0; }
 
     /** Une constellation : des fils fins entre des étoiles à quatre rayons qui scintillent. */
     private static void drawConstellation(GraphicsContext g, Model m, double s, double c, Color color, double alpha, double time) {

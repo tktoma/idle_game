@@ -1,29 +1,21 @@
 package idle.core.history;
 
-import idle.core.Game;
-import idle.core.Multipliers;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import idle.core.*;
+import java.util.*;
 
 /**
- * L'historique des achats du joueur (version 0.165), comme le bot analyste les note : quoi, combien, payé en quoi et
+ * L'historique des achats du joueur, comme le bot analyste les note : quoi, combien, payé en quoi et
  * combien, le poids sur chaque grandeur, et le temps que l'achat fait gagner vers la prochaine étape.
  *
  * <p>L'interface prend une photo de la partie juste avant une action du joueur ({@link #before}), et une autre juste
  * avant le pas de temps suivant ({@link #after}) : entre les deux, le temps ne passe pas, la différence est exactement
  * ce que le joueur a fait. Ce que les automatismes achètent pendant le temps de jeu n'y est pas. Le temps gagné vient du
  * compteur « prochaine étape dans… » ({@link Pace}) et de ce que l'achat multiplie la grandeur qui y mène :
- * reste × (1 − 10^−Δ), une estimation haute. Sa valeur durable (version 0.168) applique la même règle à sa durée de vie :
+ * reste × (1 − 10^−Δ), une estimation haute. Sa valeur durable applique la même règle à sa durée de vie :
  * jusqu'à la remise à zéro qui l'efface ({@link Achats.Tenue}), estimée par la durée de la dernière partie du même genre.
  * L'historique vit le temps de la session : il ne s'écrit pas dans la sauvegarde.
  */
 public final class PurchaseHistory {
-
     /** Le nombre d'achats gardés : les plus anciens s'en vont. */
     public static final int KEPT = 500;
 
@@ -44,9 +36,7 @@ public final class PurchaseHistory {
     private Map<Multipliers.Quantity, Double> grandeursAvant;
 
     /** Vrai entre {@link #before} et {@link #after} : une photo attend sa comparaison. */
-    public boolean isOpen() {
-        return avant != null;
-    }
+    public boolean isOpen() { return avant != null; }
 
     /** Juste avant une action du joueur : la photo d'avant, une seule jusqu'à {@link #after}. */
     public void before(Game game) {
@@ -100,7 +90,7 @@ public final class PurchaseHistory {
     }
 
     /**
-     * La durée de vie attendue d'un achat (version 0.168), en secondes : la durée de la dernière partie qui s'est finie par
+     * La durée de vie attendue d'un achat, en secondes : la durée de la dernière partie qui s'est finie par
      * la même remise à zéro (fusion, explosion, Big Bang, univers). NaN sans mesure, ou pour ce qui tient toute la partie.
      */
     public static double dureeDeVie(Game game, Achats.Tenue tenue) {
@@ -126,7 +116,7 @@ public final class PurchaseHistory {
     /** Les derniers achats, du plus récent au plus ancien. */
     public List<Entry> recent() {
         List<Entry> out = new ArrayList<>(entries);
-        java.util.Collections.reverse(out);
+        Collections.reverse(out);
         return out;
     }
 

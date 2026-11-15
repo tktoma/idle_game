@@ -4,21 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.save.SaveCodec;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Test long (version 0.152), à part de la suite rapide comme les campagnes des profils : le Speedrunner (profil 1,
+ * Test long, à part de la suite rapide comme les campagnes des profils : le Speedrunner (profil 1,
  * graine 201, pas de 20 s, celui de l'audit depuis zéro) joue une partie neuve jusqu'à onze univers formés, avec la
  * graine, les bulles de l'arbre, les hadrons et l'automatisation des dimensions ({@link UniverseTreePolicy}). Il dure
  * de l'ordre d'une heure. {@code -Didle.onzeUnivers.heures} change le plafond en heures simulées (1 000 par défaut),
  * {@code -Didle.onzeUnivers.univers} le nombre d'univers visés (11).
  */
 class ElevenUniversesLongTest {
-
     static final double HOURS = Double.parseDouble(System.getProperty("idle.onzeUnivers.heures", "1000"));
     static final int TARGET = Integer.getInteger("idle.onzeUnivers.univers", FreshUniverseAudit.MAX_UNIVERSES);
 

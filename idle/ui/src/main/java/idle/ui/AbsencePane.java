@@ -7,8 +7,7 @@ import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
@@ -19,7 +18,6 @@ import javafx.scene.layout.VBox;
  * ouvert, il prend les clics : la fenêtre dessous est assombrie.
  */
 final class AbsencePane extends Overlay {
-
     private static final String CARD_STYLE = cardStyle("#3a4a5e", false, "22 28");
     private static final String BUTTON_STYLE = buttonStyle("8 18", "#d6dde6");
 
@@ -58,19 +56,13 @@ final class AbsencePane extends Overlay {
     }
 
     /** Vrai tant que le panneau est affiché. */
-    boolean isOpen() {
-        return absence != null;
-    }
+    boolean isOpen() { return absence != null; }
 
     /** Vrai tant qu'il reste du temps à rejouer : la fenêtre ne fait alors rien d'autre. */
-    boolean isCatchingUp() {
-        return absence != null && !absence.isDone();
-    }
+    boolean isCatchingUp() { return absence != null && !absence.isDone(); }
 
     /** L'absence affichée, ou {@code null}. */
-    Absence absence() {
-        return absence;
-    }
+    Absence absence() { return absence; }
 
     /** Ferme le panneau. */
     void close() {
@@ -90,9 +82,8 @@ final class AbsencePane extends Overlay {
     }
 
     /**
-     * Recopie l'avancée du rattrapage, ou son bilan. À l'instant où le rattrapage se termine, la
-     * fenêtre en est prévenue ; et s'il n'a rien rapporté du tout, le panneau se ferme de lui-même :
-     * il n'y a rien à annoncer.
+     * Recopie l'avancée du rattrapage, ou son bilan. À l'instant où le rattrapage se termine, la fenêtre en est
+     * prévenue ; et s'il n'a rien rapporté du tout, le panneau se ferme de lui-même : il n'y a rien à annoncer.
      */
     void refresh() {
         if (absence == null) return;
@@ -154,11 +145,11 @@ final class AbsencePane extends Overlay {
         if (report.achievements() > 0) {
             lines.add(report.achievements() + (report.achievements() > 1 ? " succès obtenus" : " succès obtenu"));
         }
-        // Les sondes (version 0.086) : en votre absence, elles vident leur butin et repartent.
+        // Les sondes : en votre absence, elles vident leur butin et repartent.
         if (report.probeTrips() > 0) {
             lines.add(report.probeTrips() + (report.probeTrips() > 1 ? " voyages de sonde vidés et relancés" : " voyage de sonde vidé et relancé"));
         }
-        // Ce que l'arbre a fait à votre place (version 0.073) : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
+        // Ce que l'arbre a fait à votre place : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
         if (!report.paths().isEmpty()) {
             lines.add("Voies d'absence prises à votre place : " + String.join(", ", report.paths()));
         }

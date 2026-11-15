@@ -1,5 +1,10 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.profile.Title;
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,11 +17,10 @@ import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.155 : le clicker, septième dimension. Plus on clique vite, plus chaque clic rapporte ; les zones ×2, qui
+ * Le clicker, septième dimension. Plus on clique vite, plus chaque clic rapporte ; les zones ×2, qui
  * peuvent se superposer, rapportent davantage. Et la météo de la graine : beau temps, ciel variable, orage.
  */
 class ClickerTest {
-
     private static Game seven() {
         Game game = GameTestSupport.universe(7);
         game.testClearClicker();
@@ -103,7 +107,7 @@ class ClickerTest {
         assertFalse(game.canBuyClicker(ClickerUpgrade.ZONE_MULT), "pas avant les zones");
         for (ClickerUpgrade upgrade : ClickerUpgrade.values()) assertTrue(game.buyClicker(upgrade), upgrade.toString());
         assertFalse(game.canBuyClicker(ClickerUpgrade.ZONES), "une seule fois");
-        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.clickerValue(), 1e-9);
+        assertEquals(2 * game.hadronBoost(Hadron.OMEGA), game.clickerValue(), 1e-9);
         assertEquals(0.075, game.clickerSpeedStep(), 1e-12);
         assertEquals(2.5, game.clickerZoneFactor(), 1e-12);
         assertEquals(5.5, game.clickerZoneSeconds(), 1e-12);
@@ -116,7 +120,7 @@ class ClickerTest {
     void lAutomatismeCliqueVraimentEtEnAbsence() {
         Game game = seven();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
-        // Version 0.209 : le palier d'une demi-seconde, deux clics par seconde.
+        // Le palier d'une demi-seconde, deux clics par seconde.
         game.state().addDimensionAutomation(DimensionAutomation.CLICKER_PLAY_05S.name());
         run(game, 10);
         assertTrue(Math.abs(game.clickerAutoClicks() - 20) <= 1, "deux par seconde : " + game.clickerAutoClicks());
@@ -128,7 +132,7 @@ class ClickerTest {
         // Le dernier palier, sans attente : vingt par seconde.
         game.state().addDimensionAutomation(DimensionAutomation.CLICKER_PLAY.name());
         assertEquals(1 / DimensionAutomation.INSTANT_PERIOD, game.clickerAutoRate(), 1e-9);
-        assertEquals(13, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count());
+        assertEquals(13, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count());
         assertEquals(7, DimensionAutomation.CLICKER_PLAY.paidWith(), "payés en étincelles du clicker (version 0.209)");
     }
 
@@ -165,7 +169,7 @@ class ClickerTest {
         game.state().setClickerShardsEarned(GameUniverse.CLICKER_THRESHOLD);
         assertTrue(game.isDimensionThresholdReached(7));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.CLICK_VIRTUOSO));
+        assertTrue(game.hasTitle(Title.CLICK_VIRTUOSO));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.clickerLevel(ClickerUpgrade.GAIN.ordinal()));
         StringBuilder old = new StringBuilder();

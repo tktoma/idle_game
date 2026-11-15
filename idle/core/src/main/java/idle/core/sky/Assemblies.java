@@ -18,7 +18,6 @@ import java.util.List;
  * (100 depuis la 0.178 : les collections de rayon ont disparu, les assemblages comptent double).
  */
 public final class Assemblies {
-
     public static final List<Assembly> DEFAULT = List.of(
             // Les roches : des grains de plusieurs minéraux, d'ici ou tombés du ciel.
             of(Assembly.Family.ROCK, "granitic_rock", "Roche granitique", "#a79a94")

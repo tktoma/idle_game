@@ -1,6 +1,8 @@
 package idle.ui.darkmatter;
 
 import idle.core.Game;
+import idle.core.universe.SkinVisual;
+import idle.core.darkmatter.DarkUpgrade;
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
 import idle.core.math.BigNum;
@@ -12,43 +14,36 @@ import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
+import idle.ui.common.PlanBar;
 import idle.ui.common.StableHeight;
 import idle.ui.common.SubTabs;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Contenu de l'onglet « Matière noire ». En haut, la quantité disponible et la quantité gagnée ;
- * en dessous, trois sous-pages :
+ * Contenu de l'onglet « Matière noire ». En haut, la quantité disponible et la quantité gagnée ; en dessous, trois
+ * sous-pages :
  * <ul>
- *   <li>« Matière noire » : le point ({@link DarkMatterView}). Tant que le joueur maintient le
- *       clic dessus (ou après un clic, une fois le verrou débloqué dans l'arbre), il grossit, d'autant plus vite que le joueur a de matière noire et que sa
- *       partie est avancée. La vue dézoome à mesure, et l'échelle des grandeurs situe sa taille :
- *       cercles des objets connus autour du point, règle graduée, repère dépassé et repère
- *       suivant. La vue occupe toute la place que laisse la fenêtre ;</li>
- *   <li>« Arbre » : l'arbre d'améliorations ({@link DarkMatterTreePane}), toutes branches réunies.
- *       Trois se paient en particules, en atomes, ou se débloquent par la taille ; la quatrième
- *       se paie en matière noire. La matière noire dépensée reste comptée comme gagnée, et c'est
- *       avec la matière noire gagnée que l'effet de cette branche grandit.</li>
- *   <li>« Défis » : les défis d'explosion ({@link ChallengesPane}).</li>
+ * <li>« Matière noire » : le point ({@link DarkMatterView}). Tant que le joueur maintient le clic dessus (ou après un
+ * clic, une fois le verrou débloqué dans l'arbre), il grossit, d'autant plus vite que le joueur a de matière noire et
+ * que sa partie est avancée. La vue dézoome à mesure, et l'échelle des grandeurs situe sa taille : cercles des objets
+ * connus autour du point, règle graduée, repère dépassé et repère suivant. La vue occupe toute la place que laisse la
+ * fenêtre ;</li>
+ * <li>« Arbre » : l'arbre d'améliorations ({@link DarkMatterTreePane}), toutes branches réunies. Trois se paient en
+ * particules, en atomes, ou se débloquent par la taille ; la quatrième se paie en matière noire. La matière noire
+ * dépensée reste comptée comme gagnée, et c'est avec la matière noire gagnée que l'effet de cette branche grandit.</li>
+ * <li>« Défis » : les défis d'explosion ({@link ChallengesPane}).</li>
  * </ul>
  *
- * <p>Le verrou de l'appui est un état du jeu, pas de cette page : une fois posé, la matière noire
- * grossit depuis n'importe quel onglet, et le verrou tient d'une partie à l'autre.
+ * <p>Le verrou de l'appui est un état du jeu, pas de cette page : une fois posé, la matière noire grossit depuis
+ * n'importe quel onglet, et le verrou tient d'une partie à l'autre.
  *
  * <p>Les automatismes de matière noire sont avec les autres, dans l'onglet « Automatisation ».
  *
  * <p>L'onglet n'apparaît qu'après la première explosion du tableau périodique.
  */
 public final class DarkMatterPage extends VBox {
-
     private final Game game;
     private final Label balanceLabel = new Label();
     /** Au survol : d'où vient la matière noire d'une explosion. */
@@ -79,9 +74,9 @@ public final class DarkMatterPage extends VBox {
     /** Le mode d'emploi de l'arbre : en mode détails seulement. */
     private final Label mockNotice = new Label();
     private final ScrollPane treeScroll = new ScrollPane(treePane);
-    /** Le plan des voies (version 0.084), et la réouverture des bifurcations à la prochaine explosion. */
-    private final idle.ui.common.PlanBar treePlan;
-    private final javafx.scene.control.Button reopen = new javafx.scene.control.Button();
+    /** Le plan des voies, et la réouverture des bifurcations à la prochaine explosion. */
+    private final PlanBar treePlan;
+    private final Button reopen = new Button();
 
     // Sous-page « Défis »
     private final ChallengesPane challenges;
@@ -91,7 +86,7 @@ public final class DarkMatterPage extends VBox {
         super(8);
         this.game = game;
         this.tree = new DarkMatterTreePane(game);
-        this.treePlan = new idle.ui.common.PlanBar(new idle.ui.common.PlanBar.Plan() {
+        this.treePlan = new PlanBar(new PlanBar.Plan() {
             public String code() { return game.darkTreeCode(); }
             public Game.PlanLoad load(String code) { return game.loadDarkPlan(code); }
             public void save(int slot) { game.saveDarkPlan(slot); }
@@ -179,14 +174,10 @@ public final class DarkMatterPage extends VBox {
     }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     /** La sous-page affichée : 0 le point, 1 l'arbre, 2 les défis. Pour les vérifications. */
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /**
      * Le raccourci du Big Bang : la page montre l'arbre et presse sa dernière case, comme un clic.
@@ -200,7 +191,7 @@ public final class DarkMatterPage extends VBox {
         refresh();
     }
 
-    /** Le plan des voies et le bouton de réouverture (version 0.084). */
+    /** Le plan des voies et le bouton de réouverture. */
     private void refreshPlan() {
         treePlan.refresh();
         boolean armed = game.state().forkResetArmed();
@@ -218,7 +209,7 @@ public final class DarkMatterPage extends VBox {
     /** Où en est le plan des voies : prises, en attente, bloquées. */
     private String treePlanProgress() {
         int taken = 0, waiting = 0, blocked = 0;
-        for (idle.core.darkmatter.DarkUpgrade dark : game.darkPlan()) {
+        for (DarkUpgrade dark : game.darkPlan()) {
             switch (game.darkPlanStep(dark)) {
                 case TAKEN -> taken++;
                 case WAITING -> waiting++;
@@ -232,19 +223,10 @@ public final class DarkMatterPage extends VBox {
     }
 
     /** La barre du plan des voies : pour les vérifications. */
-    public idle.ui.common.PlanBar treePlan() {
-        return treePlan;
-    }
-
-    /** Le bouton de réouverture des bifurcations : pour les vérifications. */
-    public javafx.scene.control.Button reopenButton() {
-        return reopen;
-    }
+    public PlanBar treePlan() { return treePlan; }
 
     /** L'arbre : pour les vérifications. */
-    public DarkMatterTreePane treePane() {
-        return tree;
-    }
+    public DarkMatterTreePane treePane() { return tree; }
 
     private void select(int index) {
         selected = index;
@@ -284,7 +266,7 @@ public final class DarkMatterPage extends VBox {
         challenges.release();
     }
 
-    /** L'arrivée de la fuite parmi les défis (version 0.115) : la page montre les défis et la joue. */
+    /** L'arrivée de la fuite parmi les défis : la page montre les défis et la joue. */
     public void playLeakReveal() {
         select(2);
         challenges.playReveal();
@@ -292,29 +274,19 @@ public final class DarkMatterPage extends VBox {
     }
 
     /** Vrai tant que la fuite arrive parmi les défis. */
-    public boolean isRevealing() {
-        return challenges.isRevealing();
-    }
+    public boolean isRevealing() { return challenges.isRevealing(); }
 
     /** Montre la sous-page des défis. */
-    public void showChallenges() {
-        if (selected != 2) select(2);
-    }
+    public void showChallenges() { if (selected != 2) select(2); }
 
     /** La sous-page des défis : pour les vérifications. */
-    public ChallengesPane challengesPane() {
-        return challenges;
-    }
+    public ChallengesPane challengesPane() { return challenges; }
 
     /** La partie recommence de zéro : plus d'appui, et retour à la première sous-page. */
-    public void reset() {
-        select(0);
-    }
+    public void reset() { select(0); }
 
     /** Recopie l'état du jeu dans les textes. */
-    public void refresh() {
-        refresh(true);
-    }
+    public void refresh() { refresh(true); }
 
     /**
      * Recopie l'état du jeu dans la page : son en-tête, et la sous-page affichée.
@@ -323,12 +295,12 @@ public final class DarkMatterPage extends VBox {
      *                la page le sera à son retour. Elle ne cesse pas pour autant de guetter le Big Bang.
      */
     public void refresh(boolean visible) {
-        view.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DARK_BALL));
-        view.setAnimation(game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION));
-        // Version 0.193 : l'échelle des grandeurs, l'arbre et les défis ont les leurs.
-        view.setRuler(game.chosenSkin(idle.core.universe.SkinVisual.DARK_RULER));
-        tree.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DARK_TREE));
-        challenges.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.CHALLENGES));
+        view.setSkin(game.chosenSkin(SkinVisual.DARK_BALL));
+        view.setAnimation(game.chosenSkin(SkinVisual.DARK_ANIMATION));
+        // L'échelle des grandeurs, l'arbre et les défis ont les leurs.
+        view.setRuler(game.chosenSkin(SkinVisual.DARK_RULER));
+        tree.setSkin(game.chosenSkin(SkinVisual.DARK_TREE));
+        challenges.setSkin(game.chosenSkin(SkinVisual.CHALLENGES));
         // Un Big Bang vient d'avoir lieu : la page reviendra sur sa première sous-page, à la prochaine explosion.
         if (game.bigBangs() != bigBangs) {
             bigBangs = game.bigBangs();
@@ -365,8 +337,7 @@ public final class DarkMatterPage extends VBox {
 
         // La vitesse, et d'où elle vient : l'élan (matière noire, avancement, arbre) divisé par la résistance.
         BigNum growth = game.darkMatterGrowthPerSecond();
-        String speed = growth.lt(BigNum.of(2))
-                ? "+" + ElementText.percent(growth.toDouble() - 1)
+        String speed = growth.lt(BigNum.of(2)) ? "+" + ElementText.percent(growth.toDouble() - 1)
                 : Format.multiplier(growth);
         boolean locked = game.isHoldLocked();
         String share = ElementText.percent(Game.HOLD_LOCK_SHARE);

@@ -22,21 +22,13 @@ public enum ProbeUpgrade {
         this.growth = growth;
     }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 
     /** Ce que fait chaque niveau, en mots. */
-    public String effect() {
-        return effect;
-    }
+    public String effect() { return effect; }
 
-    public int maxLevel() {
-        return maxLevel;
-    }
+    public int maxLevel() { return maxLevel; }
 
     /** Prix du niveau suivant, quand {@code level} sont déjà achetés. */
-    public long cost(int level) {
-        return Math.round(baseCost * Math.pow(growth, level));
-    }
+    public long cost(int level) { return Math.round(baseCost * Math.pow(growth, level)); }
 }

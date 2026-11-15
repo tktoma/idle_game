@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import idle.core.sky.SolarSystem;
 import java.util.List;
 
@@ -8,7 +10,6 @@ import java.util.List;
  * que ses astres ; et une partie avec de quoi fonder des systèmes (deux étoiles, quatre planètes, deux lunes).
  */
 final class Systemes {
-
     /** Le vrai jeu après ce nombre de Big Bangs, huit astres mûrs posés d'office : deux étoiles, quatre planètes, deux lunes. */
     static Game huitAstres(int bigBangs) {
         Game game = GameTestSupport.realGame();

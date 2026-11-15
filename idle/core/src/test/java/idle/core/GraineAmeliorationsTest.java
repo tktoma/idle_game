@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,11 +11,10 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.139 : les améliorations de la graine, payées avec la ressource des dimensions (segments, facettes, sphères,
+ * Les améliorations de la graine, payées avec la ressource des dimensions (segments, facettes, sphères,
  * instants), et le chrono qui fait passer tout le jeu plus vite.
  */
 class GraineAmeliorationsTest {
-
     /** Quatre univers : les quatre dimensions sont ouvertes, l'arrosoir débloqué, de quoi tout payer. */
     private static Game rich() {
         Game game = GameTestSupport.universe(4);
@@ -30,9 +31,9 @@ class GraineAmeliorationsTest {
         Game game = rich();
         double segments = game.dimensionResource(1);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.WATERING));
-        // Version 0.179 : un cinquième du seuil de la dimension au premier niveau, ×1,6 par niveau.
+        // Un cinquième du seuil de la dimension au premier niveau, ×1,6 par niveau.
         assertEquals(segments - 50_000, game.dimensionResource(1), 1e-3, "le débit se paie en segments : 250 000 / 5");
-        // Version 0.182 : le tuyau en sphères du volume, la terre fertile en instants de la durée, l'étage du chrono en facettes du plan.
+        // Le tuyau en sphères du volume, la terre fertile en instants de la durée, l'étage du chrono en facettes du plan.
         double spheres = game.dimensionResource(3);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
         assertEquals(spheres - 1_600, game.dimensionResource(3), 1e-3, "le tuyau, en sphères : 8 000 / 5");

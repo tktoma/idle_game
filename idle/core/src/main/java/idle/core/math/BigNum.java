@@ -5,21 +5,18 @@ import java.util.Locale;
 /**
  * Nombre décimal à très grande amplitude : {@code mantissa × 10^exponent}.
  *
- * <p>Même principe que break_infinity.js (Antimatter Dimensions) : on garde
- * ~15 chiffres significatifs dans un {@code double} et l'ordre de grandeur
- * dans un {@code long}. On peut donc aller bien au-delà de 1e308, avec des
- * opérations aussi rapides que sur des {@code double}.
+ * <p>Même principe que break_infinity.js (Antimatter Dimensions) : on garde ~15 chiffres significatifs dans un {@code
+ * double} et l'ordre de grandeur dans un {@code long}. On peut donc aller bien au-delà de 1e308, avec des opérations
+ * aussi rapides que sur des {@code double}.
  *
  * <p>Toute instance est normalisée par le constructeur :
  * <ul>
- *   <li>zéro est toujours {@code (0.0, 0)} ;</li>
- *   <li>sinon {@code 1 <= |mantissa| < 10}.</li>
- * </ul>
- * Grâce à ça, {@code equals}, {@code hashCode} et {@code compareTo} sont cohérents.
- * Le type est immuable : chaque opération renvoie une nouvelle instance.
+ * <li>zéro est toujours {@code (0.0, 0)} ;</li>
+ * <li>sinon {@code 1 <= |mantissa| < 10}.</li>
+ * </ul> Grâce à ça, {@code equals}, {@code hashCode} et {@code compareTo} sont cohérents. Le type est immuable : chaque
+ * opération renvoie une nouvelle instance.
  */
 public record BigNum(double mantissa, long exponent) implements Comparable<BigNum> {
-
     public static final BigNum ZERO = new BigNum(0, 0);
     public static final BigNum ONE = new BigNum(1, 0);
     public static final BigNum TEN = new BigNum(1, 1);
@@ -73,13 +70,9 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
     // Création
     // ------------------------------------------------------------------
 
-    public static BigNum of(double value) {
-        return new BigNum(value, 0);
-    }
+    public static BigNum of(double value) { return new BigNum(value, 0); }
 
-    public static BigNum of(double mantissa, long exponent) {
-        return new BigNum(mantissa, exponent);
-    }
+    public static BigNum of(double mantissa, long exponent) { return new BigNum(mantissa, exponent); }
 
     /** Renvoie 10^power, y compris pour une puissance non entière ou gigantesque. */
     public static BigNum pow10(double power) {
@@ -94,9 +87,7 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
     public static BigNum parse(String text) {
         String s = text.trim();
         int e = Math.max(s.indexOf('e'), s.indexOf('E'));
-        if (e < 0) {
-            return of(Double.parseDouble(s));
-        }
+        if (e < 0) return of(Double.parseDouble(s));
         return new BigNum(Double.parseDouble(s.substring(0, e)), Long.parseLong(s.substring(e + 1)));
     }
 
@@ -117,9 +108,7 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
         return new BigNum(big.mantissa + small.mantissa / pow10((int) diff), big.exponent);
     }
 
-    public BigNum subtract(BigNum other) {
-        return add(other.negate());
-    }
+    public BigNum subtract(BigNum other) { return add(other.negate()); }
 
     public BigNum multiply(BigNum other) {
         if (isZero() || other.isZero()) return ZERO;
@@ -127,9 +116,7 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
     }
 
     /** Raccourci pour les cas fréquents : {@code production.multiply(dt)}. */
-    public BigNum multiply(double factor) {
-        return new BigNum(mantissa * factor, exponent);
-    }
+    public BigNum multiply(double factor) { return new BigNum(mantissa * factor, exponent); }
 
     public BigNum divide(BigNum other) {
         if (other.isZero()) throw new ArithmeticException("Division par zéro");
@@ -142,18 +129,11 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
         return new BigNum(mantissa / divisor, exponent);
     }
 
-    public BigNum negate() {
-        return isZero() ? this : new BigNum(-mantissa, exponent);
-    }
+    public BigNum negate() { return isZero() ? this : new BigNum(-mantissa, exponent); }
 
-    public BigNum abs() {
-        return mantissa < 0 ? negate() : this;
-    }
+    public BigNum abs() { return mantissa < 0 ? negate() : this; }
 
-    /**
-     * Élève à la puissance {@code power}.
-     * Une base négative n'est acceptée qu'avec une puissance entière.
-     */
+    /** Élève à la puissance {@code power}. Une base négative n'est acceptée qu'avec une puissance entière. */
     public BigNum pow(double power) {
         if (Double.isNaN(power) || Double.isInfinite(power)) {
             throw new ArithmeticException("Puissance invalide : " + power);
@@ -172,22 +152,16 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
         }
 
         double newExponent = exponent * power;
-        if (Math.abs(newExponent) >= 9e18) {
-            throw new ArithmeticException("Résultat hors limites");
-        }
+        if (Math.abs(newExponent) >= 9e18) throw new ArithmeticException("Résultat hors limites");
         // Chemin précis : l'exposant reste entier, on élève seulement la mantisse.
         if (newExponent == Math.rint(newExponent)) {
             double m = Math.pow(mantissa, power);
-            if (m != 0 && !Double.isInfinite(m)) {
-                return new BigNum(m, (long) newExponent);
-            }
+            if (m != 0 && !Double.isInfinite(m)) return new BigNum(m, (long) newExponent);
         }
         // Cas général : on reporte la partie fractionnaire de l'exposant dans la mantisse.
         double whole = Math.floor(newExponent);
         double m = Math.pow(10, power * Math.log10(mantissa) + (newExponent - whole));
-        if (m != 0 && !Double.isInfinite(m)) {
-            return new BigNum(m, (long) whole);
-        }
+        if (m != 0 && !Double.isInfinite(m)) return new BigNum(m, (long) whole);
         return pow10(power * log10());
     }
 
@@ -210,14 +184,10 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
     // Comparaison
     // ------------------------------------------------------------------
 
-    public boolean isZero() {
-        return mantissa == 0;
-    }
+    public boolean isZero() { return mantissa == 0; }
 
     /** -1, 0 ou 1. */
-    public int sign() {
-        return (int) Math.signum(mantissa);
-    }
+    public int sign() { return (int) Math.signum(mantissa); }
 
     @Override
     public int compareTo(BigNum other) {
@@ -247,9 +217,7 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
         return mantissa * pow10((int) exponent);
     }
 
-    /**
-     * Affichage pour le joueur : "123.45" sous 1000, puis notation scientifique "1.23e45".
-     */
+    /** Affichage pour le joueur : "123.45" sous 1000, puis notation scientifique "1.23e45". */
     public String format() {
         if (exponent < 3) {
             String plain = String.format(Locale.ROOT, "%.2f", toDouble());
@@ -268,11 +236,7 @@ public record BigNum(double mantissa, long exponent) implements Comparable<BigNu
 
     /** Format technique sans perte, relisible par {@link #parse(String)} (pour les sauvegardes). */
     @Override
-    public String toString() {
-        return mantissa + "e" + exponent;
-    }
+    public String toString() { return mantissa + "e" + exponent; }
 
-    private static double pow10(int power) {
-        return POW10[power - POW10_MIN];
-    }
+    private static double pow10(int power) { return POW10[power - POW10_MIN]; }
 }

@@ -1,35 +1,33 @@
 package idle.core.bigbang;
 
 import idle.core.math.BigNum;
+import idle.core.Resource;
 import idle.core.molecules.Molecule;
 import java.util.List;
 
 /**
- * Les paliers de Big Bang : onze, répartis sur les huit premiers Big Bangs (le deuxième en donne
- * deux, le troisième trois, dont les sondes). Les trois derniers (version 0.054) donnent une raison
- * aux Big Bangs six à huit : les systèmes solaires, des places de plus, les matières exotiques ; la
- * galaxie demande les premiers et les derniers. Au-delà du huitième, un Big Bang n'apporte plus que ce qu'il apporte
- * toujours : une unité d'espace de plus par seconde. Depuis la version 0.124, chaque palier ouvert se paie
- * ({@link BigBangMilestone#price()}).
+ * Les paliers de Big Bang : onze, répartis sur les huit premiers Big Bangs (le deuxième en donne deux, le troisième
+ * trois, dont les sondes). Les trois derniers donnent une raison aux Big Bangs six à huit : les systèmes solaires, des
+ * places de plus, les matières exotiques ; la galaxie demande les premiers et les derniers. Au-delà du huitième, un Big
+ * Bang n'apporte plus que ce qu'il apporte toujours : une unité d'espace de plus par seconde. Depuis la version 0.124,
+ * chaque palier ouvert se paie ({@link BigBangMilestone#price()}).
  *
- * <p>Chacun répond à ce qui freine le troisième acte à ce moment-là. Le premier double la matière
- * noire des explosions : c'est elle qui fixe la durée du chemin jusqu'au Big Bang suivant, qu'aucun
- * autre bonus ne raccourcit. Le deuxième double l'expansion, et donne la création automatique : c'est
- * le moment où les assemblages et les astres s'ouvrent, et où il faudrait cliquer des centaines de
- * fois. Le troisième double ce que les amas attirent, quand les astres se mettent à demander des
- * milliers de molécules, et garde les défis réussis : les refaire prenait plus d'une heure à chaque
- * Big Bang, pour rien de neuf. Le quatrième fait dépendre l'expansion de la matière noire en réserve :
- * elle ne servait plus à rien une fois l'arbre fini, et chaque explosion de plus compte désormais.
- * Le cinquième triple l'expansion, pour les étoiles et les trous noirs, et garde l'arbre de matière
- * noire à travers le Big Bang, celui-là compris : sans cela ce Big Bang coûtait trois heures de
- * chemin à refaire, plus que ce qu'il restait à attendre jusqu'à la galaxie.
+ * <p>Chacun répond à ce qui freine le troisième acte à ce moment-là. Le premier double la matière noire des explosions
+ * : c'est elle qui fixe la durée du chemin jusqu'au Big Bang suivant, qu'aucun autre bonus ne raccourcit. Le deuxième
+ * double l'expansion, et donne la création automatique : c'est le moment où les assemblages et les astres s'ouvrent, et
+ * où il faudrait cliquer des centaines de fois. Le troisième double ce que les amas attirent, quand les astres se
+ * mettent à demander des milliers de molécules, et garde les défis réussis : les refaire prenait plus d'une heure à
+ * chaque Big Bang, pour rien de neuf. Le quatrième fait dépendre l'expansion de la matière noire en réserve : elle ne
+ * servait plus à rien une fois l'arbre fini, et chaque explosion de plus compte désormais. Le cinquième triple
+ * l'expansion, pour les étoiles et les trous noirs, et garde l'arbre de matière noire à travers le Big Bang, celui-là
+ * compris : sans cela ce Big Bang coûtait trois heures de chemin à refaire, plus que ce qu'il restait à attendre
+ * jusqu'à la galaxie.
  *
  * <p>Ces nombres sont passés par la simulation du troisième acte ({@link Bodies}).
  */
 public final class BigBangMilestones {
-
-    /** Les ressources des prix (version 0.124). */
-    private static final idle.core.Resource P = idle.core.Resource.PARTICLES, A = idle.core.Resource.ATOMS;
+    /** Les ressources des prix. */
+    private static final Resource P = Resource.PARTICLES, A = Resource.ATOMS;
 
     public static final List<BigBangMilestone> DEFAULT = List.of(
             new BigBangMilestone(1, "Matière noire primordiale", List.of(new BigBangMilestone.DarkMatter(2)), P, BigNum.of(1, 90)),

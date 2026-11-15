@@ -1,21 +1,21 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.162 : les copies que l'état donne à lire (molécules, niveaux, automatismes) se parcourent dans l'ordre
+ * Les copies que l'état donne à lire (molécules, niveaux, automatismes) se parcourent dans l'ordre
  * alphabétique. Avant, {@code Map.copyOf} et {@code Set.copyOf} les parcouraient dans un ordre tiré au sort à chaque
  * lancement du jeu ; le rassemblement automatique, qui parcourt les molécules, ne faisait pas les mêmes choix d'une
  * session à l'autre, et deux parties jouées pareil divergeaient (mesuré avec le bot analyste : 76:06:20 et 76:12:25).
  * Et le nombre d'exemplaires des éléments, lu dans un tableau pour aller plus vite, reste d'accord avec la table.
  */
 class OrdreTest {
-
     private static final List<String> ORDRE = List.of("zeta", "alpha", "mu", "beta", "omega", "kappa", "delta");
 
     private static List<String> trie() {

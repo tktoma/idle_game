@@ -1,29 +1,23 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.bigbang.BangAchievement;
+import idle.core.save.SaveCodec;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.ColliderAchievement;
-import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Collision;
-import idle.core.collider.CollisionTier;
-import idle.core.collider.Quark;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.collider.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.sky.Body;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /** Le collisionneur de quarks : énergie, collisions, quarks, la chaîne, les trous noirs, le quark top. */
 class CollisionneurTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     /** Après une première explosion, avec de l'énergie à volonté, et l'amélioration « Collisions » prise. */
     private static Game opened(double energy) {
@@ -42,7 +36,6 @@ class CollisionneurTest {
 
     @Nested
     class Ouverture {
-
         @Test
         void ilSOuvreALaPremiereExplosion() {
             Game game = newGame();
@@ -93,13 +86,10 @@ class CollisionneurTest {
     }
 
     /** Jusqu'au prochain croisement, sans le dépasser. */
-    private static void untilCrossing(Game game) {
-        while (!game.isCrossing()) game.tick(0.02);
-    }
+    private static void untilCrossing(Game game) { while (!game.isCrossing()) game.tick(0.02); }
 
     @Nested
     class Croisements {
-
         @Test
         void unCroisementParTourEtUneChanceDeCollision() {
             Game game = opened(0);
@@ -147,7 +137,7 @@ class CollisionneurTest {
         @Test
         void lesAnciennesCollisionsSeTerminentDUnCoup() {
             Game game = opened(0);
-            game.state().setCollisions(java.util.List.of(new Collision(CollisionTier.LOW, 20, true, true)));
+            game.state().setCollisions(List.of(new Collision(CollisionTier.LOW, 20, true, true)));
             game.tick(0.01);
             assertTrue(game.state().collisions().isEmpty());
             assertEquals(12, quarkTotal(game), "trois u et trois d, doublés");
@@ -182,13 +172,10 @@ class CollisionneurTest {
         }
     }
 
-    private static void readyForBigBang(Game game) {
-        GameTestSupport.readyForBigBang(game);
-    }
+    private static void readyForBigBang(Game game) { GameTestSupport.readyForBigBang(game); }
 
     @Nested
     class Capte {
-
         @Test
         void unClicAuCroisementDonneTroisSecondesDEnergieEtUneCollisionDoublee() {
             Game game = opened(0);
@@ -257,7 +244,6 @@ class CollisionneurTest {
 
     @Nested
     class QuarkTop {
-
         /**
          * Le hasard du collisionneur est un hachage du numéro du croisement : avec toutes les saveurs ouvertes, le
          * 3 883e croisement est le premier à donner un top (17 % de collision × 0,13 % de top). On part juste avant,
@@ -304,8 +290,6 @@ class CollisionneurTest {
             assertEquals(2 * Game.OVERHEAT_SECONDS, game.overheatSeconds(), 1e-9);
         }
     }
-
-
 
     @Test
     void lesDeuxTrousNoirsDemandentUnPalierDEnergie() {
@@ -365,7 +349,6 @@ class CollisionneurTest {
 
     @Nested
     class Ameliorations {
-
         private Game withAllGenerators() {
             Game game = bare(0);
             for (ColliderGenerator generator : ColliderGenerator.values()) {
@@ -395,7 +378,7 @@ class CollisionneurTest {
             assertEquals(0, game.colliderEnergy(), 1);
             assertFalse(game.buyColliderUpgrade(ColliderUpgrade.COLLISIONS), "un seul niveau");
             assertTrue(game.isCollisionsUnlocked());
-            for (ColliderUpgrade open : java.util.List.of(ColliderUpgrade.FLAVOR_STRANGE, ColliderUpgrade.AUTO_BEAM, ColliderUpgrade.ENERGY,
+            for (ColliderUpgrade open : List.of(ColliderUpgrade.FLAVOR_STRANGE, ColliderUpgrade.AUTO_BEAM, ColliderUpgrade.ENERGY,
                     ColliderUpgrade.LUCK, ColliderUpgrade.SPEED, ColliderUpgrade.GENERATOR_POWER)) {
                 assertTrue(game.isColliderUpgradeOpen(open), open.name());
             }
@@ -440,8 +423,6 @@ class CollisionneurTest {
             assertEquals(space * 1.5, game.colliderSpaceMultiplier(), 1e-9);
         }
 
-
-
         @Test
         void laChaineSePaieAussiEnQuarks() {
             Game game = withAllGenerators();
@@ -456,8 +437,8 @@ class CollisionneurTest {
             assertEquals(20, game.colliderUpgradeQuarks(ColliderUpgrade.ENERGY), "le double au niveau suivant");
             assertFalse(game.canBuyColliderUpgrade(ColliderUpgrade.ENERGY));
             assertEquals(0, game.colliderUpgradeQuarks(ColliderUpgrade.LUCK), "les autres ne coûtent que de l'énergie");
-            assertEquals(java.util.List.of(Quark.UP, Quark.UP, Quark.DOWN, Quark.STRANGE, Quark.CHARM, Quark.BOTTOM),
-                    java.util.List.of(ColliderUpgrade.ENERGY.quark(), ColliderUpgrade.PARTICLES.quark(), ColliderUpgrade.ATOMS.quark(),
+            assertEquals(List.of(Quark.UP, Quark.UP, Quark.DOWN, Quark.STRANGE, Quark.CHARM, Quark.BOTTOM),
+                    List.of(ColliderUpgrade.ENERGY.quark(), ColliderUpgrade.PARTICLES.quark(), ColliderUpgrade.ATOMS.quark(),
                             ColliderUpgrade.DARK_MATTER.quark(), ColliderUpgrade.SPACE.quark(), ColliderUpgrade.MOLECULES.quark()));
         }
 
@@ -469,7 +450,7 @@ class CollisionneurTest {
             game.toggleColliderAutomation(ColliderUpgrade.AUTO_BEAM);
             game.state().setColliderPhase(0.3);
             game.state().setColliderCrossings(77);
-            GameState back = idle.core.save.SaveCodec.read(idle.core.save.SaveCodec.write(game.state(), 1_700_000_000_000L)).state();
+            GameState back = SaveCodec.read(SaveCodec.write(game.state(), 1_700_000_000_000L)).state();
             assertEquals(3, back.colliderUpgradeLevel(ColliderUpgrade.LUCK));
             assertTrue(back.isColliderPaused(ColliderUpgrade.AUTO_BEAM));
             assertEquals(0.3, back.colliderPhase(), 1e-9);
@@ -478,7 +459,6 @@ class CollisionneurTest {
     }
     @Nested
     class SuccesEtChaine {
-
         @Test
         void lesSuccesRenforcentLesGenerateurs() {
             Game game = bare(0);
@@ -602,31 +582,29 @@ class CollisionneurTest {
     }
     @Nested
     class SuccesDuBigBang {
-
         @Test
         void ilsSOuvrentAuPremierBigBangEtRenforcentLeurGrandeur() {
             Game game = bare(0);
             assertFalse(game.isBangAchievementsUnlocked());
-            assertEquals(1, game.bangAchievementMultiplier(idle.core.bigbang.BangAchievement.Reward.SPACE), 0);
+            assertEquals(1, game.bangAchievementMultiplier(BangAchievement.Reward.SPACE), 0);
             BigNum particles = game.particlesPerCreation();
             GameTestSupport.bangs(game, 3);
             assertTrue(game.isBangAchievementsUnlocked());
-            assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_1));
-            assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_3));
-            assertFalse(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_5));
-            assertEquals(3, game.bangAchievementProgress(idle.core.bigbang.BangAchievement.BANGS_5));
-            assertEquals(1.10, game.bangAchievementMultiplier(idle.core.bigbang.BangAchievement.Reward.ATOMS), 1e-9);
+            assertTrue(game.hasBangAchievement(BangAchievement.BANGS_1));
+            assertTrue(game.hasBangAchievement(BangAchievement.BANGS_3));
+            assertFalse(game.hasBangAchievement(BangAchievement.BANGS_5));
+            assertEquals(3, game.bangAchievementProgress(BangAchievement.BANGS_5));
+            assertEquals(1.10, game.bangAchievementMultiplier(BangAchievement.Reward.ATOMS), 1e-9);
             assertEquals(particles.toDouble() * 1.25, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9,
                     "trois Big Bangs : particules +25 %");
             game.state().addBody("rocky_planet");
-            assertEquals(1, game.bangAchievementProgress(idle.core.bigbang.BangAchievement.BODIES_5));
+            assertEquals(1, game.bangAchievementProgress(BangAchievement.BODIES_5));
         }
     }
 
     /** Les outils de test de la version 0.063 : la série de croisements captés, et les remises à zéro par acte. */
     @Nested
     class OutilsDeTest {
-
         @Test
         void laSerieCompteLesCroisementsCaptesALaMainEtRepartAuPremierManque() {
             Game game = opened(0);

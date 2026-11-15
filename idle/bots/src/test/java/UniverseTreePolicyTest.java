@@ -1,33 +1,27 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;
-import java.util.Map;
-import java.util.Random;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.152 : à partir de l'univers 4, les bots arrosent la graine, achètent les bulles de l'arbre, lient les hadrons
+ * À partir de l'univers 4, les bots arrosent la graine, achètent les bulles de l'arbre, lient les hadrons
  * et achètent les automatismes des dimensions ({@link UniverseTreePolicy}) ; rien avant. Des états préparés par les
  * outils d'essai du moteur : quelques millisecondes chacun.
  */
 class UniverseTreePolicyTest {
-
     /** Un hasard qui refuse d'être tiré. */
     private static final class NoRandom extends Random {
         private static final long serialVersionUID = 1L;
 
         @Override
-        protected int next(int bits) {
-            throw new AssertionError("aucun hasard ne devait être tiré");
-        }
+        protected int next(int bits) { throw new AssertionError("aucun hasard ne devait être tiré"); }
     }
 
     /** {@code formed} univers formés ; avec {@code replaying}, la partie qui mène au suivant est lancée. */
@@ -46,7 +40,7 @@ class UniverseTreePolicyTest {
     /** La graine à son dernier palier, l'arbre-monde : toutes les bulles sont nées. */
     private static void worldTree(Game game) {
         game.state().setSeedSprouted(true);
-        // Version 0.179 : l'arbre-monde demande neuf univers formés (deux paliers d'avance au plus).
+        // L'arbre-monde demande neuf univers formés (deux paliers d'avance au plus).
         while (game.universes() + Game.SEED_STAGES_AHEAD < Game.SEED_STAGES) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
         assertEquals(Game.SEED_STAGES, game.seedStage());
@@ -63,9 +57,9 @@ class UniverseTreePolicyTest {
         Game fresh = Bots.fresh(42);
         assertEquals(0, policy.play(fresh), "aucun univers formé : aucun geste");
         assertFalse(fresh.isWateringCanUnlocked());
-        // Version 0.179 : dès l'univers 1 formé, l'arrosoir est débloqué et tenu (les paliers demandent des heures) ; les
+        // Dès l'univers 1 formé, l'arrosoir est débloqué et tenu (les paliers demandent des heures) ; les
         // bulles et les hadrons attendent toujours trois univers formés, et les univers 2 et 3 se lancent sans attendre.
-        UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new java.util.Random(1));
+        UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new Random(1));
         for (int formed = 1; formed < UniverseTreePolicy.FROM_UNIVERSES; formed++) {
             Game game = universes(formed, true);
             game.state().noteVoidHistory("1", 1e6);
@@ -87,7 +81,7 @@ class UniverseTreePolicyTest {
         assertFalse(bot.universeProgress(), "trois univers sur cinq");
         assertFalse(bot.launchedNextUniverse, "la graine n'a pas son palier 4 : l'univers 4 attend");
         assertTrue(game.isWateringCanUnlocked() && game.isWatering(), "l'arrosoir est débloqué et penché");
-        // Le palier 4 (version 0.179) : 990 arrosages, plus celui qui fait germer, à un par seconde.
+        // Le palier 4 : 990 arrosages, plus celui qui fait germer, à un par seconde.
         game.tick(600);
         bot.universeProgress();
         assertFalse(bot.launchedNextUniverse);
@@ -96,7 +90,7 @@ class UniverseTreePolicyTest {
         bot.universeProgress();
         assertTrue(bot.launchedNextUniverse, "le palier 4 ouvre l'univers 4");
         assertTrue(game.isReplaying());
-        // Dans la partie de l'univers 4, il garde l'arrosoir penché : il vise l'arbre-monde (version 0.179), et la graine
+        // Dans la partie de l'univers 4, il garde l'arrosoir penché : il vise l'arbre-monde, et la graine
         // boit même au plafond de deux paliers d'avance (les arrosages comptent pour la suite).
         bot.tree.play(game);
         assertTrue(game.isWatering());
@@ -113,12 +107,12 @@ class UniverseTreePolicyTest {
     void lExpertAcheteSesBullesDansLOrdreEtEconomisePourLaSuivante() {
         Game game = universes(3, true);
         worldTree(game);
-        // Version 0.166 : les prix suivent l'énergie gardée ; le test se règle sur eux.
+        // Les prix suivent l'énergie gardée ; le test se règle sur eux.
         game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_RIGHT.cost() + TreeBubble.LEAVES_LEFT.costAt(0)
                 + TreeBubble.CROWN_LEFT.cost() + 500);
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
         expert.play(game);
-        // Version 0.174 : la base, la bulle sans délai, ×2 sur le vide, puis l'arbuste à gauche (le lien vers l'arbre mûr).
+        // La base, la bulle sans délai, ×2 sur le vide, puis l'arbuste à gauche (le lien vers l'arbre mûr).
         assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
         assertTrue(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT));
         assertEquals(1, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
@@ -138,7 +132,7 @@ class UniverseTreePolicyTest {
 
     @Test
     void lOrdreDeLExpertMetEnDernierCeQuiNeChangeRien() {
-        List<TreeBubble> order = new java.util.ArrayList<>();
+        List<TreeBubble> order = new ArrayList<>();
         for (UniverseTreePolicy.Step step : UniverseTreePolicy.BEST_ORDER) order.add(step.bubble());
         int youngRight = order.indexOf(TreeBubble.YOUNG_RIGHT);
         assertTrue(youngRight > order.indexOf(TreeBubble.SUMMIT) && youngRight > order.lastIndexOf(TreeBubble.CROWN_RIGHT));
@@ -159,7 +153,7 @@ class UniverseTreePolicyTest {
         game.state().setSeedWaterings(Game.seedStageWaterings(5));
         expert.buyBubbles(game);
         for (TreeBubble bubble : TreeBubble.values()) {
-            // Version 0.167 : la bulle sans délai s'achète aussi.
+            // La bulle sans délai s'achète aussi.
             assertEquals(bubble.stage() <= 5, game.isTreeBubbleBought(bubble), bubble.name());
         }
         assertEquals(5, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT), "le bonsaï à gauche, ses cinq niveaux");
@@ -207,13 +201,13 @@ class UniverseTreePolicyTest {
             assertTrue(game.state().quarks(quark) >= keep.getOrDefault(quark, 0), "la réserve du collisionneur reste : " + quark);
         }
         assertTrue(game.gluons() >= 1_000, "assez de gluons pour le premier palier : " + game.gluons());
-        assertTrue(game.isGluonMilestoneReached(idle.core.collider.GluonMilestone.UPGRADES));
+        assertTrue(game.isGluonMilestoneReached(GluonMilestone.UPGRADES));
         assertEquals(0, game.hadrons(Hadron.PION), "les exotiques attendent le cœur de l'arbre-monde");
     }
 
     @Test
     void lesAutomatismesDesDimensionsSAchetentDesQueLaGraineEtLesUniversLesOuvrent() {
-        // Version 0.182 : la ligne s'ouvre au palier 3 et à deux univers, le plan au palier 4 et à trois univers.
+        // La ligne s'ouvre au palier 3 et à deux univers, le plan au palier 4 et à trois univers.
         Game game = universes(3, true);
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(Game.seedStageWaterings(2));
@@ -222,7 +216,7 @@ class UniverseTreePolicyTest {
         expert.line(game);
         assertEquals(0, game.dimensionAutomationsOwned(), "pas avant le palier 3 de la graine");
         game.state().setSeedWaterings(Game.seedStageWaterings(3));
-        // Version 0.209 : payés en segments, la ressource de la ligne ; juste de quoi acheter les cinq.
+        // Payés en segments, la ressource de la ligne ; juste de quoi acheter les cinq.
         double price = 0;
         for (DimensionAutomation automation : DimensionAutomation.values()) if (automation.dimension() == 1) price += automation.cost();
         game.state().setDimensionShards(price);
@@ -284,7 +278,7 @@ class UniverseTreePolicyTest {
         expert.line(game);
         assertTrue(game.isChronoUnlocked(), "l'étage du chrono, payable en facettes, s'achète (version 0.182)");
         assertEquals(game.chronoMaxSpeed(), game.chronoSpeed(), 1e-9, "et le chrono est à fond");
-        game.state().setSeedUpgradeLevel(idle.core.GameUniverse.SeedUpgrade.CHRONO_SPEED.ordinal(), 2);
+        game.state().setSeedUpgradeLevel(GameUniverse.SeedUpgrade.CHRONO_SPEED.ordinal(), 2);
         expert.line(game);
         assertEquals(4, game.chronoSpeed(), 1e-9, "il suit l'accélération la plus forte");
     }
@@ -306,7 +300,7 @@ class UniverseTreePolicyTest {
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.ROOTS), "après, le bot la prend (version 0.163)");
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai s'achète (version 0.167)");
         assertFalse(UniverseTreePolicy.skipped(ten, TreeBubble.LEAVES_RIGHT));
-        // Version 0.208 : la bulle qui retire le plafond de générateurs n'était plus achetée (coût de calcul) ; version 0.209 :
+        // La bulle qui retire le plafond de générateurs n'était plus achetée (coût de calcul) ; version 0.209 :
         // elle s'achète après l'ordre de l'expert, son effet coupé pour le bot.
         assertTrue(UniverseTreePolicy.skippedInOrder(eleven, TreeBubble.YOUNG_RIGHT));
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_RIGHT));

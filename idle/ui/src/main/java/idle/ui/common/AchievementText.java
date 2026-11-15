@@ -5,7 +5,6 @@ import idle.core.achievements.Achievement;
 
 /** Les textes des succès : ce que rapporte chacun, et le bonus commun à tous. */
 public final class AchievementText {
-
     /** Le bonus propre d'un succès, en quelques mots, ou une chaîne vide s'il n'en a pas. */
     public static String bonus(Achievement achievement) {
         String amount = ElementText.percent(achievement.amount());
@@ -35,9 +34,7 @@ public final class AchievementText {
     }
 
     /** Le bonus commun : ce que chaque succès ajoute, quel qu'il soit. */
-    public static String common() {
-        return "+" + ElementText.percent(Game.ACHIEVEMENT_PARTICLES) + " de particules";
-    }
+    public static String common() { return "+" + ElementText.percent(Game.ACHIEVEMENT_PARTICLES) + " de particules"; }
 
     /** Ce qu'annonce la notification d'un succès : son nom, puis ce qu'il rapporte. */
     public static String announce(Achievement achievement) {

@@ -1,10 +1,9 @@
 package idle.core.bigbang;
 
 /**
- * Les succès du Big Bang (version 0.061), ouverts au premier Big Bang. Ils se déduisent de ce que le
- * troisième acte a bâti : les Big Bangs, les molécules, les astres, la galaxie, les systèmes, les
- * sondes et les comètes. Rien de tout cela ne se perd au Big Bang : un succès gagné le reste, sauf
- * à la remise à zéro. Chacun renforce une grandeur ({@link Reward}).
+ * Les succès du Big Bang, ouverts au premier Big Bang. Ils se déduisent de ce que le troisième acte a bâti : les Big
+ * Bangs, les molécules, les astres, la galaxie, les systèmes, les sondes et les comètes. Rien de tout cela ne se perd
+ * au Big Bang : un succès gagné le reste, sauf à la remise à zéro. Chacun renforce une grandeur ({@link Reward}).
  */
 public enum BangAchievement {
     BANGS_1(Stat.BIG_BANGS, 1, Reward.ATOMS, 0.10, "Premier Big Bang"),
@@ -34,13 +33,9 @@ public enum BangAchievement {
 
         private final String label;
 
-        Stat(String label) {
-            this.label = label;
-        }
+        Stat(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     /** Ce qu'il renforce. */
@@ -52,13 +47,9 @@ public enum BangAchievement {
 
         private final String label;
 
-        Reward(String label) {
-            this.label = label;
-        }
+        Reward(String label) { this.label = label; }
 
-        public String label() {
-            return label;
-        }
+        public String label() { return label; }
     }
 
     private final Stat stat;
@@ -75,24 +66,14 @@ public enum BangAchievement {
         this.title = title;
     }
 
-    public Stat stat() {
-        return stat;
-    }
+    public Stat stat() { return stat; }
 
-    public int threshold() {
-        return threshold;
-    }
+    public int threshold() { return threshold; }
 
-    public Reward reward() {
-        return reward;
-    }
+    public Reward reward() { return reward; }
 
     /** Ce qu'il ajoute à sa grandeur : 0,25 pour +25 %. */
-    public double amount() {
-        return amount;
-    }
+    public double amount() { return amount; }
 
-    public String title() {
-        return title;
-    }
+    public String title() { return title; }
 }

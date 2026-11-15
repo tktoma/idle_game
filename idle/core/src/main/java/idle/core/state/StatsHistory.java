@@ -1,10 +1,8 @@
-package idle.core;
+package idle.core.state;
 
+import idle.core.*;
 import idle.core.save.SaveData;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * L'historique d'une partie : des relevés pris à intervalles réguliers, pour tracer des courbes.
@@ -18,7 +16,6 @@ import java.util.Map;
  * <p>Comme les autres statistiques, il ne sert qu'à l'affichage : aucune règle ne le lit.
  */
 public final class StatsHistory {
-
     /** Nombre maximal de relevés gardés. */
     public static final int CAPACITY = 480;
     /** Intervalle de départ entre deux relevés, en secondes de jeu. */
@@ -145,7 +142,7 @@ public final class StatsHistory {
         /** Sortes de molécules rassemblées. */
         SUBSTANCES,
 
-        // ----- Collisionneur (version 0.064) -----
+        // ----- Collisionneur -----
         /** Énergie du collisionneur en réserve, en puissance de dix. */
         COLLIDER_ENERGY,
         /** Énergie produite par le collisionneur depuis le début, en puissance de dix. */
@@ -157,7 +154,7 @@ public final class StatsHistory {
         /** Quarks en réserve, toutes saveurs ensemble. */
         QUARKS,
 
-        // ----- Univers (version 0.144) -----
+        // ----- Univers -----
         /** Univers formés depuis le début du jeu. */
         UNIVERSES,
         /** Énergie du vide en réserve, en puissance de dix. */
@@ -172,17 +169,17 @@ public final class StatsHistory {
         VOLUME_SHARDS,
         /** Instants de la durée gagnés en tout, en puissance de dix. */
         DURATION_SHARDS,
-        /** Nœuds de la boucle gagnés en tout, en puissance de dix (version 0.153). */
+        /** Nœuds de la boucle gagnés en tout, en puissance de dix. */
         LOOP_SHARDS,
-        /** Ondes de la brane gagnées en tout, en puissance de dix (version 0.154). */
+        /** Ondes de la brane gagnées en tout, en puissance de dix. */
         BRANE_SHARDS,
-        /** Étincelles du clicker gagnées en tout, en puissance de dix (version 0.155). */
+        /** Étincelles du clicker gagnées en tout, en puissance de dix. */
         CLICKER_SHARDS,
-        /** Repères de la grille gagnés en tout, en puissance de dix (version 0.156). */
+        /** Repères de la grille gagnés en tout, en puissance de dix. */
         GRID_SHARDS,
-        /** Reflets du miroir gagnés en tout, en puissance de dix (version 0.157). */
+        /** Reflets du miroir gagnés en tout, en puissance de dix. */
         MIRROR_SHARDS,
-        /** Fragments du mélange gagnés en tout, en puissance de dix (version 0.158). */
+        /** Fragments du mélange gagnés en tout, en puissance de dix. */
         MIX_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
@@ -216,49 +213,31 @@ public final class StatsHistory {
     /**
      * L'état du jeu à un instant.
      *
-     * <p>Une valeur qui n'a pas encore de sens vaut {@code NaN} : la durée d'une partie avant la
-     * première fusion, le délai d'un automatisme qu'on ne possède pas. La courbe s'interrompt là.
+     * <p>Une valeur qui n'a pas encore de sens vaut {@code NaN} : la durée d'une partie avant la première fusion, le
+     * délai d'un automatisme qu'on ne possède pas. La courbe s'interrompt là.
      *
-     * @param time   instant du relevé, en secondes depuis le début de l'historique
+     * @param time instant du relevé, en secondes depuis le début de l'historique
      * @param values une valeur par {@link Stat}, rangées dans l'ordre de l'énumération
-     * @param delays délai entre deux actions de chaque automatisme possédé, en secondes, par
-     *               identifiant d'automatisme
+     * @param delays délai entre deux actions de chaque automatisme possédé, en secondes, par identifiant d'automatisme
      */
     public record Sample(double time, double[] values, Map<String, Double> delays) {
-
         /** La valeur d'une statistique dans ce relevé. */
-        public double value(Stat stat) {
-            return values[stat.ordinal()];
-        }
+        public double value(Stat stat) { return values[stat.ordinal()]; }
 
         /** Le délai d'un automatisme dans ce relevé, en secondes, ou {@code NaN} s'il n'était pas possédé. */
-        public double delay(String automationId) {
-            return delays.getOrDefault(automationId, Double.NaN);
-        }
+        public double delay(String automationId) { return delays.getOrDefault(automationId, Double.NaN); }
 
-        public double production() {
-            return value(Stat.PRODUCTION);
-        }
+        public double production() { return value(Stat.PRODUCTION); }
 
-        public double atomsPerFusion() {
-            return value(Stat.ATOMS_PER_FUSION);
-        }
+        public double atomsPerFusion() { return value(Stat.ATOMS_PER_FUSION); }
 
-        public double fusionTime() {
-            return value(Stat.FUSION_TIME);
-        }
+        public double fusionTime() { return value(Stat.FUSION_TIME); }
 
-        public double elementsShare() {
-            return value(Stat.ELEMENTS_SHARE);
-        }
+        public double elementsShare() { return value(Stat.ELEMENTS_SHARE); }
 
-        public double copiesShare() {
-            return value(Stat.COPIES_SHARE);
-        }
+        public double copiesShare() { return value(Stat.COPIES_SHARE); }
 
-        public double darkMatterSize() {
-            return value(Stat.DARK_MATTER_SIZE);
-        }
+        public double darkMatterSize() { return value(Stat.DARK_MATTER_SIZE); }
     }
 
     private final List<Sample> samples = new ArrayList<>();
@@ -269,52 +248,40 @@ public final class StatsHistory {
 
     private static double[] noPeaks() {
         double[] none = new double[Stat.values().length];
-        java.util.Arrays.fill(none, Double.NEGATIVE_INFINITY);
+        Arrays.fill(none, Double.NEGATIVE_INFINITY);
         return none;
     }
 
     /** Les relevés, du plus ancien au plus récent, en lecture seule. */
-    public List<Sample> samples() {
-        return Collections.unmodifiableList(samples);
-    }
+    public List<Sample> samples() { return Collections.unmodifiableList(samples); }
 
     /** Intervalle actuel entre deux relevés, en secondes de jeu. */
-    public double interval() {
-        return interval;
-    }
+    public double interval() { return interval; }
 
     /** Vrai quand il est temps de prendre un nouveau relevé. */
-    boolean isDue(double time) {
-        return time >= nextTime;
-    }
+    public boolean isDue(double time) { return time >= nextTime; }
 
     /** Signale une production atteinte entre deux relevés (juste avant une fusion, par exemple). */
-    void notePeak(double production) {
-        notePeak(Stat.PRODUCTION, production);
-    }
+    public void notePeak(double production) { notePeak(Stat.PRODUCTION, production); }
 
     /** Signale une valeur atteinte entre deux relevés, juste avant qu'elle ne retombe. Une valeur sans sens ({@code NaN}) est ignorée. */
-    void notePeak(Stat stat, double value) {
-        if (value > peaks[stat.ordinal()]) peaks[stat.ordinal()] = value;
-    }
+    public void notePeak(Stat stat, double value) { if (value > peaks[stat.ordinal()]) peaks[stat.ordinal()] = value; }
 
     /** La production à inscrire dans le prochain relevé : celle du moment, ou le pic atteint depuis le dernier s'il est plus haut. */
-    double peak(double current) {
-        return peak(Stat.PRODUCTION, current);
-    }
+    public double peak(double current) { return peak(Stat.PRODUCTION, current); }
 
     /**
      * La valeur à inscrire dans le prochain relevé : celle du moment, ou le sommet atteint depuis
      * le dernier s'il est plus haut. {@code NaN} seulement si ni l'une ni l'autre n'ont de sens.
      */
-    double peak(Stat stat, double current) {
+    public double peak(Stat stat, double current) {
         double peak = peaks[stat.ordinal()];
         if (Double.isNaN(current)) return peak == Double.NEGATIVE_INFINITY ? Double.NaN : peak;
         return Math.max(current, peak);
     }
 
-    void add(Sample sample) {
-        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
+    public void add(Sample sample) {
+        Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
         samples.add(sample);
         if (samples.size() >= CAPACITY) thin();
         nextTime = sample.time() + interval;
@@ -333,7 +300,7 @@ public final class StatsHistory {
         samples.clear();
         interval = FIRST_INTERVAL;
         nextTime = 0;
-        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
+        Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
     }
 
     // ------------------------------------------------------------------
@@ -354,13 +321,13 @@ public final class StatsHistory {
     void save(SaveData data, String prefix) {
         data.put(prefix + "interval", interval);
         data.put(prefix + "nextTime", nextTime);
-        Map<String, Double> tops = new java.util.LinkedHashMap<>();
+        Map<String, Double> tops = new LinkedHashMap<>();
         for (Stat stat : Stat.values()) {
             if (peaks[stat.ordinal()] != Double.NEGATIVE_INFINITY) tops.put(stat.name(), peaks[stat.ordinal()]);
         }
         data.putDoubles(prefix + "peaks", tops);
         List<Double> times = new ArrayList<>(samples.size());
-        java.util.Set<String> automations = new java.util.TreeSet<>();
+        Set<String> automations = new TreeSet<>();
         for (Sample sample : samples) {
             times.add(sample.time());
             automations.addAll(sample.delays().keySet());
@@ -395,7 +362,7 @@ public final class StatsHistory {
             for (int i = 0; i < count; i++) values[i][stat.ordinal()] = column[i];
         }
         List<Map<String, Double>> delays = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) delays.add(new java.util.HashMap<>());
+        for (int i = 0; i < count; i++) delays.add(new HashMap<>());
         String delayPrefix = prefix + "d.";
         for (String key : data.keys(delayPrefix)) {
             String automation = SaveData.unescape(key.substring(delayPrefix.length()));
@@ -408,7 +375,7 @@ public final class StatsHistory {
     }
 
     /** Une colonne de valeurs en texte : les valeurs séparées par {@code ;}, une suite de valeurs égales écrite {@code valeur*nombre}. */
-    static String pack(double[] column) {
+    public static String pack(double[] column) {
         StringBuilder text = new StringBuilder();
         int i = 0;
         while (i < column.length) {
@@ -424,9 +391,9 @@ public final class StatsHistory {
     }
 
     /** Relit une colonne écrite par {@link #pack(double[])} ; ce qui manque pour atteindre {@code count} valeurs reste sans valeur. */
-    static double[] unpack(String text, int count) {
+    public static double[] unpack(String text, int count) {
         double[] column = new double[count];
-        java.util.Arrays.fill(column, Double.NaN);
+        Arrays.fill(column, Double.NaN);
         if (text.isEmpty()) return column;
         int i = 0;
         for (String token : text.split(";", -1)) {

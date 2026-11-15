@@ -2,44 +2,41 @@ package idle.ui.pages;
 
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
+import idle.ui.common.Format;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.DoubleFunction;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.shape.StrokeLineJoin;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
 
 /**
  * Un graphique en courbes, dessiné à la main : une ou deux séries sur un seul axe vertical.
  *
  * <p>Ce qu'il montre :
  * <ul>
- *   <li>un titre et, s'il y a plusieurs séries, une légende ;</li>
- *   <li>un quadrillage discret, avec des graduations « rondes » sur les deux axes ;</li>
- *   <li>chaque série en trait de 2 px, terminée par un point et par sa dernière valeur ;</li>
- *   <li>au survol, un repère vertical qui s'accroche au relevé le plus proche et affiche ses
- *       valeurs.</li>
+ * <li>un titre et, s'il y a plusieurs séries, une légende ;</li>
+ * <li>un quadrillage discret, avec des graduations « rondes » sur les deux axes ;</li>
+ * <li>chaque série en trait de 2 px, terminée par un point et par sa dernière valeur ;</li>
+ * <li>au survol, un repère vertical qui s'accroche au relevé le plus proche et affiche ses valeurs.</li>
  * </ul>
  *
- * <p>Le graphique ne sait rien du jeu : on lui donne des points ({@link Series}) et deux façons
- * d'écrire une valeur, une par axe. Pour une échelle logarithmique, on lui donne directement les
- * puissances de dix, et l'écriture des graduations se charge de les afficher (« 1e12 »).
+ * <p>Le graphique ne sait rien du jeu : on lui donne des points ({@link Series}) et deux façons d'écrire une valeur,
+ * une par axe. Pour une échelle logarithmique, on lui donne directement les puissances de dix, et l'écriture des
+ * graduations se charge de les afficher (« 1e12 »).
  *
- * <p>Les couleurs des séries ont été vérifiées sur le fond du graphique : contraste suffisant, et
- * deux séries d'un même graphique restent distinctes pour les daltoniens. Le texte, lui, n'est
- * jamais dans la couleur d'une série.
+ * <p>Les couleurs des séries ont été vérifiées sur le fond du graphique : contraste suffisant, et deux séries d'un même
+ * graphique restent distinctes pour les daltoniens. Le texte, lui, n'est jamais dans la couleur d'une série.
  *
- * <p>Version 0.198 : les graphiques ont deux skins, communs à tous ({@link #setSkins}) : celui des courbes (fond,
- * quadrillage, trait : papier millimétré, oscilloscope, crayon, aquarelle) et la palette des séries (pastel, néon,
- * niveaux de gris), dessinés par {@link ChartSkinStyles} ; un dessin déjà à l'écran est refait quand ils changent.
+ * <p>Les graphiques ont deux skins, communs à tous ({@link #setSkins}) : celui des courbes (fond, quadrillage, trait :
+ * papier millimétré, oscilloscope, crayon, aquarelle) et la palette des séries (pastel, néon, niveaux de gris),
+ * dessinés par {@link ChartSkinStyles} ; un dessin déjà à l'écran est refait quand ils changent.
  */
 public final class ChartPane extends Pane {
-
     /** Couleurs de série, vérifiées sur {@link #SURFACE}. */
     static final String BLUE = "#3987e5";
     static final String ORANGE = "#d95926";
@@ -50,7 +47,7 @@ public final class ChartPane extends Pane {
     static final String MAGENTA = "#d55181";
     static final String AQUA = "#199e70";
 
-    /** Le skin des courbes et la palette des séries (version 0.198), communs à tous les graphiques ; {@code null} : le Classique. */
+    /** Le skin des courbes et la palette des séries, communs à tous les graphiques ; {@code null} : le Classique. */
     private static volatile Skin skin = null;
     private static volatile Skin palette = null;
 
@@ -61,14 +58,10 @@ public final class ChartPane extends Pane {
     }
 
     /** Le skin des courbes, ou {@code null} : pour les vérifications. */
-    static Skin skin() {
-        return skin;
-    }
+    static Skin skin() { return skin; }
 
     /** La palette des séries, ou {@code null} : pour les vérifications. */
-    static Skin palette() {
-        return palette;
-    }
+    static Skin palette() { return palette; }
     private static final double HEIGHT = 210;
     private static final double MAX_WIDTH = 640;
     private static final double LEFT = 62, RIGHT = 78, BOTTOM = 26;
@@ -142,9 +135,8 @@ public final class ChartPane extends Pane {
     }
 
     /**
-     * Impose les graduations verticales, quand les valeurs rondes ne sont pas des puissances de
-     * dix : 1 s, 10 s, 1 min, 10 min, 1 h… L'axe va alors de la graduation juste sous les points à
-     * celle juste au-dessus.
+     * Impose les graduations verticales, quand les valeurs rondes ne sont pas des puissances de dix : 1 s, 10 s, 1 min,
+     * 10 min, 1 h… L'axe va alors de la graduation juste sous les points à celle juste au-dessus.
      */
     ChartPane withTicks(double... ticks) {
         this.ticks = ticks;
@@ -180,13 +172,11 @@ public final class ChartPane extends Pane {
     private double drawnHeight = -1;
     private String drawnLabels = null;
     private int draws = 0;
-    /** Les skins du dernier dessin (version 0.198). */
+    /** Les skins du dernier dessin. */
     private Skin drawnSkin = null, drawnPalette = null;
 
     /** Nombre de fois que le graphique a vraiment été redessiné : pour les vérifications. */
-    int draws() {
-        return draws;
-    }
+    int draws() { return draws; }
 
     /** Vrai si ce dessin serait exactement celui déjà à l'écran. */
     private boolean unchanged(double width, String labels) {
@@ -195,7 +185,7 @@ public final class ChartPane extends Pane {
         for (int i = 0; i < series.size(); i++) {
             Series now = series.get(i), before = drawnSeries.get(i);
             if (!now.name().equals(before.name()) || !now.color().equals(before.color())
-                    || !java.util.Arrays.equals(now.x(), before.x()) || !java.util.Arrays.equals(now.y(), before.y())) return false;
+                    || !Arrays.equals(now.x(), before.x()) || !Arrays.equals(now.y(), before.y())) return false;
         }
         return true;
     }
@@ -219,7 +209,7 @@ public final class ChartPane extends Pane {
         double width = canvas.getWidth();
         // L'écriture des nombres (notation choisie dans les réglages) entre dans l'image : un échantillon de
         // chaque axe suffit à voir si elle a changé.
-        String labels = idle.ui.common.Format.notation() + "|" + yLabel.apply(1234.5) + "|" + xLabel.apply(1234.5) + "|" + yLabel.apply(1e15);
+        String labels = Format.notation() + "|" + yLabel.apply(1234.5) + "|" + xLabel.apply(1234.5) + "|" + yLabel.apply(1e15);
         if (unchanged(width, labels)) return;
         // Une copie des points : si la page réutilisait ses tableaux, la comparaison suivante les verrait encore égaux.
         drawnSeries = series.stream().map(each -> new Series(each.name(), each.color(), each.x().clone(), each.y().clone())).toList();
@@ -286,7 +276,7 @@ public final class ChartPane extends Pane {
             int low = 0, high = ticks.length - 1;
             while (low < ticks.length - 2 && ticks[low + 1] <= y0) low++;
             while (high > low + 1 && ticks[high - 1] >= y1) high--;
-            marks = java.util.Arrays.copyOfRange(ticks, low, high + 1);
+            marks = Arrays.copyOfRange(ticks, low, high + 1);
             yMin = Math.min(marks[0], y0);
             yMax = Math.max(marks[marks.length - 1], y1);
         } else {
@@ -335,8 +325,8 @@ public final class ChartPane extends Pane {
         // Les séries : un trait de 2 px, puis un point et la dernière valeur au bout.
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineJoin(StrokeLineJoin.ROUND);
-        List<double[]> ends = new java.util.ArrayList<>();
-        List<String> endTexts = new java.util.ArrayList<>();
+        List<double[]> ends = new ArrayList<>();
+        List<String> endTexts = new ArrayList<>();
         int index = 0;
         for (Series each : series) {
             String color = ChartSkinStyles.seriesColor(palette, each.color());
@@ -388,7 +378,7 @@ public final class ChartPane extends Pane {
         // de haut en bas, chacune au moins 13 px sous la précédente, puis le tout remonte s'il déborde en bas.
         Integer[] order = new Integer[ends.size()];
         for (int i = 0; i < order.length; i++) order[i] = i;
-        java.util.Arrays.sort(order, java.util.Comparator.comparingDouble(i -> ends.get(i)[1]));
+        Arrays.sort(order, Comparator.comparingDouble(i -> ends.get(i)[1]));
         for (int i = 1; i < order.length; i++) {
             double[] above = ends.get(order[i - 1]), here = ends.get(order[i]);
             if (here[1] - above[1] < 13) here[1] = above[1] + 13;
@@ -490,11 +480,7 @@ public final class ChartPane extends Pane {
         return niceStep(span / maxTicks);
     }
 
-    private static boolean isFinite(double value) {
-        return !Double.isNaN(value) && !Double.isInfinite(value);
-    }
+    private static boolean isFinite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
 
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
+    private static double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
 }

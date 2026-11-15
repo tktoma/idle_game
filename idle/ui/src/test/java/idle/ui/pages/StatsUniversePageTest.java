@@ -1,27 +1,24 @@
 package idle.ui.pages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.collider.*;
+import idle.core.history.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
-import idle.core.Multipliers;
+import idle.core.*;
 import idle.core.math.BigNum;
 import idle.ui.FxTestSupport;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.144 : la sous-page « Univers » des statistiques et les trois nouvelles grandeurs du détail des
+ * La sous-page « Univers » des statistiques et les trois nouvelles grandeurs du détail des
  * multiplicateurs (énergie du collisionneur, énergie du vide, segments de la ligne), sous Xvfb.
  */
 class StatsUniversePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Le troisième univers, vide ouvert, avec de l'énergie et de l'espace pour les paires, et une ligne qui tourne. */
     private static Game third() {
@@ -35,8 +32,8 @@ class StatsUniversePageTest {
         assertTrue(game.openVoid());
         game.state().setSpace(BigNum.of(1e6));
         game.state().setLineTicksLevel(3);
-        game.state().setColliderGenerators(idle.core.collider.ColliderGenerator.BEAM, 7);
-        game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.ENERGY, 3);
+        game.state().setColliderGenerators(ColliderGenerator.BEAM, 7);
+        game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 3);
         game.state().setVoidLevel(Game.VoidUpgrade.RATE.ordinal(), 4);
         game.state().setVoidLevel(Game.VoidUpgrade.GAIN.ordinal(), 2);
         game.tick(1);
@@ -48,7 +45,7 @@ class StatsUniversePageTest {
         FxTestSupport.fx(() -> {
             Game fresh = new Game();
             fresh.start();
-            StatsPage page = new StatsPage(fresh, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage page = new StatsPage(fresh, new PurchaseHistory(), new Pace());
             page.refresh();
             assertFalse(page.openSubPages().contains("Univers"), "premier univers en cours : rien à montrer");
             assertFalse(page.openSubPage("Univers"));
@@ -60,7 +57,7 @@ class StatsUniversePageTest {
     void laSousPageUniversMontreLaGraineLesDimensionsEtLeVide() {
         FxTestSupport.fx(() -> {
             Game game = third();
-            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage page = new StatsPage(game, new PurchaseHistory(), new Pace());
             page.refresh();
             List<String> names = page.openSubPages();
             assertTrue(names.contains("Univers"), names.toString());
@@ -93,7 +90,7 @@ class StatsUniversePageTest {
     void leDetailDesMultiplicateursProposeLesTroisNouvellesGrandeurs() {
         FxTestSupport.fx(() -> {
             Game game = third();
-            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage page = new StatsPage(game, new PurchaseHistory(), new Pace());
             page.openMultipliers();
             for (Multipliers.Quantity quantity : List.of(Multipliers.Quantity.COLLIDER_ENERGY, Multipliers.Quantity.VOID_ENERGY,
                     Multipliers.Quantity.LINE_SHARDS)) {
@@ -112,7 +109,7 @@ class StatsUniversePageTest {
         });
     }
 
-    /** Version 0.169 : la sous-page « Collisionneur » dit ce que le collisionneur, les hadrons et le vide font au reste. */
+    /** La sous-page « Collisionneur » dit ce que le collisionneur, les hadrons et le vide font au reste. */
     @Test
     void leCollisionneurDitCeQuIlFaitAuReste() {
         FxTestSupport.fx(() -> {
@@ -120,8 +117,8 @@ class StatsUniversePageTest {
             game.state().setHadronsOpen(true);
             // Les kaons renforcent l'espace par seconde (les neutrons, en 0.169, renforcent la matière noire par explosion :
             // le test attendait l'espace de l'un et donnait l'autre).
-            game.state().setHadrons(idle.core.collider.Hadron.KAON, 99);
-            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            game.state().setHadrons(Hadron.KAON, 99);
+            StatsPage page = new StatsPage(game, new PurchaseHistory(), new Pace());
             page.refresh();
             assertTrue(page.openSubPage("Collisionneur"));
             List<String> rows = page.shownRows();

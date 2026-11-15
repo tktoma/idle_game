@@ -1,33 +1,28 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.Scene;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.197 : la carte des dimensions et le remplissage du défi final, sous Xvfb. Chaque skin de la carte se dessine
+ * La carte des dimensions et le remplissage du défi final, sous Xvfb. Chaque skin de la carte se dessine
  * à deux tailles, avec deux, six et dix dimensions ouvertes, défi final ouvert ou non, et change le dessin par rapport au
  * Classique ; le clic trouve toujours les points. Chaque remplissage se dessine aux paliers partiels et atteints, et change
  * le dessin. La fin se joue sous un skin. Les points de la carte skinnée suivent la palette des dimensions, et la page de
  * l'univers passe les skins à la carte.
  */
 class DimensionsMapSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -137,7 +132,7 @@ class DimensionsMapSkinsTest {
             assertTrue(game.chooseSkin(SkinVisual.DIMENSIONS_MAP, Skin.MAP_MENHIRS));
             assertTrue(game.chooseSkin(SkinVisual.DIMENSION_PALETTE, Skin.DIM_PALETTE_RAINBOW));
             UniversePage page = new UniversePage(game);
-            new javafx.scene.Scene(page, 1100, 700);
+            new Scene(page, 1100, 700);
             page.select(UniversePage.DIMENSIONS);
             page.refresh();
             page.applyCss();

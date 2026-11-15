@@ -9,25 +9,19 @@ import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
 import idle.ui.common.Card;
-import idle.ui.universe.Dimension;
-import idle.ui.universe.DimensionView;
-import idle.ui.universe.DimensionWindow;
+import idle.ui.universe.*;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.150 : l'automatisation des dimensions dans l'interface, sous Xvfb. Le sous-onglet « Dimensions » de
+ * L'automatisation des dimensions dans l'interface, sous Xvfb. Le sous-onglet « Dimensions » de
  * l'automatisation (visible avec la bulle du sommet), ses sections et ses cartes, l'achat, la pause, la coupure
  * générale, la partie secondaire ; puis les fenêtres du plan, du volume et de la durée jouées seules.
  */
 class DimensionAutomationPageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /**
      * Une partie à {@code universes} univers (autant de dimensions ouvertes), de quoi payer ; {@code open} ouvre les automatismes
@@ -129,7 +123,7 @@ class DimensionAutomationPageTest {
             Card ticks = dims.card(DimensionAutomation.LINE_TICKS);
             assertEquals(Card.State.LOCKED, ticks.state());
             assertTrue(ticks.text().contains("Après : Densité"), ticks.text());
-            // Version 0.209 : ceux qui jouent, en dernier, disent leur cadence et le palier d'avant.
+            // Ceux qui jouent, en dernier, disent leur cadence et le palier d'avant.
             Card aim = dims.card(DimensionAutomation.PLANE_AIM_5S);
             assertTrue(aim.text().contains("Visée automatique, toutes les 5 s"), aim.text());
             assertTrue(aim.text().contains("Mène le point vers l'éclat le plus proche quand vous ne tenez aucune touche ; reprend sa direction toutes les 5 s"), aim.text());

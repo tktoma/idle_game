@@ -1,5 +1,10 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+import idle.core.profile.Title;
+import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,19 +17,14 @@ import idle.core.GameMirror.Season;
 import idle.core.GameUniverse.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.157 : le miroir, neuvième dimension. Un motif s'allume sur la moitié gauche ; il faut le reproduire de
- * mémoire, en miroir, sur la moitié droite. Il s'allonge à chaque réussite. Et les saisons, qui font remplir le chrono
- * en arrosant.
+ * Le miroir, neuvième dimension. Un motif s'allume sur la moitié gauche ; il faut le reproduire de mémoire, en miroir,
+ * sur la moitié droite. Il s'allonge à chaque réussite. Et les saisons, qui font remplir le chrono en arrosant.
  */
 class MiroirTest {
-
-    private static Game nine() {
-        return GameTestSupport.universe(9);
-    }
+    private static Game nine() { return GameTestSupport.universe(9); }
 
     private static final List<MirrorCell> THREE = List.of(new MirrorCell(0, 0), new MirrorCell(1, 2), new MirrorCell(0, 3));
 
@@ -103,7 +103,7 @@ class MiroirTest {
         Game game = nine();
         game.state().setMirrorShards(1e15);
         for (MirrorUpgrade upgrade : MirrorUpgrade.values()) assertTrue(game.buyMirror(upgrade), upgrade.toString());
-        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.mirrorValue(), 1e-9);
+        assertEquals(2 * game.hadronBoost(Hadron.OMEGA), game.mirrorValue(), 1e-9);
         assertEquals(1.15, game.mirrorLengthFactor(), 1e-12);
         assertEquals(0.95, game.mirrorShowSeconds(), 1e-12);
         assertEquals(1, game.mirrorAllowedMistakes());
@@ -149,7 +149,7 @@ class MiroirTest {
         long before = game.mirrorSuccesses();
         game.tick(300);
         assertTrue(game.mirrorSuccesses() > before + 10, "une absence les joue aussi");
-        assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count());
+        assertEquals(10, Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count());
         assertEquals(9, DimensionAutomation.MIRROR_PLAY.paidWith(), "payés en reflets du miroir (version 0.209)");
     }
 
@@ -182,7 +182,7 @@ class MiroirTest {
         game.state().setMirrorShardsEarned(GameUniverse.MIRROR_THRESHOLD);
         assertTrue(game.isDimensionThresholdReached(9));
         game.tick(1);
-        assertTrue(game.hasTitle(idle.core.profile.Title.MIRROR_KEEPER));
+        assertTrue(game.hasTitle(Title.MIRROR_KEEPER));
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(1, back.mirrorLevel(MirrorUpgrade.GAIN.ordinal()));
         StringBuilder old = new StringBuilder();

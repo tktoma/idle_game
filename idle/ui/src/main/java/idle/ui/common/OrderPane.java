@@ -8,12 +8,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
  * L'ordre d'achat d'un automatisme de matière noire, réglable par le joueur : un bouton choisit
@@ -25,7 +21,6 @@ import javafx.scene.layout.VBox;
  * sont dans {@code Game} ; ce panneau ne fait que les montrer et les régler.
  */
 public final class OrderPane extends VBox {
-
     private static final String BUTTON_STYLE = "-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + "; -fx-background-color: #1c1630;"
             + " -fx-border-color: " + GameApp.DARK_MATTER_COLOR + ";";
@@ -100,26 +95,11 @@ public final class OrderPane extends VBox {
         getChildren().add(list);
     }
 
-    /** Le bouton qui choisit entre les deux ordres : pour les vérifications. */
-    public Button modeButton() {
-        return mode;
-    }
-
     /** Les noms de la liste, de la première ligne à la dernière : pour les vérifications. */
     public List<String> names() {
         List<String> all = new ArrayList<>();
         for (Entry entry : shown) all.add(entry.name());
         return all;
-    }
-
-    /** Clique la flèche d'une ligne : pour les vérifications. */
-    public void clickArrow(int row, boolean up) {
-        (up ? ups : downs).get(row).fire();
-    }
-
-    /** Vrai si la liste est affichée : l'ordre du joueur est suivi. */
-    public boolean listShown() {
-        return list.isVisible();
     }
 
     /** Recopie le réglage et la liste. */

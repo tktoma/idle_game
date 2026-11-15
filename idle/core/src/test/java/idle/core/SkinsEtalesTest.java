@@ -1,22 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.save.SaveData;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
-import java.util.ArrayList;
-import java.util.List;
+import idle.core.universe.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.206 : les skins s'étalent sur la partie. Les skins payants d'un visuel s'échelonnent du deuxième univers au
+ * Les skins s'étalent sur la partie. Les skins payants d'un visuel s'échelonnent du deuxième univers au
  * onzième dans l'ordre où ils sont déclarés ; un skin n'est débloqué qu'à partir de son univers, même quand sa condition
  * est remplie ; une sauvegarde qui l'avait déjà le garde.
  */
 class SkinsEtalesTest {
-
     @Test
     void lesSkinsDUnVisuelSEchelonnentDuDeuxiemeAuOnziemeUnivers() {
         int[] parUnivers = new int[Skin.LAST_SKIN_UNIVERSE + 1];
@@ -95,7 +95,7 @@ class SkinsEtalesTest {
         assertTrue(last.minUniverses() > 2, "le dernier skin des molécules attend : " + last.minUniverses());
         game.state().unlockSkin(last.id());   // obtenu avant la 0.206, relu tel quel
         assertTrue(game.hasSkin(last));
-        idle.core.save.SaveData data = new idle.core.save.SaveData();
+        SaveData data = new SaveData();
         game.state().save(data);
         GameState relu = new GameState();
         relu.load(data);

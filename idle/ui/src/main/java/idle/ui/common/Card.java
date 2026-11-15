@@ -1,18 +1,13 @@
 package idle.ui.common;
 
 import idle.core.universe.Skin;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import java.util.function.Consumer;
+import javafx.scene.Node;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.Polygon;
+import javafx.scene.shape.*;
 import javafx.util.Duration;
 
 /**
@@ -34,7 +29,7 @@ import javafx.util.Duration;
  * <p>Sans action ({@link #setOnAction}), c'est une simple tuile : elle montre, elle ne se clique
  * pas. C'est ainsi que sont dessinés les succès et les ensembles d'éléments.
  *
- * <p>Version 0.190 : les cartes ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochain remplissage.
+ * <p>Les cartes ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochain remplissage.
  * Fiche cartonnée : un fond crème, des textes sombres en police à chasse fixe, le coin haut droit écorné. Tuile de
  * verre : un fond à peine blanchi, coins ronds, et à portée un bord lumineux de la couleur d'accent avec son halo.
  * Carte à jouer : un fond blanc à marge, des textes sombres, le coin répété en bas à droite à l'envers, et un dos
@@ -44,7 +39,6 @@ import javafx.util.Duration;
  * d'accent reste sur le bord et le prix, et leur signe devant le nom.
  */
 public final class Card extends VBox {
-
     /** Ce que la carte dit de son contenu, et donc sa couleur. */
     public enum State {
         /** À portée : un clic l'achète ou l'active. */
@@ -66,7 +60,7 @@ public final class Card extends VBox {
     }
 
     private static final String DARK = "#10151f";
-    /** Le skin des cartes (version 0.190), commun à toutes, ou {@code null} pour le Classique ; lu à chaque repeinture. */
+    /** Le skin des cartes, commun à toutes, ou {@code null} pour le Classique ; lu à chaque repeinture. */
     private static volatile Skin skin = null;
     /** La taille du coin écorné de la fiche cartonnée, en pixels. */
     private static final double DOG_EAR = 14;
@@ -78,39 +72,27 @@ public final class Card extends VBox {
     private static int built = 0;
 
     /** Change le skin de toutes les cartes ; chacune le prend à son prochain remplissage, ou sous la souris. */
-    public static void setSkin(Skin chosen) {
-        skin = chosen;
-    }
+    public static void setSkin(Skin chosen) { skin = chosen; }
 
     /** Le skin des cartes, ou {@code null} pour le Classique : pour les vérifications. */
-    public static Skin skin() {
-        return skin;
-    }
+    public static Skin skin() { return skin; }
     /** Vrai si chaque carte écrit le signe de son état devant son nom ({@link #sign(State)}) : un réglage, commun à toutes. */
     private static boolean signs = true;
 
     /** Affiche ou cache le signe d'état devant le nom des cartes ; les cartes le prennent à leur prochain remplissage. */
-    public static void setSigns(boolean shown) {
-        signs = shown;
-    }
+    public static void setSigns(boolean shown) { signs = shown; }
 
     /** Vrai si les cartes écrivent le signe de leur état : pour qui mémorise ce qu'il leur a donné à montrer. */
-    public static boolean signsShown() {
-        return signs;
-    }
+    public static boolean signsShown() { return signs; }
 
-    /** Le skin des signes d'état (version 0.192), commun à toutes les cartes, ou {@code null} pour les signes de toujours. */
+    /** Le skin des signes d'état, commun à toutes les cartes, ou {@code null} pour les signes de toujours. */
     private static volatile Skin signSkin = null;
 
     /** Change la famille des signes d'état de toutes les cartes ; chacune la prend à son prochain remplissage. */
-    public static void setSignSkin(Skin chosen) {
-        signSkin = chosen;
-    }
+    public static void setSignSkin(Skin chosen) { signSkin = chosen; }
 
     /** Le skin des signes d'état, ou {@code null} pour les signes de toujours : pour les vérifications. */
-    public static Skin signSkin() {
-        return signSkin;
-    }
+    public static Skin signSkin() { return signSkin; }
 
     /**
      * Le signe d'un état, pour le reconnaître sans la couleur : un rond plein pour ce qui est à
@@ -118,7 +100,7 @@ public final class Card extends VBox {
      * pour ce qui est en marche, un carré vide pour ce qui est coupé, une coche pour ce qui est
      * acquis, une croix pour ce qui est fermé, un point d'exclamation pour ce qui attend un second clic.
      *
-     * <p>Version 0.192 : le skin des signes en change la famille, dans le même ordre. « Runes » : le soleil (à portée),
+     * <p>Le skin des signes en change la famille, dans le même ordre. « Runes » : le soleil (à portée),
      * la glace (en attente), l'année (entamée), le voyage (en marche), la grêle (coupée), l'héritage (acquise), le besoin
      * (fermée), l'épine (second clic). « Formes pleines » : triangle haut, triangle bas, demi-disque, flèche pleine, carré
      * plein, étoile, croix pleine, losange. « Lettres » : P, A, E, M, C, F, V, A.
@@ -191,7 +173,7 @@ public final class Card extends VBox {
     private boolean doneClickable = false;
     private Tooltip tooltip = null;
     /** Un dessin posé entre l'en-tête et le titre, ou au début de l'en-tête ({@link #setInlinePicture}), ou {@code null}. */
-    private javafx.scene.Node picture = null;
+    private Node picture = null;
     /** Vrai si le dessin est dans l'en-tête, à gauche du coin, plutôt que sur sa propre ligne. */
     private boolean inlinePicture = false;
     /** L'apparence déjà appliquée (état, survol, cliquable), pour ne pas la recalculer à chaque image. */
@@ -204,7 +186,7 @@ public final class Card extends VBox {
     private Runnable pinAction = null;
     private final Label pin = new Label();
     private boolean pinned = false;
-    /** Les ornements des skins (version 0.190), faits à la première demande puis gardés : rien n'est alloué par image. */
+    /** Les ornements des skins, faits à la première demande puis gardés : rien n'est alloué par image. */
     private Polygon dogEar = null;
     private Label mirror = null;
     private Circle eyelet = null;
@@ -278,9 +260,7 @@ public final class Card extends VBox {
             heldFor = 0;
             nextRepeat = REPEAT_DELAY;
         });
-        setOnMouseReleased(event -> {
-            if (held == this) held = null;
-        });
+        setOnMouseReleased(event -> { if (held == this) held = null; });
         setOnMouseEntered(event -> {
             hovered = true;
             // L'étiquette penche sous la souris, cliquable ou non : le penchement ne passe pas par la repeinture.
@@ -306,7 +286,7 @@ public final class Card extends VBox {
      * Pose un dessin en haut de la carte, entre l'en-tête et le titre : la molécule d'une carte de
      * molécule. Il s'estompe avec la carte quand elle est hors de portée.
      */
-    public void setPicture(javafx.scene.Node picture) {
+    public void setPicture(Node picture) {
         removePicture();
         this.picture = picture;
         if (picture != null) getChildren().add(1, picture);
@@ -316,9 +296,9 @@ public final class Card extends VBox {
 
     /**
      * Pose un petit dessin au début de l'en-tête, à gauche du coin, sur la même ligne que lui : la
-     * carte reste basse (version 0.178, les cartes des molécules). Il s'estompe comme l'autre.
+     * carte reste basse (les cartes des molécules). Il s'estompe comme l'autre.
      */
-    public void setInlinePicture(javafx.scene.Node picture) {
+    public void setInlinePicture(Node picture) {
         removePicture();
         this.picture = picture;
         inlinePicture = picture != null;
@@ -338,14 +318,10 @@ public final class Card extends VBox {
     private Runnable look;
 
     /** Ce que fait un clic sur la carte, quand son état le permet. */
-    public void setOnAction(Runnable action) {
-        this.action = action;
-    }
+    public void setOnAction(Runnable action) { this.action = action; }
 
     /** Une carte acquise reste cliquable : pour ce qui se refait, comme un défi déjà réussi. */
-    public void setDoneClickable(boolean doneClickable) {
-        this.doneClickable = doneClickable;
-    }
+    public void setDoneClickable(boolean doneClickable) { this.doneClickable = doneClickable; }
 
     /**
      * Tenir le clic sur la carte répète son action, plusieurs fois par seconde, tant qu'elle reste à
@@ -357,9 +333,7 @@ public final class Card extends VBox {
     }
 
     /** Vrai si tenir le clic répète l'action : pour les vérifications. */
-    public boolean repeats() {
-        return repeats;
-    }
+    public boolean repeats() { return repeats; }
 
     /**
      * Fait passer le temps du clic tenu : après un court délai, l'action de la carte tenue se
@@ -390,9 +364,7 @@ public final class Card extends VBox {
     }
 
     /** La carte dont le clic est tenu en ce moment, ou {@code null} : pour les vérifications. */
-    public static Card held() {
-        return held;
-    }
+    public static Card held() { return held; }
 
     /**
      * Donne une épingle à la carte, en haut à droite : un clic dessus appelle {@code toggle}, sans
@@ -413,14 +385,7 @@ public final class Card extends VBox {
     }
 
     /** Vrai si l'épingle est pleine : pour les vérifications. */
-    public boolean pinned() {
-        return pinned;
-    }
-
-    /** Clique sur l'épingle : pour les vérifications. */
-    public void clickPin() {
-        if (pinAction != null) pinAction.run();
-    }
+    public boolean pinned() { return pinned; }
 
     /** Clique sur la carte : sans effet si elle n'est ni à portée ni un interrupteur, sauf ce que {@link #setOnLook} demande. */
     public void click() {
@@ -431,24 +396,22 @@ public final class Card extends VBox {
         onActed.accept(before);
     }
 
-    /** Ce qui suit l'action d'une carte, quelle qu'elle soit (version 0.210) : le son d'un achat ou d'un interrupteur. */
-    private static java.util.function.Consumer<State> onActed = state -> { };
+    /** Ce qui suit l'action d'une carte, quelle qu'elle soit : le son d'un achat ou d'un interrupteur. */
+    private static Consumer<State> onActed = state -> { };
 
     /**
-     * Branche ce qui suit chaque action d'une carte, au clic comme au clic tenu (version 0.210), avec l'état de la carte
+     * Branche ce qui suit chaque action d'une carte, au clic comme au clic tenu, avec l'état de la carte
      * juste avant : à portée, c'est un achat ; allumée ou éteinte, un interrupteur. {@code null} : rien.
      */
-    public static void setOnActed(java.util.function.Consumer<State> listener) {
+    public static void setOnActed(Consumer<State> listener) {
         onActed = listener == null ? state -> { } : listener;
     }
 
     /**
-     * Ce que fait un clic, quel que soit l'état de la carte, avant son action (version 0.084) : montrer
+     * Ce que fait un clic, quel que soit l'état de la carte, avant son action : montrer
      * quelque chose, sans rien acheter. {@code null} : rien.
      */
-    public void setOnLook(Runnable look) {
-        this.look = look;
-    }
+    public void setOnLook(Runnable look) { this.look = look; }
 
     /** Vrai si un clic fait quelque chose : la carte a une action, et elle est à portée ou c'est un interrupteur. */
     public boolean isClickable() {
@@ -457,10 +420,7 @@ public final class Card extends VBox {
                 || (state == State.DONE && doneClickable);
     }
 
-    /**
-     * Le texte qui apparaît quand la souris s'arrête sur la carte ; vide ou {@code null}, il n'y
-     * en a pas.
-     */
+    /** Le texte qui apparaît quand la souris s'arrête sur la carte ; vide ou {@code null}, il n'y en a pas. */
     public void setHint(String text) {
         if (empty(text)) {
             if (tooltip != null) Tooltip.uninstall(this, tooltip);
@@ -482,13 +442,9 @@ public final class Card extends VBox {
     }
 
     /** Le texte du survol, ou une chaîne vide : pour les vérifications. */
-    public String hint() {
-        return tooltip == null ? "" : tooltip.getText();
-    }
+    public String hint() { return tooltip == null ? "" : tooltip.getText(); }
 
-    public State state() {
-        return state;
-    }
+    public State state() { return state; }
 
     /**
      * Pour une liste de cartes dont les textes coûtent à composer : l'appelant résume en un nombre
@@ -551,16 +507,14 @@ public final class Card extends VBox {
         return text.toString();
     }
 
-    private static boolean empty(String text) {
-        return text == null || text.isEmpty();
-    }
+    private static boolean empty(String text) { return text == null || text.isEmpty(); }
 
     private static void set(Label label, String text) {
         label.setText(empty(text) ? "" : text);
         visible(label, !empty(text));
     }
 
-    private static void visible(javafx.scene.Node node, boolean visible) {
+    private static void visible(Node node, boolean visible) {
         node.setVisible(visible);
         node.setManaged(visible);
     }
@@ -721,7 +675,7 @@ public final class Card extends VBox {
                     faint = quiet;
                     priceInk = state == State.READY || solid ? "#2b2416" : quiet;
                     border = state == State.READY ? (lit ? "#2b2416" : accent) : solid ? "#2b2416" : state == State.OFF ? "#8a7a60" : border;
-                    // Version 0.203 : deux coins arrondis en haut au lieu d'une forme libre (-fx-shape). Une région à forme
+                    // Deux coins arrondis en haut au lieu d'une forme libre (-fx-shape). Une région à forme
                     // libre se retrace en entier à chaque image, sans rien garder en mémoire : sur une page de quatre-vingts
                     // cartes (l'arbre de matière noire), le rendu prenait près de trois fois plus de temps qu'en Classique.
                     box = "-fx-background-radius: 14 14 3 3; -fx-border-radius: 14 14 3 3; -fx-background-color: " + background + ";"
@@ -800,7 +754,7 @@ public final class Card extends VBox {
 
     /**
      * Une couleur {@code #rrggbb} avec cette transparence en deux chiffres ; une couleur qui en a déjà
-     * une ({@code #rrggbbaa}) la remplace, sans quoi JavaFX refuse la couleur (version 0.090).
+     * une ({@code #rrggbbaa}) la remplace, sans quoi JavaFX refuse la couleur.
      */
     static String alpha(String color, String alpha) {
         String base = color.length() > 7 ? color.substring(0, 7) : color;

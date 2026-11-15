@@ -1,25 +1,19 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.save.SaveCodec;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
-import idle.core.sky.Assemblies;
-import idle.core.sky.Assembly;
-import idle.core.sky.Bodies;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Les assemblages et les astres : le catalogue, ce que chacun demande, la galaxie, l'amas et l'univers qui se forment,
@@ -28,11 +22,8 @@ import org.junit.jupiter.api.Test;
  * ({@code leNombreDeMoleculesDepasseDeuxMilliardsEnTout}).
  */
 class JeuAstresTest extends GameTestSupport {
-
-
     @Nested
     class LesAssemblages {
-
         /** Après un premier Big Bang, rassemblements et assemblages ouverts, beaucoup d'espace. */
         private Game game() {
             Game game = GameTestSupport.realGame();
@@ -51,7 +42,7 @@ class JeuAstresTest extends GameTestSupport {
 
         @Test
         void leCatalogueEstFaitDeMoleculesQuiExistent() {
-            java.util.Set<String> ids = new java.util.HashSet<>();
+            Set<String> ids = new HashSet<>();
             Map<Assembly.Family, Integer> families = new EnumMap<>(Assembly.Family.class);
             for (Assembly assembly : Assemblies.DEFAULT) {
                 assertTrue(ids.add(assembly.id()), assembly.id() + " en double");
@@ -63,7 +54,7 @@ class JeuAstresTest extends GameTestSupport {
                     assertTrue(molecule.hasState(), assembly.id() + " : " + ingredient);
                 }
             }
-            // Version 0.178 : trente assemblages, un par astre qui en a (cinquante-huit avant).
+            // Trente assemblages, un par astre qui en a (cinquante-huit avant).
             assertEquals(30, Assemblies.DEFAULT.size());
             assertEquals(Assembly.Family.values().length, families.size());
             assertEquals(9, families.get(Assembly.Family.STELLAR));
@@ -86,7 +77,7 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals("Roche granitique", granite.name());
             assertEquals(Map.of("SiO2", 120, "KAlSi3O8", 90, "NaAlSi3O8", 60), granite.ingredients());
             assertEquals(270, granite.size());
-            assertEquals(100, Assembly.MOLECULES_PER_WHOLE, 0);                                   // version 0.178 : 200 avant
+            assertEquals(100, Assembly.MOLECULES_PER_WHOLE, 0);                                   // 200 avant
             assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 2.7), granite.boost());       // 270 molécules : +270 %
             // Des pierres précieuses : presque rien que leur cristal, et les traces qui les colorent.
             Assembly gems = new Game(42L).assembly("peridot_gems");
@@ -195,7 +186,7 @@ class JeuAstresTest extends GameTestSupport {
         @Test
         void rienDeFabriqueDansLeCatalogue() {
             Game game = game();
-            java.util.Set<String> ids = new java.util.HashSet<>();
+            Set<String> ids = new HashSet<>();
             for (Assembly assembly : game.assemblies()) {
                 ids.add(assembly.id());
                 assertTrue(assembly.ingredients().size() >= 3 && assembly.ingredients().size() <= 8, assembly.id());
@@ -256,7 +247,6 @@ class JeuAstresTest extends GameTestSupport {
 
     @Nested
     class LesAstres {
-
         /** Après un premier Big Bang, tout ouvert jusqu'aux astres, beaucoup d'espace. */
         private Game game() {
             Game game = GameTestSupport.realGame();
@@ -395,8 +385,8 @@ class JeuAstresTest extends GameTestSupport {
             game.state().setTimePlayed(universeAt - 800);
             assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé il y a moins de deux heures, se rassemble encore
             game.state().setTimePlayed(universeAt);
-            // L'univers à la main, sans sa remise à zéro (version 0.083) : il double toutes les grandeurs.
-            String atCluster = idle.core.save.SaveCodec.write(game.state(), 0);
+            // L'univers à la main, sans sa remise à zéro : il double toutes les grandeurs.
+            String atCluster = SaveCodec.write(game.state(), 0);
             game.state().setCosmosLevel(3);
             assertEquals(3, game.cosmosFormed());
             assertTrue(game.nextCosmos() == null);
@@ -414,9 +404,9 @@ class JeuAstresTest extends GameTestSupport {
             assertFalse(game.hasGalaxy());
             assertThrows(IllegalArgumentException.class, () -> game.state().setCosmosLevel(4));
 
-            // Pour de bon (version 0.083) : former l'univers remet tout à zéro, sauf ce qui appartient à l'univers.
+            // Pour de bon : former l'univers remet tout à zéro, sauf ce qui appartient à l'univers.
             try {
-                idle.core.save.SaveCodec.readInto(game.state(), atCluster);
+                SaveCodec.readInto(game.state(), atCluster);
             } catch (Exception unreadable) {
                 throw new AssertionError(unreadable);
             }
@@ -441,7 +431,7 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(universeAt, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
             assertTrue(game.achievementCount() >= achievementsBefore);     // les succès restent
             assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), game.state().universeSeeds());
-            // Version 0.129 : le vide repart de zéro à chaque univers ; fermé, il n'ajoute rien au cumul.
+            // Le vide repart de zéro à chaque univers ; fermé, il n'ajoute rien au cumul.
             assertTrue(game.state().voidEnergy().isZero() && game.state().voidHistory().isEmpty());
             long[] tally = game.stats().universeTally();
             assertEquals(bangs, tally[0]);
@@ -450,7 +440,7 @@ class JeuAstresTest extends GameTestSupport {
             // Relue, la partie reste dans l'univers et ne se remet pas à zéro une seconde fois.
             GameState back;
             try {
-                back = idle.core.save.SaveCodec.read(idle.core.save.SaveCodec.write(game.state(), 0)).state();
+                back = SaveCodec.read(SaveCodec.write(game.state(), 0)).state();
             } catch (Exception unreadable) {
                 throw new AssertionError(unreadable);
             }
@@ -465,10 +455,10 @@ class JeuAstresTest extends GameTestSupport {
             game.state().setCosmosLevel(3);
             GameTestSupport.bangs(game, 8);
             game.state().setTimePlayed(40_000);
-            String text = idle.core.save.SaveCodec.write(game.state(), 0).replace("universeFormed", "ancienneCle");
+            String text = SaveCodec.write(game.state(), 0).replace("universeFormed", "ancienneCle");
             Game loaded = game();
             try {
-                idle.core.save.SaveCodec.readInto(loaded.state(), text);
+                SaveCodec.readInto(loaded.state(), text);
             } catch (Exception unreadable) {
                 throw new AssertionError(unreadable);
             }
@@ -492,7 +482,7 @@ class JeuAstresTest extends GameTestSupport {
             assertFalse(game.testAddUniverse());                  // pas d'univers à dupliquer avant le premier
             game.state().setCosmosLevel(3);
             assertEquals(1, game.universes());
-            assertTrue(game.isDimensionsUnlocked());              // dès le premier univers (version 0.100)
+            assertTrue(game.isDimensionsUnlocked());              // dès le premier univers
             assertEquals(1, game.dimensionsUnlocked());
             assertTrue(game.testAddUniverse());
             assertEquals(2, game.universes());
@@ -544,7 +534,7 @@ class JeuAstresTest extends GameTestSupport {
         @Test
         void leCatalogueVaDeLAmasALaPlanete() {
             Map<Body.Tier, Integer> tiers = new EnumMap<>(Body.Tier.class);
-            java.util.Set<String> ids = new java.util.HashSet<>();
+            Set<String> ids = new HashSet<>();
             Game game = game();
             for (Body body : Bodies.DEFAULT) {
                 assertTrue(ids.add(body.id()), body.id() + " en double");
@@ -758,13 +748,13 @@ class JeuAstresTest extends GameTestSupport {
         @Test
         void chaqueAssemblageEntreDansUnSeulAstre() {
             Game game = game();
-            Map<String, String> user = new java.util.HashMap<>();
+            Map<String, String> user = new HashMap<>();
             for (Body body : game.bodies()) {
                 for (String assembly : body.assemblies()) {
                     assertTrue(user.put(assembly, body.id()) == null, assembly + " sert a deux astres");
                     assertEquals(body, game.bodyOf(assembly));
                 }
-                // Version 0.178 : un seul assemblage par astre, quelle que soit son échelle ; aucun pour les matières exotiques.
+                // Un seul assemblage par astre, quelle que soit son échelle ; aucun pour les matières exotiques.
                 assertEquals(body.tier() == Body.Tier.EXOTIC ? 0 : 1, body.assemblies().size(), body.id());
             }
             // Les 30 assemblages du catalogue ont tous leur astre.
@@ -780,7 +770,7 @@ class JeuAstresTest extends GameTestSupport {
             Game game = game();
             int[] least = new int[Body.Tier.values().length];
             int[] most = new int[Body.Tier.values().length];
-            java.util.Arrays.fill(least, Integer.MAX_VALUE);
+            Arrays.fill(least, Integer.MAX_VALUE);
             for (Body body : game.bodies()) {
                 if (body.tier() == Body.Tier.EXOTIC) continue;                // à part : voir plus bas
                 int asked = 0;
@@ -789,7 +779,7 @@ class JeuAstresTest extends GameTestSupport {
                 most[body.tier().ordinal()] = Math.max(most[body.tier().ordinal()], asked);
                 assertEquals(body.tier().gain(), body.boost().perMolecule(), 0);
             }
-            List<Body.Tier> ladder = new java.util.ArrayList<>(List.of(Body.Tier.values()));
+            List<Body.Tier> ladder = new ArrayList<>(List.of(Body.Tier.values()));
             ladder.remove(Body.Tier.EXOTIC);
             for (int at = 1; at < ladder.size(); at++) {
                 int tier = ladder.get(at).ordinal(), below = ladder.get(at - 1).ordinal();

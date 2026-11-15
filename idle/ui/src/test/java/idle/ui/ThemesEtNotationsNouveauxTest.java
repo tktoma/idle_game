@@ -1,6 +1,8 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.ui.common.Format;
+import javafx.scene.paint.Color;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -10,17 +12,15 @@ import idle.core.Game;
 import idle.core.math.BigNum;
 import java.time.LocalTime;
 import java.util.List;
-import javafx.scene.effect.Blend;
-import javafx.scene.effect.Effect;
+import javafx.scene.effect.*;
 import javafx.scene.layout.Pane;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.200 : les huit thèmes nouveaux passent par le filtre sans erreur et en diffèrent du thème sombre ; leurs
+ * Les huit thèmes nouveaux passent par le filtre sans erreur et en diffèrent du thème sombre ; leurs
  * conditions et celles des notations nouvelles s'ouvrent au bon moment, et pas avant.
  */
 class ThemesEtNotationsNouveauxTest {
-
     private static final List<Settings.Theme> NEW = List.of(Settings.Theme.INK, Settings.Theme.CYANOTYPE, Settings.Theme.OLD_FILM,
             Settings.Theme.THERMAL, Settings.Theme.COLORBLIND, Settings.Theme.MOON, Settings.Theme.FOREST, Settings.Theme.BLAZE);
 
@@ -45,13 +45,13 @@ class ThemesEtNotationsNouveauxTest {
                     Effect effect = pane.getEffect();
                     assertNotNull(effect, theme.label());
                     // Les thèmes voilés finissent par le mélange « écran » du voile ; les autres non.
-                    assertEquals(theme.shade() != null, effect instanceof Blend blend && blend.getMode() == javafx.scene.effect.BlendMode.SCREEN, theme.label());
+                    assertEquals(theme.shade() != null, effect instanceof Blend blend && blend.getMode() == BlendMode.SCREEN, theme.label());
                     filter.fit();
                 }
                 filter.apply(Settings.Theme.CYANOTYPE);
                 Blend screen = (Blend) pane.getEffect();
-                assertEquals(javafx.scene.paint.Color.web("#1a3a6b"), ((javafx.scene.effect.ColorInput) screen.getTopInput()).getPaint(), "le bleu de Prusse");
-                assertEquals(size, ((javafx.scene.effect.ColorInput) screen.getTopInput()).getWidth(), 1e-9, "le voile couvre la zone");
+                assertEquals(Color.web("#1a3a6b"), ((ColorInput) screen.getTopInput()).getPaint(), "le bleu de Prusse");
+                assertEquals(size, ((ColorInput) screen.getTopInput()).getWidth(), 1e-9, "le voile couvre la zone");
                 return null;
             });
         }
@@ -109,6 +109,6 @@ class ThemesEtNotationsNouveauxTest {
         settings.setTheme(Settings.Theme.COLORBLIND);
         settings.lockCosmetics();
         assertEquals(Settings.Theme.COLORBLIND, settings.theme(), "un thème libre reste choisi");
-        idle.ui.common.Format.setNotation(Settings.Notation.SCIENTIFIC);
+        Format.setNotation(Settings.Notation.SCIENTIFIC);
     }
 }

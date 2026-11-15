@@ -1,18 +1,17 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import idle.core.GameUniverse.TreeBubble;
 import idle.core.achievements.Achievement;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Map;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * Les hadrons (version 0.149) : un onglet où les gluons lient les quarks du collisionneur en protons et en neutrons,
+ * Les hadrons : un onglet où les gluons lient les quarks du collisionneur en protons et en neutrons,
  * puis en particules exotiques ({@link Hadron}).
  *
  * <p>La bulle de l'arbuste, au milieu, le fait se proposer dans le collisionneur, comme le vide : il s'ouvre contre
@@ -21,11 +20,10 @@ import java.util.random.RandomGenerator;
  * l'arbre ancien, à gauche, garde les hadrons d'un univers à l'autre ; celle du cœur de l'arbre-monde ouvre les
  * exotiques. Sans ces bulles, un nouvel univers les reprend, comme tout le reste.
  *
- * <p>Leurs effets (version 0.151) : un bonus, ou un prix plus bas, qui grandit avec leur nombre ({@link #hadronBoost}),
+ * <p>Leurs effets : un bonus, ou un prix plus bas, qui grandit avec leur nombre ({@link #hadronBoost}),
  * et les paliers de gluons ({@link idle.core.collider.GluonMilestone}).
  */
 public abstract class GameHadrons extends GameVoid {
-
     GameHadrons(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -39,9 +37,7 @@ public abstract class GameHadrons extends GameVoid {
     public static final long MAX_HADRONS = Long.MAX_VALUE / 4;
 
     /** Vrai une fois l'onglet ouvert : payé dans cet univers, ou offert par la bulle du jeune arbre, à gauche. */
-    public boolean isHadronsUnlocked() {
-        return state.hadronsOpen() || hasBubble(TreeBubble.YOUNG_LEFT);
-    }
+    public boolean isHadronsUnlocked() { return state.hadronsOpen() || hasBubble(TreeBubble.YOUNG_LEFT); }
 
     /** Vrai quand il se propose dans le collisionneur : la bulle de l'arbuste, au milieu, le collisionneur ouvert. */
     public boolean isHadronsOffered() {
@@ -49,9 +45,7 @@ public abstract class GameHadrons extends GameVoid {
     }
 
     /** Vrai une fois les particules exotiques ouvertes : la bulle du cœur de l'arbre-monde. */
-    public boolean isExoticHadronsUnlocked() {
-        return isHadronsUnlocked() && hasBubble(TreeBubble.HEART);
-    }
+    public boolean isExoticHadronsUnlocked() { return isHadronsUnlocked() && hasBubble(TreeBubble.HEART); }
 
     /** Ce que coûte l'ouverture : le prix fixé quand il s'est proposé, ou celui qu'il aurait maintenant. */
     public double hadronsPrice() {
@@ -77,9 +71,7 @@ public abstract class GameHadrons extends GameVoid {
     }
 
     /** Les hadrons de cette sorte qu'on a. */
-    public long hadrons(Hadron hadron) {
-        return state.hadrons(hadron);
-    }
+    public long hadrons(Hadron hadron) { return state.hadrons(hadron); }
 
     /** Tous les hadrons assemblés, de toutes les sortes. */
     public long hadronsMade() {
@@ -98,14 +90,12 @@ public abstract class GameHadrons extends GameVoid {
         return Math.max(0, most);
     }
 
-    public boolean canBindHadron(Hadron hadron) {
-        return hadronsBindable(hadron) > 0;
-    }
+    public boolean canBindHadron(Hadron hadron) { return hadronsBindable(hadron) > 0; }
 
     /**
      * Assemble {@code count} hadrons de cette sorte, ou moins si les quarks manquent : chacun prend ses quarks.
      *
-     * <p>Le gain de la traversée (version 0.175, avec l'arbuste, à gauche depuis la 0.176, {@link #crossingGain()}) en ajoute : ce qu'on a vaut les assemblés
+     * <p>Le gain de la traversée (avec l'arbuste, à gauche depuis la 0.176, {@link #crossingGain()}) en ajoute : ce qu'on a vaut les assemblés
      * multipliés par le gain, arrondis vers le bas. Les assemblés d'avant se retrouvent depuis ce qu'on a ; un à un ou
      * d'un coup, le même nombre vient, sans rien garder en mémoire.
      *
@@ -132,17 +122,11 @@ public abstract class GameHadrons extends GameVoid {
     }
 
     /** Assemble un hadron ; vrai si c'est fait. */
-    public boolean bindHadron(Hadron hadron) {
-        return bindHadrons(hadron, 1) >= 1;
-    }
+    public boolean bindHadron(Hadron hadron) { return bindHadrons(hadron, 1) >= 1; }
 
     /** Assemble tous ceux que les quarks permettent ; combien. */
-    public long bindAllHadrons(Hadron hadron) {
-        return bindHadrons(hadron, hadronsBindable(hadron));
-    }
+    public long bindAllHadrons(Hadron hadron) { return bindHadrons(hadron, hadronsBindable(hadron)); }
 
     /** Le prix se fixe la première fois que l'onglet se propose : il ne monte plus ensuite avec le collisionneur. */
-    void runHadrons() {
-        if (isHadronsOffered() && state.hadronsPrice() <= 0) state.setHadronsPrice(hadronsPrice());
-    }
+    void runHadrons() { if (isHadronsOffered() && state.hadronsPrice() <= 0) state.setHadronsPrice(hadronsPrice()); }
 }

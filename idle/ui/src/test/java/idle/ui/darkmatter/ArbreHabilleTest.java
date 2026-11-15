@@ -1,34 +1,29 @@
 package idle.ui.darkmatter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import javafx.scene.SnapshotParameters;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.203 : les skins de l'arbre de matière noire habillent aussi le fond de l'arbre et ses en-têtes (avant : les
+ * Les skins de l'arbre de matière noire habillent aussi le fond de l'arbre et ses en-têtes (avant : les
  * traits et une vignette de 18 pixels). Chaque skin a son fond (une couleur et un motif qui se répète sans couture, fait
  * une seule fois) et son style d'en-tête ; le Classique n'a ni l'un ni l'autre.
  */
 class ArbreHabilleTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @Test
     void chaqueSkinASonFondEtSesEnTetes() {
@@ -51,7 +46,7 @@ class ArbreHabilleTest {
                 Color base = DarkTreeSkinArt.tile(skin, canvas.getGraphicsContext2D());
                 assertTrue(base.getBrightness() < 0.2, skin.label() + " : un fond sombre, comme le reste de la page");
                 bases.add(base);
-                javafx.scene.SnapshotParameters parameters = new javafx.scene.SnapshotParameters();
+                SnapshotParameters parameters = new SnapshotParameters();
                 parameters.setFill(Color.TRANSPARENT);
                 WritableImage image = canvas.snapshot(parameters, null);
                 int drawn = 0, last = DarkTreeSkinArt.TILE - 1;

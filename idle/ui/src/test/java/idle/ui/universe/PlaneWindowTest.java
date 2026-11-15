@@ -7,8 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.ui.FxTestSupport;
 import javafx.scene.input.KeyCode;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * La fenêtre du plan (dimension 2), sous Xvfb : Z Q S D et les flèches dirigent le point tant que la touche est tenue,
@@ -16,11 +15,8 @@ import org.junit.jupiter.api.Test;
  * cinq améliorations suivent les facettes ; fermer la fenêtre arrête le point.
  */
 class PlaneWindowTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     /** Une partie au deuxième univers : le plan est ouvert, le point au centre. */
     private static Game second() {

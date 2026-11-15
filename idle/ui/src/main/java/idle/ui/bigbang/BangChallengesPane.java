@@ -2,30 +2,21 @@ package idle.ui.bigbang;
 
 import idle.core.Game;
 import idle.core.bigbang.BangChallenge;
-import idle.ui.Confirm;
-import idle.ui.GameApp;
-import idle.ui.common.Card;
-import idle.ui.common.Detail;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
-import idle.ui.common.Labels;
-import idle.ui.common.TileGrid;
-import java.util.EnumMap;
-import java.util.Map;
+import idle.ui.*;
+import idle.ui.common.*;
+import java.util.*;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
 /**
- * Les défis de Big Bang, sous les paliers : refaire le chemin jusqu'au Big Bang suivant sous une
- * contrainte, pour une récompense qui reste ({@link BangChallenge}). Une carte par défi.
+ * Les défis de Big Bang, sous les paliers : refaire le chemin jusqu'au Big Bang suivant sous une contrainte, pour une
+ * récompense qui reste ({@link BangChallenge}). Une carte par défi.
  *
- * <p>Commencer un défi remet la partie à zéro comme un Big Bang : le premier clic arme la carte,
- * le second, dans les cinq secondes, commence (ou abandonne). Sans la confirmation des défis
- * ({@link Confirm#challenge()}), un clic suffit.
+ * <p>Commencer un défi remet la partie à zéro comme un Big Bang : le premier clic arme la carte, le second, dans les
+ * cinq secondes, commence (ou abandonne). Sans la confirmation des défis ({@link Confirm#challenge()}), un clic suffit.
  */
 public final class BangChallengesPane extends VBox {
-
     private static final double CONFIRM_SECONDS = 5;
 
     private final Game game;
@@ -37,9 +28,7 @@ public final class BangChallengesPane extends VBox {
     private BangChallenge armed = null;
     private double armedFor = 0;
 
-    /**
-     * @param changed appelé après qu'un défi a commencé ou été abandonné, pour recopier la page
-     */
+    /** @param changed appelé après qu'un défi a commencé ou été abandonné, pour recopier la page */
     BangChallengesPane(Game game, Runnable changed) {
         super(8);
         this.game = game;
@@ -62,14 +51,10 @@ public final class BangChallengesPane extends VBox {
     }
 
     /** La carte d'un défi : pour les vérifications. */
-    public Card card(BangChallenge challenge) {
-        return cards.get(challenge);
-    }
+    public Card card(BangChallenge challenge) { return cards.get(challenge); }
 
     /** La phrase d'en-tête : pour les vérifications. */
-    public String introText() {
-        return intro.getText();
-    }
+    public String introText() { return intro.getText(); }
 
     private void click(BangChallenge challenge) {
         if ((armed == challenge && armedFor > 0) || !Confirm.challenge()) {
@@ -112,7 +97,7 @@ public final class BangChallengesPane extends VBox {
                     + "récompense qui reste.");
             return;
         }
-        // Version 0.116 : dans le deuxième univers, chaque défi réussi multiplie aussi tout le troisième acte.
+        // Dans le deuxième univers, chaque défi réussi multiplie aussi tout le troisième acte.
         String second = !game.isSecondUniverse() ? "" : " Deuxième univers : chaque défi réussi donne aussi particules ×"
                 + ElementText.number(Game.BANG_UNIVERSE_PARTICLES)
                 + ", molécules par création ×2, ×4 puis ×8 aux défis 1, 3 et 5 (même prix en éléments, chacune prend sa place)"

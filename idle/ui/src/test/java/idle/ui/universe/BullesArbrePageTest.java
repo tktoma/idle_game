@@ -7,29 +7,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
 import idle.ui.FxTestSupport;
-import javafx.scene.Node;
-import javafx.scene.Scene;
+import javafx.scene.*;
 import javafx.scene.control.Button;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.142 : les bulles de l'arbre sur la page de la graine, sous Xvfb. Elles naissent avec les paliers, se
+ * Les bulles de l'arbre sur la page de la graine, sous Xvfb. Elles naissent avec les paliers, se
  * cliquent pour s'acheter avec l'énergie du vide accumulée, suivent leurs liens ; le sous-onglet « Vide » est parti.
  */
 class BullesArbrePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static Game at(int stage, double accumulated) {
         Game game = new Game();
         game.start();
         game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        // Version 0.179 : la graine ne dépasse pas deux paliers d'avance sur les univers formés.
+        // La graine ne dépasse pas deux paliers d'avance sur les univers formés.
         while (game.universes() + Game.SEED_STAGES_AHEAD < stage) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         if (accumulated > 0) game.state().noteVoidHistory("3", accumulated);
@@ -137,7 +132,7 @@ class BullesArbrePageTest {
         });
     }
 
-    /** Version 0.143 : à l'arbre-monde, les dix-neuf bulles du schéma, toutes dans la vue ; les racines sous la graine. */
+    /** À l'arbre-monde, les dix-neuf bulles du schéma, toutes dans la vue ; les racines sous la graine. */
     @Test
     void lArbreMondePorteToutLeReseau() {
         FxTestSupport.fx(() -> {
@@ -153,7 +148,7 @@ class BullesArbrePageTest {
             double base = view.bubblePoint(TreeBubble.SEED.ordinal())[1];
             double rootsY = view.bubblePoint(TreeBubble.ROOTS.ordinal())[1];
             assertTrue(rootsY > base, "les racines sous la graine");
-            // Version 0.144 : les deux bulles du bas s'écartent, et les racines ne touchent plus le bas de la vue.
+            // Les deux bulles du bas s'écartent, et les racines ne touchent plus le bas de la vue.
             assertTrue(rootsY - base >= view.bubbleRadius() * 3.4, "écart " + (rootsY - base));
             // Les bulles flottent de ±0,12 rayon : la marge en tient compte.
             assertTrue(rootsY <= height - view.bubbleRadius() * 1.85, "racines à " + rootsY + " sur " + height);
@@ -165,7 +160,7 @@ class BullesArbrePageTest {
             view.clickBubble(seed[0], seed[1]);
             page.frame(0.016, true);
             double[] roots = view.bubblePoint(TreeBubble.ROOTS.ordinal());
-            // Version 0.158 : les racines attendent l'amélioration de graine qui les ouvre.
+            // Les racines attendent l'amélioration de graine qui les ouvre.
             assertEquals("Ouverte par l'amélioration de graine Bulle des racines", view.bubble(TreeBubble.ROOTS.ordinal()).price());
             view.clickBubble(roots[0], roots[1]);
             assertFalse(game.isTreeBubbleBought(TreeBubble.ROOTS));

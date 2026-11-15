@@ -1,31 +1,26 @@
 package idle.core;
 
+import idle.core.state.*;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.Element;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.PeriodicTable;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.upgrades.Automation;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * Les règles du jeu : les statistiques, l'historique, la remise à zéro, les améliorations payées
  * en matière noire et les automatismes de matière noire.
  */
 class JeuMatiereNoireTest extends GameTestSupport {
-
-
     @Nested
     class Statistiques {
-
         @Test
         void unePartieNeuveNARienCompte() {
             GameStats stats = unstartedGame().stats();
@@ -193,10 +188,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
 
     @Nested
     class HistoriqueEtDeblocages {
-
-        private void fillTable(Game game) {
-            GameTestSupport.fillTableToMax(game);
-        }
+        private void fillTable(Game game) { GameTestSupport.fillTableToMax(game); }
 
         @Test
         void unReleveEstPrisAIntervallesReguliers() {
@@ -401,7 +393,6 @@ class JeuMatiereNoireTest extends GameTestSupport {
 
     @Nested
     class RemiseAZero {
-
         @Test
         void toutEstEffaceJusquALaMatiereNoireEtAuxStatistiques() {
             Game game = gameReadyToFuse();
@@ -447,7 +438,6 @@ class JeuMatiereNoireTest extends GameTestSupport {
 
     @Nested
     class AmeliorationsPayeesEnMatiereNoire {
-
         /** Partie qui a {@code darkMatter} matières noires à dépenser, après une explosion. */
         private Game gameWithDarkMatter(int darkMatter) {
             Game game = gameReadyToFuse();
@@ -464,7 +454,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
             for (DarkUpgrade dark : shop) {
                 assertFalse(dark.branch().inTree());
                 assertEquals(null, dark.requires());
-                // Dès la première matière noire : Noyaux sombres, puis les autres (version 0.209).
+                // Dès la première matière noire : Noyaux sombres, puis les autres.
                 assertEquals(dark.id().equals(Game.KEY_DARK_UPGRADE), game.isDarkAvailable(dark.id()), dark.id());
             }
             game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);
@@ -515,7 +505,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
             Game game = gameWithDarkMatter(3);
             double momentum = game.darkMatterMomentum();
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
-            assertTrue(game.buyDark("dark_shop_atoms"));          // la première, d'abord (version 0.209)
+            assertTrue(game.buyDark("dark_shop_atoms"));          // la première, d'abord
             assertTrue(game.buyDark("dark_shop_synthesis"));      // 2 matières noires : tout y passe
             assertValue(0, game.state().darkMatter());
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
@@ -566,7 +556,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
         void departLanceCompteDesAtomesCommeCreesDesLAchat() {
             Game game = gameWithDarkMatter(3);
             assertValue(0, game.darkHeadStartAtoms());
-            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord
             assertTrue(game.buyDark("dark_shop_start"));          // 2 matières noires
             assertValue(15, game.darkHeadStartAtoms());           // 5 × 3 gagnées
             assertValue(15, game.state().totalAtoms());
@@ -595,7 +585,6 @@ class JeuMatiereNoireTest extends GameTestSupport {
 
     @Nested
     class AutomatismesDeMatiereNoire {
-
         /** Partie démarrée avec {@code darkMatter} matière noire. */
         private Game gameWithDarkMatter(int darkMatter) {
             Game game = newGame();

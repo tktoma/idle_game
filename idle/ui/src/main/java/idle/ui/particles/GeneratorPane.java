@@ -2,31 +2,27 @@ package idle.ui.particles;
 
 import java.util.ArrayList;
 import java.util.List;
-import javafx.animation.Interpolator;
-import javafx.animation.ParallelTransition;
-import javafx.animation.ScaleTransition;
-import javafx.animation.TranslateTransition;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.animation.*;
 import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 
 /**
- * Zone qui affiche les générateurs et les répartit dans l'espace disponible,
- * par-dessus un fond de poussières.
+ * Zone qui affiche les générateurs et les répartit dans l'espace disponible, par-dessus un fond de poussières.
  *
- * <p>Les générateurs apparaissent au fur et à mesure, de gauche à droite.
- * À chaque changement (nouveau générateur, fenêtre redimensionnée), la grille est
- * recalculée pour leur donner la plus grande taille possible.
+ * <p>Les générateurs apparaissent au fur et à mesure, de gauche à droite. À chaque changement (nouveau générateur,
+ * fenêtre redimensionnée), la grille est recalculée pour leur donner la plus grande taille possible.
  *
- * <p>À la fusion, tous les générateurs glissent vers le centre en rétrécissant,
- * puis disparaissent : le générateur suivant naît à cet endroit.
+ * <p>À la fusion, tous les générateurs glissent vers le centre en rétrécissant, puis disparaissent : le générateur
+ * suivant naît à cet endroit.
  *
- * <p>Version 0.192 : la fusion a un skin ({@link #setFusionSkin}). « Tourbillon » : les générateurs font un tour
- * autour du centre en s'y enroulant ; « Aspiration » : ils s'étirent vers le centre comme de la pâte, hauts et
- * étroits, avant de s'y engouffrer ; « Éclat » : ils se brisent, sautent chacun de son côté en tournant, puis les
- * morceaux se rassemblent au centre. Le fond a le sien aussi ({@link #setDustSkin}).
+ * <p>La fusion a un skin ({@link #setFusionSkin}). « Tourbillon » : les générateurs font un tour autour du centre en
+ * s'y enroulant ; « Aspiration » : ils s'étirent vers le centre comme de la pâte, hauts et étroits, avant de s'y
+ * engouffrer ; « Éclat » : ils se brisent, sautent chacun de son côté en tournant, puis les morceaux se rassemblent au
+ * centre. Le fond a le sien aussi ({@link #setDustSkin}).
  */
 public final class GeneratorPane extends Pane {
-
     /** Un générateur seul dans une grande fenêtre ne dépasse pas cette taille, en pixels. */
     private static final double MAX_VIEW_SIZE = 320;
 
@@ -38,28 +34,22 @@ public final class GeneratorPane extends Pane {
     private final AmbientView ambient = new AmbientView();
     private final List<ParticleView> views = new ArrayList<>();
     private boolean fusing = false;
-    /** Le skin de la fusion (version 0.192), ou {@code null} pour le glissement classique. */
-    private idle.core.universe.Skin fusionSkin = null;
+    /** Le skin de la fusion, ou {@code null} pour le glissement classique. */
+    private Skin fusionSkin = null;
 
     /** Change le skin de la fusion ; la prochaine fusion le joue. Un skin d'un autre visuel vaut le Classique. */
-    public void setFusionSkin(idle.core.universe.Skin chosen) {
-        fusionSkin = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.GENERATOR_FUSION ? chosen : null;
+    public void setFusionSkin(Skin chosen) {
+        fusionSkin = chosen != null && chosen.visual() == SkinVisual.GENERATOR_FUSION ? chosen : null;
     }
 
     /** Le skin de la fusion, ou {@code null} : pour les vérifications. */
-    public idle.core.universe.Skin fusionSkin() {
-        return fusionSkin;
-    }
+    public Skin fusionSkin() { return fusionSkin; }
 
-    /** Change le skin du fond animé (version 0.192) : il le prend à sa prochaine image. */
-    public void setDustSkin(idle.core.universe.Skin chosen) {
-        ambient.setSkin(chosen);
-    }
+    /** Change le skin du fond animé : il le prend à sa prochaine image. */
+    public void setDustSkin(Skin chosen) { ambient.setSkin(chosen); }
 
     /** Le fond animé : pour les vérifications. */
-    AmbientView ambient() {
-        return ambient;
-    }
+    AmbientView ambient() { return ambient; }
 
     public GeneratorPane() {
         setMinSize(0, 0);       // la zone peut rétrécir librement avec la fenêtre
@@ -67,14 +57,10 @@ public final class GeneratorPane extends Pane {
         getChildren().add(ambient);
     }
 
-    public List<ParticleView> views() {
-        return views;
-    }
+    public List<ParticleView> views() { return views; }
 
     /** Fait avancer le fond animé. */
-    public void animateBackground(double dt) {
-        ambient.frame(dt);
-    }
+    public void animateBackground(double dt) { ambient.frame(dt); }
 
     /** Le fond suit la production : {@code rate} particules par seconde. */
     public void animateBackground(double dt, double rate) {
@@ -82,15 +68,13 @@ public final class GeneratorPane extends Pane {
         ambient.frame(dt);
     }
 
-    /** Efface le fond animé : coupé, il disparaît tout de suite au lieu de rester figé (version 0.067). */
+    /** Efface le fond animé : coupé, il disparaît tout de suite au lieu de rester figé. */
     public void clearBackground() {
         ambient.getGraphicsContext2D().clearRect(0, 0, ambient.getWidth(), ambient.getHeight());
     }
 
     /** Vrai pendant l'animation de fusion. */
-    public boolean isFusing() {
-        return fusing;
-    }
+    public boolean isFusing() { return fusing; }
 
     /**
      * Joue l'animation de fusion : les générateurs convergent vers le centre et s'y confondent.
@@ -200,7 +184,5 @@ public final class GeneratorPane extends Pane {
         return Math.min(MAX_VIEW_SIZE, Math.min(width / columns, height / rowsFor(count, columns)));
     }
 
-    private static int rowsFor(int count, int columns) {
-        return (count + columns - 1) / columns;
-    }
+    private static int rowsFor(int count, int columns) { return (count + columns - 1) / columns; }
 }

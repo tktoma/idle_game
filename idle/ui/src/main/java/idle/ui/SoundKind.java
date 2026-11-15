@@ -1,6 +1,6 @@
 package idle.ui;
 
-/** Les catégories de sons, que les réglages gardent ou coupent une à une (version 0.213). */
+/** Les catégories de sons, que les réglages gardent ou coupent une à une. */
 public enum SoundKind {
     PARTICLES("Particules créées"),
     ATOMS("Fusions (atomes)"),
@@ -19,12 +19,8 @@ public enum SoundKind {
 
     private final String label;
 
-    SoundKind(String label) {
-        this.label = label;
-    }
+    SoundKind(String label) { this.label = label; }
 
     /** Le nom de la catégorie, sur son bouton dans les réglages. */
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 }

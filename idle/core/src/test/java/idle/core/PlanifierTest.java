@@ -1,21 +1,18 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.elements.PeriodicTable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.sky.Assembly;
 import idle.core.sky.Body;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.085 : planifier plusieurs astres, plafonner la création par état, réserver par recette, cibler le prochain astre. */
+/** Planifier plusieurs astres, plafonner la création par état, réserver par recette, cibler le prochain astre. */
 class PlanifierTest {
-
     private static Game game() {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
@@ -91,7 +88,7 @@ class PlanifierTest {
             assertFalse(need.satisfied());
         }
         // Les ingrédients des assemblages s'ajoutent.
-        Map<String, Integer> sum = new java.util.HashMap<>();
+        Map<String, Integer> sum = new HashMap<>();
         for (Body body : List.of(a, b)) {
             for (String id : body.assemblies()) {
                 for (Map.Entry<String, Integer> ingredient : game.assembly(id).ingredients().entrySet()) sum.merge(ingredient.getKey(), ingredient.getValue(), Integer::sum);
@@ -129,7 +126,7 @@ class PlanifierTest {
         Molecule gas = game.molecules().stream().filter(m -> m.state() == Molecule.State.GAS && game.isMoleculeKindUnlocked(m.kind()))
                 .findFirst().orElseThrow();
         assertTrue(game.isStateCapUnlocked(), "les plafonds s'ouvrent avec la création automatique et les états");
-        for (int number = 1; number <= idle.core.elements.PeriodicTable.ELEMENTS.size(); number++) game.state().setElementCount(number, 200);
+        for (int number = 1; number <= PeriodicTable.ELEMENTS.size(); number++) game.state().setElementCount(number, 200);
         assertEquals(1, game.stateCap(Molecule.State.GAS), 0);
         game.setStateCap(Molecule.State.GAS, 0.7);
         assertEquals(0.7, game.stateCap(Molecule.State.GAS), 1e-12);
@@ -161,7 +158,7 @@ class PlanifierTest {
     void leFiltreDuProchainAstreDonneLesElementsDesRecettesUtiles() {
         Game game = game();
         assertTrue(game.isNextBodyFilterUnlocked());
-        java.util.Set<Integer> numbers = game.elementsForNextStep();
+        Set<Integer> numbers = game.elementsForNextStep();
         assertFalse(numbers.isEmpty());
         for (var item : game.shoppingList().items()) {
             if (game.isMoleculeKindUnlocked(item.molecule().kind())) assertTrue(numbers.containsAll(item.molecule().recipe().keySet()), item.molecule().id());

@@ -1,7 +1,6 @@
 package idle.core.elements;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Un ensemble du tableau périodique : une famille entière ou une période entière. Le joueur qui
@@ -16,7 +15,6 @@ import java.util.Map;
  * @param effect   le bonus de l'ensemble complet, appliqué avec une force de 1
  */
 public record ElementSet(String id, String name, ElementCategory category, int period, ElementEffect effect) {
-
     /** Force du bonus quand la moitié de l'ensemble est réunie (0.25 = le quart de l'effet). */
     public static final double HALF_STRENGTH = 0.25;
 
@@ -31,7 +29,7 @@ public record ElementSet(String id, String name, ElementCategory category, int p
 
     /** Ensemble d'une famille entière. */
     public static ElementSet family(ElementCategory category, ElementEffect effect) {
-        return new ElementSet("family_" + category.name().toLowerCase(java.util.Locale.ROOT), category.label(),
+        return new ElementSet("family_" + category.name().toLowerCase(Locale.ROOT), category.label(),
                 category, 0, effect);
     }
 
@@ -41,9 +39,7 @@ public record ElementSet(String id, String name, ElementCategory category, int p
     }
 
     /** Vrai pour un ensemble de famille, faux pour un ensemble de période. */
-    public boolean isFamily() {
-        return category != null;
-    }
+    public boolean isFamily() { return category != null; }
 
     /** Les éléments à réunir, par numéro atomique croissant. */
     public List<Element> members() {
@@ -60,18 +56,13 @@ public record ElementSet(String id, String name, ElementCategory category, int p
     }
 
     /** Vrai si la collection contient au moins un exemplaire de chaque élément de l'ensemble. */
-    public boolean isComplete(Map<Integer, Integer> owned) {
-        return progress(owned) == members().size();
-    }
+    public boolean isComplete(Map<Integer, Integer> owned) { return progress(owned) == members().size(); }
 
     /**
-     * Nombre d'éléments à réunir pour le premier palier de l'ensemble : la moitié, arrondie
-     * au-dessus, et jamais moins de deux. Un ensemble de deux éléments n'a donc pas de premier
-     * palier : un seul élément ne fait pas un ensemble.
+     * Nombre d'éléments à réunir pour le premier palier de l'ensemble : la moitié, arrondie au-dessus, et jamais moins
+     * de deux. Un ensemble de deux éléments n'a donc pas de premier palier : un seul élément ne fait pas un ensemble.
      */
-    public int halfSize() {
-        return Math.max(2, (members().size() + 1) / 2);
-    }
+    public int halfSize() { return Math.max(2, (members().size() + 1) / 2); }
 
     /**
      * Force du bonus de l'ensemble pour une collection : 0 tant qu'il en manque plus de la
@@ -85,7 +76,7 @@ public record ElementSet(String id, String name, ElementCategory category, int p
 
     /**
      * Comme {@link #strength(Map)}, pour une collection rangée en tableau (exemplaires par numéro atomique) : le même
-     * résultat, sans chercher chaque élément dans une table (version 0.167, pour la synthèse sans délai, qui recalcule les
+     * résultat, sans chercher chaque élément dans une table (pour la synthèse sans délai, qui recalcule les
      * bonus des éléments à chaque synthèse).
      */
     public double strength(int[] counts) {

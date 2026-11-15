@@ -13,10 +13,11 @@ import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.geometry.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -24,17 +25,15 @@ import javafx.scene.layout.VBox;
 /**
  * Sous-page « Défis » de l'onglet Matière noire : une {@link Card} par défi d'explosion.
  *
- * <p>La carte dit où en est le défi (verrouillé, à tenter, en cours, réussi avec son meilleur
- * temps), sa contrainte et sa récompense en quelques mots ; les phrases complètes viennent en
- * mode détails ({@link Detail}). Un clic sur la carte commence le défi, ou l'abandonne s'il est
- * en cours. Les deux effacent la partie : la carte passe alors au rouge et demande un second
- * clic dans les cinq secondes.
+ * <p>La carte dit où en est le défi (verrouillé, à tenter, en cours, réussi avec son meilleur temps), sa contrainte et
+ * sa récompense en quelques mots ; les phrases complètes viennent en mode détails ({@link Detail}). Un clic sur la
+ * carte commence le défi, ou l'abandonne s'il est en cours. Les deux effacent la partie : la carte passe alors au rouge
+ * et demande un second clic dans les cinq secondes.
  *
- * <p>Version 0.193 : les défis ont leurs skins ({@link #setSkin}), dessinés par {@link ChallengesSkinArt} : une
- * vignette par carte (lame de tarot, affiche « wanted », sceau de cire), qui suit l'état du défi.
+ * <p>Les défis ont leurs skins ({@link #setSkin}), dessinés par {@link ChallengesSkinArt} : une vignette par carte
+ * (lame de tarot, affiche « wanted », sceau de cire), qui suit l'état du défi.
  */
 public final class ChallengesPane extends VBox {
-
     /** Temps laissé pour le second clic, en secondes. */
     private static final double CONFIRM_SECONDS = 5;
 
@@ -45,7 +44,7 @@ public final class ChallengesPane extends VBox {
     /** Défi dont la carte attend son second clic, ou {@code null}. */
     private Challenge armed = null;
     private double armedFor = 0;
-    /** Le skin des défis (version 0.193), ou {@code null} pour le Classique ; celui dont les vignettes sont posées ; et les vignettes. */
+    /** Le skin des défis, ou {@code null} pour le Classique ; celui dont les vignettes sont posées ; et les vignettes. */
     private Skin skin;
     private Skin pictured;
     private final Map<Challenge, Canvas> arts = new LinkedHashMap<>();
@@ -59,9 +58,9 @@ public final class ChallengesPane extends VBox {
         Labels.note(intro, 760);
         getChildren().add(intro);
 
-        // La fuite (version 0.115) prend place au milieu de la grille, au centre de sa deuxième rangée : elle n'y
+        // La fuite prend place au milieu de la grille, au centre de sa deuxième rangée : elle n'y
         // apparaît qu'une fois les dix autres réussis, dans le deuxième univers.
-        java.util.List<Challenge> order = new java.util.ArrayList<>(Challenges.DEFAULT);
+        List<Challenge> order = new ArrayList<>(Challenges.DEFAULT);
         order.add(Math.min(LEAK_SLOT, order.size()), Challenges.LEAK);
         for (Challenge challenge : order) {
             Card card = new Card(GameApp.DARK_MATTER_COLOR);
@@ -84,11 +83,8 @@ public final class ChallengesPane extends VBox {
             armed = null;
             armedFor = 0;
             Challenge active = game.activeChallenge();
-            if (active != null && active.id().equals(challenge.id())) {
-                game.abandonChallenge();
-            } else {
-                game.startChallenge(challenge.id());
-            }
+            if (active != null && active.id().equals(challenge.id())) game.abandonChallenge();
+            else game.startChallenge(challenge.id());
         } else {
             armed = challenge;
             armedFor = CONFIRM_SECONDS;
@@ -110,7 +106,7 @@ public final class ChallengesPane extends VBox {
 
     /** La place de la fuite dans la grille : la cinquième, au centre de la deuxième rangée de trois. */
     static final int LEAK_SLOT = 4;
-    /** L'arrivée de la fuite (version 0.115) : les défis s'écartent, puis elle apparaît au milieu. */
+    /** L'arrivée de la fuite : les défis s'écartent, puis elle apparaît au milieu. */
     public static final double MAKE_ROOM_SECONDS = 0.7, REVEAL_SECONDS = 2.4;
     /** Âge de l'arrivée, en secondes ; négatif hors animation. */
     private double reveal = -1;
@@ -123,14 +119,12 @@ public final class ChallengesPane extends VBox {
     }
 
     /** Vrai tant que la fuite arrive : la vue reste sur les défis. */
-    public boolean isRevealing() {
-        return reveal >= 0;
-    }
+    public boolean isRevealing() { return reveal >= 0; }
 
     private void animateReveal(double dt) {
         reveal += dt;
         Card leak = cards.get(Challenges.LEAK);
-        java.util.List<Card> after = new java.util.ArrayList<>(), before = new java.util.ArrayList<>();
+        List<Card> after = new ArrayList<>(), before = new ArrayList<>();
         int index = 0;
         for (Map.Entry<Challenge, Card> entry : cards.entrySet()) {
             if (entry.getKey() == Challenges.LEAK) continue;
@@ -138,7 +132,7 @@ public final class ChallengesPane extends VBox {
         }
         if (reveal < MAKE_ROOM_SECONDS) {
             // Les défis s'écartent : ceux d'avant reculent un peu, ceux d'après glissent vers la droite pour faire la place.
-            // Sous le skin Tarot (version 0.193), les lames se retournent en même temps : un tour complet sur leur hauteur.
+            // Sous le skin Tarot, les lames se retournent en même temps : un tour complet sur leur hauteur.
             double t = ease(reveal / MAKE_ROOM_SECONDS);
             double flip = skin == Skin.CHALLENGES_TAROT ? Math.max(0.02, Math.abs(Math.cos(Math.PI * t))) : 1;
             for (Card card : before) { card.setTranslateX(-14 * t); card.setOpacity(1 - 0.35 * t); card.setScaleX(flip); }
@@ -180,19 +174,13 @@ public final class ChallengesPane extends VBox {
     }
 
     /** La carte d'un défi : pour les vérifications. */
-    public Card card(Challenge challenge) {
-        return cards.get(challenge);
-    }
+    public Card card(Challenge challenge) { return cards.get(challenge); }
 
-    /** Le skin des défis (version 0.193) : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
-    void setSkin(Skin chosen) {
-        skin = chosen != null && chosen.visual() == SkinVisual.CHALLENGES ? chosen : null;
-    }
+    /** Le skin des défis : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
+    void setSkin(Skin chosen) { skin = chosen != null && chosen.visual() == SkinVisual.CHALLENGES ? chosen : null; }
 
     /** Le skin des défis, ou {@code null} : pour les vérifications. */
-    public Skin skin() {
-        return skin;
-    }
+    public Skin skin() { return skin; }
 
     /** Vrai si la carte de ce défi porte une vignette de skin : pour les vérifications. */
     public boolean hasArt(Challenge challenge) {
@@ -271,7 +259,7 @@ public final class ChallengesPane extends VBox {
         });
     }
 
-    /** Pour les défis qui jouent sur l'arbre (version 0.070) : les voies prises en ce moment. */
+    /** Pour les défis qui jouent sur l'arbre : les voies prises en ce moment. */
     private String paths(Challenge challenge) {
         if (challenge.rule() != Challenge.Rule.PRESENCE_ONLY && challenge.rule() != Challenge.Rule.ABSENCE_ONLY) return "";
         return "\nVoies prises : " + game.darkPathsOwned(Game.Style.PRESENCE) + " de présence, "

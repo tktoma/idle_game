@@ -2,8 +2,7 @@ package idle.ui.pages;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.*;
 
 /**
  * Les huit avatars de la version 0.198, dessinés dans la manière des douze premiers ({@link AvatarView#paint}) : un
@@ -13,7 +12,6 @@ import javafx.scene.shape.StrokeLineCap;
  * miroir un ovale à cadre et son reflet ; le kaléidoscope un hexagone en six quartiers.
  */
 final class AvatarArt {
-
     private AvatarArt() {
     }
 

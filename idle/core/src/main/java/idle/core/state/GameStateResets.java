@@ -1,21 +1,17 @@
-package idle.core;
+package idle.core.state;
 
+import idle.core.*;
 import idle.core.math.BigNum;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * L'état de la partie : les ordres d'achat, les favorites, l'espace, les défis, les succès,
  * les automatismes et l'arbre de matière noire, puis les remises à zéro.
  */
 public abstract class GameStateResets extends GameStateCollider {
-
     /** Seul {@link GameState} prolonge la chaîne. */
     GameStateResets() {
     }
-
 
     public void setAutoMoleculeReserve(double share) {
         if (!(share >= 0 && share < 1)) throw new IllegalArgumentException("Part invalide : " + share);
@@ -23,9 +19,7 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** L'ordre d'achat choisi par le joueur pour les améliorations en atomes : des identifiants, du premier au dernier. */
-    public List<String> atomUpgradeOrder() {
-        return List.copyOf(atomUpgradeOrder);
-    }
+    public List<String> atomUpgradeOrder() { return List.copyOf(atomUpgradeOrder); }
 
     public void setAtomUpgradeOrder(List<String> order) {
         atomUpgradeOrder.clear();
@@ -33,18 +27,12 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Vrai si l'automatisme suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
-    public boolean atomUpgradeOrdered() {
-        return atomUpgradeOrdered;
-    }
+    public boolean atomUpgradeOrdered() { return atomUpgradeOrdered; }
 
-    public void setAtomUpgradeOrdered(boolean ordered) {
-        atomUpgradeOrdered = ordered;
-    }
+    public void setAtomUpgradeOrdered(boolean ordered) { atomUpgradeOrdered = ordered; }
 
     /** L'ordre d'achat choisi par le joueur pour les automatismes ordinaires : des identifiants, du premier au dernier. */
-    public List<String> automationOrder() {
-        return List.copyOf(automationOrder);
-    }
+    public List<String> automationOrder() { return List.copyOf(automationOrder); }
 
     public void setAutomationOrder(List<String> order) {
         automationOrder.clear();
@@ -52,18 +40,12 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Vrai si l'automatisme suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
-    public boolean automationOrdered() {
-        return automationOrdered;
-    }
+    public boolean automationOrdered() { return automationOrdered; }
 
-    public void setAutomationOrdered(boolean ordered) {
-        automationOrdered = ordered;
-    }
+    public void setAutomationOrdered(boolean ordered) { automationOrdered = ordered; }
 
     /** Vrai si le joueur a épinglé cette molécule. */
-    public boolean isMoleculeFavorite(String moleculeId) {
-        return favoriteMolecules.contains(moleculeId);
-    }
+    public boolean isMoleculeFavorite(String moleculeId) { return favoriteMolecules.contains(moleculeId); }
 
     /** Épingle une molécule, ou la retire des favorites. Ni l'explosion ni le Big Bang ne changent ce choix. */
     public void setMoleculeFavorite(String moleculeId, boolean favorite) {
@@ -73,34 +55,22 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Vue en lecture seule des molécules épinglées, dans l'ordre où elles l'ont été. */
-    public List<String> favoriteMolecules() {
-        return List.copyOf(favoriteMolecules);
-    }
+    public List<String> favoriteMolecules() { return List.copyOf(favoriteMolecules); }
 
     /** Vue en lecture seule des améliorations d'espace acquises, pour la sauvegarde. */
-    public Set<String> spaceUpgrades() {
-        return ordered(spaceUpgrades);
-    }
+    public Set<String> spaceUpgrades() { return ordered(spaceUpgrades); }
 
     /** Nombre de sortes de molécules différentes créées. */
-    public int moleculeKinds() {
-        return molecules.size();
-    }
+    public int moleculeKinds() { return molecules.size(); }
 
     /** Change à chaque molécule ajoutée ou retirée : permet de ne recalculer ce qui en dépend que lorsqu'il le faut. */
-    public int moleculesVersion() {
-        return moleculesVersion;
-    }
+    public int moleculesVersion() { return moleculesVersion; }
 
     /** Vrai si aucune molécule n'a été créée. */
-    public boolean hasNoMolecule() {
-        return molecules.isEmpty();
-    }
+    public boolean hasNoMolecule() { return molecules.isEmpty(); }
 
     /** Espace : ce que l'expansion de la matière accumule avec le temps, depuis le premier Big Bang. */
-    public BigNum space() {
-        return space;
-    }
+    public BigNum space() { return space; }
 
     public void setSpace(BigNum space) {
         if (space.sign() < 0) throw new IllegalArgumentException("Espace négatif : " + space);
@@ -108,9 +78,7 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Nombre de Big Bangs déclenchés. Aucun Big Bang ne le remet à zéro. */
-    public int bigBangs() {
-        return bigBangs;
-    }
+    public int bigBangs() { return bigBangs; }
 
     public void setBigBangs(int bigBangs) {
         if (bigBangs < 0) throw new IllegalArgumentException("Nombre de Big Bangs négatif : " + bigBangs);
@@ -121,9 +89,7 @@ public abstract class GameStateResets extends GameStateCollider {
      * Nombre de générateurs que la fusion automatique attend avant de fusionner, choisi par le
      * joueur ; 0 tant qu'il n'a rien réglé. C'est un réglage : aucune explosion ne l'efface.
      */
-    public int fusionThreshold() {
-        return fusionThreshold;
-    }
+    public int fusionThreshold() { return fusionThreshold; }
 
     public void setFusionThreshold(int fusionThreshold) {
         if (fusionThreshold < 0) throw new IllegalArgumentException("Seuil négatif");
@@ -134,9 +100,7 @@ public abstract class GameStateResets extends GameStateCollider {
      * Atomes que la synthèse automatique laisse toujours au joueur. C'est un réglage : ni la
      * fusion ni l'explosion ne le changent.
      */
-    public BigNum synthesisReserve() {
-        return synthesisReserve;
-    }
+    public BigNum synthesisReserve() { return synthesisReserve; }
 
     public void setSynthesisReserve(BigNum synthesisReserve) {
         if (synthesisReserve.sign() < 0) throw new IllegalArgumentException("Réserve négative");
@@ -144,41 +108,27 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Vrai si l'appui sur la matière noire est verrouillé : elle grossit sans que le joueur tienne le clic. */
-    public boolean holdLocked() {
-        return holdLocked;
-    }
+    public boolean holdLocked() { return holdLocked; }
 
-    public void setHoldLocked(boolean holdLocked) {
-        this.holdLocked = holdLocked;
-    }
+    public void setHoldLocked(boolean holdLocked) { this.holdLocked = holdLocked; }
 
     /** Identifiant du défi en cours, ou {@code null} en partie ordinaire. */
-    public String activeChallenge() {
-        return activeChallenge;
-    }
+    public String activeChallenge() { return activeChallenge; }
 
-    public void setActiveChallenge(String activeChallenge) {
-        this.activeChallenge = activeChallenge;
-    }
+    public void setActiveChallenge(String activeChallenge) { this.activeChallenge = activeChallenge; }
 
     /** Vue en lecture seule des défis réussis. */
-    public Set<String> completedChallenges() {
-        return completedChallengesView;
-    }
+    public Set<String> completedChallenges() { return completedChallengesView; }
 
     public void addCompletedChallenge(String challengeId) {
         if (completedChallenges.add(challengeId)) challengesVersion++;
     }
 
     /** Version des défis réussis : change dès qu'un défi est ajouté ou que la liste est vidée. */
-    public int challengesVersion() {
-        return challengesVersion;
-    }
+    public int challengesVersion() { return challengesVersion; }
 
     /** Meilleur temps de chaque défi réussi, en secondes de jeu (identifiant → durée de la partie). */
-    public Map<String, Double> challengeTimes() {
-        return Collections.unmodifiableMap(challengeTimes);
-    }
+    public Map<String, Double> challengeTimes() { return Collections.unmodifiableMap(challengeTimes); }
 
     public void setChallengeTime(String challengeId, double seconds) {
         if (seconds < 0 || Double.isNaN(seconds)) throw new IllegalArgumentException("Durée invalide : " + seconds);
@@ -186,9 +136,7 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Vue en lecture seule des succès obtenus, dans l'ordre où ils l'ont été. Aucune explosion ne les reprend. */
-    public Set<String> achievements() {
-        return Collections.unmodifiableSet(achievements);
-    }
+    public Set<String> achievements() { return Collections.unmodifiableSet(achievements); }
 
     /** @return {@code true} si le succès vient d'être ajouté, faux s'il était déjà obtenu */
     public boolean addAchievement(String achievementId) {
@@ -198,18 +146,12 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Numéro de version des succès : il change dès qu'un succès est ajouté ou retiré. */
-    public int achievementsVersion() {
-        return achievementsVersion;
-    }
+    public int achievementsVersion() { return achievementsVersion; }
 
     /** Fraction d'exemplaire qui attend de se désintégrer, pendant le défi de la désintégration. */
-    public double decayDebt() {
-        return decayDebt;
-    }
+    public double decayDebt() { return decayDebt; }
 
-    public void setDecayDebt(double decayDebt) {
-        this.decayDebt = Math.max(0, decayDebt);
-    }
+    public void setDecayDebt(double decayDebt) { this.decayDebt = Math.max(0, decayDebt); }
 
     /** Vrai si le joueur a mis cet automatisme de matière noire en marche. Aucune explosion ne le coupe. */
     public boolean isDarkAutomationEnabled(String darkAutomationId) {
@@ -218,17 +160,12 @@ public abstract class GameStateResets extends GameStateCollider {
 
     public void setDarkAutomationEnabled(String darkAutomationId, boolean enabled) {
         if (enabled && testBlocked(darkAutomationId)) return;
-        if (enabled) {
-            enabledDarkAutomations.add(darkAutomationId);
-        } else {
-            enabledDarkAutomations.remove(darkAutomationId);
-        }
+        if (enabled) enabledDarkAutomations.add(darkAutomationId);
+        else enabledDarkAutomations.remove(darkAutomationId);
     }
 
     /** Vue en lecture seule des automatismes de matière noire en marche, pour la sauvegarde. */
-    public Set<String> enabledDarkAutomations() {
-        return ordered(enabledDarkAutomations);
-    }
+    public Set<String> enabledDarkAutomations() { return ordered(enabledDarkAutomations); }
 
     /** Temps écoulé depuis la dernière action d'un automatisme de matière noire, en secondes. */
     public double darkAutomationTimer(String darkAutomationId) {
@@ -241,9 +178,7 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Niveau possédé pour une amélioration de matière noire (0 si jamais achetée). */
-    public int darkLevelOf(String darkUpgradeId) {
-        return darkUpgradeLevels.getOrDefault(darkUpgradeId, 0);
-    }
+    public int darkLevelOf(String darkUpgradeId) { return darkUpgradeLevels.getOrDefault(darkUpgradeId, 0); }
 
     public void setDarkLevel(String darkUpgradeId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
@@ -252,14 +187,10 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /** Version des niveaux de l'arbre : change dès qu'un niveau change. */
-    public int darkVersion() {
-        return darkVersion;
-    }
+    public int darkVersion() { return darkVersion; }
 
     /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
-    public Map<String, Integer> darkUpgradeLevels() {
-        return ordered(darkUpgradeLevels);
-    }
+    public Map<String, Integer> darkUpgradeLevels() { return ordered(darkUpgradeLevels); }
 
     /**
      * Efface absolument tout, matière noire, succès, Big Bangs et statistiques compris : l'état
@@ -268,7 +199,7 @@ public abstract class GameStateResets extends GameStateCollider {
     public void reset() {
         clearMatter();
         clearDarkMatter();
-        // Version 0.167 : l'achat en lot des automatismes, payé en matière noire, tient tout l'univers ; il ne part qu'ici.
+        // L'achat en lot des automatismes, payé en matière noire, tient tout l'univers ; il ne part qu'ici.
         automationBatchLevels.clear();
         clearCollider();
         clearBigBangAct();
@@ -294,9 +225,9 @@ public abstract class GameStateResets extends GameStateCollider {
         extraUniverses = 0;
         universeFormed = false;
         darkPlan.clear();
-        java.util.Collections.fill(savedDarkPlans, "");
+        Collections.fill(savedDarkPlans, "");
         systemPlan.clear();
-        java.util.Collections.fill(savedSystemPlans, "");
+        Collections.fill(savedSystemPlans, "");
         forkResetArmed = false;
         stateCaps.clear();
         replaying = false;
@@ -333,11 +264,11 @@ public abstract class GameStateResets extends GameStateCollider {
         voidShare = 0.25;
         voidPrice = 0;
         voidSacrificed = BigNum.ZERO;
-        java.util.Arrays.fill(voidLevels, 0);
+        Arrays.fill(voidLevels, 0);
         voidHistory.clear();
         dimensionShards = 0;
         linePhase = 0;
-        java.util.Arrays.fill(lineLevels, 0);
+        Arrays.fill(lineLevels, 0);
         dimensionShardsEarned = 0;
         seedSprouted = false;
         wateringCan = false;
@@ -346,39 +277,39 @@ public abstract class GameStateResets extends GameStateCollider {
         seedWaterings = 0;
         planeShards = 0;
         planeShardsEarned = 0;
-        java.util.Arrays.fill(planeLevels, 0);
+        Arrays.fill(planeLevels, 0);
         volumeShards = 0;
         volumeShardsEarned = 0;
-        java.util.Arrays.fill(volumeLevels, 0);
+        Arrays.fill(volumeLevels, 0);
         durationShards = 0;
         durationShardsEarned = 0;
-        java.util.Arrays.fill(durationLevels, 0);
+        Arrays.fill(durationLevels, 0);
         loopShards = 0;
         loopShardsEarned = 0;
-        java.util.Arrays.fill(loopLevels, 0);
+        Arrays.fill(loopLevels, 0);
         braneShards = 0;
         braneShardsEarned = 0;
-        java.util.Arrays.fill(braneLevels, 0);
+        Arrays.fill(braneLevels, 0);
         clickerShards = 0;
         clickerShardsEarned = 0;
-        java.util.Arrays.fill(clickerLevels, 0);
+        Arrays.fill(clickerLevels, 0);
         gridShards = 0;
         gridShardsEarned = 0;
-        java.util.Arrays.fill(gridLevels, 0);
+        Arrays.fill(gridLevels, 0);
         mirrorShards = 0;
         mirrorShardsEarned = 0;
-        java.util.Arrays.fill(mirrorLevels, 0);
+        Arrays.fill(mirrorLevels, 0);
         mirrorWins = 0;
         mixShards = 0;
         mixShardsEarned = 0;
         mixStage = 1;
         gameFinished = false;
         mixStageEarned = 0;
-        java.util.Arrays.fill(mixLevels, 0);
-        java.util.Arrays.fill(seedUpgradeLevels, 0);
+        Arrays.fill(mixLevels, 0);
+        Arrays.fill(seedUpgradeLevels, 0);
         chronoStored = 0;
         chronoSpeed = 1;
-        java.util.Arrays.fill(treeBubbleLevels, 0);
+        Arrays.fill(treeBubbleLevels, 0);
         hadronsOpen = false;
         bubbleKeep = null;
         bubbleKeepMask = 0;
@@ -402,15 +333,13 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /**
-     * Efface tout ce qui vient de l'explosion : la matière noire, gagnée comme dépensée, sa taille,
-     * son arbre, la masse du tableau, le nombre d'explosions et les défis réussis. Les réglages du
-     * joueur restent, pour resservir dès que l'arbre les rouvre : les automatismes de matière noire
-     * qu'il avait mis en marche, le verrou de l'appui, le seuil de fusion. Seule la réserve de la
-     * synthèse automatique repart de zéro : sous le plafond d'atomes revenu, elle la bloquerait.
-     * Les records des défis restent, comme
-     * les succès, le temps de jeu et les statistiques, et ce qui appartient à l'acte du Big Bang :
-     * les molécules, les substances, les assemblages, les astres, l'espace et ses améliorations. C'est ce que fait un Big Bang, en plus de
-     * {@link #clearMatter()}.
+     * Efface tout ce qui vient de l'explosion : la matière noire, gagnée comme dépensée, sa taille, son arbre, la masse
+     * du tableau, le nombre d'explosions et les défis réussis. Les réglages du joueur restent, pour resservir dès que
+     * l'arbre les rouvre : les automatismes de matière noire qu'il avait mis en marche, le verrou de l'appui, le seuil
+     * de fusion. Seule la réserve de la synthèse automatique repart de zéro : sous le plafond d'atomes revenu, elle la
+     * bloquerait. Les records des défis restent, comme les succès, le temps de jeu et les statistiques, et ce qui
+     * appartient à l'acte du Big Bang : les molécules, les substances, les assemblages, les astres, l'espace et ses
+     * améliorations. C'est ce que fait un Big Bang, en plus de {@link #clearMatter()}.
      */
     public void clearDarkMatter() {
         darkMatter = BigNum.ZERO;
@@ -428,10 +357,9 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /**
-     * Comme {@link #clearDarkMatter()}, mais l'arbre reste : ses cases, la matière noire qu'elles
-     * ont coûté, ses automatismes et les réglages qu'il avait ouverts. Partent la réserve, la
-     * taille, la masse du tableau, le nombre d'explosions et les défis réussis. C'est ce que fait
-     * un Big Bang une fois atteint le palier qui garde l'arbre.
+     * Comme {@link #clearDarkMatter()}, mais l'arbre reste : ses cases, la matière noire qu'elles ont coûté, ses
+     * automatismes et les réglages qu'il avait ouverts. Partent la réserve, la taille, la masse du tableau, le nombre
+     * d'explosions et les défis réussis. C'est ce que fait un Big Bang une fois atteint le palier qui garde l'arbre.
      */
     public void clearDarkMatterKeepingTree() {
         darkMatter = BigNum.ZERO;
@@ -445,12 +373,11 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /**
-     * Efface toute la matière : particules, atomes, améliorations, automatismes et éléments.
-     * Il ne reste que le premier générateur, la matière noire, sa taille et ses améliorations,
-     * le nombre d'explosions et le temps de jeu.
+     * Efface toute la matière : particules, atomes, améliorations, automatismes et éléments. Il ne reste que le premier
+     * générateur, la matière noire, sa taille et ses améliorations, le nombre d'explosions et le temps de jeu.
      */
     public void clearMatter() {
-        // Le deuxième univers (version 0.087) : ce qui suit le tableau repart avec lui.
+        // Le deuxième univers : ce qui suit le tableau repart avec lui.
         preferenceDraws = 0;
         freeElementsUsed = 0;
         perfectStreak = 0;
@@ -500,11 +427,10 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     /**
-     * Efface l'acte du Big Bang : les Big Bangs, les molécules et leurs automatismes, les
-     * substances, les assemblages, les astres, les systèmes solaires, l'espace et ses
-     * améliorations, le cosmos, les comètes, les sondes et les défis du Big Bang. La matière, la
-     * matière noire et le collisionneur restent ; les succès et les records aussi. Un outil de
-     * test, et une part de {@link #reset()} : aucune étape du jeu ne revient en arrière ainsi.
+     * Efface l'acte du Big Bang : les Big Bangs, les molécules et leurs automatismes, les substances, les assemblages,
+     * les astres, les systèmes solaires, l'espace et ses améliorations, le cosmos, les comètes, les sondes et les défis
+     * du Big Bang. La matière, la matière noire et le collisionneur restent ; les succès et les records aussi. Un outil
+     * de test, et une part de {@link #reset()} : aucune étape du jeu ne revient en arrière ainsi.
      */
     public void clearBigBangAct() {
         bigBangs = 0;

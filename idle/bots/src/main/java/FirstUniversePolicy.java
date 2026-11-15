@@ -1,22 +1,19 @@
-import idle.core.Game;
-import idle.core.Resource;
+import idle.core.*;
+import java.util.Map;
 import idle.core.achievements.Achievements;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.molecules.Molecule;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 
 /**
  * Décisions économiques communes aux robots, les trois actes de chaque univers.
  *
- * Cette politique ne touche pas à l'état directement : chaque achat passe par
- * les préconditions et les méthodes publiques du vrai moteur. Ce que le deuxième
- * univers ajoute (régime, cycle, famille, éléments gratuits) est dans
- * {@link NextUniversePolicy} (version 0.130).
+ * Cette politique ne touche pas à l'état directement : chaque achat passe par les préconditions et les méthodes
+ * publiques du vrai moteur. Ce que le deuxième univers ajoute (régime, cycle, famille, éléments gratuits) est dans
+ * {@link NextUniversePolicy}.
  */
 final class FirstUniversePolicy {
     private FirstUniversePolicy() {}
@@ -26,7 +23,7 @@ final class FirstUniversePolicy {
      * seul) : ses niveaux passent avant le reste, un par un, une fois l'automatisation lancée.
      */
     static boolean needsPersistence(Game game) {
-        // Version 0.164 : une Persistance retirée du jeu ne s'attend pas.
+        // Une Persistance retirée du jeu ne s'attend pas.
         return game.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS)
                 && !game.isMaxed("atom_keep") && !Bots.interdite(game, "atom_keep");
     }
@@ -42,8 +39,7 @@ final class FirstUniversePolicy {
      */
     static boolean finalBangPreparation(Game game) {
         // Les dix défis que demande le Big Bang : la fuite, onzième défi du deuxième univers, n'y entre pas (0.130).
-        return game.bigBangs() < Bots.LAST_BIG_BANG
-                && game.baseChallengesDone()
+        return game.bigBangs() < Bots.LAST_BIG_BANG && game.baseChallengesDone()
                 && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS
                 && game.state().darkMatter().gte(game.bigBangDarkMatter())
                 && game.isBigBangConditionMet(BigBangCondition.PARTICLES)
@@ -61,8 +57,7 @@ final class FirstUniversePolicy {
         if (game.bigBangs() == 0 || game.inChallenge()) return false;
         if (game.state().darkMatter().lt(game.bigBangDarkMatter())) return false;
         var list = game.shoppingList();
-        for (var item : list.items())
-            if (item.missing() > 0 || item.gather()) return true;
+        for (var item : list.items()) if (item.missing() > 0 || item.gather()) return true;
         for (var need : list.matter().values()) if (need > 0) return true;
         for (var need : list.sorts().values()) if (need > 0) return true;
         return false;
@@ -73,8 +68,7 @@ final class FirstUniversePolicy {
         if (!needsPersistence(game)) return false;
         // Ne pas pénaliser les sauvegardes avancées qui ont déjà dépassé cette phase.
         if (game.bigBangs() > 0 || game.state().explosions() > 0) return true;
-        return game.ownsAutomation("auto_generator")
-                && game.ownsAutomation("auto_fusion")
+        return game.ownsAutomation("auto_generator") && game.ownsAutomation("auto_fusion")
                 && game.automationSpeedLevel("auto_generator") >= 2;
     }
 
@@ -84,8 +78,7 @@ final class FirstUniversePolicy {
         int bought = 0;
         if (game.canBuyAutomation("auto_generator") && game.buyAutomation("auto_generator")) bought++;
         if (game.canBuyAutomation("auto_fusion") && game.buyAutomation("auto_fusion")) bought++;
-        while (game.ownsAutomation("auto_generator")
-                && game.automationSpeedLevel("auto_generator") < 2
+        while (game.ownsAutomation("auto_generator") && game.automationSpeedLevel("auto_generator") < 2
                 && game.canSpeedUpAutomation("auto_generator")
                 && game.speedUpAutomation("auto_generator")) bought++;
         return bought;
@@ -121,7 +114,7 @@ final class FirstUniversePolicy {
 
     static boolean done(Game game, Step step) {
         return switch (step.kind()) {
-            // Version 0.164 : une amélioration retirée du jeu compte comme faite, le plan passe à la suite.
+            // Une amélioration retirée du jeu compte comme faite, le plan passe à la suite.
             case UPGRADE -> game.levelOf(step.id()) >= step.level() || game.isMaxed(step.id()) || Bots.interdite(game, step.id());
             case AUTOMATION -> game.ownsAutomation(step.id());
             case CADENCE -> game.automationSpeedLevel(step.id()) >= step.level()
@@ -135,8 +128,7 @@ final class FirstUniversePolicy {
             case UPGRADE -> game.costOf(step.id());
             case AUTOMATION -> {
                 if (!game.isAutomationAvailable(step.id())) yield null;
-                for (idle.core.upgrades.Automation a : game.automations())
-                    if (a.id().equals(step.id())) yield a.cost();
+                for (Automation a : game.automations()) if (a.id().equals(step.id())) yield a.cost();
                 yield null;
             }
             case CADENCE -> game.ownsAutomation(step.id()) ? game.automationSpeedCost(step.id()) : null;
@@ -163,9 +155,7 @@ final class FirstUniversePolicy {
     }
 
     /** Vrai quand tout l'ordre du §14.1 est acheté : le reste des atomes suit alors le prix le plus bas. */
-    static boolean openingDone(Game game) {
-        return nextStep(game) == null;
-    }
+    static boolean openingDone(Game game) { return nextStep(game) == null; }
 
     /**
      * Atomes à garder pour la prochaine étape de l'ouverture (§14.2 : « garder une réserve d'atomes
@@ -216,8 +206,7 @@ final class FirstUniversePolicy {
             if (choice == null) for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
                 if (upgrade.id().equals("atom_keep") || !game.canBuy(upgrade.id())
                         || !worthAgainstSynthesis(game, upgrade.id())) continue;
-                if (choice == null || game.costOf(upgrade.id()).lt(game.costOf(choice.id())))
-                    choice = upgrade;
+                if (choice == null || game.costOf(upgrade.id()).lt(game.costOf(choice.id()))) choice = upgrade;
             }
             if (choice == null || !game.buy(choice.id())) break;
             count++;
@@ -229,9 +218,7 @@ final class FirstUniversePolicy {
      * Synthèses à la main, dès l'ouverture du tableau (§4), sans toucher aux atomes que réclame la
      * prochaine étape de l'ouverture ni à la réserve réglée dans le jeu.
      */
-    static int synthesize(Game game, int limit) {
-        return synthesize(game, limit, true);
-    }
+    static int synthesize(Game game, int limit) { return synthesize(game, limit, true); }
 
     /** Pareil ; {@code opening} faux : sans garder d'atomes pour l'ordre d'ouverture (le joueur ne le suit pas). */
     static int synthesize(Game game, int limit, boolean opening) {
@@ -258,14 +245,12 @@ final class FirstUniversePolicy {
             DarkUpgrade chosen = null;
             // Une liaison ou un nouveau nœud doit pouvoir passer avant Densité à l'infini.
             for (DarkUpgrade upgrade : game.darkUpgrades()) {
-                if (!upgrade.inTree() || (!upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0))
-                    continue;
+                if (!upgrade.inTree() || (!upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0)) continue;
                 if (affordableDark(game, upgrade, bank)) { chosen = upgrade; break; }
             }
             // Toutes les améliorations à niveau limité de la boutique ont leur place.
             if (chosen == null) for (DarkUpgrade upgrade : game.darkUpgrades()) {
-                if (upgrade.inTree() || (!upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0))
-                    continue;
+                if (upgrade.inTree() || (!upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0)) continue;
                 if (affordableDark(game, upgrade, bank)) { chosen = upgrade; break; }
             }
             // Répartir les niveaux répétables de la boutique sans vider la matière noire.
@@ -274,8 +259,7 @@ final class FirstUniversePolicy {
                         || !affordableDark(game, upgrade, bank)
                         || game.darkCostOf(upgrade.id()).gt(game.state().darkMatter().multiply(SHOP_REPEAT_SHARE)))
                     continue;
-                if (chosen == null || game.darkLevelOf(upgrade.id()) < game.darkLevelOf(chosen.id()))
-                    chosen = upgrade;
+                if (chosen == null || game.darkLevelOf(upgrade.id()) < game.darkLevelOf(chosen.id())) chosen = upgrade;
             }
             if (chosen == null) for (DarkUpgrade upgrade : game.darkUpgrades()) {
                 if (!upgrade.inTree() || upgrade.hasLimit() || game.darkLevelOf(upgrade.id()) == 0
@@ -293,7 +277,7 @@ final class FirstUniversePolicy {
     }
 
     /**
-     * Le joueur qui ne suit pas l'ordre du modèle (version 0.135) : un automatisme dès qu'il en voit un, et il garde
+     * Le joueur qui ne suit pas l'ordre du modèle : un automatisme dès qu'il en voit un, et il garde
      * ses atomes pour lui tant qu'il ne peut pas le payer (c'est ce que tout joueur d'idle veut d'abord) ; sinon ce
      * qui se paie en atomes et coûte le moins, amélioration (Persistance comprise, sans la peser contre une synthèse)
      * ou cadence. Il prend quand même l'occasion du succès « compte juste » (payer pile ce qu'il a) : le jeu
@@ -311,7 +295,7 @@ final class FirstUniversePolicy {
                 continue;
             }
             boolean saving = false, boughtAutomation = false;
-            for (idle.core.upgrades.Automation automation : game.automations()) {
+            for (Automation automation : game.automations()) {
                 String id = automation.id();
                 if (!game.isAutomationAvailable(id) || game.ownsAutomation(id)) continue;
                 if (game.canBuyAutomation(id) && game.buyAutomation(id)) { boughtAutomation = true; break; }
@@ -326,7 +310,7 @@ final class FirstUniversePolicy {
                 BigNum cost = game.costOf(upgrade.id());
                 if (best == null || cost.lt(best)) { best = cost; String id = upgrade.id(); purchase = () -> game.buy(id); }
             }
-            for (idle.core.upgrades.Automation automation : game.automations()) {
+            for (Automation automation : game.automations()) {
                 String id = automation.id();
                 if (game.canSpeedUpAutomation(id) && (best == null || game.automationSpeedCost(id).lt(best))) {
                     best = game.automationSpeedCost(id); purchase = () -> game.speedUpAutomation(id);
@@ -389,7 +373,7 @@ final class FirstUniversePolicy {
 
     /**
      * Vrai quand la matière noire du Big Bang se garde : tous ses autres prérequis en matière noire sont réunis, et les
-     * particules en sont à {@value #SAVE_FROM_PARTICLES} de leur seuil en ordres de grandeur (version 0.166). Avant, le bot
+     * particules en sont à {@value #SAVE_FROM_PARTICLES} de leur seuil en ordres de grandeur. Avant, le bot
      * gardait dès que les défis et les succès étaient là ; avec la réserve de 120 000 du premier Big Bang, il n'achetait
      * plus rien dans l'arbre pendant 3 h, et le Big Bang reculait de 42 min.
      */
@@ -409,7 +393,7 @@ final class FirstUniversePolicy {
     }
 
     /**
-     * L'achat en lot des automatismes (version 0.167), avant tout le reste : le moins cher d'abord, sans entamer la réserve
+     * L'achat en lot des automatismes, avant tout le reste : le moins cher d'abord, sans entamer la réserve
      * du Big Bang quand elle se garde. Sans lot, l'automatisme des générateurs n'en prend qu'un par action, et c'est lui
      * qui rythme les fusions.
      */
@@ -481,16 +465,15 @@ final class FirstUniversePolicy {
      * sur les nombres bruts empêchait l'univers de se former en 25 heures.
      */
     static Molecule.State focusMatterState(Game game) {
-        java.util.Map<Molecule.State,Integer> needs = game.shoppingList().matter();
-        java.util.Map<Molecule.State,Integer> objectives = java.util.Map.of();
+        Map<Molecule.State,Integer> needs = game.shoppingList().matter();
+        Map<Molecule.State,Integer> objectives = Map.of();
         if (game.nextCosmos() != null) objectives = game.nextCosmos().matter();
         else if (game.nextBody() != null) objectives = game.nextBody().matter();
         return focusMatterState(needs, objectives);
     }
 
-    static Molecule.State focusMatterState(
-            java.util.Map<Molecule.State,Integer> missing,
-            java.util.Map<Molecule.State,Integer> objectives) {
+    static Molecule.State focusMatterState(Map<Molecule.State,Integer> missing,
+            Map<Molecule.State,Integer> objectives) {
         Molecule.State choice = null;
         double highestRatio = 0;
         for (var entry : missing.entrySet()) {
@@ -508,9 +491,8 @@ final class FirstUniversePolicy {
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
     static Molecule matterTarget(Game game, Molecule.State state) {
-        // La synthèse regarnit les éléments temporairement absents. Changer
-        // d'amas à chaque manque brise l'accrétion en racine du nombre déjà créé.
-        // Filtrer ici seulement les obstacles structurels (rayon, espace, plafond).
+        // La synthèse regarnit les éléments temporairement absents. Changer d'amas à chaque manque brise l'accrétion en
+        // racine du nombre déjà créé. Filtrer ici seulement les obstacles structurels (rayon, espace, plafond).
         return Bots.cheapestInState(game, state, molecule -> game.hasSubstance(molecule.id())
                 && game.isMoleculeKindUnlocked(molecule.kind())
                 && game.isMoleculeWithinReach(molecule.id())

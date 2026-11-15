@@ -4,7 +4,7 @@ import idle.core.universe.Skin;
 import java.util.Locale;
 
 /**
- * Les cinq skins des notifications (version 0.199), à côté de {@link ToastPane} pour le garder lisible. Le liseré de
+ * Les cinq skins des notifications, à côté de {@link ToastPane} pour le garder lisible. Le liseré de
  * couleur du classique (celle de l'onglet dont la nouvelle parle) reste un repère sur chacun :
  * <ul>
  * <li>« Post-it » : un carré jaune un peu de travers, écriture sombre, le liseré en haut comme une bande collante ;</li>
@@ -15,7 +15,6 @@ import java.util.Locale;
  * </ul>
  */
 final class ToastSkinStyles {
-
     private static final String BASE = "-fx-font-size: 13px; -fx-padding: 8 14;";
 
     private ToastSkinStyles() {
@@ -49,12 +48,8 @@ final class ToastSkinStyles {
     }
 
     /** L'inclinaison du message, en degrés : le post-it est collé un peu de travers. */
-    static double rotation(Skin skin) {
-        return skin == Skin.TOAST_POSTIT ? -1.5 : 0;
-    }
+    static double rotation(Skin skin) { return skin == Skin.TOAST_POSTIT ? -1.5 : 0; }
 
     /** La largeur maximale d'un message : le ticket de caisse est étroit. */
-    static double maxWidth(Skin skin) {
-        return skin == Skin.TOAST_RECEIPT ? 300 : 440;
-    }
+    static double maxWidth(Skin skin) { return skin == Skin.TOAST_RECEIPT ? 300 : 440; }
 }

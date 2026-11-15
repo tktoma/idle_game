@@ -3,15 +3,11 @@ package idle.ui.universe;
 import idle.core.Game;
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
 
 /**
- * Les skins de la graine et de ce qui vit autour d'elle (version 0.196), dessinés à côté de {@link SeedView} pour la
+ * Les skins de la graine et de ce qui vit autour d'elle, dessinés à côté de {@link SeedView} pour la
  * garder lisible : la graine, le rond de croissance, la météo, les saisons.
  * <ul>
  * <li>La graine : « Noix » (une coque brune, ronde et ridée, sa couture au milieu), « Gland » (un fruit lisse et fauve sous
@@ -29,7 +25,6 @@ import javafx.scene.shape.StrokeLineCap;
  * </ul>
  */
 final class SeedSkinArt {
-
     private static final Color WALNUT = Color.web("#9a6b3c");
     private static final Color WALNUT_DARK = Color.web("#5e3d1e");
     private static final Color ACORN = Color.web("#c9924a");

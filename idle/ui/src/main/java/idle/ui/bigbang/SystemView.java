@@ -1,29 +1,24 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.core.sky.Body;
 import idle.core.sky.SolarSystem;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
- * Le dessin d'un système solaire (version 0.059) : l'étoile à gauche, une orbite par planète, de la
- * plus proche à la plus lointaine, les lunes autour de leur planète. Chaque orbite dit d'un coup
- * d'œil si sa planète est à sa place : verte quand elle l'est, orange sinon. La zone habitable d'un
- * Soleil ou d'une naine rouge est un voile vert sur les orbites 2 et 3.
+ * Le dessin d'un système solaire : l'étoile à gauche, une orbite par planète, de la plus proche à la plus lointaine,
+ * les lunes autour de leur planète. Chaque orbite dit d'un coup d'œil si sa planète est à sa place : verte quand elle
+ * l'est, orange sinon. La zone habitable d'un Soleil ou d'une naine rouge est un voile vert sur les orbites 2 et 3.
  *
- * <p>Version 0.194 : les skins des systèmes ({@link SystemSkinArt}, {@link idle.core.universe.SkinVisual#SYSTEM})
- * changent le fond, les orbites, l'étoile et les planètes ; les textes gardent leur place.
+ * <p>Les skins des systèmes ({@link SystemSkinArt}, {@link idle.core.universe.SkinVisual#SYSTEM}) changent le fond, les
+ * orbites, l'étoile et les planètes ; les textes gardent leur place.
  */
 public final class SystemView extends Canvas {
-
     private static final Color BACK = Color.web("#0a1019");
     private static final Color GOOD = Color.web("#9be7a8");
     private static final Color BAD = Color.web("#ffb36b");
@@ -50,29 +45,21 @@ public final class SystemView extends Canvas {
         draw();
     }
 
-    private double starX() {
-        return 62;
-    }
+    private double starX() { return 62; }
 
-    private double cy() {
-        return getHeight() / 2 - 10;
-    }
+    private double cy() { return getHeight() / 2 - 10; }
 
     /** L'écart entre deux orbites : la place se partage, sans dépasser 120 px. */
-    private double spacing(int orbits) {
-        return Math.min(120, (getWidth() - 150) / Math.max(orbits, 3));
-    }
+    private double spacing(int orbits) { return Math.min(120, (getWidth() - 150) / Math.max(orbits, 3)); }
 
-    private double orbitX(int orbit, int orbits) {
-        return 128 + spacing(orbits) * (orbit + 0.5);
-    }
+    private double orbitX(int orbit, int orbits) { return 128 + spacing(orbits) * (orbit + 0.5); }
 
     void draw() {
         double w = getWidth(), h = getHeight();
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
-        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.SYSTEM);
+        Skin skin = game.chosenSkin(SkinVisual.SYSTEM);
         boolean skinned = SystemSkinArt.draws(skin);
         List<String> planets = system.planets();
         int orbits = Math.max(planets.size(), 2);
@@ -106,7 +93,7 @@ public final class SystemView extends Canvas {
         }
 
         // L'étoile, dans le skin des astres choisi, comme ses planètes et leurs lunes.
-        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+        Skin bodySkin = game.chosenSkin(SkinVisual.BODY);
         Body star = game.body(system.star());
         if (skinned) {
             SystemSkinArt.star(g, skin, star, starX(), cy, bodySkin, time);

@@ -3,27 +3,21 @@ package idle.ui.vacuum;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.195 : l'écume, les paires et le trou noir du vide, sous Xvfb. Chaque combinaison d'une écume et de paires
+ * L'écume, les paires et le trou noir du vide, sous Xvfb. Chaque combinaison d'une écume et de paires
  * dessine la vue à deux tailles, des paires à tous les âges, le trou noir fermé puis ouvert sous chacun de ses skins,
  * animée puis figée, sans exception ; chaque écume change la couleur d'un coin de la vue par rapport au Classique.
  */
 class VoidSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

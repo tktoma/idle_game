@@ -1,29 +1,25 @@
 package idle.ui.probes;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.core.probes.Probe;
 import idle.core.probes.ProbeReward;
 import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
  * Le butin d'une sonde, par-dessus la fenêtre : une carte au premier plan, retournée. Un clic
  * l'ouvre (la récompense s'applique), le suivant passe à la carte d'après ; « Tout ouvrir »
  * ouvre d'un coup ce qui reste. Les cartes ouvertes se rangent en petit, dessous.
  *
- * <p>Version 0.194 : le dos de la carte retournée suit le skin des sondes ({@link ProbeSkinArt}) : sa couleur et sa marque.
+ * <p>Le dos de la carte retournée suit le skin des sondes ({@link ProbeSkinArt}) : sa couleur et sa marque.
  */
 public final class LootPane extends StackPane {
-
     private static final String COLOR = ProbesPane.COLOR;
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + COLOR + "; -fx-background-color: #2a1f10; -fx-border-color: " + COLOR + ";";
@@ -111,9 +107,7 @@ public final class LootPane extends StackPane {
         return isOpen();
     }
 
-    public boolean isOpen() {
-        return probe >= 0;
-    }
+    public boolean isOpen() { return probe >= 0; }
 
     void close() {
         probe = -1;
@@ -193,7 +187,7 @@ public final class LootPane extends StackPane {
                 : done == 0 ? total + (total > 1 ? " récompenses à ouvrir" : " récompense à ouvrir")
                 : "Ouvertes : " + done + " sur " + total);
         boolean faceUp = shownText != null;
-        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.PROBE);
+        Skin skin = game.chosenSkin(SkinVisual.PROBE);
         boolean skinned = !faceUp && ProbeSkinArt.draws(skin);
         String border = faceUp ? COLOR : "#6b5a3e";
         card.setStyle("-fx-background-color: " + (faceUp ? "#3a2a14" : skinned ? ProbeSkinArt.cardBack(skin) : "#1c140a")
@@ -233,15 +227,7 @@ public final class LootPane extends StackPane {
     }
 
     /** Pour les vérifications. */
-    public String cardText() {
-        return cardKind.getText() + " | " + cardText.getText() + " | " + cardHint.getText();
-    }
+    public String cardText() { return cardKind.getText() + " | " + cardText.getText() + " | " + cardHint.getText(); }
 
-    public String counterText() {
-        return counter.getText();
-    }
-
-    public int openedCount() {
-        return history.size();
-    }
+    public String counterText() { return counter.getText(); }
 }

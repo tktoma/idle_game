@@ -1,21 +1,16 @@
 package idle.ui.pages;
 
 import idle.core.universe.Skin;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
+import javafx.geometry.*;
 import javafx.scene.Node;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.FillRule;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
 
 /**
- * Les dessins des cases d'album (version 0.198, {@link idle.core.universe.SkinVisual#ALBUM}). « Illustré » pose le
+ * Les dessins des cases d'album ({@link idle.core.universe.SkinVisual#ALBUM}). « Illustré » pose le
  * dessin nu de ce que la case garde, un « ? » éteint sur ce qui n'est pas trouvé. Les quatre autres l'habillent :
  * « Vignettes autocollantes », une pastille blanche aux bords épais, un peu penchée, avec son ombre (vide : le
  * contour en pointillé de la vignette à coller) ; « Timbres », un timbre crème dentelé, sa valeur en bas à droite et
@@ -24,7 +19,6 @@ import javafx.scene.text.TextAlignment;
  * ivoire tenue par deux bouts de ruban adhésif, lignée en bas (vide : une fiche sans rien, au ruban tout seul).
  */
 final class AlbumSkinArt {
-
     private static final double WIDTH = 150, PLAIN_HEIGHT = 70, DRESSED_HEIGHT = 86;
     private static final Color DARK = Color.web("#0e1420"), MUTED = Color.web("#5a6a7e");
     private static final Color STICKER = Color.web("#fafafa"), STICKER_SHADOW = Color.rgb(0, 0, 0, 0.45);
@@ -203,7 +197,7 @@ final class AlbumSkinArt {
         g.fillPolygon(new double[] {x + w * 0.75, x + w * 0.85, x + w * 1.25, x + w * 1.15}, new double[] {y + h, y + h, y, y}, 4);
         g.restore();
         g.setFill(DARK);
-        g.setFont(Font.font("System", javafx.scene.text.FontWeight.BOLD, 8));
+        g.setFont(Font.font("System", FontWeight.BOLD, 8));
         g.setTextAlign(TextAlignment.LEFT);
         g.setTextBaseline(VPos.CENTER);
         g.fillText("N° " + number, x + margin, y + band / 2);

@@ -1,34 +1,32 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.core.sky.Body;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
 /**
- * Le ciel : les astres que le joueur a formés ({@link Game#formBody(String)}), côte à côte, du plus
- * petit au plus grand, comme sur une planche qui compare leurs tailles.
+ * Le ciel : les astres que le joueur a formés ({@link Game#formBody(String)}), côte à côte, du plus petit au plus
+ * grand, comme sur une planche qui compare leurs tailles.
  *
- * <p>Chaque échelle a son rayon ({@link #radius(Body)}) : un amas de roches est petit, une planète
- * grande, une géante plus grande encore. Ces tailles ne sont pas les vraies, qui ne tiendraient
- * dans aucune fenêtre ; elles gardent seulement l'ordre. Quand les astres ne tiennent plus sur une
- * ligne, ils passent à la ligne suivante ; quand ils ne tiennent plus dans le ciel, tous
- * rapetissent ensemble, et tant que le ciel est presque vide ils sont agrandis. Un petit astre garde autour de lui la place de son nom, pour que deux noms
- * ne se chevauchent pas.
+ * <p>Chaque échelle a son rayon ({@link #radius(Body)}) : un amas de roches est petit, une planète grande, une géante
+ * plus grande encore. Ces tailles ne sont pas les vraies, qui ne tiendraient dans aucune fenêtre ; elles gardent
+ * seulement l'ordre. Quand les astres ne tiennent plus sur une ligne, ils passent à la ligne suivante ; quand ils ne
+ * tiennent plus dans le ciel, tous rapetissent ensemble, et tant que le ciel est presque vide ils sont agrandis. Un
+ * petit astre garde autour de lui la place de son nom, pour que deux noms ne se chevauchent pas.
  *
  * <p>Chaque astre porte son nom et flotte à peine, à son rythme. Les étoiles du fond scintillent.
  *
- * <p>Version 0.194 : les skins du ciel ({@link SkySkinArt}, {@link idle.core.universe.SkinVisual#SKY}) changent
- * le fond, ce qui porte chaque ligne (tige du mobile, étagère de la vitrine), ce qui tient chaque astre (fil,
- * épingle) et l'écriture des noms ; la mise en lignes réserve la place de la tige et de l'étagère.
+ * <p>Les skins du ciel ({@link SkySkinArt}, {@link idle.core.universe.SkinVisual#SKY}) changent le fond, ce qui porte
+ * chaque ligne (tige du mobile, étagère de la vitrine), ce qui tient chaque astre (fil, épingle) et l'écriture des noms
+ * ; la mise en lignes réserve la place de la tige et de l'étagère.
  */
 public final class SkyView extends Canvas {
-
     private static final Color VOID = Color.web("#05060a");
     private static final Color STAR = Color.web("#c9d6ea");
     private static final Color TEXT = Color.web("#8fa3b8");
@@ -60,8 +58,8 @@ public final class SkyView extends Canvas {
     private int beat = 0;
     private double drawnWidth = -1;
     private double drawnHeight = -1;
-    /** Le skin du ciel de la dernière image (version 0.194) : en changer redessine sans attendre. */
-    private idle.core.universe.Skin drawnSkin;
+    /** Le skin du ciel de la dernière image : en changer redessine sans attendre. */
+    private Skin drawnSkin;
 
     SkyView(Game game) {
         super(600, 330);
@@ -69,10 +67,9 @@ public final class SkyView extends Canvas {
     }
 
     /**
-     * Le rayon d'un astre dans le ciel, en pixels, à l'échelle 1 : il grandit avec son échelle. À
-     * cette échelle, tout ce qui est au moins un astéroïde a ses couches de détail
-     * ({@link BodyArt#DETAIL_FROM}) ; les places se mesurent sur l'emprise de chaque dessin, donc
-     * deux voisins ne se touchent jamais, quels que soient ces rayons.
+     * Le rayon d'un astre dans le ciel, en pixels, à l'échelle 1 : il grandit avec son échelle. À cette échelle, tout
+     * ce qui est au moins un astéroïde a ses couches de détail ({@link BodyArt#DETAIL_FROM}) ; les places se mesurent
+     * sur l'emprise de chaque dessin, donc deux voisins ne se touchent jamais, quels que soient ces rayons.
      */
     static double radius(Body body) {
         return switch (body.tier()) {
@@ -94,19 +91,13 @@ public final class SkyView extends Canvas {
     }
 
     /** Nombre d'astres dessinés à la dernière image : pour les vérifications. */
-    public int drawn() {
-        return drawn;
-    }
+    public int drawn() { return drawn; }
 
     /** Nombre de lignes occupées à la dernière image : pour les vérifications. */
-    public int rows() {
-        return rows;
-    }
+    public int rows() { return rows; }
 
     /** L'échelle de la dernière image, de {@link #LARGEST} (ciel presque vide) à moins de 1 (ciel plein) : pour les vérifications. */
-    public double shrink() {
-        return shrink;
-    }
+    public double shrink() { return shrink; }
 
     /**
      * Fait avancer le temps du ciel et le redessine.
@@ -117,7 +108,7 @@ public final class SkyView extends Canvas {
         if (BigBangPage.moving()) time += elapsed;
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.bodiesFormed() != drawn
-                || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.SKY);
+                || drawnSkin != game.chosenSkin(SkinVisual.SKY);
         if (!changed && beat % EVERY != 0) return;
         redraw();
     }
@@ -132,7 +123,7 @@ public final class SkyView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         g.setGlobalAlpha(1);
-        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.SKY);
+        Skin skin = game.chosenSkin(SkinVisual.SKY);
         drawnSkin = skin;
         boolean skinned = SkySkinArt.draws(skin);
         if (skinned) {
@@ -172,7 +163,7 @@ public final class SkyView extends Canvas {
         double top = (h - height(formed, lines, shrink, skin)) / 2;
         g.setFont(Font.font(11));
         g.setTextAlign(TextAlignment.CENTER);
-        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+        Skin bodySkin = game.chosenSkin(SkinVisual.BODY);
         for (int[] line : lines) {
             double up = 0;
             double down = 0;
@@ -244,7 +235,7 @@ public final class SkyView extends Canvas {
     }
 
     /** La hauteur que prennent ces lignes, noms compris, et ce que le skin du ciel ajoute au-dessus et au-dessous de chacune. */
-    private static double height(List<Body> formed, List<int[]> lines, double shrink, idle.core.universe.Skin skin) {
+    private static double height(List<Body> formed, List<int[]> lines, double shrink, Skin skin) {
         double total = 0;
         double skinned = SkySkinArt.draws(skin) ? SkySkinArt.above(skin, shrink) + SkySkinArt.below(skin, shrink) : 0;
         for (int[] line : lines) {

@@ -5,29 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.collider.Hadron;
-import idle.core.collider.Quark;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.collider.*;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.195 : les quarks, les gluons et le fond de la liaison, sous Xvfb. Chaque skin dessine la vue à deux tailles,
+ * Les quarks, les gluons et le fond de la liaison, sous Xvfb. Chaque skin dessine la vue à deux tailles,
  * les quarks flottant puis une liaison en cours (un proton et un méson, l'antiquark compris), avec et sans animation,
  * sans exception ; chaque fond change la couleur d'un coin de la vue par rapport au Classique.
  */
 class HadronSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();

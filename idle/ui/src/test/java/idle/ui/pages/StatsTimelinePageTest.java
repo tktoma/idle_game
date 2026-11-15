@@ -1,34 +1,30 @@
 package idle.ui.pages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.history.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameStats;
-import idle.core.history.PurchaseHistory;
+import idle.core.state.GameStats;
 import idle.ui.FxTestSupport;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.168 : la sous-page « Chronologie » des statistiques — chaque univers formé et ses phases, le temps de chaque
+ * La sous-page « Chronologie » des statistiques — chaque univers formé et ses phases, le temps de chaque
  * dimension, la graine et le défi final — et la valeur durable dans la sous-page « Achats », sous Xvfb.
  */
 class StatsTimelinePageTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @Test
     void laChronologieMontreLesUniversLesDimensionsLaGraineEtLeDefiFinal() {
         FxTestSupport.fx(() -> {
             Game game = new Game();
             game.start();
-            assertFalse(new StatsPage(game, new PurchaseHistory(), new idle.core.history.Pace()).openSubPages().contains("Chronologie"),
+            assertFalse(new StatsPage(game, new PurchaseHistory(), new Pace()).openSubPages().contains("Chronologie"),
                     "avant le premier univers : rien à montrer");
             game.state().setTimePlayed(7_200);
             game.testFormUniverse();
@@ -36,7 +32,7 @@ class StatsTimelinePageTest {
             game.testFormUniverse();
             game.noteDimensionPlayed(1, 0.5);
             game.tick(2);
-            StatsPage page = new StatsPage(game, new PurchaseHistory(), new idle.core.history.Pace());
+            StatsPage page = new StatsPage(game, new PurchaseHistory(), new Pace());
             page.refresh();
             List<String> names = page.openSubPages();
             assertTrue(names.indexOf("Univers") < names.indexOf("Chronologie"), "juste après les univers : " + names);

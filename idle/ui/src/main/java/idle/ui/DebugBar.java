@@ -1,14 +1,21 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.GameState;
 import idle.core.Resource;
-import idle.core.achievements.Achievement;
+import idle.core.bigbang.BangChallenge;
+import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
+import java.util.function.BiConsumer;
+import javafx.animation.*;
+import javafx.scene.Node;
+import javafx.util.Duration;
+import idle.core.state.GameState;
+import idle.core.achievements.Achievement;
 import idle.core.collider.ColliderGenerator;
 import idle.core.collider.ColliderUpgrade;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.Challenges;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
@@ -21,53 +28,45 @@ import idle.core.upgrades.Automation;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
 import idle.ui.common.Format;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import java.util.Set;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Barre d'outils du profil de test : accélérer ou sauter le temps, s'ajouter des ressources,
- * sauter à une étape de la partie, pour essayer un changement sans attendre.
+ * Barre d'outils du profil de test : accélérer ou sauter le temps, s'ajouter des ressources, sauter à une étape de la
+ * partie, pour essayer un changement sans attendre.
  *
- * <p>Elle n'existe que si le jeu est lancé avec l'argument {@code --test}
- * (tâche Gradle {@code runTest}). Elle modifie directement l'état du jeu,
- * sans passer par les règles : c'est un outil de développement, pas du gameplay.
+ * <p>Elle n'existe que si le jeu est lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}). Elle modifie
+ * directement l'état du jeu, sans passer par les règles : c'est un outil de développement, pas du gameplay.
  *
- * <p>La première ligne porte la vitesse du temps, les groupes d'outils et un résumé de la partie. Un clic
- * sur un groupe déplie ses boutons sur la ligne du dessous ; un second clic les replie. Un seul
- * groupe est ouvert à la fois, pour que la barre ne mange pas la fenêtre :
+ * <p>La première ligne porte la vitesse du temps, les groupes d'outils et un résumé de la partie. Un clic sur un groupe
+ * déplie ses boutons sur la ligne du dessous ; un second clic les replie. Un seul groupe est ouvert à la fois, pour que
+ * la barre ne mange pas la fenêtre :
  * <ul>
- *   <li><b>Temps</b> : avancer d'un coup de dix minutes ou d'une heure ;</li>
- *   <li><b>Ressources</b> : particules, générateurs, atomes ;</li>
- *   <li><b>Étapes</b> : ouvrir le tableau, tout automatiser, remplir ou vider le tableau ;</li>
- *   <li><b>Matière noire</b> : exploser, matière noire, taille, arbre, défis, masse du tableau ;</li>
- *   <li><b>Succès</b> : tous les accorder ;</li>
- *   <li><b>Big Bang</b> : réunir ses conditions, le déclencher, s'ajouter des molécules ou de l'espace ;</li>
- *   <li><b>Collisionneur</b> : énergie, générateurs, améliorations, quarks, quark top, énergie des trous noirs ;</li>
- *   <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
- *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
- *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la
- *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, le clicker depuis la version 0.155,
- *       la grille depuis la version 0.156,
- *       le miroir depuis la version 0.157,
- *       le mélange depuis la version 0.158 (et, depuis la version 0.159, sa rangée d'étapes : gagner l'étape, y
- *       passer, revenir à la première), le défi final depuis la version 0.160 (l'ouvrir, atteindre les dix paliers,
- *       jouer la fin), puis la graine, son chrono, le rond de croissance et la météo ;</li>
- *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension (de la ligne à la durée) joue la
- *       partie en cours.</li>
- * </ul>
- * Un outil qui ajoute de la matière noire ouvre l'onglet correspondant, comme le ferait une
- * première explosion.
+ * <li><b>Temps</b> : avancer d'un coup de dix minutes ou d'une heure ;</li>
+ * <li><b>Ressources</b> : particules, générateurs, atomes ;</li>
+ * <li><b>Étapes</b> : ouvrir le tableau, tout automatiser, remplir ou vider le tableau ;</li>
+ * <li><b>Matière noire</b> : exploser, matière noire, taille, arbre, défis, masse du tableau ;</li>
+ * <li><b>Succès</b> : tous les accorder ;</li>
+ * <li><b>Big Bang</b> : réunir ses conditions, le déclencher, s'ajouter des molécules ou de l'espace ;</li>
+ * <li><b>Collisionneur</b> : énergie, générateurs, améliorations, quarks, quark top, énergie des trous noirs ;</li>
+ * <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
+ * <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
+ * <li><b>Dimensions</b> : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la boucle comprise depuis
+ * la version 0.153, la brane depuis la version 0.154, le clicker depuis la version 0.155, la grille depuis la version
+ * 0.156, le miroir depuis la version 0.157, le mélange depuis la version 0.158 (et, depuis la version 0.159, sa rangée
+ * d'étapes : gagner l'étape, y passer, revenir à la première), le défi final depuis la version 0.160 (l'ouvrir,
+ * atteindre les dix paliers, jouer la fin), puis la graine, son chrono, le rond de croissance et la météo ;</li>
+ * <li><b>Bots dimension</b> : le joueur appliqué d'une dimension (de la ligne à la durée) joue la partie en cours.</li>
+ * </ul> Un outil qui ajoute de la matière noire ouvre l'onglet correspondant, comme le ferait une première explosion.
  */
 final class DebugBar extends VBox {
-
     /** Vitesses proposées par le bouton « Vitesse », dans l'ordre des clics. */
     private static final double[] TIME_FACTORS = {1, 10, 100, 1000};
 
@@ -84,7 +83,7 @@ final class DebugBar extends VBox {
     private final Game game;
     /** Les groupes des onglets, à gauche. */
     private final FlowPane header = new FlowPane(8, 6);
-    /** À droite (version 0.122) : la vitesse, le temps, les bots, les paliers, le résumé de la partie. */
+    /** À droite : la vitesse, le temps, les bots, les paliers, le résumé de la partie. */
     private final FlowPane right = new FlowPane(8, 6);
     /** Le groupe de chaque onglet du jeu, par le nom de l'onglet : la barre suit l'onglet affiché. */
     private final Map<String, Button> tabGroups = new LinkedHashMap<>();
@@ -105,22 +104,22 @@ final class DebugBar extends VBox {
 
     private CosmeticTools cosmetics;
 
-    // Les bots (version 0.084)
-    private final javafx.scene.control.ComboBox<String> botMode = new javafx.scene.control.ComboBox<>();
+    // Les bots
+    private final ComboBox<String> botMode = new ComboBox<>();
     private final Button botLive = new Button();
     /** L'avance rapide procède par petites tranches sur le fil JavaFX et reste annulable. */
-    private javafx.animation.Timeline botTimeline;
+    private Timeline botTimeline;
     private BotFastForwardJob fastForward;
     private final Button botCancel = new Button("Annuler l'avance rapide");
     private final Label botNote = new Label();
     /** La politique choisie : DEPENDANCES d'abord, la meilleure des campagnes. */
     private int modeIndex = Math.max(0, BotBridge.modes().indexOf("DEPENDANCES"));
     private BotBridge bot;
-    /** L'outil « Jouer la fin » (version 0.160), branché par l'application. */
+    /** L'outil « Jouer la fin », branché par l'application. */
     private Runnable playFinale = () -> { };
 
     /**
-     * Version 0.203 : les animations plein écran, rejouées sans rien changer à la partie, pour juger un skin sans attendre
+     * Les animations plein écran, rejouées sans rien changer à la partie, pour juger un skin sans attendre
      * l'événement ; branché par l'application, qui tient les vues.
      */
     interface AnimationTools {
@@ -141,21 +140,21 @@ final class DebugBar extends VBox {
     }
 
     private AnimationTools animations;
-    /** Version 0.203 : la zone défilante de chaque groupe ; ses outils ne poussent plus la fenêtre quand ils sont nombreux. */
-    private final Map<Button, javafx.scene.control.ScrollPane> scrolls = new LinkedHashMap<>();
+    /** La zone défilante de chaque groupe ; ses outils ne poussent plus la fenêtre quand ils sont nombreux. */
+    private final Map<Button, ScrollPane> scrolls = new LinkedHashMap<>();
     /** La hauteur au plus des outils d'un groupe : au-delà, ils défilent. */
     static final double TOOLS_MAX_HEIGHT = 132;
     private boolean live = false;
     private double sinceDecision = 0;
 
-    // Les bots des dimensions (version 0.140)
+    // Les bots des dimensions
     /** Les rangées des outils des dimensions : leur nom et leur ressource. */
     private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)",
             "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)", "Grille (repères)", "Miroir (reflets)",
             "Mélange (fragments)"};
     /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
     static final int DIMENSION_BATCH = 400;
-    private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
+    private final ComboBox<String> dimensionChoice = new ComboBox<>();
     private final Button dimensionLive = new Button();
     private final Button dimensionCancel = new Button("Annuler l'avance rapide");
     private DimensionBotBridge dimensionBot;
@@ -180,7 +179,7 @@ final class DebugBar extends VBox {
         Label title = new Label("PROFIL DE TEST");
         title.setStyle("-fx-text-fill: " + ACCENT + "; -fx-font-weight: bold;");
 
-        // Version 0.122 : à gauche, un groupe d'outils par onglet du jeu, qui suit l'onglet affiché ; à droite, ce qui
+        // À gauche, un groupe d'outils par onglet du jeu, qui suit l'onglet affiché ; à droite, ce qui
         // sert partout : la vitesse, le temps, les bots, la remise à zéro des paliers, et le résumé de la partie.
         header.setAlignment(Pos.CENTER_LEFT);
         right.setAlignment(Pos.CENTER_RIGHT);
@@ -209,8 +208,7 @@ final class DebugBar extends VBox {
                     game.state().setRegimeLeft(0);
                     game.state().setRegimeRest(0);
                 }));
-        tabGroup("ATOMS", "Atomes",
-                tool("+1 atome", () -> addAtoms(BigNum.ONE)),
+        tabGroup("ATOMS", "Atomes", tool("+1 atome", () -> addAtoms(BigNum.ONE)),
                 tool("+10 atomes", () -> addAtoms(BigNum.of(10))),
                 tool("Atomes au plafond", () -> addAtoms(game.atomCap())),
                 tool("30 atomes créés", this::unlockTable),
@@ -220,10 +218,8 @@ final class DebugBar extends VBox {
                 tool("Tableau complet", () -> fillTable(true)),
                 tool("Vider le tableau", this::emptyTable),
                 tool("+1 élément gratuit", () -> game.state().setFreeElementsUsed(Math.max(0, game.state().freeElementsUsed() - 1))));
-        tabGroup("AUTOMATION", "Automatisation",
-                tool("Automatismes au maximum", this::maxAutomations));
-        tabGroup("DARK_MATTER", "Matière noire",
-                tool("Exploser maintenant", this::explodeNow),
+        tabGroup("AUTOMATION", "Automatisation", tool("Automatismes au maximum", this::maxAutomations));
+        tabGroup("DARK_MATTER", "Matière noire", tool("Exploser maintenant", this::explodeNow),
                 tool("+1 matière noire", () -> addDarkMatter(1)),
                 tool("+10 matières noires", () -> addDarkMatter(10)),
                 tool("Taille ×1 000", () -> growDarkMatter(3)),
@@ -231,14 +227,13 @@ final class DebugBar extends VBox {
                 tool("Arbre complet", this::fillTree),
                 tool("Défi suivant réussi", this::completeNextChallenge),
                 tool("Les dix défis réussis", () -> {
-                    for (idle.core.darkmatter.Challenge challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
+                    for (Challenge challenge : Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
                 }),
-                tool("Fuite réussie", () -> game.state().addCompletedChallenge(idle.core.darkmatter.Challenges.LEAK.id())),
+                tool("Fuite réussie", () -> game.state().addCompletedChallenge(Challenges.LEAK.id())),
                 tool("Calme du Big Bang complet", () -> game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS)),
                 tool("Tableau plus lourd", () -> game.state().setTableWeightLevel(game.state().tableWeightLevel() + 1)),
                 tool("Tableau à sa masse du début", () -> game.state().setTableWeightLevel(0)));
-        tabGroup("COLLIDER", "Collisionneur",
-                tool("Énergie ×1 000", () -> {
+        tabGroup("COLLIDER", "Collisionneur", tool("Énergie ×1 000", () -> {
                     unlockCollider();
                     game.state().setColliderEnergy(Math.max(game.state().colliderEnergy(), 1000) * 1000);
                 }),
@@ -253,7 +248,7 @@ final class DebugBar extends VBox {
                 }),
                 tool("Collisions et saveurs", () -> {
                     unlockCollider();
-                    for (ColliderUpgrade upgrade : java.util.List.of(ColliderUpgrade.COLLISIONS, ColliderUpgrade.FLAVOR_STRANGE,
+                    for (ColliderUpgrade upgrade : List.of(ColliderUpgrade.COLLISIONS, ColliderUpgrade.FLAVOR_STRANGE,
                             ColliderUpgrade.FLAVOR_CHARM, ColliderUpgrade.FLAVOR_BOTTOM, ColliderUpgrade.FLAVOR_TOP)) {
                         game.state().setColliderUpgradeLevel(upgrade, Math.max(1, game.colliderUpgradeLevel(upgrade)));
                     }
@@ -274,13 +269,12 @@ final class DebugBar extends VBox {
                     unlockCollider();
                     game.state().setColliderEnergyProduced(Math.max(game.state().colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
                 }),
-                // Le vide (version 0.129) : l'ouvrir sans attendre le premier Big Bang du troisième univers ni payer.
+                // Le vide : l'ouvrir sans attendre le premier Big Bang du troisième univers ni payer.
                 tool("Ouvrir le vide", () -> {
                     unlockCollider();
                     game.testOpenVoid();
                 }));
-        tabGroup("BIG_BANG", "Big Bang",
-                tool("Conditions réunies", this::readyForBigBang),
+        tabGroup("BIG_BANG", "Big Bang", tool("Conditions réunies", this::readyForBigBang),
                 tool("Big Bang maintenant", () -> {
                     readyForBigBang();
                     game.bigBang();
@@ -326,21 +320,20 @@ final class DebugBar extends VBox {
                     while (formNextBody()) { }
                     threeSystems();
                     Cosmos next = game.nextCosmos();
-                    // L'univers (version 0.110) se forme pour de vrai, remise à zéro comprise : monter seulement
+                    // L'univers se forme pour de vrai, remise à zéro comprise : monter seulement
                     // l'échelle laissait un univers à moitié formé, que la brindille ne pouvait pas faire suivre.
                     if (next == Cosmos.UNIVERSE) game.testFormUniverse();
                     else if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }),
                 tool("Défi de Big Bang suivant réussi", () -> {
-                    for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) {
+                    for (BangChallenge challenge : BangChallenge.values()) {
                         if (!game.isBangChallengeCompleted(challenge)) { game.state().addCompletedBangChallenge(challenge.name()); break; }
                     }
                 }),
                 tool("Tous les défis de Big Bang", () -> {
-                    for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) game.state().addCompletedBangChallenge(challenge.name());
+                    for (BangChallenge challenge : BangChallenge.values()) game.state().addCompletedBangChallenge(challenge.name());
                 }));
-        tabGroup("UNIVERSE", "Univers",
-                tool("Former l'univers", game::testFormUniverse),
+        tabGroup("UNIVERSE", "Univers", tool("Former l'univers", game::testFormUniverse),
                 tool("Rouvrir les paliers", game::startNextUniverse),
                 tool("+1 univers", game::testAddUniverse),
                 tool("−1 univers", game::testRemoveUniverse),
@@ -353,12 +346,12 @@ final class DebugBar extends VBox {
                     game.state().setSeedSprouted(false);
                     game.state().setSeedWaterings(0);
                 }),
-                // L'arrosoir (version 0.137) : le reprendre pour revoir le bouton de l'étagère.
+                // L'arrosoir : le reprendre pour revoir le bouton de l'étagère.
                 tool("Reprendre l'arrosoir", () -> {
                     game.setWatering(false);
                     game.state().setWateringCan(false);
                 }),
-                // Les bulles de l'arbre (version 0.142) : de quoi les payer, et les reprendre.
+                // Les bulles de l'arbre : de quoi les payer, et les reprendre.
                 tool("+1 000 d'énergie du vide accumulée", () -> {
                     String last = String.valueOf(Math.max(1, game.universes()));
                     game.state().noteVoidHistory(last, game.state().voidHistory().getOrDefault(last, 0.0) + 1000);
@@ -367,23 +360,21 @@ final class DebugBar extends VBox {
                     game.state().clearTreeBubbles();
                     game.state().setVoidSpent(0);
                 }));
-        // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
+        // Une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.
         VBox dimensionRows = new VBox(4);
-        // La boucle (version 0.153), la brane (version 0.154), le clicker (version 0.155), la grille (version 0.156), le
-        // miroir (version 0.157) et le mélange (version 0.158) ont leur rangée ; ils n'ont pas encore de bot.
+        // La boucle, la brane, le clicker, la grille, le
+        // miroir et le mélange ont leur rangée ; ils n'ont pas encore de bot.
         for (int d = 1; d <= DIMENSION_ROWS.length; d++) {
             int number = d;
-            dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
-                    tool("Ouvrir", () -> openDimension(number)),
+            dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1], tool("Ouvrir", () -> openDimension(number)),
                     tool("+10 % du seuil", () -> addDimensionShards(number, dimensionThreshold(number) / 10)),
                     tool("Seuil atteint", () -> reachDimensionThreshold(number)),
                     tool("Améliorations au maximum", () -> setDimensionLevels(number, true)),
                     tool("Améliorations à zéro", () -> setDimensionLevels(number, false))));
         }
-        // Version 0.159 : le mélange se joue par étapes ; de quoi les gagner, y passer, ou revenir à la première.
-        dimensionRows.getChildren().add(row("Mélange (étapes)",
-                tool("Fragments de l'étape", () -> {
+        // Le mélange se joue par étapes ; de quoi les gagner, y passer, ou revenir à la première.
+        dimensionRows.getChildren().add(row("Mélange (étapes)", tool("Fragments de l'étape", () -> {
                     if (!game.isMixOpen() || game.mixStage() >= Game.MIX_STAGES) {
                         note("Le mélange doit être ouvert, et pas à sa dernière étape.");
                         return;
@@ -406,9 +397,8 @@ final class DebugBar extends VBox {
                     for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) game.state().setMixLevel(upgrade.ordinal(), 0);
                     game.testClearMix();
                 })));
-        // Version 0.160 : le défi final ; ouvrir la bulle des racines, atteindre les dix paliers, rejouer la fin.
-        dimensionRows.getChildren().add(row("Défi final",
-                tool("Ouvrir le défi final", this::openFinalChallenge),
+        // Le défi final ; ouvrir la bulle des racines, atteindre les dix paliers, rejouer la fin.
+        dimensionRows.getChildren().add(row("Défi final", tool("Ouvrir le défi final", this::openFinalChallenge),
                 tool("Atteindre tous les paliers", () -> {
                     openFinalChallenge();
                     for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
@@ -427,16 +417,16 @@ final class DebugBar extends VBox {
                     game.state().setChronoStored(game.chronoCapacity());
                 }),
                 tool("Chrono vide", () -> game.state().setChronoStored(0)),
-                // Version 0.153 : le rond de croissance, tout de suite, s'il est là (la boucle ouverte).
+                // Le rond de croissance, tout de suite, s'il est là (la boucle ouverte).
                 tool("Rond de croissance", () -> {
                     if (game.isBloomUnlocked()) game.testShowBloom();
                     else note("Le rond de croissance vient avec la boucle : « Ouvrir » dans sa rangée.");
                 }),
-                // Version 0.155 : la météo de la graine, tout de suite, si elle est là (le clicker ouvert).
+                // La météo de la graine, tout de suite, si elle est là (le clicker ouvert).
                 tool("Beau temps", () -> weather(Game.Weather.SUN)),
                 tool("Orage", () -> weather(Game.Weather.STORM))));
         group("Dimensions", dimensionRows);
-        // Version 0.140 : à côté des dimensions, leurs bots (DimensionBots, le joueur appliqué qui règle les seuils), qui
+        // À côté des dimensions, leurs bots (DimensionBots, le joueur appliqué qui règle les seuils), qui
         // jouent la dimension choisie de la partie en cours, en direct ou en avance rapide.
         dimensionChoice.getItems().setAll(DimensionBotBridge.LABELS);
         dimensionChoice.setValue(DimensionBotBridge.LABELS.get(0));
@@ -460,8 +450,7 @@ final class DebugBar extends VBox {
                 tool("+1 min avec le bot", () -> dimensionSkip(60, false)),
                 tool("+5 min avec le bot", () -> dimensionSkip(300, false)),
                 tool("Jusqu'au rond vert (30 min au plus)", () -> dimensionSkip(1800, true)));
-        tabGroup("VOID", "Le vide",
-                tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
+        tabGroup("VOID", "Le vide", tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
                 tool("+1 000 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1000))),
                 tool("+1 million d'énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1e6))),
                 tool("Ouvrir le trou noir", game::testOpenVoidHole),
@@ -477,27 +466,24 @@ final class DebugBar extends VBox {
                 tool("Améliorations à zéro", () -> {
                     for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) game.state().setVoidLevel(upgrade.ordinal(), 0);
                 }));
-        tabGroup("ACHIEVEMENTS", "Succès",
-                tool("Tous les succès", this::grantAchievements));
+        tabGroup("ACHIEVEMENTS", "Succès", tool("Tous les succès", this::grantAchievements));
         // Les skins, et avec eux les thèmes et les notations à débloquer (version 0.122 : plus de groupe à part).
-        java.util.List<javafx.scene.Node> skinTools = new java.util.ArrayList<>(java.util.List.of(
+        List<Node> skinTools = new ArrayList<>(List.of(
                 tool("+5 fusions", () -> game.testAddFusions(Game.SKINS_FUSIONS)),
                 tool("Tous les skins", () -> game.testAllSkins(true)),
                 tool("Aucun skin", () -> game.testAllSkins(false)),
                 tool("Tous les thèmes et notations", () -> { if (cosmetics != null) cosmetics.unlockAll(); }),
                 tool("Aucun thème ni notation", () -> { if (cosmetics != null) cosmetics.lockAll(); })));
-        for (idle.ui.Cosmetic cosmetic : idle.ui.Cosmetic.values()) {
+        for (Cosmetic cosmetic : Cosmetic.values()) {
             skinTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
         }
-        tabGroup("SKINS", "Skins", skinTools.toArray(new javafx.scene.Node[0]));
+        tabGroup("SKINS", "Skins", skinTools.toArray(new Node[0]));
 
         // À droite : le temps, les bots, la remise à zéro des paliers.
-        groupRight("Temps",
-                tool("+10 min", () -> skip(600)),
-                tool("+1 h", () -> skip(3600)),
+        groupRight("Temps", tool("+10 min", () -> skip(600)), tool("+1 h", () -> skip(3600)),
                 tool("+6 h", () -> skip(6 * 3600)));
-        // Les bots (version 0.084) : le bot V2 joue la partie en cours, en direct ou en avance rapide.
-        // La politique se choisit dans une liste déroulante (version 0.085), plus en cliquant plusieurs fois.
+        // Les bots : le bot V2 joue la partie en cours, en direct ou en avance rapide.
+        // La politique se choisit dans une liste déroulante, plus en cliquant plusieurs fois.
         botMode.getItems().setAll(BotBridge.modes());
         botMode.setValue(BotBridge.modes().get(modeIndex));
         botMode.setVisibleRowCount(12);
@@ -525,8 +511,7 @@ final class DebugBar extends VBox {
         botCancel.setStyle(TOOL_STYLE);
         botCancel.setOnAction(event -> cancelFastForward());
         botCancel.setDisable(true);
-        groupRight("Bots", botTitle, botMode, botLive, botCancel,
-                tool("+10 min avec le bot", () -> skipWithBot(600)),
+        groupRight("Bots", botTitle, botMode, botLive, botCancel, tool("+10 min avec le bot", () -> skipWithBot(600)),
                 tool("+1 h avec le bot", () -> skipWithBot(3600)),
                 tool("+6 h avec le bot", () -> skipWithBot(6 * 3600)),
                 tool("Jusqu'au prochain Big Bang (12 h au plus)", this::botToNextBigBang),
@@ -535,7 +520,7 @@ final class DebugBar extends VBox {
                     if (b != null) note(b.act() ? "Le bot a joué une décision." : "Le bot a échoué : il ne suit plus le jeu.");
                 }));
 
-        // Version 0.203 : les animations, rejouées à la demande dans le skin choisi.
+        // Les animations, rejouées à la demande dans le skin choisi.
         groupRight("Animations",
                 tool("Explosion (skin choisi)", () -> { if (animations != null) animations.explosion(); }),
                 tool("Big Bang (skin choisi)", () -> {
@@ -555,8 +540,7 @@ final class DebugBar extends VBox {
                     else note("La fin se joue sur la carte des dimensions : ouvrez d'abord une dimension.");
                 }));
 
-        groupRight("Paliers",
-                tool("Refaire l'acte 1", () -> game.state().clearMatter()),
+        groupRight("Paliers", tool("Refaire l'acte 1", () -> game.state().clearMatter()),
                 tool("Refaire l'acte 2", () -> {
                     game.state().clearMatter();
                     game.state().clearDarkMatter();
@@ -581,9 +565,7 @@ final class DebugBar extends VBox {
         return bot;
     }
 
-    private void note(String text) {
-        botNote.setText(text);
-    }
+    private void note(String text) { botNote.setText(text); }
 
     private void refreshBots() {
         if (!BotBridge.modes().get(modeIndex).equals(botMode.getValue())) botMode.setValue(BotBridge.modes().get(modeIndex));
@@ -592,19 +574,10 @@ final class DebugBar extends VBox {
     }
 
     /** Le dernier message des bots : pour les vérifications. */
-    String botNote() {
-        return botNote.getText();
-    }
-
-    /** La liste des politiques du bot : pour les vérifications. */
-    javafx.scene.control.ComboBox<String> botChoice() {
-        return botMode;
-    }
+    String botNote() { return botNote.getText(); }
 
     /** Vrai si le bot joue en direct : pour les vérifications. */
-    boolean botLive() {
-        return live;
-    }
+    boolean botLive() { return live; }
 
     /**
      * Le temps de jeu qui vient de passer (vitesse comprise) : en direct, le bot décide toutes les
@@ -670,13 +643,11 @@ final class DebugBar extends VBox {
      * Une avance rapide sur le fil JavaFX (version 0.140 : commune au bot de la partie et à ceux des dimensions) :
      * {@code batch} pas à chaque impulsion de 25 ms, annulable ; {@code done} dit comment elle a fini.
      */
-    private void runJob(BotFastForwardJob job, int batch, String who,
-                        java.util.function.BiConsumer<BotFastForwardJob.End, Double> done) {
+    private void runJob(BotFastForwardJob job, int batch, String who, BiConsumer<BotFastForwardJob.End, Double> done) {
         fastForward = job;
         botCancel.setDisable(false);
         dimensionCancel.setDisable(false);
-        botTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
-                javafx.util.Duration.millis(25), event -> {
+        botTimeline = new Timeline(new KeyFrame(Duration.millis(25), event -> {
             if (fastForward == null) return;
             BotFastForwardJob.End state;
             try { state = fastForward.runBatch(batch); }
@@ -699,16 +670,16 @@ final class DebugBar extends VBox {
             done.accept(state, elapsed);
             refresh();
         }));
-        botTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        botTimeline.setCycleCount(Animation.INDEFINITE);
         botTimeline.play();
     }
 
     // ------------------------------------------------------------------
-    // Les dimensions et leurs bots (version 0.140)
+    // Les dimensions et leurs bots
     // ------------------------------------------------------------------
 
     /** Une rangée d'outils avec son nom devant. */
-    private HBox row(String name, javafx.scene.Node... tools) {
+    private HBox row(String name, Node... tools) {
         Label label = new Label(name);
         label.setMinWidth(130);
         label.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + ACCENT + ";");
@@ -960,17 +931,11 @@ final class DebugBar extends VBox {
     }
 
     /** Pour les vérifications : le choix de la dimension, le bouton du direct, et si le bot joue en direct. */
-    javafx.scene.control.ComboBox<String> dimensionBotChoice() {
-        return dimensionChoice;
-    }
+    ComboBox<String> dimensionBotChoice() { return dimensionChoice; }
 
-    Button dimensionLiveButton() {
-        return dimensionLive;
-    }
+    Button dimensionLiveButton() { return dimensionLive; }
 
-    boolean dimensionBotLive() {
-        return dimensionLiveOn;
-    }
+    boolean dimensionBotLive() { return dimensionLiveOn; }
 
     /** Fait avancer la partie sans bloquer l'interface JavaFX. */
     private void skipWithBot(double seconds) { startFastForward(seconds, false); }
@@ -983,10 +948,8 @@ final class DebugBar extends VBox {
         playFinale = action == null ? () -> { } : action;
     }
 
-    /** Ce que font les outils du groupe « Animations » (version 0.203). */
-    void setAnimations(AnimationTools tools) {
-        animations = tools;
-    }
+    /** Ce que font les outils du groupe « Animations ». */
+    void setAnimations(AnimationTools tools) { animations = tools; }
 
     /** Ouvre le défi final : la dernière amélioration de la graine, puis la bulle des racines, sans rien payer. */
     private void openFinalChallenge() {
@@ -995,14 +958,10 @@ final class DebugBar extends VBox {
     }
 
     /** Branche les outils qui ouvrent ou referment les cosmétiques, qui vivent dans les réglages de l'application. */
-    void setCosmetics(CosmeticTools cosmetics) {
-        this.cosmetics = cosmetics;
-    }
+    void setCosmetics(CosmeticTools cosmetics) { this.cosmetics = cosmetics; }
 
     /** Facteur d'accélération du temps choisi : 1 = vitesse normale. */
-    double timeFactor() {
-        return TIME_FACTORS[timeIndex];
-    }
+    double timeFactor() { return TIME_FACTORS[timeIndex]; }
 
     /** Met à jour le résumé de la partie, à droite de la première ligne. */
     void refresh() {
@@ -1015,19 +974,17 @@ final class DebugBar extends VBox {
     }
 
     /** Un groupe d'outils lié à un onglet du jeu : il s'ouvre quand on va sur cet onglet. */
-    private void tabGroup(String tab, String name, javafx.scene.Node... tools) {
-        tabGroups.put(tab, group(name, tools));
-    }
+    private void tabGroup(String tab, String name, Node... tools) { tabGroups.put(tab, group(name, tools)); }
 
     /** Un groupe placé à droite, avec ce qui sert partout. */
-    private void groupRight(String name, javafx.scene.Node... tools) {
+    private void groupRight(String name, Node... tools) {
         Button toggle = group(name, tools);
         header.getChildren().remove(toggle);
         right.getChildren().add(toggle);
     }
 
     /**
-     * L'onglet affiché a changé (version 0.122) : la barre ouvre le groupe de cet onglet, sauf si l'on a ouvert à la main
+     * L'onglet affiché a changé : la barre ouvre le groupe de cet onglet, sauf si l'on a ouvert à la main
      * un groupe de droite (le temps, les bots, les paliers) ou celui des dimensions.
      */
     void followTab(String tab) {
@@ -1037,9 +994,7 @@ final class DebugBar extends VBox {
     }
 
     /** Le groupe ouvert : pour les vérifications. */
-    String openGroup() {
-        return open == null ? "" : open.getText();
-    }
+    String openGroup() { return open == null ? "" : open.getText(); }
 
     /** La graine passe au palier suivant : les arrosages qu'il faut. */
     private void nextSeedStage() {
@@ -1047,12 +1002,12 @@ final class DebugBar extends VBox {
         if (stage >= Game.SEED_STAGES) return;
         if (!game.isUniverseFormed()) game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        // Version 0.139 : seuls les arrosages comptent, les seuils des dimensions ne retiennent plus la graine.
+        // Seuls les arrosages comptent, les seuils des dimensions ne retiennent plus la graine.
         game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
     }
 
     /** Ajoute un groupe : son bouton sur la première ligne, et ses outils sur une ligne repliée. */
-    private Button group(String name, javafx.scene.Node... tools) {
+    private Button group(String name, Node... tools) {
         FlowPane line = new FlowPane(6, 6);    // les boutons passent à la ligne quand la fenêtre est étroite
         line.setAlignment(Pos.CENTER);
         line.getChildren().addAll(tools);
@@ -1064,13 +1019,13 @@ final class DebugBar extends VBox {
         toggle.setOnAction(event -> open(open == toggle ? null : toggle));
         groups.put(toggle, line);
         header.getChildren().add(toggle);
-        // Version 0.203 : les outils dans une zone qui défile au-delà de TOOLS_MAX_HEIGHT. Avant, un groupe à beaucoup de
+        // Les outils dans une zone qui défile au-delà de TOOLS_MAX_HEIGHT. Avant, un groupe à beaucoup de
         // boutons (Univers, Dimensions, Skins) grandissait la barre jusqu'à pousser la fenêtre : le haut de la barre, où sont
         // les autres groupes, sortait de l'écran.
         line.prefWrapLengthProperty().bind(widthProperty().subtract(44));
-        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(line);
+        ScrollPane scroll = new ScrollPane(line);
         scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setMaxHeight(TOOLS_MAX_HEIGHT);
         scroll.setMinHeight(0);
         scroll.setFocusTraversable(false);
@@ -1187,9 +1142,7 @@ final class DebugBar extends VBox {
         for (Upgrade upgrade : game.upgrades()) {
             if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion) game.state().setLevel(upgrade.id(), upgrade.maxLevel());
         }
-        for (Element element : PeriodicTable.ELEMENTS) {
-            give(element.number(), everyCopy ? Integer.MAX_VALUE : 1);
-        }
+        for (Element element : PeriodicTable.ELEMENTS) give(element.number(), everyCopy ? Integer.MAX_VALUE : 1);
     }
 
     private void emptyTable() {
@@ -1222,7 +1175,7 @@ final class DebugBar extends VBox {
     /** Porte à leur maximum toutes les améliorations de matière noire qui en ont un. */
     private void fillTree() {
         if (game.state().explosions() == 0) game.state().setExplosions(1);
-        java.util.Set<String> forks = new java.util.HashSet<>();
+        Set<String> forks = new HashSet<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
             // Une bifurcation : la première voie seulement, comme un joueur qui en choisit une.
             if (upgrade.isFork() && !forks.add(upgrade.fork())) continue;
@@ -1254,9 +1207,8 @@ final class DebugBar extends VBox {
     // ------------------------------------------------------------------
 
     /**
-     * Forme le premier assemblage du catalogue qui ne l'est pas encore, en donnant au joueur ce
-     * qu'il demande : les améliorations d'espace, les molécules qui manquent, rassemblées, et la
-     * place de les loger.
+     * Forme le premier assemblage du catalogue qui ne l'est pas encore, en donnant au joueur ce qu'il demande : les
+     * améliorations d'espace, les molécules qui manquent, rassemblées, et la place de les loger.
      *
      * @return {@code false} s'ils sont tous formés
      */
@@ -1272,7 +1224,7 @@ final class DebugBar extends VBox {
         GameState state = game.state();
         bangsAtLeast(1);
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
-        for (java.util.Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+        for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
             state.addSubstance(ingredient.getKey());
             int missing = ingredient.getValue() - game.spareMolecules(ingredient.getKey());
             if (missing > 0) state.setMoleculeCount(ingredient.getKey(), game.moleculeCount(ingredient.getKey()) + missing);
@@ -1300,13 +1252,13 @@ final class DebugBar extends VBox {
             for (String assembly : body.assemblies()) {
                 if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
             }
-            // Les besoins allégés par le vide (version 0.129) : ce que l'astre demande vraiment.
-            for (java.util.Map.Entry<String, Integer> molecule : game.bodyMolecules(body).entrySet()) {
+            // Les besoins allégés par le vide : ce que l'astre demande vraiment.
+            for (Map.Entry<String, Integer> molecule : game.bodyMolecules(body).entrySet()) {
                 int missing = molecule.getValue() - game.moleculeCount(molecule.getKey());
                 if (missing > 0) state.setMoleculeCount(molecule.getKey(), game.moleculeCount(molecule.getKey()) + missing);
                 state.addSubstance(molecule.getKey());
             }
-            for (java.util.Map.Entry<Molecule.State, Integer> matter : game.bodyMatter(body).entrySet()) {
+            for (Map.Entry<Molecule.State, Integer> matter : game.bodyMatter(body).entrySet()) {
                 int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                 if (missing <= 0) continue;
                 // De la matière dans un état : des molécules de plus de la première sorte du catalogue qui a cet état.
@@ -1331,7 +1283,7 @@ final class DebugBar extends VBox {
     private void bangsAtLeast(int bigBangs) {
         GameState state = game.state();
         if (state.bigBangs() < bigBangs) state.setBigBangs(bigBangs);
-        for (idle.core.bigbang.BigBangMilestone milestone : game.bigBangMilestones()) {
+        for (BigBangMilestone milestone : game.bigBangMilestones()) {
             if (game.isBigBangMilestoneOpen(milestone)) state.addBoughtMilestone(milestone.name());
         }
     }
@@ -1340,8 +1292,8 @@ final class DebugBar extends VBox {
     private void threeSystems() {
         bangsAtLeast(6);
         while (game.solarSystemsComplete() < Game.SYSTEMS_FOR_GALAXY) {
-            java.util.List<String> stars = game.freeForSystems(Body.Tier.STAR);
-            java.util.List<String> planets = game.freeForSystems(Body.Tier.PLANET);
+            List<String> stars = game.freeForSystems(Body.Tier.STAR);
+            List<String> planets = game.freeForSystems(Body.Tier.PLANET);
             if (stars.isEmpty() || planets.size() < Game.SYSTEM_MIN_PLANETS) return;
             game.foundSystem(stars.get(0));
             int index = game.state().solarSystems().size() - 1;

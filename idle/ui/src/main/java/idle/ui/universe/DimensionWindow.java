@@ -1,70 +1,83 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.core.collider.Hadron;
 import idle.core.universe.DimensionAutomation;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.IntConsumer;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
+import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.input.KeyCode;
+import javafx.scene.text.TextAlignment;
 import idle.ui.common.CanvasPane;
+import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
 import idle.ui.common.Format;
-import idle.core.math.BigNum;
 import idle.ui.common.Labels;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import idle.core.math.BigNum;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * La fenêtre d'une dimension (version 0.081) : elle couvre tout le jeu, avec son visuel, son nom et
- * une phrase, et un bouton « Retour » pour revenir au jeu. Le jeu continue de tourner derrière.
+ * La fenêtre d'une dimension : elle couvre tout le jeu, avec son visuel, son nom et une phrase, et un bouton « Retour »
+ * pour revenir au jeu. Le jeu continue de tourner derrière.
  *
- * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, son seuil et ses
- * cinq améliorations (version 0.102) sous le visuel. Le plan a la sienne depuis la version 0.104, et le volume depuis
- * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la
- * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. La boucle a la
- * sienne depuis la version 0.153 : on clique chaque cercle (ou sa touche) quand son point passe dans une zone ; ses
- * six améliorations, son métronome et le rappel des touches sont sous la vue. La brane a la sienne depuis la version
- * 0.154 : on appuie la membrane, on glisse pour la tendre, on relâche, et l'onde qui part rebondit sur ses bords ; ses
- * cinq améliorations sont sous la vue. Le clicker a la sienne depuis la version 0.155 : on clique la surface, d'autant
- * plus vite que chaque clic rapporte davantage, et dans les zones ×2 qui s'y superposent ; ses huit améliorations sont
- * sous la vue. La grille a la sienne depuis la version 0.156 : on choisit une couche du cube (boutons, molette ou flèches
- * haut et bas) et l'on sonde ses cases ; ce que la grille montre du point le plus proche suit l'amélioration
- * « Affichage du point », jamais plus ; refaite en 0.157 : mille cases par côté au départ, on vise une case (un clic sur
- * la carte, ou ses coordonnées) et on l'essaie, un essai par point caché. Le miroir a la sienne depuis la version 0.157 :
- * un motif s'allume à gauche, on le refait de mémoire, en miroir, à droite ; ses cinq améliorations sont sous la vue.
+ * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, son seuil et ses cinq
+ * améliorations sous le visuel. Le plan a la sienne depuis la version 0.104, et le volume depuis la version 0.128 : on
+ * plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la sienne depuis la version
+ * 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. La boucle a la sienne depuis la version
+ * 0.153 : on clique chaque cercle (ou sa touche) quand son point passe dans une zone ; ses six améliorations, son
+ * métronome et le rappel des touches sont sous la vue. La brane a la sienne depuis la version 0.154 : on appuie la
+ * membrane, on glisse pour la tendre, on relâche, et l'onde qui part rebondit sur ses bords ; ses cinq améliorations
+ * sont sous la vue. Le clicker a la sienne depuis la version 0.155 : on clique la surface, d'autant plus vite que
+ * chaque clic rapporte davantage, et dans les zones ×2 qui s'y superposent ; ses huit améliorations sont sous la vue.
+ * La grille a la sienne depuis la version 0.156 : on choisit une couche du cube (boutons, molette ou flèches haut et
+ * bas) et l'on sonde ses cases ; ce que la grille montre du point le plus proche suit l'amélioration « Affichage du
+ * point », jamais plus ; refaite en 0.157 : mille cases par côté au départ, on vise une case (un clic sur la carte, ou
+ * ses coordonnées) et on l'essaie, un essai par point caché. Le miroir a la sienne depuis la version 0.157 : un motif
+ * s'allume à gauche, on le refait de mémoire, en miroir, à droite ; ses cinq améliorations sont sous la vue.
  *
  * <p>Le mélange a la sienne depuis la version 0.158, refaite en 0.159 : l'arène en grand, où se mêlent étape par étape
- * les mécaniques des autres dimensions ; au-dessus, l'étape, sa barre de progression et « Mêler la dimension suivante » ;
- * dessous, les fragments, le malus, les multiplicateurs, la charge, la cadence, ce qu'on fait à l'étape en cours, et ses
- * onze améliorations, grisées tant que leur étape n'est pas atteinte. Au clavier, Z Q S D et les flèches mènent le point,
- * A et E le font remonter ou plonger, la barre d'espace tient la charge.
+ * les mécaniques des autres dimensions ; au-dessus, l'étape, sa barre de progression et « Mêler la dimension suivante »
+ * ; dessous, les fragments, le malus, les multiplicateurs, la charge, la cadence, ce qu'on fait à l'étape en cours, et
+ * ses onze améliorations, grisées tant que leur étape n'est pas atteinte. Au clavier, Z Q S D et les flèches mènent le
+ * point, A et E le font remonter ou plonger, la barre d'espace tient la charge.
  *
  * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
  * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
  * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
  * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière. Le rythme automatique de la
- * boucle (version 0.153), la tirée automatique de la brane (version 0.154), les clics automatiques du clicker (version
- * 0.155), les essais automatiques de la grille (version 0.156) et le miroir automatique (version 0.157) jouent de même,
- * fenêtre ouverte ou non.
+ * boucle, la tirée automatique de la brane, les clics automatiques du clicker (version 0.155), les essais automatiques
+ * de la grille et le miroir automatique jouent de même, fenêtre ouverte ou non.
  */
 public final class DimensionWindow extends BorderPane {
-
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 16; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + UniversePage.COLOR + "; -fx-background-color: #141a2c; -fx-border-color: #3b4670;";
 
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
     /**
-     * La couleur de la dimension {@code number} (1 à 10), celle de ses éclats : ses améliorations achetables la prennent
-     * (version 0.140) ; celle de l'univers pour la ligne et au-delà. Version 0.197 : celle de la palette choisie
-     * ({@link DimensionPalette}).
+     * La couleur de la dimension {@code number} (1 à 10), celle de ses éclats : ses améliorations achetables la
+     * prennent ; celle de l'univers pour la ligne et au-delà. Celle de la palette choisie ({@link DimensionPalette}).
      */
-    public static String color(int number) {
-        return DimensionPalette.hex(number < 1 || number > 10 ? 1 : number);
-    }
+    public static String color(int number) { return DimensionPalette.hex(number < 1 || number > 10 ? 1 : number); }
 
     /**
      * Les couleurs d'un bouton d'amélioration (version 0.140 : plus visibles, même format). Achetable, il prend la couleur
@@ -83,19 +96,18 @@ public final class DimensionWindow extends BorderPane {
         button.setStyle(UPGRADE_STYLE + look);
     }
 
-    /** Les touches des sept cercles de la boucle tant que le joueur n'en a pas choisi d'autres (version 0.153). */
-    public static final java.util.List<javafx.scene.input.KeyCode> DEFAULT_LOOP_KEYS = java.util.List.of(
-            javafx.scene.input.KeyCode.S, javafx.scene.input.KeyCode.D, javafx.scene.input.KeyCode.F,
-            javafx.scene.input.KeyCode.SPACE, javafx.scene.input.KeyCode.J, javafx.scene.input.KeyCode.K,
-            javafx.scene.input.KeyCode.L);
+    /** Les touches des sept cercles de la boucle tant que le joueur n'en a pas choisi d'autres. */
+    public static final List<KeyCode> DEFAULT_LOOP_KEYS = List.of(KeyCode.S, KeyCode.D, KeyCode.F,
+            KeyCode.SPACE, KeyCode.J, KeyCode.K,
+            KeyCode.L);
 
     /**
-     * Ce que la boucle demande au jeu (version 0.153) : la touche de chaque cercle et le choix du métronome, rangés dans
+     * Ce que la boucle demande au jeu : la touche de chaque cercle et le choix du métronome, rangés dans
      * les réglages, et le tic qu'il joue, au volume et selon le réglage des sons.
      */
     public interface LoopSettings {
         /** La touche du cercle {@code ring} (0 à 6), ou {@code null} s'il n'en a pas. */
-        javafx.scene.input.KeyCode loopKey(int ring);
+        KeyCode loopKey(int ring);
 
         boolean metronome();
 
@@ -110,19 +122,15 @@ public final class DimensionWindow extends BorderPane {
         private boolean metronome;
 
         @Override
-        public javafx.scene.input.KeyCode loopKey(int ring) {
+        public KeyCode loopKey(int ring) {
             return ring >= 0 && ring < DEFAULT_LOOP_KEYS.size() ? DEFAULT_LOOP_KEYS.get(ring) : null;
         }
 
         @Override
-        public boolean metronome() {
-            return metronome;
-        }
+        public boolean metronome() { return metronome; }
 
         @Override
-        public void setMetronome(boolean on) {
-            metronome = on;
-        }
+        public void setMetronome(boolean on) { metronome = on; }
 
         @Override
         public void beat() {
@@ -134,53 +142,53 @@ public final class DimensionWindow extends BorderPane {
     /** La ligne : ses éclats, et ses cinq améliorations. */
     private final Label shards = new Label();
     private final Label threshold = new Label();
-    private final java.util.Map<Game.LineUpgrade, Button> buttons = new java.util.EnumMap<>(Game.LineUpgrade.class);
+    private final Map<Game.LineUpgrade, Button> buttons = new EnumMap<>(Game.LineUpgrade.class);
     private final VBox linePane;
-    /** Le plan (version 0.104) : ses éclats, la manière de jouer, et ses cinq améliorations. */
+    /** Le plan : ses éclats, la manière de jouer, et ses cinq améliorations. */
     private final Label planeShards = new Label();
     private final Label planeThreshold = new Label();
     private final Label planeHint = new Label();
-    private final java.util.Map<Game.PlaneUpgrade, Button> planeButtons = new java.util.EnumMap<>(Game.PlaneUpgrade.class);
+    private final Map<Game.PlaneUpgrade, Button> planeButtons = new EnumMap<>(Game.PlaneUpgrade.class);
     private final VBox planePane;
-    /** Le volume (version 0.128) : ses éclats, son seuil, ce qu'on y fait, et ses cinq améliorations, dehors. */
+    /** Le volume : ses éclats, son seuil, ce qu'on y fait, et ses cinq améliorations, dehors. */
     private final Label volumeShards = new Label();
     private final Label volumeThreshold = new Label();
     private final Label volumeHint = new Label();
     private final Label volumeDetail = new Label();
-    private final java.util.Map<Game.VolumeUpgrade, Button> volumeButtons = new java.util.EnumMap<>(Game.VolumeUpgrade.class);
-    private final javafx.scene.layout.FlowPane volumeRow = new javafx.scene.layout.FlowPane(12, 10);
+    private final Map<Game.VolumeUpgrade, Button> volumeButtons = new EnumMap<>(Game.VolumeUpgrade.class);
+    private final FlowPane volumeRow = new FlowPane(12, 10);
     private final VBox volumePane;
-    /** La durée (version 0.134) : ses éclats, son seuil, ce qu'on y fait, et ses quatre améliorations. */
+    /** La durée : ses éclats, son seuil, ce qu'on y fait, et ses quatre améliorations. */
     private final Label durationShards = new Label();
     private final Label durationThreshold = new Label();
     private final Label durationHint = new Label();
     private final Label durationDetail = new Label();
-    private final java.util.Map<Game.DurationUpgrade, Button> durationButtons = new java.util.EnumMap<>(Game.DurationUpgrade.class);
+    private final Map<Game.DurationUpgrade, Button> durationButtons = new EnumMap<>(Game.DurationUpgrade.class);
     private final VBox durationPane;
-    /** La boucle (version 0.153) : ses nœuds, son seuil, ce qu'on y fait, son métronome, et ses six améliorations. */
+    /** La boucle : ses nœuds, son seuil, ce qu'on y fait, son métronome, et ses six améliorations. */
     private final Label loopShards = new Label();
     private final Label loopThreshold = new Label();
     private final Label loopHint = new Label();
     private final Label loopDetail = new Label();
     private final Button metronomeButton = new Button();
-    private final java.util.Map<Game.LoopUpgrade, Button> loopButtons = new java.util.EnumMap<>(Game.LoopUpgrade.class);
+    private final Map<Game.LoopUpgrade, Button> loopButtons = new EnumMap<>(Game.LoopUpgrade.class);
     private final VBox loopPane;
     private LoopSettings loopSettings = new LocalLoopSettings();
-    /** La brane (version 0.154) : ses ondes, son seuil, ce qu'on y fait, et ses cinq améliorations. */
+    /** La brane : ses ondes, son seuil, ce qu'on y fait, et ses cinq améliorations. */
     private final Label braneShards = new Label();
     private final Label braneThreshold = new Label();
     private final Label braneHint = new Label();
     private final Label braneDetail = new Label();
-    private final java.util.Map<Game.BraneUpgrade, Button> braneButtons = new java.util.EnumMap<>(Game.BraneUpgrade.class);
+    private final Map<Game.BraneUpgrade, Button> braneButtons = new EnumMap<>(Game.BraneUpgrade.class);
     private final VBox branePane;
-    /** Le clicker (version 0.155) : ses étincelles, son seuil, ce qu'on y fait, et ses huit améliorations. */
+    /** Le clicker : ses étincelles, son seuil, ce qu'on y fait, et ses huit améliorations. */
     private final Label clickerShards = new Label();
     private final Label clickerThreshold = new Label();
     private final Label clickerHint = new Label();
     private final Label clickerDetail = new Label();
-    private final java.util.Map<Game.ClickerUpgrade, Button> clickerButtons = new java.util.EnumMap<>(Game.ClickerUpgrade.class);
+    private final Map<Game.ClickerUpgrade, Button> clickerButtons = new EnumMap<>(Game.ClickerUpgrade.class);
     private final VBox clickerPane;
-    /** La grille (version 0.156) : ses repères, son seuil, ce qu'on y fait, la couche montrée, et ses cinq améliorations. */
+    /** La grille : ses repères, son seuil, ce qu'on y fait, la couche montrée, et ses cinq améliorations. */
     private final Label gridShards = new Label();
     private final Label gridThreshold = new Label();
     private final Label gridHint = new Label();
@@ -188,14 +196,14 @@ public final class DimensionWindow extends BorderPane {
     private final Label gridLayerLabel = new Label();
     private final Button gridDown = new Button("▼ Couche du dessous");
     private final Button gridUp = new Button("Couche du dessus ▲");
-    private final java.util.Map<Game.GridUpgrade, Button> gridButtons = new java.util.EnumMap<>(Game.GridUpgrade.class);
-    /** Version 0.157 : la taille de la grille, la case visée (x, y, z), le bouton qui l'essaie, et le zoom de la carte. */
+    private final Map<Game.GridUpgrade, Button> gridButtons = new EnumMap<>(Game.GridUpgrade.class);
+    /** La taille de la grille, la case visée (x, y, z), le bouton qui l'essaie, et le zoom de la carte. */
     private final Label gridSize = new Label();
     private final TextField gridX = new TextField(), gridY = new TextField(), gridZ = new TextField();
     private final Button gridTry = new Button("Essayer");
     private final Button gridZoomIn = new Button("Zoom +"), gridZoomOut = new Button("Zoom −");
     private final VBox gridPane;
-    /** Le miroir (version 0.157) : ses reflets, son seuil, ce qu'on y fait, ses compteurs, et ses cinq améliorations. */
+    /** Le miroir : ses reflets, son seuil, ce qu'on y fait, ses compteurs, et ses cinq améliorations. */
     private final Label mirrorShards = new Label();
     private final Label mirrorThreshold = new Label();
     private final Label mirrorHint = new Label();
@@ -203,10 +211,10 @@ public final class DimensionWindow extends BorderPane {
     /** Version 0.158 : la taille du plateau, et les réussites qu'il manque pour l'agrandir. */
     private final Label mirrorBoard = new Label();
     private final Label mirrorDetail = new Label();
-    private final java.util.Map<Game.MirrorUpgrade, Button> mirrorButtons = new java.util.EnumMap<>(Game.MirrorUpgrade.class);
+    private final Map<Game.MirrorUpgrade, Button> mirrorButtons = new EnumMap<>(Game.MirrorUpgrade.class);
     private final VBox mirrorPane;
     /**
-     * Le mélange (version 0.159) : au-dessus de l'arène, l'étape, sa barre de progression et le bouton qui mêle la
+     * Le mélange : au-dessus de l'arène, l'étape, sa barre de progression et le bouton qui mêle la
      * dimension suivante ; dessous, ses fragments, son seuil, ses compteurs (malus, multiplicateurs, charge, cadence),
      * ce qu'on y fait à l'étape en cours, le détail et ses onze améliorations.
      */
@@ -218,32 +226,32 @@ public final class DimensionWindow extends BorderPane {
     private final Label mixShards = new Label();
     private final Label mixThreshold = new Label();
     private final Label mixInfo = new Label();
-    /** Les noms des trois axes de la grille, colorés de sa couleur : repris quand la palette change (version 0.197). */
-    private final java.util.List<Label> gridAxisNames = new java.util.ArrayList<>();
-    /** Le cadre des mini-jeux (version 0.197) : un calque sur l'arène, et la boîte qui lui fait sa marge. */
-    private final javafx.scene.canvas.Canvas frameLayer = new javafx.scene.canvas.Canvas();
-    private final javafx.scene.layout.StackPane framed;
+    /** Les noms des trois axes de la grille, colorés de sa couleur : repris quand la palette change. */
+    private final List<Label> gridAxisNames = new ArrayList<>();
+    /** Le cadre des mini-jeux : un calque sur l'arène, et la boîte qui lui fait sa marge. */
+    private final Canvas frameLayer = new Canvas();
+    private final StackPane framed;
     private double frameTime;
     private final Label mixHint = new Label();
     private final Label mixDetail = new Label();
-    private final java.util.Map<Game.MixUpgrade, Button> mixButtons = new java.util.EnumMap<>(Game.MixUpgrade.class);
+    private final Map<Game.MixUpgrade, Button> mixButtons = new EnumMap<>(Game.MixUpgrade.class);
     private final VBox mixPane;
     /** La clé de la rangée des améliorations du mélange, dans {@link #painted} : elle compte aussi l'étape. */
     private final Object mixRowKey = new Object();
     /** La largeur de la barre de progression de l'étape. */
     private static final double MIX_BAR_WIDTH = 420;
     /** Les touches de cercles tenues : une touche tenue se répète, mais ne rejoue pas son cercle. */
-    private final java.util.Set<javafx.scene.input.KeyCode> loopKeysHeld = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
+    private final Set<KeyCode> loopKeysHeld = EnumSet.noneOf(KeyCode.class);
     /** La barre d'espace tient le bouton de la durée, ou la charge du mélange, comme la souris. */
     private boolean spaceHeld;
-    /** La caméra libre (version 0.128) : le bouton, et où se range le choix (les réglages du jeu, ou la fenêtre seule). */
+    /** La caméra libre : le bouton, et où se range le choix (les réglages du jeu, ou la fenêtre seule). */
     private final Button freeCameraButton = new Button();
-    private final java.util.function.BooleanSupplier freeCamera;
-    private final java.util.function.Consumer<Boolean> setFreeCamera;
+    private final BooleanSupplier freeCamera;
+    private final Consumer<Boolean> setFreeCamera;
     /** Les touches de direction tenues : Z, Q, S, D et les flèches. */
-    private final java.util.Set<javafx.scene.input.KeyCode> held = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
+    private final Set<KeyCode> held = EnumSet.noneOf(KeyCode.class);
     private final Label title = new Label();
-    /** La mention « automatique » (version 0.150), à droite du titre : l'automatisation joue la dimension. */
+    /** La mention « automatique », à droite du titre : l'automatisation joue la dimension. */
     private final Label autoBadge = new Label("automatique");
     private final Label line = new Label();
     private final Button back = new Button("← Retour");
@@ -253,24 +261,18 @@ public final class DimensionWindow extends BorderPane {
      * Ce que chaque rangée de boutons et chaque explication a montré en dernier (niveaux, achetabilité, détails demandés) :
      * {@link #refresh()} tourne à chaque image, les longs textes ne se refont que si ça change.
      */
-    private final java.util.Map<Object, String> painted = new java.util.HashMap<>();
+    private final Map<Object, String> painted = new HashMap<>();
 
     /** Une fenêtre qui garde seule le choix de la caméra libre : pour les vérifications. */
-    public DimensionWindow(Game game) {
-        this(game, new boolean[1]);
-    }
+    public DimensionWindow(Game game) { this(game, new boolean[1]); }
 
     /** Version 0.203 : range la ligne du chrono dans l'en-tête, sous la phrase ; elle se montre et se cache seule. */
-    public void setChrono(javafx.scene.Node chrono) {
-        head.getChildren().add(chrono);
-    }
+    public void setChrono(Node chrono) { head.getChildren().add(chrono); }
 
-    private DimensionWindow(Game game, boolean[] free) {
-        this(game, () -> free[0], value -> free[0] = value);
-    }
+    private DimensionWindow(Game game, boolean[] free) { this(game, () -> free[0], value -> free[0] = value); }
 
     /** La fenêtre des dimensions ; le choix de la caméra libre du volume se lit et s'écrit par ces deux fonctions. */
-    public DimensionWindow(Game game, java.util.function.BooleanSupplier freeCamera, java.util.function.Consumer<Boolean> setFreeCamera) {
+    public DimensionWindow(Game game, BooleanSupplier freeCamera, Consumer<Boolean> setFreeCamera) {
         this.game = game;
         this.freeCamera = freeCamera;
         this.setFreeCamera = setFreeCamera;
@@ -301,7 +303,7 @@ public final class DimensionWindow extends BorderPane {
         line.setAlignment(Pos.CENTER);
         head.setPadding(new Insets(0, 0, 10, 0));
         setTop(head);
-        // Au-dessus de la vue, l'étape du mélange (version 0.159), cachée dans les autres dimensions.
+        // Au-dessus de la vue, l'étape du mélange, cachée dans les autres dimensions.
         Labels.centered(mixStage, "-fx-font-size: 15px; -fx-font-weight: bold;");
         mixProgress.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
         mixBarRest.setStyle("-fx-background-color: #1a2032; -fx-background-radius: 0 4 4 0;");
@@ -324,10 +326,10 @@ public final class DimensionWindow extends BorderPane {
         mixStageBox.setAlignment(Pos.CENTER);
         mixStageBox.setPadding(new Insets(0, 0, 8, 0));
         CanvasPane holder = CanvasPane.filling(view);
-        // Le cadre (version 0.197) : un calque transparent aux clics, hors de la mise en page, de la taille de la boîte.
+        // Le cadre : un calque transparent aux clics, hors de la mise en page, de la taille de la boîte.
         frameLayer.setMouseTransparent(true);
         frameLayer.setManaged(false);
-        framed = new javafx.scene.layout.StackPane(holder, frameLayer);
+        framed = new StackPane(holder, frameLayer);
         frameLayer.widthProperty().bind(framed.widthProperty());
         frameLayer.heightProperty().bind(framed.heightProperty());
         VBox.setVgrow(framed, Priority.ALWAYS);
@@ -335,7 +337,7 @@ public final class DimensionWindow extends BorderPane {
         middle.setAlignment(Pos.CENTER);
         setCenter(middle);
         threshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
-        javafx.scene.layout.FlowPane row = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane row = new FlowPane(12, 10);
         row.setAlignment(Pos.CENTER);
         for (Game.LineUpgrade upgrade : Game.LineUpgrade.values()) {
             Button button = upgradeButton(250, () -> game.buyLine(upgrade));
@@ -346,7 +348,7 @@ public final class DimensionWindow extends BorderPane {
         linePane.setAlignment(Pos.CENTER);
         linePane.setPadding(new Insets(10, 0, 0, 0));
         planeHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
-        javafx.scene.layout.FlowPane planeRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane planeRow = new FlowPane(12, 10);
         planeRow.setAlignment(Pos.CENTER);
         for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) {
             Button button = upgradeButton(250, () -> game.buyPlane(upgrade));
@@ -385,7 +387,7 @@ public final class DimensionWindow extends BorderPane {
         durationHint.setMinHeight(38);
         durationHint.setPrefHeight(38);
         Labels.note(durationDetail, 820);
-        javafx.scene.layout.FlowPane durationRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane durationRow = new FlowPane(12, 10);
         durationRow.setAlignment(Pos.CENTER);
         for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values()) {
             Button button = upgradeButton(230, () -> game.buyDuration(upgrade));
@@ -409,7 +411,7 @@ public final class DimensionWindow extends BorderPane {
             loopSettings.setMetronome(!loopSettings.metronome());
             refresh();
         });
-        javafx.scene.layout.FlowPane loopRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane loopRow = new FlowPane(12, 10);
         loopRow.setAlignment(Pos.CENTER);
         for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values()) {
             Button button = upgradeButton(250, () -> game.buyLoop(upgrade));
@@ -427,7 +429,7 @@ public final class DimensionWindow extends BorderPane {
         braneHint.setMinHeight(38);
         braneHint.setPrefHeight(38);
         Labels.note(braneDetail, 820);
-        javafx.scene.layout.FlowPane braneRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane braneRow = new FlowPane(12, 10);
         braneRow.setAlignment(Pos.CENTER);
         for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values()) {
             Button button = upgradeButton(250, () -> game.buyBrane(upgrade));
@@ -445,7 +447,7 @@ public final class DimensionWindow extends BorderPane {
         clickerHint.setMinHeight(38);
         clickerHint.setPrefHeight(38);
         Labels.note(clickerDetail, 820);
-        javafx.scene.layout.FlowPane clickerRow = new javafx.scene.layout.FlowPane(10, 8);
+        FlowPane clickerRow = new FlowPane(10, 8);
         clickerRow.setAlignment(Pos.CENTER);
         for (Game.ClickerUpgrade upgrade : Game.ClickerUpgrade.values()) {
             // Huit sur deux lignes : la surface garde sa hauteur.
@@ -494,9 +496,7 @@ public final class DimensionWindow extends BorderPane {
                 view.tryGrid();
                 refresh();
             });
-            field.textProperty().addListener((obs, was, now) -> {
-                if (field.isFocused()) selectFromFields();
-            });
+            field.textProperty().addListener((obs, was, now) -> { if (field.isFocused()) selectFromFields(); });
             Label name = new Label(axes[axis]);
             gridAxisNames.add(name);
             gridAim.getChildren().addAll(name, field);
@@ -519,7 +519,7 @@ public final class DimensionWindow extends BorderPane {
             refresh();
         });
         gridAim.getChildren().addAll(gridTry, gridZoomOut, gridZoomIn);
-        javafx.scene.layout.FlowPane gridRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane gridRow = new FlowPane(12, 10);
         gridRow.setAlignment(Pos.CENTER);
         for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) {
             Button button = upgradeButton(230, () -> game.buyGrid(upgrade));
@@ -538,7 +538,7 @@ public final class DimensionWindow extends BorderPane {
         mirrorHint.setMinHeight(38);
         mirrorHint.setPrefHeight(38);
         Labels.note(mirrorDetail, 820);
-        javafx.scene.layout.FlowPane mirrorRow = new javafx.scene.layout.FlowPane(12, 10);
+        FlowPane mirrorRow = new FlowPane(12, 10);
         mirrorRow.setAlignment(Pos.CENTER);
         for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values()) {
             Button button = upgradeButton(230, () -> game.buyMirror(upgrade));
@@ -555,7 +555,7 @@ public final class DimensionWindow extends BorderPane {
         mixHint.setMaxWidth(860);
         mixHint.setAlignment(Pos.CENTER);
         Labels.note(mixDetail, 860);
-        javafx.scene.layout.FlowPane mixRow = new javafx.scene.layout.FlowPane(10, 8);
+        FlowPane mixRow = new FlowPane(10, 8);
         mixRow.setAlignment(Pos.CENTER);
         for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) {
             Button button = upgradeButton(210, () -> game.buyMix(upgrade));
@@ -575,11 +575,11 @@ public final class DimensionWindow extends BorderPane {
         loopSettings = settings == null ? new LocalLoopSettings() : settings;
     }
 
-    /** Ce qui suit un geste du joueur dans le mini-jeu (version 0.210), à la souris comme au clavier : son son. */
-    private java.util.function.IntConsumer onGesture = dimension -> { };
+    /** Ce qui suit un geste du joueur dans le mini-jeu, à la souris comme au clavier : son son. */
+    private IntConsumer onGesture = dimension -> { };
 
     /** Branche le son des gestes : la vue le reçoit pour la souris, la fenêtre le garde pour les touches. */
-    public void setOnGesture(java.util.function.IntConsumer gesture) {
+    public void setOnGesture(IntConsumer gesture) {
         onGesture = gesture == null ? dimension -> { } : gesture;
         view.setOnGesture(onGesture);
     }
@@ -592,7 +592,7 @@ public final class DimensionWindow extends BorderPane {
         button.setWrapText(true);
         button.setPrefWidth(width);
         button.setMinHeight(64);
-        button.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        button.setTextAlignment(TextAlignment.CENTER);
         button.setOnAction(event -> {
             buy.run();
             refresh();
@@ -604,7 +604,7 @@ public final class DimensionWindow extends BorderPane {
      * Vrai si l'automatisation joue la dimension montrée : son automatisme de jeu tourne (la visée, la plongée, l'appui) ;
      * pour la ligne, qui n'en a pas, un de ses achats automatiques.
      */
-    /** La cadence du palier qui joue cette dimension, en mots (version 0.209) : « toutes les 5 s », « sans attente ». */
+    /** La cadence du palier qui joue cette dimension, en mots : « toutes les 5 s », « sans attente ». */
     private String cadence(int dimension) {
         DimensionAutomation tier = game.dimensionPlayTier(dimension);
         return tier == null ? "" : tier.cadence();
@@ -620,8 +620,8 @@ public final class DimensionWindow extends BorderPane {
 
     /** Recopie la dimension montrée (de la ligne au mélange) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
-        // La palette des dimensions (version 0.197) : lue à chaque image ; changée, les étiquettes colorées sont reprises.
-        DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
+        // La palette des dimensions : lue à chaque image ; changée, les étiquettes colorées sont reprises.
+        DimensionPalette.setSkin(game.chosenSkin(SkinVisual.DIMENSION_PALETTE));
         if (changed(this, "palette " + DimensionPalette.skin())) restyle();
         autoBadge.setVisible(automatic());
         boolean mix = view.dimension() == Dimension.MIX && game.isMixOpen();
@@ -698,10 +698,8 @@ public final class DimensionWindow extends BorderPane {
         mixBarFill.setStyle("-fx-background-color: " + color(10) + "; -fx-background-radius: 4 0 0 4;");
     }
 
-    /** Le cadre des mini-jeux (version 0.197) : pour les vérifications, la marge que la boîte de l'arène laisse au cadre. */
-    public double frameInset() {
-        return framed.getPadding().getTop();
-    }
+    /** Le cadre des mini-jeux : pour les vérifications, la marge que la boîte de l'arène laisse au cadre. */
+    public double frameInset() { return framed.getPadding().getTop(); }
 
     /** Le style de l'étiquette des éclats de la dimension {@code number} (1 à 10), qui porte sa couleur : pour les vérifications. */
     public String shardsStyle(int number) {
@@ -721,9 +719,7 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Vrai si {@code key} diffère de ce que {@code node} a montré en dernier ; la retient pour la prochaine image. */
-    private boolean changed(Object node, String key) {
-        return !key.equals(painted.put(node, key));
-    }
+    private boolean changed(Object node, String key) { return !key.equals(painted.put(node, key)); }
 
     /** Le seuil d'une dimension : atteint, elle porte son rond vert ; sinon, ce qu'on a gagné sur ce qu'il faut. */
     private static void threshold(Label label, boolean reached, double earned, double limit, String gained, int number) {
@@ -737,9 +733,9 @@ public final class DimensionWindow extends BorderPane {
      * couleur selon qu'il s'achète. {@code unit} est le singulier de l'éclat, précédé d'une espace ; le pluriel ajoute un s.
      * Tout ce qui s'affiche ne dépend que des niveaux et de ce qui est achetable : la rangée ne se refait que s'ils changent.
      */
-    private <U extends Enum<U>> void paintUpgrades(java.util.Map<U, Button> buttons, java.util.function.Function<U, String> describe,
-            java.util.function.ToIntFunction<U> level, java.util.function.ToIntFunction<U> max, java.util.function.ToDoubleFunction<U> cost,
-            java.util.function.Predicate<U> canBuy, String unit, String accent) {
+    private <U extends Enum<U>> void paintUpgrades(Map<U, Button> buttons, Function<U, String> describe,
+            ToIntFunction<U> level, ToIntFunction<U> max, ToDoubleFunction<U> cost,
+            Predicate<U> canBuy, String unit, String accent) {
         StringBuilder key = new StringBuilder();
         for (U upgrade : buttons.keySet()) {
             key.append(level.applyAsInt(upgrade)).append(canBuy.test(upgrade) ? '+' : '-');
@@ -758,7 +754,7 @@ public final class DimensionWindow extends BorderPane {
 
     private void refreshPlane() {
         planeShards.setText("Facettes du plan : " + shardText(game.state().planeShards()));
-        // Le seuil du plan (version 0.120), comme celui de la ligne : son rond vert (version 0.139 : il n'ouvre plus de palier de la graine).
+        // Le seuil du plan, comme celui de la ligne : son rond vert (version 0.139 : il n'ouvre plus de palier de la graine).
         threshold(planeThreshold, game.isPlaneThresholdReached(), game.state().planeShardsEarned(), Game.PLANE_THRESHOLD, "facettes gagnées", 2);
         planeHint.setText("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser."
                 + (game.isDimensionAutoPlayed(2)
@@ -791,8 +787,8 @@ public final class DimensionWindow extends BorderPane {
                     + "Le cube vous rejette dans " + seconds(game.volumeTimeLeft()) + " s.";
             case LEAVING -> "Le cube vous rejette : les améliorations reviennent.";
         });
-        if (changed(volumeDetail, idle.ui.common.Detail.shown() + "/" + game.volumeLevel(Game.VolumeUpgrade.SPAWN) + "/" + game.volumeLevel(Game.VolumeUpgrade.COUNT))) {
-            volumeDetail.setText(idle.ui.common.Detail.only("Une plongée commence quand la vue arrive au centre du cube. Une "
+        if (changed(volumeDetail, Detail.shown() + "/" + game.volumeLevel(Game.VolumeUpgrade.SPAWN) + "/" + game.volumeLevel(Game.VolumeUpgrade.COUNT))) {
+            volumeDetail.setText(Detail.only("Une plongée commence quand la vue arrive au centre du cube. Une "
                 + "boule apparaît aussitôt, puis une toutes les " + seconds(game.volumeSpawnSeconds()) + " s, "
                 + game.volumeMaxBalls() + " à la fois au plus, entre " + shardText(Game.VOLUME_SPAWN_NEAR) + " et "
                 + shardText(Game.VOLUME_SPAWN_FAR) + " du centre. Le clic droit cueille la plus proche que traverse le "
@@ -831,10 +827,10 @@ public final class DimensionWindow extends BorderPane {
                 ? "Les spirales sont au centre : tenir plus ne rapporte plus rien. Relâchez pour gagner +" + shardText(game.durationPending()) + "."
                 : "Tenu " + seconds(game.durationHeldSeconds()) + " s sur " + seconds(game.durationMaxSeconds())
                         + " : relâcher maintenant donnerait +" + shardText(game.durationPending()) + ".");
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values()) levels.append('/').append(game.durationLevel(upgrade));
         if (changed(durationDetail, levels.toString())) {
-            durationDetail.setText(idle.ui.common.Detail.only("Chaque spirale fait " + shardText(game.durationTurnsPerSecond())
+            durationDetail.setText(Detail.only("Chaque spirale fait " + shardText(game.durationTurnsPerSecond())
                 + " tour par seconde tenue, jusqu'au centre, " + shardText(game.durationTurnsMax()) + " tours en "
                 + seconds(game.durationMaxSeconds()) + " s. Au relâchement, chaque tour vaut un de plus que le précédent : n tours "
                 + "donnent (n² + n) ÷ 2 fois la valeur (" + shardText(game.durationValue()) + "), pour chacune des "
@@ -857,7 +853,7 @@ public final class DimensionWindow extends BorderPane {
         loopShards.setText("Nœuds de la boucle : " + shardText(game.state().loopShards()));
         threshold(loopThreshold, game.isLoopThresholdReached(), game.state().loopShardsEarned(), Game.LOOP_THRESHOLD, "nœuds gagnés", 5);
         Game.LoopHit last = game.lastLoopHit();
-        String lastText = game.loopHits() == 0 && last == Game.LoopHit.MISS ? "" : " Dernier clic : " + DimensionView.hitWord(last).toLowerCase(java.util.Locale.ROOT) + ".";
+        String lastText = game.loopHits() == 0 && last == Game.LoopHit.MISS ? "" : " Dernier clic : " + DimensionView.hitWord(last).toLowerCase(Locale.ROOT) + ".";
         loopHint.setText(game.isDimensionAutoPlayed(5)
                 ? "Rythme automatique : il clique « bien » au passage d'un point dans une zone, sur chaque cercle, un clic " + cadence(5) + " au plus. "
                         + "Vos clics comptent en plus ; les améliorations s'achètent quand même."
@@ -866,10 +862,10 @@ public final class DimensionWindow extends BorderPane {
                         + seconds(Game.LOOP_COOLDOWN) + " s." + lastText);
         metronomeButton.setText(loopSettings.metronome() ? "Métronome : activé (un tic à chaque centre de zone du premier cercle)"
                 : "Métronome : coupé");
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values()) levels.append('/').append(game.loopLevel(upgrade));
         if (changed(loopDetail, levels.toString())) {
-            loopDetail.setText(idle.ui.common.Detail.only("Chaque point fait un tour en " + seconds(1 / game.loopTurnsPerSecond())
+            loopDetail.setText(Detail.only("Chaque point fait un tour en " + seconds(1 / game.loopTurnsPerSecond())
                 + " s. Une zone couvre " + Math.round(game.loopZoneHalfWidth() * 200) + " % de son cercle : au centre, "
                 + Math.round(Game.LOOP_EXCELLENT * 100) + " % de sa largeur, « excellent » donne "
                 + shardText(game.loopReward(Game.LoopHit.EXCELLENT)) + " nœuds ; jusqu'à " + Math.round(Game.LOOP_GOOD * 100)
@@ -907,10 +903,10 @@ public final class DimensionWindow extends BorderPane {
                 ? "Une onde court déjà : attendez qu'elle s'éteigne pour tirer de nouveau." + last
                 : "Appuyez sur la membrane, glissez pour la tendre (plus loin, plus fort), relâchez : l'onde part du point "
                         + "appuyé et rebondit sur les bords. Chaque point qu'elle touche donne des ondes." + last);
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values()) levels.append('/').append(game.braneLevel(upgrade));
         if (changed(braneDetail, levels.toString())) {
-            braneDetail.setText(idle.ui.common.Detail.only("La membrane fait 2 de côté. Une onde tirée à fond porte à "
+            braneDetail.setText(Detail.only("La membrane fait 2 de côté. Une onde tirée à fond porte à "
                 + reach(game.braneMaxReach()) + ", à peine tirée à " + Math.round(Game.BRANE_MIN_PULL * 100) + " % de cela ; un glissé de "
                 + reach(DimensionView.BRANE_FULL_PULL) + " la tire à fond. Son front avance de " + reach(Game.BRANE_WAVE_SPEED)
                 + " par seconde et rebondit sur les bords : chaque passage sur un point compte, en direct puis après chaque "
@@ -940,20 +936,20 @@ public final class DimensionWindow extends BorderPane {
                 "étincelles gagnées", 7);
         String last = game.clickerClicks() == 0 ? "" : " Dernier clic : +" + shardText(game.clickerLastGain()) + ".";
         String zones = game.areClickerZonesUnlocked()
-                ? " Dans une zone, ×" + idle.ui.common.ElementText.number(game.clickerZoneFactor()) + ", et davantage là où elles se superposent."
+                ? " Dans une zone, ×" + ElementText.number(game.clickerZoneFactor()) + ", et davantage là où elles se superposent."
                 : "";
         clickerHint.setText(game.isDimensionAutoPlayed(7)
-                ? "Clics automatiques : " + idle.ui.common.ElementText.number(game.clickerAutoRate()) + " clics par seconde au "
+                ? "Clics automatiques : " + ElementText.number(game.clickerAutoRate()) + " clics par seconde au "
                         + "meilleur endroit (cadence " + view.cadenceText(game.clickerRate()) + "). Vos clics comptent en plus ; "
                         + "les améliorations s'achètent quand même." + last
                 : "Cliquez la surface : chaque clic donne des étincelles, d'autant plus que vous cliquez vite (cadence "
                         + view.cadenceText(game.clickerRate()) + ")." + zones + last);
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.ClickerUpgrade upgrade : Game.ClickerUpgrade.values()) levels.append('/').append(game.clickerLevel(upgrade));
         if (changed(clickerDetail, levels.toString())) {
-            clickerDetail.setText(idle.ui.common.Detail.only("Un clic donne " + shardText(game.clickerValue()) + " étincelle"
+            clickerDetail.setText(Detail.only("Un clic donne " + shardText(game.clickerValue()) + " étincelle"
                 + (game.clickerValue() >= 2 ? "s" : "") + ", multipliée par la cadence : +"
-                + idle.ui.common.ElementText.number(game.clickerSpeedStep() * 100) + " % par clic par seconde, comptés sur les "
+                + ElementText.number(game.clickerSpeedStep() * 100) + " % par clic par seconde, comptés sur les "
                 + seconds(Game.CLICKER_WINDOW) + " dernières secondes, jusqu'à " + Math.round(Game.CLICKER_MAX_RATE)
                 + " clics par seconde (" + Format.multiplier(game.clickerSpeedFactor(Game.CLICKER_MAX_RATE)) + ")."
                 + (game.areClickerZonesUnlocked()
@@ -1006,10 +1002,10 @@ public final class DimensionWindow extends BorderPane {
                         + "une grande grille ils ne trouvent presque jamais, réduite souvent. Vos essais comptent en plus." + last
                 : how + " (la molette ou les flèches haut et bas changent de couche) : plus elle est près d'un point caché, "
                         + "plus elle donne de repères ; celle qui le contient le trouve, " + Format.multiplier(Game.GRID_FOUND) + "." + last);
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) levels.append('/').append(game.gridLevel(upgrade));
         if (changed(gridDetail, levels.toString())) {
-            gridDetail.setText(idle.ui.common.Detail.only("La grille compte " + size + " cases ; " + game.gridPointCount() + " point"
+            gridDetail.setText(Detail.only("La grille compte " + size + " cases ; " + game.gridPointCount() + " point"
                 + (game.gridPointCount() > 1 ? "s s'y cachent" : " s'y cache") + ", et chacun n'a que " + game.gridAttempts()
                 + (game.gridAttempts() > 1 ? " essais" : " essai") + " : un essai vise le point le plus proche, et une fois ses "
                 + "essais épuisés, ou trouvé, le point se cache ailleurs. Un essai donne " + shardText(game.gridValue())
@@ -1017,7 +1013,7 @@ public final class DimensionWindow extends BorderPane {
                 + Format.multiplier(game.gridProximityFactor(n * Math.sqrt(3))) + " au plus loin, "
                 + Format.multiplier(game.gridProximityFactor(0)) + " sur le point ; la case du point le trouve ("
                 + Format.multiplier(Game.GRID_FOUND) + "). Après chaque essai, " + seconds(Game.GRID_COOLDOWN)
-                + " s d'attente. La réduction divise la grille par " + idle.ui.common.ElementText.number(1 / Game.GRID_SHRINK)
+                + " s d'attente. La réduction divise la grille par " + ElementText.number(1 / Game.GRID_SHRINK)
                 + " par niveau, jusqu'à " + Game.GRID_MIN_CELLS + " cases par côté : moins de cases, plus de chances. "
                 + revealText(game.gridReveal())
                 + " Les repères, le seuil et les améliorations de la grille traversent les univers ; le seuil marque la "
@@ -1055,7 +1051,7 @@ public final class DimensionWindow extends BorderPane {
         StringBuilder text = new StringBuilder(" Dernier essai : ").append(probe.found() ? "trouvé ! " : "")
                 .append('+').append(shardText(probe.gain()));
         int reveal = game.gridReveal();
-        if (reveal >= 1) text.append(", à ").append(idle.ui.common.ElementText.number(probe.distance())).append(" cases du point visé");
+        if (reveal >= 1) text.append(", à ").append(ElementText.number(probe.distance())).append(" cases du point visé");
         int[] revealed = view.gridRevealed();
         if (reveal >= 2 && revealed[0] >= 0) text.append(", dans la couche z = ").append(revealed[0]);
         if (reveal >= 3 && revealed[1] >= 0) text.append(", la colonne x = ").append(revealed[1]);
@@ -1082,7 +1078,7 @@ public final class DimensionWindow extends BorderPane {
             case DIVISION -> "Réduction de la grille : " + Format.whole(game.gridDivisions()) + " → "
                     + Format.whole(Game.cellsAt(level + 1)) + " cases par côté";
             case GAIN -> "Gain : chaque essai vaut " + shardText(game.gridValue()) + " → "
-                    + shardText(game.gridValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " repères, avant la proximité";
+                    + shardText(game.gridValue() + game.hadronBoost(Hadron.OMEGA)) + " repères, avant la proximité";
             case REVEAL -> switch (level) {
                 case 0 -> "Affichage du point : rien que le gain → la distance de chaque essai";
                 case 1 -> "Affichage du point : la distance → aussi la couche du point visé";
@@ -1126,14 +1122,14 @@ public final class DimensionWindow extends BorderPane {
                             + game.mirrorPosition() + " / " + game.mirrorLength() + "." + last;
                     case PAUSE -> "Le motif suivant arrive." + last;
                 });
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values()) levels.append('/').append(game.mirrorLevel(upgrade));
         levels.append('/').append(game.mirrorGrowth());
         if (changed(mirrorDetail, levels.toString())) {
-            mirrorDetail.setText(idle.ui.common.Detail.only("Le plateau fait " + game.mirrorColumns() + " × " + game.mirrorRows()
+            mirrorDetail.setText(Detail.only("Le plateau fait " + game.mirrorColumns() + " × " + game.mirrorRows()
                 + " cases, coupé au milieu par le miroir. Chaque case du motif reste allumée " + seconds(game.mirrorShowSeconds())
                 + " s ; ensuite, le motif s'éteint et attend. Réussi, un motif de L cases donne " + shardText(game.mirrorValue())
-                + " × L × " + idle.ui.common.ElementText.number(game.mirrorLengthFactor()) + " puissance (L − " + Game.MIRROR_START
+                + " × L × " + ElementText.number(game.mirrorLengthFactor()) + " puissance (L − " + Game.MIRROR_START
                 + ") reflets (" + shardText(game.mirrorReward(game.mirrorLength())) + " pour le motif en cours), et le suivant a une "
                 + "case de plus, jusqu'à " + Game.MIRROR_MAX + " ; manqué, il donne un quart de reflet par case juste, et le suivant "
                 + "a une case de moins, jamais moins de " + Game.MIRROR_START + ". "
@@ -1156,7 +1152,7 @@ public final class DimensionWindow extends BorderPane {
 
     /** « Étape 4 sur 9 : ligne + plan + volume + durée ». */
     static String mixStageText(int stage) {
-        return "Étape " + stage + " sur " + Game.MIX_STAGES + " : " + String.join(" + ", java.util.Arrays.asList(MIX_NAMES).subList(0, stage));
+        return "Étape " + stage + " sur " + Game.MIX_STAGES + " : " + String.join(" + ", Arrays.asList(MIX_NAMES).subList(0, stage));
     }
 
     /**
@@ -1184,41 +1180,41 @@ public final class DimensionWindow extends BorderPane {
         threshold(mixThreshold, game.isDimensionThresholdReached(10), game.state().mixShardsEarned(), Game.MIX_THRESHOLD,
                 "fragments gagnés", 10);
         StringBuilder info = new StringBuilder("Malus " + percentOf(game.mixMalus()) + " · étape "
-                + Format.multiplier(game.mixStageMultiplier()) + " · une graduation vaut " + idle.ui.common.ElementText.number(game.mixValue()));
+                + Format.multiplier(game.mixStageMultiplier()) + " · une graduation vaut " + ElementText.number(game.mixValue()));
         if (game.isMixing(4)) {
             info.append(" · charge ").append(shardText(game.mixPot())).append(' ').append(Format.multiplier(game.mixChargeMultiplier()));
         }
         if (game.isMixing(7)) {
-            info.append(" · cadence ").append(idle.ui.common.ElementText.number(game.mixClickRate())).append(" clics/s ")
+            info.append(" · cadence ").append(ElementText.number(game.mixClickRate())).append(" clics/s ")
                     .append(Format.multiplier(game.mixClickMultiplier()));
         }
         if (game.isMixing(8)) info.append(" · trésors ").append(game.mixTreasures());
         if (game.isMixing(9)) info.append(" · paires de suite ").append(game.mixPairStreak());
-        if (game.mixLastGain() > 0) info.append(" · dernier gain +").append(idle.ui.common.ElementText.number(game.mixLastGain()));
+        if (game.mixLastGain() > 0) info.append(" · dernier gain +").append(ElementText.number(game.mixLastGain()));
         mixInfo.setText(info.toString());
         mixHint.setText((game.isDimensionAutoPlayed(10)
                 ? "Mélange automatique : " + cadence(10) + ", il mène le point vers l'éclat le plus proche, plonge à sa profondeur, tient et relâche "
                         + "la charge en rythme, clique et passe seul à l'étape suivante. Vous pouvez jouer avec lui. "
                 : "") + mixHintFor(stage));
-        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown()).append('/').append(stage);
+        StringBuilder levels = new StringBuilder().append(Detail.shown()).append('/').append(stage);
         for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) levels.append('/').append(game.mixLevel(upgrade));
         if (changed(mixDetail, levels.toString())) {
-            mixDetail.setText(idle.ui.common.Detail.only("Chaque graduation que passe la boule vaut le gain (" + (1 + game.mixLevel(Game.MixUpgrade.GAIN))
+            mixDetail.setText(Detail.only("Chaque graduation que passe la boule vaut le gain (" + (1 + game.mixLevel(Game.MixUpgrade.GAIN))
                     + ", fois les omégas), multiplié par le malus (" + percentOf(game.mixMalus()) + ", au départ de chaque étape "
                     + percentOf(Game.MIX_MALUS) + ") et par les dimensions mêlées (+" + percent(Game.MIX_STAGE_BONUS) + " chacune après la "
                     + "ligne, ici " + Format.multiplier(game.mixStageMultiplier()) + "). "
                     + (stage >= 2 ? "Un éclat vaut " + Math.round(Game.MIX_SHARD_VALUE) + " graduations ; " + Game.MIX_MAX_SHARDS
                             + " au plus sur l'arène. " : "")
-                    + (stage >= 3 ? "Un éclat profond vaut jusqu'au double ; le point le ramasse à " + idle.ui.common.ElementText.number(game.mixDepthTolerance())
+                    + (stage >= 3 ? "Un éclat profond vaut jusqu'au double ; le point le ramasse à " + ElementText.number(game.mixDepthTolerance())
                             + " de profondeur près. " : "")
                     + (stage >= 4 ? "La charge monte jusqu'à " + Format.multiplier(1 + 1 + Game.MIX_CHARGE_STEP * game.mixLevel(Game.MixUpgrade.CHARGE))
                             + " en " + seconds(Game.MIX_CHARGE_SECONDS) + " s tenues. " : "")
                     + (stage >= 5 ? "Relâcher dans la zone du cercle : excellent ×3, bien ×1,5, mauvais ×1, hors de la zone ×0,5. " : "")
-                    + (stage >= 6 ? "L'onde porte à " + idle.ui.common.ElementText.number(game.mixWaveReach()) + " et donne ×"
-                            + idle.ui.common.ElementText.number(Game.MIX_WAVE_BOUNCE).replace('.', ',') + " par rebond, tout de suite. " : "")
+                    + (stage >= 6 ? "L'onde porte à " + ElementText.number(game.mixWaveReach()) + " et donne ×"
+                            + ElementText.number(Game.MIX_WAVE_BOUNCE).replace('.', ',') + " par rebond, tout de suite. " : "")
                     + (stage >= 7 ? "Chaque clic par seconde ajoute " + percent(Game.MIX_CLICK) + " (" + Math.round(Game.MIX_CLICK_MAX)
                             + " au plus) ; " + game.mixMaxZones() + (game.mixMaxZones() > 1 ? " zones ×2" : " zone ×2") + " à la fois au plus. " : "")
-                    + (stage >= 8 ? "Le trésor vaut " + idle.ui.common.ElementText.number(game.mixTreasureValue()) + " graduations. " : "")
+                    + (stage >= 8 ? "Le trésor vaut " + ElementText.number(game.mixTreasureValue()) + " graduations. " : "")
                     + (stage >= 9 ? "Un reflet ramassé juste après son éclat vaut " + Format.multiplier(game.mixPairFactor())
                             + ", +" + percent(Game.MIX_PAIR_STREAK) + " par paire de suite. " : "")
                     + "Passer à l'étape suivante remet à zéro les améliorations du mélange ; les fragments, eux, restent, et paient "
@@ -1286,9 +1282,7 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Une part en pour cent : « 1 % », « 2,56 % » (deux décimales au plus). */
-    private static String percentOf(double share) {
-        return idle.ui.common.ElementText.number(share * 100).replace('.', ',') + " %";
-    }
+    private static String percentOf(double share) { return ElementText.number(share * 100).replace('.', ',') + " %"; }
 
     /** Une amélioration du mélange : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.MixUpgrade upgrade) {
@@ -1298,15 +1292,15 @@ public final class DimensionWindow extends BorderPane {
             case MALUS -> "il garde " + percentOf(game.mixMalus()) + " → " + percentOf(Math.min(1, game.mixMalus() * Game.MIX_MALUS_STEP));
             case TICKS -> game.mixTicks() + " → " + (game.mixTicks() + 1) + " sur la ligne";
             case SPEED -> "+" + percent(Game.MIX_CURSOR_STEP * level) + " → +" + percent(Game.MIX_CURSOR_STEP * (level + 1));
-            case DEPTH -> "à " + idle.ui.common.ElementText.number(game.mixDepthTolerance()) + " près → "
-                    + idle.ui.common.ElementText.number(game.mixDepthTolerance() + Game.MIX_DEPTH_STEP);
+            case DEPTH -> "à " + ElementText.number(game.mixDepthTolerance()) + " près → "
+                    + ElementText.number(game.mixDepthTolerance() + Game.MIX_DEPTH_STEP);
             case CHARGE -> "jusqu'à " + Format.multiplier(2 + Game.MIX_CHARGE_STEP * level) + " → " + Format.multiplier(2 + Game.MIX_CHARGE_STEP * (level + 1));
             case RHYTHM -> "zone +" + percent(Game.MIX_RING_STEP * level) + " → +" + percent(Game.MIX_RING_STEP * (level + 1));
-            case REACH -> "portée " + idle.ui.common.ElementText.number(game.mixWaveReach()) + " → "
-                    + idle.ui.common.ElementText.number(Game.MIX_WAVE_REACH * (1 + Game.MIX_WAVE_STEP * (level + 1)));
+            case REACH -> "portée " + ElementText.number(game.mixWaveReach()) + " → "
+                    + ElementText.number(Game.MIX_WAVE_REACH * (1 + Game.MIX_WAVE_STEP * (level + 1)));
             case ZONES -> (1 + level) + " → " + (2 + level) + " à la fois";
-            case TREASURE -> idle.ui.common.ElementText.number(game.mixTreasureValue()) + " → "
-                    + idle.ui.common.ElementText.number(Game.MIX_TREASURE * (1 + Game.MIX_TREASURE_STEP * (level + 1))) + " graduations";
+            case TREASURE -> ElementText.number(game.mixTreasureValue()) + " → "
+                    + ElementText.number(Game.MIX_TREASURE * (1 + Game.MIX_TREASURE_STEP * (level + 1))) + " graduations";
             case PAIRS -> Format.multiplier(game.mixPairFactor()) + " → " + Format.multiplier(game.mixPairFactor() + Game.MIX_PAIR_STEP);
         };
     }
@@ -1316,14 +1310,14 @@ public final class DimensionWindow extends BorderPane {
         int level = game.mirrorLevel(upgrade);
         return switch (upgrade) {
             case GAIN -> {
-                double omega = game.hadronBoost(idle.core.collider.Hadron.OMEGA);
+                double omega = game.hadronBoost(Hadron.OMEGA);
                 yield "Gain : chaque case d'un motif réussi vaut " + shardText((1 + level) * omega) + " → "
                         + shardText((2 + level) * omega) + " reflets, avant le plateau";
             }
             case LENGTH -> "Multiplicateur de longueur : " + Format.multiplier(game.mirrorLengthFactor()) + " → "
                     + Format.multiplier(game.mirrorLengthFactor() + Game.MIRROR_LENGTH_STEP) + " par case au-delà de " + Game.MIRROR_START;
-            case MEMORY -> "Temps de mémorisation : " + idle.ui.common.ElementText.number(game.mirrorShowSeconds()) + " s → "
-                    + idle.ui.common.ElementText.number(game.mirrorShowSeconds() + Game.MIRROR_SHOW_STEP) + " s par case";
+            case MEMORY -> "Temps de mémorisation : " + ElementText.number(game.mirrorShowSeconds()) + " s → "
+                    + ElementText.number(game.mirrorShowSeconds() + Game.MIRROR_SHOW_STEP) + " s par case";
             case MISTAKES -> "Seconde chance : " + level + (level > 1 ? " erreurs permises" : " erreur permise") + " → " + (level + 1);
             case BOARD -> "Plateau plus vaste : " + game.mirrorMaxGrowth() + " agrandissements permis → " + (game.mirrorMaxGrowth() + 1)
                     + ", jusqu'à " + (2 * (Game.MIRROR_HALF + game.mirrorMaxGrowth() + 1)) + " × "
@@ -1336,16 +1330,16 @@ public final class DimensionWindow extends BorderPane {
         int level = game.clickerLevel(upgrade);
         String text = switch (upgrade) {
             case GAIN -> "Gain : chaque clic vaut " + shardText(game.clickerValue()) + " → "
-                    + shardText(game.clickerValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " étincelles";
-            case SPEED -> "Multiplicateur de cadence : +" + idle.ui.common.ElementText.number(game.clickerSpeedStep() * 100) + " % → +"
-                    + idle.ui.common.ElementText.number((game.clickerSpeedStep() + Game.CLICKER_SPEED_STEP) * 100) + " % par clic par seconde";
+                    + shardText(game.clickerValue() + game.hadronBoost(Hadron.OMEGA)) + " étincelles";
+            case SPEED -> "Multiplicateur de cadence : +" + ElementText.number(game.clickerSpeedStep() * 100) + " % → +"
+                    + ElementText.number((game.clickerSpeedStep() + Game.CLICKER_SPEED_STEP) * 100) + " % par clic par seconde";
             case ZONES -> level > 0 ? "Zones ×2 : débloquées" : "Zones ×2 : des zones apparaissent, un clic dedans rapporte double";
             case ZONE_MULT -> "Multiplicateur des zones : " + Format.multiplier(game.clickerZoneFactor()) + " → "
                     + Format.multiplier(game.clickerZoneFactor() + Game.CLICKER_ZONE_STEP);
             case ZONE_TIME -> "Durée des zones : " + seconds(game.clickerZoneSeconds()) + " s → "
                     + seconds(game.clickerZoneSeconds() + Game.CLICKER_ZONE_SECONDS_STEP) + " s";
             case ZONE_COUNT -> "Nombre de zones : " + (1 + level) + " à la fois → " + (2 + level);
-            case ZONE_SIZE -> "Taille des zones (×" + idle.ui.common.ElementText.number(1 + Game.CLICKER_ZONE_SIZE_STEP * level) + ") : "
+            case ZONE_SIZE -> "Taille des zones (×" + ElementText.number(1 + Game.CLICKER_ZONE_SIZE_STEP * level) + ") : "
                     + percent(Game.CLICKER_ZONE_SIZE_STEP) + " plus grandes";
             case STACK -> "Zones superposées : chaque zone de plus " + Format.multiplier(game.clickerStackFactor()) + " → "
                     + Format.multiplier(game.clickerStackFactor() + Game.CLICKER_STACK_STEP);
@@ -1354,16 +1348,14 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Une longueur sur la membrane (de côté 2) : deux décimales. */
-    private static String reach(double value) {
-        return String.format(java.util.Locale.ROOT, "%.2f", value);
-    }
+    private static String reach(double value) { return String.format(Locale.ROOT, "%.2f", value); }
 
     /** Une amélioration de la brane : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.BraneUpgrade upgrade) {
         int level = game.braneLevel(upgrade);
         return switch (upgrade) {
             case GAIN -> "Gain : chaque passage vaut " + shardText(game.braneValue()) + " → "
-                    + shardText(game.braneValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " ondes";
+                    + shardText(game.braneValue() + game.hadronBoost(Hadron.OMEGA)) + " ondes";
             case ELASTICITY -> "Élasticité : l'onde porte à fond dès " + Math.round(100 / (1 + Game.BRANE_ELASTIC_STEP * level))
                     + " % de tirée → " + Math.round(100 / (1 + Game.BRANE_ELASTIC_STEP * (level + 1))) + " %";
             case SIZE -> "Grandeur des ondes : portée à fond " + reach(game.braneMaxReach()) + " → "
@@ -1379,15 +1371,15 @@ public final class DimensionWindow extends BorderPane {
     private String loopKeysText() {
         StringBuilder keys = new StringBuilder();
         for (int ring = 0; ring < game.loopRings(); ring++) {
-            javafx.scene.input.KeyCode key = loopSettings.loopKey(ring);
-            keys.append(ring == 0 ? "" : ", ").append(key == null ? "aucune" : idle.ui.common.Detail.keyName(key));
+            KeyCode key = loopSettings.loopKey(ring);
+            keys.append(ring == 0 ? "" : ", ").append(key == null ? "aucune" : Detail.keyName(key));
         }
         return keys.toString();
     }
 
     /** Une amélioration de la boucle : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.LoopUpgrade upgrade) {
-        double value = game.loopValue(), next = value + game.hadronBoost(idle.core.collider.Hadron.OMEGA);
+        double value = game.loopValue(), next = value + game.hadronBoost(Hadron.OMEGA);
         int precision = game.loopLevel(Game.LoopUpgrade.PRECISION);
         return switch (upgrade) {
             case SPEED -> "Rapidité : un tour en " + seconds(1 / game.loopTurnsPerSecond()) + " s → "
@@ -1401,9 +1393,9 @@ public final class DimensionWindow extends BorderPane {
             case SIZE -> "Taille des zones (×" + shardText(game.loopZoneHalfWidth() / Game.LOOP_ZONE_HALF) + ") : "
                     + percent(Game.LOOP_SIZE_STEP) + " plus larges";
             case RINGS -> {
-                javafx.scene.input.KeyCode key = loopSettings.loopKey(Math.min(Game.MAX_RINGS - 1, game.loopRings()));
+                KeyCode key = loopSettings.loopKey(Math.min(Game.MAX_RINGS - 1, game.loopRings()));
                 yield "Cercles : " + game.loopRings() + ", un de plus"
-                        + (game.loopRings() < Game.MAX_RINGS && key != null ? ", sur la touche " + idle.ui.common.Detail.keyName(key) : "");
+                        + (game.loopRings() < Game.MAX_RINGS && key != null ? ", sur la touche " + Detail.keyName(key) : "");
             }
         };
     }
@@ -1413,7 +1405,7 @@ public final class DimensionWindow extends BorderPane {
         return switch (upgrade) {
             case SPEED -> "Vitesse des spirales : " + shardText(game.durationTurnsPerSecond()) + " tour par seconde, " + percent(Game.DURATION_SPEED_STEP) + " plus vite";
             case COUNT -> "Spirales : " + game.durationSpirals() + ", une de plus qui avance en même temps";
-            case VALUE -> "Valeur : le premier tour donne " + shardText(game.durationValue()) + " → " + shardText(game.durationValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA));
+            case VALUE -> "Valeur : le premier tour donne " + shardText(game.durationValue()) + " → " + shardText(game.durationValue() + game.hadronBoost(Hadron.OMEGA));
             case TIME -> "Temps au plus : " + seconds(game.durationMaxSeconds()) + " s → "
                     + seconds(game.durationMaxSeconds() + Game.DURATION_TIME_STEP) + " s, des tours de plus";
         };
@@ -1424,7 +1416,7 @@ public final class DimensionWindow extends BorderPane {
         return switch (upgrade) {
             case TIME -> "Durée : " + seconds(game.volumeDiveSeconds()) + " s par plongée → "
                     + seconds(game.volumeDiveSeconds() + Game.VOLUME_DIVE_STEP) + " s";
-            case VALUE -> "Valeur : chaque boule cueillie donne " + shardText(game.volumeValue()) + " → " + shardText(game.volumeValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA));
+            case VALUE -> "Valeur : chaque boule cueillie donne " + shardText(game.volumeValue()) + " → " + shardText(game.volumeValue() + game.hadronBoost(Hadron.OMEGA));
             case SPAWN -> "Réapparition : une boule toutes les " + seconds(game.volumeSpawnSeconds()) + " s, 15 % plus vite";
             case COUNT -> "Nombre : " + game.volumeMaxBalls() + " boules à la fois au plus, une de plus";
             case SIZE -> "Taille des boules (×" + shardText(game.volumeBallRadius() / Game.VOLUME_BALL_RADIUS)
@@ -1435,7 +1427,7 @@ public final class DimensionWindow extends BorderPane {
     /** Une amélioration du plan : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.PlaneUpgrade upgrade) {
         return switch (upgrade) {
-            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " facettes";
+            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + game.hadronBoost(Hadron.OMEGA)) + " facettes";
             case SPAWN -> "Réapparition : un éclat toutes les " + seconds(game.planeSpawnSeconds()) + " s, 15 % plus vite";
             case COUNT -> "Nombre : " + game.planeMaxShards() + " éclats à la fois au plus, un de plus";
             case SPEED -> "Vitesse du point : 20 % plus vite (×" + shardText(game.planeSpeed() / Game.PLANE_SPEED) + ")";
@@ -1443,14 +1435,10 @@ public final class DimensionWindow extends BorderPane {
         };
     }
 
-    private static String seconds(double value) {
-        return String.format(java.util.Locale.ROOT, "%.1f", value);
-    }
+    private static String seconds(double value) { return String.format(Locale.ROOT, "%.1f", value); }
 
     /** Un pas d'amélioration en pourcentage : 0,25 donne « 25 % ». */
-    private static String percent(double step) {
-        return Math.round(step * 100) + " %";
-    }
+    private static String percent(double step) { return Math.round(step * 100) + " %"; }
 
     /**
      * Une touche, quand la fenêtre d'une dimension est ouverte : dans le plan, Z Q S D et les flèches déplacent le point ;
@@ -1459,9 +1447,9 @@ public final class DimensionWindow extends BorderPane {
      * le font remonter ou plonger, la barre d'espace tient la charge. Vrai si la touche a servi (le reste du jeu ne la
      * voit pas).
      */
-    public boolean key(javafx.scene.input.KeyCode code, boolean down) {
+    public boolean key(KeyCode code, boolean down) {
         if (!isVisible()) return false;
-        // La boucle (version 0.153) : la touche d'un cercle le joue à l'appui ; tenue, elle ne le rejoue pas. Les touches
+        // La boucle : la touche d'un cercle le joue à l'appui ; tenue, elle ne le rejoue pas. Les touches
         // des cercles pas encore achetés ne servent à rien, mais ne vont pas aux raccourcis : la fenêtre les garde.
         DimensionView loop = shown(Dimension.LOOP);
         if (loop != null && game.isLoopOpen()) {
@@ -1472,24 +1460,24 @@ public final class DimensionWindow extends BorderPane {
                 return true;
             }
         }
-        // La grille (version 0.156) : les flèches haut et bas changent de couche.
+        // La grille : les flèches haut et bas changent de couche.
         DimensionView grid = shown(Dimension.GRID);
-        if (grid != null && game.isGridOpen() && (code == javafx.scene.input.KeyCode.UP || code == javafx.scene.input.KeyCode.DOWN)) {
+        if (grid != null && game.isGridOpen() && (code == KeyCode.UP || code == KeyCode.DOWN)) {
             if (down) {
-                grid.shiftGridLayer(code == javafx.scene.input.KeyCode.UP ? 1 : -1);
+                grid.shiftGridLayer(code == KeyCode.UP ? 1 : -1);
                 refresh();
             }
             return true;
         }
-        // Le volume (version 0.128) : en caméra libre, Échap rend la souris retenue ; la plongée continue.
+        // Le volume : en caméra libre, Échap rend la souris retenue ; la plongée continue.
         DimensionView volume = shown(Dimension.VOLUME);
-        if (volume != null && code == javafx.scene.input.KeyCode.ESCAPE && volume.mouseHeld()) {
+        if (volume != null && code == KeyCode.ESCAPE && volume.mouseHeld()) {
             if (down) volume.releaseMouse();
             return true;
         }
-        // La durée (version 0.134) : la barre d'espace tient le bouton du milieu, comme la souris.
+        // La durée : la barre d'espace tient le bouton du milieu, comme la souris.
         DimensionView duration = shown(Dimension.DURATION);
-        if (duration != null && code == javafx.scene.input.KeyCode.SPACE && game.isDurationOpen()) {
+        if (duration != null && code == KeyCode.SPACE && game.isDurationOpen()) {
             if (down && !spaceHeld) {
                 spaceHeld = true;
                 if (game.holdDuration()) onGesture.accept(Dimension.DURATION.number());
@@ -1503,9 +1491,7 @@ public final class DimensionWindow extends BorderPane {
         if (view.dimension() != Dimension.PLANE || !game.isPlaneOpen()) return false;
         switch (code) {
             case Z, Q, S, D, UP, DOWN, LEFT, RIGHT -> { }
-            default -> {
-                return false;
-            }
+            default -> { return false; }
         }
         if (down) held.add(code);
         else held.remove(code);
@@ -1514,15 +1500,13 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** La vue de la fenêtre si elle montre la dimension {@code dimension}, {@code null} sinon. */
-    private DimensionView shown(Dimension dimension) {
-        return view.dimension() == dimension ? view : null;
-    }
+    private DimensionView shown(Dimension dimension) { return view.dimension() == dimension ? view : null; }
 
     /**
-     * Une touche dans le mélange (version 0.159) : Z Q S D et les flèches mènent le point (dès le plan), A le fait
+     * Une touche dans le mélange : Z Q S D et les flèches mènent le point (dès le plan), A le fait
      * remonter et E plonger (dès le volume), la barre d'espace tient la charge (dès la durée). Vrai si elle a servi.
      */
-    private boolean mixKey(javafx.scene.input.KeyCode code, boolean down) {
+    private boolean mixKey(KeyCode code, boolean down) {
         if (!game.isMixOpen()) return false;
         switch (code) {
             case Z, Q, S, D, UP, DOWN, LEFT, RIGHT -> {
@@ -1535,7 +1519,7 @@ public final class DimensionWindow extends BorderPane {
             }
             case A, E -> {
                 if (!game.isMixing(3)) return false;
-                if (down) view.shiftMixDepth(code == javafx.scene.input.KeyCode.E ? 1 : -1);
+                if (down) view.shiftMixDepth(code == KeyCode.E ? 1 : -1);
                 return true;
             }
             case SPACE -> {
@@ -1549,14 +1533,12 @@ public final class DimensionWindow extends BorderPane {
                 }
                 return true;
             }
-            default -> {
-                return false;
-            }
+            default -> { return false; }
         }
     }
 
     /** Le cercle qui porte cette touche, ou −1. */
-    private int loopRingOf(javafx.scene.input.KeyCode code) {
+    private int loopRingOf(KeyCode code) {
         for (int ring = 0; ring < Game.MAX_RINGS; ring++) if (code != null && code == loopSettings.loopKey(ring)) return ring;
         return -1;
     }
@@ -1569,10 +1551,10 @@ public final class DimensionWindow extends BorderPane {
     /** La direction des touches tenues : x vers la droite, y vers le bas ; (0, 0) sans touche. */
     private double[] direction() {
         double dx = 0, dy = 0;
-        if (held.contains(javafx.scene.input.KeyCode.Q) || held.contains(javafx.scene.input.KeyCode.LEFT)) dx -= 1;
-        if (held.contains(javafx.scene.input.KeyCode.D) || held.contains(javafx.scene.input.KeyCode.RIGHT)) dx += 1;
-        if (held.contains(javafx.scene.input.KeyCode.Z) || held.contains(javafx.scene.input.KeyCode.UP)) dy -= 1;
-        if (held.contains(javafx.scene.input.KeyCode.S) || held.contains(javafx.scene.input.KeyCode.DOWN)) dy += 1;
+        if (held.contains(KeyCode.Q) || held.contains(KeyCode.LEFT)) dx -= 1;
+        if (held.contains(KeyCode.D) || held.contains(KeyCode.RIGHT)) dx += 1;
+        if (held.contains(KeyCode.Z) || held.contains(KeyCode.UP)) dy -= 1;
+        if (held.contains(KeyCode.S) || held.contains(KeyCode.DOWN)) dy += 1;
         return new double[] {dx, dy};
     }
 
@@ -1580,7 +1562,7 @@ public final class DimensionWindow extends BorderPane {
     private String describe(Game.LineUpgrade upgrade) {
         return switch (upgrade) {
             case YIELD -> "Densité (niveau " + game.lineLevel(upgrade) + ") : " + shardText(game.lineShardsPerTouch())
-                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD * game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " segment par trait touché";
+                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD * game.hadronBoost(Hadron.OMEGA)) + " segment par trait touché";
             case TICKS -> "Graduation (" + game.lineTicks() + " traits) : un trait de plus, tous à égale distance";
             case SPEED -> "Élan (vitesse ×" + shardText(game.lineSpeed()) + ") : les boules vont " + percent(Game.LINE_SPEED_STEP) + " plus vite";
             case BALLS -> "Boules (" + game.lineBalls() + " par ligne) : une boule de plus sur chaque ligne";
@@ -1588,13 +1570,11 @@ public final class DimensionWindow extends BorderPane {
         };
     }
 
-    private static String shardText(double value) {
-        return Format.darkMatter(value);
-    }
+    private static String shardText(double value) { return Format.darkMatter(value); }
 
     /** Un débit d'éclats : deux décimales sous 1, une au-delà. */
     private static String rate(double perSecond) {
-        if (perSecond < 1) return String.format(java.util.Locale.ROOT, "%.2f", Math.floor(perSecond * 100 + 1e-9) / 100);
+        if (perSecond < 1) return String.format(Locale.ROOT, "%.2f", Math.floor(perSecond * 100 + 1e-9) / 100);
         return Format.darkMatter(BigNum.of(perSecond));
     }
 
@@ -1639,7 +1619,7 @@ public final class DimensionWindow extends BorderPane {
 
     /**
      * Referme la fenêtre : retour au jeu. Une plongée en cours s'arrête là, le joueur ressort du cube, sauf si la
-     * plongée automatique la mène (version 0.150) : elle continue sans la fenêtre.
+     * plongée automatique la mène : elle continue sans la fenêtre.
      */
     public void close() {
         // La durée : fermer la fenêtre relâche le bouton, qui donne ce qu'il avait ; l'appui automatique, lui, continue.
@@ -1668,28 +1648,22 @@ public final class DimensionWindow extends BorderPane {
         spaceHeld = false;
     }
 
-    public boolean isOpen() {
-        return isVisible();
-    }
+    public boolean isOpen() { return isVisible(); }
 
     /** La dimension montrée. */
-    public Dimension dimension() {
-        return view.dimension();
-    }
+    public Dimension dimension() { return view.dimension(); }
 
-    public String titleText() {
-        return title.getText();
-    }
+    public String titleText() { return title.getText(); }
 
     /** Une image : la vue montrée, puis ce qui est écrit sous elle. */
     public void frame(double elapsed, boolean moving) {
         if (!isVisible()) return;
-        // Version 0.168 : le temps passé la fenêtre ouverte, que l'onglet Statistiques montre.
+        // Le temps passé la fenêtre ouverte, que l'onglet Statistiques montre.
         if (view.dimension() != null) game.noteDimensionPlayed(view.dimension().number(), elapsed);
         view.frame(elapsed, moving);
         refresh();
-        // Le cadre (version 0.197) : sa marge quand un cadre est choisi, aucune sinon, et son dessin sur le calque.
-        idle.core.universe.Skin frameSkin = game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_FRAME);
+        // Le cadre : sa marge quand un cadre est choisi, aucune sinon, et son dessin sur le calque.
+        Skin frameSkin = game.chosenSkin(SkinVisual.DIMENSION_FRAME);
         double inset = DimensionFrameArt.frames(frameSkin) ? DimensionFrameArt.THICKNESS : 0;
         if (framed.getPadding().getTop() != inset) framed.setPadding(new Insets(inset));
         if (moving) frameTime += Math.min(elapsed, 0.1);
@@ -1697,291 +1671,136 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Le bouton d'une amélioration du mélange : pour les vérifications. */
-    public Button mixButton(Game.MixUpgrade upgrade) {
-        return mixButtons.get(upgrade);
-    }
+    public Button mixButton(Game.MixUpgrade upgrade) { return mixButtons.get(upgrade); }
 
     /** L'étape, ce qu'il en reste à gagner, et le bouton qui mêle la dimension suivante : pour les vérifications. */
-    public String mixStageText() {
-        return mixStage.getText();
-    }
+    public String mixStageText() { return mixStage.getText(); }
 
-    public String mixProgressText() {
-        return mixProgress.getText();
-    }
+    public String mixProgressText() { return mixProgress.getText(); }
 
     /** La part remplie de la barre de progression, de 0 à 1. */
-    public double mixProgressShare() {
-        return mixBarFill.getPrefWidth() / MIX_BAR_WIDTH;
-    }
+    public double mixProgressShare() { return mixBarFill.getPrefWidth() / MIX_BAR_WIDTH; }
 
-    public Button mixAdvanceButton() {
-        return mixAdvance;
-    }
+    public Button mixAdvanceButton() { return mixAdvance; }
 
     /** Vrai si l'étape et sa barre se montrent, au-dessus de l'arène. */
-    public boolean mixStageShown() {
-        return mixStageBox.isVisible();
-    }
+    public boolean mixStageShown() { return mixStageBox.isVisible(); }
 
-    public String mixShardsText() {
-        return mixShards.getText();
-    }
-
-    public String mixThresholdText() {
-        return mixThreshold.getText();
-    }
-
-    public String mixHintText() {
-        return mixHint.getText();
-    }
+    public String mixHintText() { return mixHint.getText(); }
 
     /** Le malus, les multiplicateurs, la charge, la cadence, les trésors, les paires et le dernier gain : pour les vérifications. */
-    public String mixInfoText() {
-        return mixInfo.getText();
-    }
-
-    /** Le détail du mélange, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
-    public String mixDetailText() {
-        return mixDetail.getText();
-    }
+    public String mixInfoText() { return mixInfo.getText(); }
 
     /** Le visuel : pour les vérifications. */
-    public DimensionView view() {
-        return view;
-    }
+    public DimensionView view() { return view; }
 
     /** Le bouton d'une amélioration de la ligne : pour les vérifications. */
-    public Button lineButton(Game.LineUpgrade upgrade) {
-        return buttons.get(upgrade);
-    }
+    public Button lineButton(Game.LineUpgrade upgrade) { return buttons.get(upgrade); }
 
-    public Button yieldButton() {
-        return buttons.get(Game.LineUpgrade.YIELD);
-    }
+    public Button yieldButton() { return buttons.get(Game.LineUpgrade.YIELD); }
 
-    public Button ticksButton() {
-        return buttons.get(Game.LineUpgrade.TICKS);
-    }
+    public Button ticksButton() { return buttons.get(Game.LineUpgrade.TICKS); }
 
     /** Le bouton d'une amélioration du plan : pour les vérifications. */
-    public Button planeButton(Game.PlaneUpgrade upgrade) {
-        return planeButtons.get(upgrade);
-    }
+    public Button planeButton(Game.PlaneUpgrade upgrade) { return planeButtons.get(upgrade); }
 
     /** Le bouton d'une amélioration du volume : pour les vérifications. */
-    public Button volumeButton(Game.VolumeUpgrade upgrade) {
-        return volumeButtons.get(upgrade);
-    }
+    public Button volumeButton(Game.VolumeUpgrade upgrade) { return volumeButtons.get(upgrade); }
 
-    public String volumeShardsText() {
-        return volumeShards.getText();
-    }
+    public String volumeShardsText() { return volumeShards.getText(); }
 
     /** Le bouton d'une amélioration de la durée : pour les vérifications. */
-    public Button durationButton(Game.DurationUpgrade upgrade) {
-        return durationButtons.get(upgrade);
-    }
+    public Button durationButton(Game.DurationUpgrade upgrade) { return durationButtons.get(upgrade); }
 
-    public String durationShardsText() {
-        return durationShards.getText();
-    }
+    public String durationShardsText() { return durationShards.getText(); }
 
-    public String durationHintText() {
-        return durationHint.getText();
-    }
+    public String durationHintText() { return durationHint.getText(); }
 
     /** Le bouton d'une amélioration de la boucle : pour les vérifications. */
-    public Button loopButton(Game.LoopUpgrade upgrade) {
-        return loopButtons.get(upgrade);
-    }
+    public Button loopButton(Game.LoopUpgrade upgrade) { return loopButtons.get(upgrade); }
 
-    public String loopShardsText() {
-        return loopShards.getText();
-    }
+    public String loopShardsText() { return loopShards.getText(); }
 
-    public String loopThresholdText() {
-        return loopThreshold.getText();
-    }
-
-    public String loopHintText() {
-        return loopHint.getText();
-    }
+    public String loopHintText() { return loopHint.getText(); }
 
     /** Le bouton d'une amélioration du miroir : pour les vérifications. */
-    public Button mirrorButton(Game.MirrorUpgrade upgrade) {
-        return mirrorButtons.get(upgrade);
-    }
+    public Button mirrorButton(Game.MirrorUpgrade upgrade) { return mirrorButtons.get(upgrade); }
 
-    public String mirrorShardsText() {
-        return mirrorShards.getText();
-    }
+    public String mirrorShardsText() { return mirrorShards.getText(); }
 
-    public String mirrorThresholdText() {
-        return mirrorThreshold.getText();
-    }
+    public String mirrorThresholdText() { return mirrorThreshold.getText(); }
 
-    public String mirrorHintText() {
-        return mirrorHint.getText();
-    }
+    public String mirrorHintText() { return mirrorHint.getText(); }
 
-    public String mirrorCountsText() {
-        return mirrorCounts.getText();
-    }
+    public String mirrorCountsText() { return mirrorCounts.getText(); }
 
     /** La taille du plateau, et les réussites qu'il manque pour l'agrandir : pour les vérifications. */
-    public String mirrorBoardText() {
-        return mirrorBoard.getText();
-    }
-
-    /** Le détail du miroir, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
-    public String mirrorDetailText() {
-        return mirrorDetail.getText();
-    }
+    public String mirrorBoardText() { return mirrorBoard.getText(); }
 
     /** Le bouton d'une amélioration de la grille : pour les vérifications. */
-    public Button gridButton(Game.GridUpgrade upgrade) {
-        return gridButtons.get(upgrade);
-    }
+    public Button gridButton(Game.GridUpgrade upgrade) { return gridButtons.get(upgrade); }
 
-    public String gridShardsText() {
-        return gridShards.getText();
-    }
+    public String gridShardsText() { return gridShards.getText(); }
 
-    public String gridThresholdText() {
-        return gridThreshold.getText();
-    }
+    public String gridThresholdText() { return gridThreshold.getText(); }
 
-    public String gridHintText() {
-        return gridHint.getText();
-    }
+    public String gridHintText() { return gridHint.getText(); }
 
-    public String gridLayerText() {
-        return gridLayerLabel.getText();
-    }
+    public String gridLayerText() { return gridLayerLabel.getText(); }
 
     /** La taille de la grille et les essais par point : pour les vérifications. */
-    public String gridSizeText() {
-        return gridSize.getText();
-    }
+    public String gridSizeText() { return gridSize.getText(); }
 
     /** Les champs de la case visée (x, y, z), le bouton qui l'essaie, et ceux du zoom : pour les vérifications. */
     public TextField[] gridFields() {
         return new TextField[] {gridX, gridY, gridZ};
     }
 
-    public Button gridTryButton() {
-        return gridTry;
-    }
+    public Button gridTryButton() { return gridTry; }
 
-    public Button gridZoomInButton() {
-        return gridZoomIn;
-    }
+    public Button gridZoomInButton() { return gridZoomIn; }
 
-    public Button gridZoomOutButton() {
-        return gridZoomOut;
-    }
+    public Button gridZoomOutButton() { return gridZoomOut; }
 
-    /** Les boutons de couche, du dessous et du dessus : pour les vérifications. */
-    public Button gridDownButton() {
-        return gridDown;
-    }
-
-    public Button gridUpButton() {
-        return gridUp;
-    }
-
-    /** Le détail de la grille, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
-    public String gridDetailText() {
-        return gridDetail.getText();
-    }
+    public Button gridUpButton() { return gridUp; }
 
     /** Le bouton d'une amélioration du clicker : pour les vérifications. */
-    public Button clickerButton(Game.ClickerUpgrade upgrade) {
-        return clickerButtons.get(upgrade);
-    }
+    public Button clickerButton(Game.ClickerUpgrade upgrade) { return clickerButtons.get(upgrade); }
 
-    public String clickerShardsText() {
-        return clickerShards.getText();
-    }
+    public String clickerShardsText() { return clickerShards.getText(); }
 
-    public String clickerThresholdText() {
-        return clickerThreshold.getText();
-    }
+    public String clickerThresholdText() { return clickerThreshold.getText(); }
 
-    public String clickerHintText() {
-        return clickerHint.getText();
-    }
-
-    /** Le détail du clicker, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
-    public String clickerDetailText() {
-        return clickerDetail.getText();
-    }
+    public String clickerHintText() { return clickerHint.getText(); }
 
     /** Le bouton d'une amélioration de la brane : pour les vérifications. */
-    public Button braneButton(Game.BraneUpgrade upgrade) {
-        return braneButtons.get(upgrade);
-    }
+    public Button braneButton(Game.BraneUpgrade upgrade) { return braneButtons.get(upgrade); }
 
-    public String braneShardsText() {
-        return braneShards.getText();
-    }
+    public String braneShardsText() { return braneShards.getText(); }
 
-    public String braneThresholdText() {
-        return braneThreshold.getText();
-    }
+    public String braneThresholdText() { return braneThreshold.getText(); }
 
-    public String braneHintText() {
-        return braneHint.getText();
-    }
-
-    /** Le détail de la brane, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
-    public String braneDetailText() {
-        return braneDetail.getText();
-    }
+    public String braneHintText() { return braneHint.getText(); }
 
     /** Le bouton du métronome : pour les vérifications. */
-    public Button metronomeButton() {
-        return metronomeButton;
-    }
+    public Button metronomeButton() { return metronomeButton; }
 
     /** Le bouton de la caméra libre : pour les vérifications. */
-    public Button freeCameraButton() {
-        return freeCameraButton;
-    }
+    public Button freeCameraButton() { return freeCameraButton; }
 
-    public String volumeHintText() {
-        return volumeHint.getText();
-    }
+    public String volumeHintText() { return volumeHint.getText(); }
 
     /** Vrai si les améliorations du volume se montrent : hors du cube seulement. */
-    public boolean volumeUpgradesShown() {
-        return volumeRow.isVisible();
-    }
+    public boolean volumeUpgradesShown() { return volumeRow.isVisible(); }
 
-    public String planeShardsText() {
-        return planeShards.getText();
-    }
+    public String planeShardsText() { return planeShards.getText(); }
 
-    public String thresholdText() {
-        return threshold.getText();
-    }
+    public String thresholdText() { return threshold.getText(); }
 
-    public String shardsText() {
-        return shards.getText();
-    }
+    public String shardsText() { return shards.getText(); }
 
     /** La mention « automatique », vide quand elle est cachée : pour les vérifications. */
-    public String autoBadgeText() {
-        return autoBadge.isVisible() ? autoBadge.getText() : "";
-    }
+    public String autoBadgeText() { return autoBadge.isVisible() ? autoBadge.getText() : ""; }
 
-    public String planeHintText() {
-        return planeHint.getText();
-    }
-
-    /** Le bouton de retour : pour les vérifications. */
-    public Button backButton() {
-        return back;
-    }
+    public String planeHintText() { return planeHint.getText(); }
 }

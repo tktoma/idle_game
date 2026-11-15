@@ -22,55 +22,47 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import javafx.animation.ScaleTransition;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 /**
  * Sous-page « Tableau périodique » de l'onglet Atomes.
  *
- * <p>Le bouton de synthèse dépense des atomes pour créer un élément tiré au sort ; son prix
- * double à chaque synthèse, jusqu'au maximum d'atomes. Le tableau montre les 118 éléments à
- * leur place : ceux qui sont possédés sont allumés dans la couleur de leur famille, avec leur
- * nombre d'exemplaires sur le maximum possible ; un élément au maximum est en couleur pleine,
- * et les éléments uniques portent une étoile.
+ * <p>Le bouton de synthèse dépense des atomes pour créer un élément tiré au sort ; son prix double à chaque synthèse,
+ * jusqu'au maximum d'atomes. Le tableau montre les 118 éléments à leur place : ceux qui sont possédés sont allumés dans
+ * la couleur de leur famille, avec leur nombre d'exemplaires sur le maximum possible ; un élément au maximum est en
+ * couleur pleine, et les éléments uniques portent une étoile.
  *
- * <p>Chaque élément a son propre effet : on le lit en survolant sa case, ou en cliquant dessus
- * pour l'afficher sous le tableau. Plus bas, le cumul des bonus et la légende des familles avec
- * leur chance actuelle d'être tirées.
+ * <p>Chaque élément a son propre effet : on le lit en survolant sa case, ou en cliquant dessus pour l'afficher sous le
+ * tableau. Plus bas, le cumul des bonus et la légende des familles avec leur chance actuelle d'être tirées.
  *
- * <p>Sous la carte de synthèse, la synthèse ciblée : un bouton par famille, avec ce qu'elle
- * coûte en synthèses. Elle n'apparaît qu'une fois achetée dans l'arbre de matière noire
- * ({@link Game#isTargetedSynthesisUnlocked()}) ; avant, une ligne dit où la trouver à qui
- * connaît déjà la matière noire. Sous le tableau, les ensembles (familles et périodes), une
- * tuile chacun, avec leur avancement et leur bonus.
+ * <p>Sous la carte de synthèse, la synthèse ciblée : un bouton par famille, avec ce qu'elle coûte en synthèses. Elle
+ * n'apparaît qu'une fois achetée dans l'arbre de matière noire ({@link Game#isTargetedSynthesisUnlocked()}) ; avant,
+ * une ligne dit où la trouver à qui connaît déjà la matière noire. Sous le tableau, les ensembles (familles et
+ * périodes), une tuile chacun, avec leur avancement et leur bonus.
  *
- * <p>Les explications (ce que coûte une cible, comment se cumulent les exemplaires, ce que
- * fait chaque famille) n'apparaissent qu'en mode détails ({@link Detail}).
+ * <p>Les explications (ce que coûte une cible, comment se cumulent les exemplaires, ce que fait chaque famille)
+ * n'apparaissent qu'en mode détails ({@link Detail}).
  *
- * <p>La page suit l'état du jeu, pas les clics : un élément obtenu par la synthèse automatique
- * s'affiche exactement comme un élément obtenu à la main.
+ * <p>La page suit l'état du jeu, pas les clics : un élément obtenu par la synthèse automatique s'affiche exactement
+ * comme un élément obtenu à la main.
  */
 public final class PeriodicTablePage extends VBox {
-
     /**
      * Le skin dont les cases sont peintes : {@code null} pour le classique. Les styles des cases sous un
      * skin sont dans {@link TableSkinStyles} ; « Minuscule » réduit aussi les cases de moitié, « Néon » et
-     * « Carte au trésor » donnent un fond au tableau entier (version 0.191).
+     * « Carte au trésor » donnent un fond au tableau entier.
      */
     private idle.core.universe.Skin tableSkin;
-    /** La famille visée au dernier affichage : sur la carte au trésor, en changer repeint les îles marquées (version 0.191). */
+    /** La famille visée au dernier affichage : sur la carte au trésor, en changer repeint les îles marquées. */
     private ElementCategory shownTarget;
     /**
-     * Le skin de la page hors cases (version 0.192) : « Médailles » sur les tuiles des ensembles, « Creuset » sur la carte
+     * Le skin de la page hors cases : « Médailles » sur les tuiles des ensembles, « Creuset » sur la carte
      * de synthèse, « Spectre » sur la légende des familles ; dessins dans {@link TablePageSkinArt}. {@code null} : le classique.
      */
     private idle.core.universe.Skin pageSkin;
@@ -107,9 +99,7 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** La couleur d'une famille d'éléments (« #f4a6a6 ») : celle de ses cases dans le tableau. */
-    public static String familyColor(ElementCategory category) {
-        return COLORS.get(category);
-    }
+    public static String familyColor(ElementCategory category) { return COLORS.get(category); }
 
     private final Game game;
     private final Card synthesizeCard = new Card(GameApp.ATOMS_COLOR);
@@ -118,7 +108,7 @@ public final class PeriodicTablePage extends VBox {
     private final Label automationLabel = new Label();
     private final Label detailLabel = new Label();
     private final Label bonusLabel = new Label();
-    /** Le tableau des cases (version 0.088). */
+    /** Le tableau des cases. */
     private final GridPane table = new GridPane();
     private final Map<Integer, Label> cells = new HashMap<>();
     private final Map<Integer, Tooltip> tooltips = new HashMap<>();
@@ -147,10 +137,10 @@ public final class PeriodicTablePage extends VBox {
     private Element selected = null;
     /** Côté actuel d'une case, en pixels. */
     private double cellSize = 36;
-    /** Le filtre « utiles au prochain astre » (version 0.085), et les éléments qu'il éclaire au dernier affichage. */
+    /** Le filtre « utiles au prochain astre », et les éléments qu'il éclaire au dernier affichage. */
     private final Button nextFilter = new Button();
     private boolean filterOn = false;
-    /** La préférence de famille graduée (version 0.087), et les éléments gratuits, tous les dix découverts. */
+    /** La préférence de famille graduée, et les éléments gratuits, tous les dix découverts. */
     private final javafx.scene.control.ComboBox<String> preference = new javafx.scene.control.ComboBox<>();
     private final Label preferenceLabel = new Label();
     private final javafx.scene.layout.HBox preferenceRow = new javafx.scene.layout.HBox(8);
@@ -256,7 +246,7 @@ public final class PeriodicTablePage extends VBox {
             refresh();
         });
         getChildren().add(nextFilter);
-        // La préférence de famille (version 0.087) : une liste, « aucune » d'abord.
+        // La préférence de famille : une liste, « aucune » d'abord.
         preference.getItems().add("Aucune");
         for (ElementCategory category : ElementCategory.values()) preference.getItems().add(category.label());
         preference.setValue("Aucune");
@@ -287,21 +277,18 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Recopie l'état du jeu dans la carte de synthèse, le tableau, le résumé des bonus et la légende. */
-    public void refresh() {
-        refresh(true);
-    }
+    public void refresh() { refresh(true); }
 
     /**
      * Recopie l'état du jeu dans la page.
      *
-     * @param visible faux quand la page n'est pas à l'écran : les textes qui se recopient tels quels à
-     *                chaque image attendent alors qu'elle y revienne. Ce qui suit les changements du
-     *                tableau, lui, ne s'arrête jamais : l'annonce du dernier élément obtenu, l'étape
-     *                payée d'une synthèse ciblée, les tuiles. La page dit ainsi la même chose au
-     *                retour que si elle était restée affichée.
+     * @param visible faux quand la page n'est pas à l'écran : les textes qui se recopient tels quels à chaque image
+     * attendent alors qu'elle y revienne. Ce qui suit les changements du tableau, lui, ne s'arrête jamais : l'annonce
+     * du dernier élément obtenu, l'étape payée d'une synthèse ciblée, les tuiles. La page dit ainsi la même chose au
+     * retour que si elle était restée affichée.
      */
     void refresh(boolean visible) {
-        // Le skin du tableau (version 0.089) : les cases se redessinent quand il change.
+        // Le skin du tableau : les cases se redessinent quand il change.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.TABLE);
         boolean repaint = look != tableSkin;
         if (repaint) {
@@ -312,7 +299,7 @@ public final class PeriodicTablePage extends VBox {
             table.setVgap(gap);
             sizeCells();
         }
-        // Le skin de la page hors cases (version 0.192) : ses ornements se posent ou se retirent quand il change.
+        // Le skin de la page hors cases : ses ornements se posent ou se retirent quand il change.
         idle.core.universe.Skin page = game.chosenSkin(idle.core.universe.SkinVisual.TABLE_PAGE);
         if (page != pageSkin) {
             pageSkin = page;
@@ -350,7 +337,7 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /**
-     * Pose ou retire les ornements du skin de la page (version 0.192) : les médailles des tuiles, le creuset de la carte de
+     * Pose ou retire les ornements du skin de la page : les médailles des tuiles, le creuset de la carte de
      * synthèse, les bandes de spectre de la légende. Sans skin, la légende reprend son style de toujours, au caractère près.
      */
     private void dressPage() {
@@ -370,9 +357,7 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Dessine la médaille de chaque tuile d'après l'avancement de son ensemble. */
-    private void paintMedals() {
-        medals.forEach((set, medal) -> TablePageSkinArt.drawMedal(medal, medalTier(set)));
-    }
+    private void paintMedals() { medals.forEach((set, medal) -> TablePageSkinArt.drawMedal(medal, medalTier(set))); }
 
     /** Le palier de la médaille d'un ensemble : 0 rien, 1 bronze dès un élément, 2 argent à la moitié, 3 or complet. */
     int medalTier(ElementSet set) {
@@ -380,7 +365,7 @@ public final class PeriodicTablePage extends VBox {
         return strength >= 1 ? 3 : strength > 0 ? 2 : game.setProgress(set) > 0 ? 1 : 0;
     }
 
-    /** Fait fumer le creuset (version 0.192) : à appeler à chaque image quand la page est à l'écran ; rien sous les autres skins. */
+    /** Fait fumer le creuset : à appeler à chaque image quand la page est à l'écran ; rien sous les autres skins. */
     public void frame(double dt) {
         if (pageSkin != idle.core.universe.Skin.PAGE_CRUCIBLE || crucible == null) return;
         time += Math.min(dt, 0.1);
@@ -388,19 +373,13 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Le creuset de la carte de synthèse, ou {@code null} hors du skin « Creuset » : pour les vérifications. */
-    javafx.scene.Node crucible() {
-        return pageSkin == idle.core.universe.Skin.PAGE_CRUCIBLE ? crucible : null;
-    }
+    javafx.scene.Node crucible() { return pageSkin == idle.core.universe.Skin.PAGE_CRUCIBLE ? crucible : null; }
 
     /** Vrai si les tuiles portent une médaille : pour les vérifications. */
-    boolean medalled() {
-        return pageSkin == idle.core.universe.Skin.PAGE_MEDALS;
-    }
+    boolean medalled() { return pageSkin == idle.core.universe.Skin.PAGE_MEDALS; }
 
     /** Le style de la ligne de la légende de cette famille : pour les vérifications. */
-    String legendStyle(ElementCategory category) {
-        return legend.get(category).getStyle();
-    }
+    String legendStyle(ElementCategory category) { return legend.get(category).getStyle(); }
 
     /** La carte de synthèse et la rangée de la synthèse ciblée : ce qui se recopie à chaque image. */
     private void refreshSynthesis(ElementCategory target, int left, int count) {
@@ -432,7 +411,7 @@ public final class PeriodicTablePage extends VBox {
 
     /** Les tuiles, les bonus et l'annonce du dernier élément obtenu : seulement quand le tableau a changé. */
     /**
-     * Un clic sur une case : avec un élément gratuit à prendre (version 0.087), un élément pas encore
+     * Un clic sur une case : avec un élément gratuit à prendre, un élément pas encore
      * découvert est pris ; sinon, son détail s'affiche sous le tableau.
      */
     private void clickCell(Element element) {
@@ -595,7 +574,7 @@ public final class PeriodicTablePage extends VBox {
         paintCells();    // la taille du texte suit celle de la case
     }
 
-    /** Donne à chaque case son côté : {@link #cellSize}, la moitié sous le skin « Minuscule » (version 0.191). */
+    /** Donne à chaque case son côté : {@link #cellSize}, la moitié sous le skin « Minuscule ». */
     private void sizeCells() {
         double size = shownCellSize();
         for (Label cell : cells.values()) {
@@ -605,34 +584,16 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Le côté des cases à l'écran, en pixels : pour les vérifications. */
-    double shownCellSize() {
-        return tableSkin != null && TableSkinStyles.compact(tableSkin) ? cellSize / 2 : cellSize;
-    }
+    double shownCellSize() { return tableSkin != null && TableSkinStyles.compact(tableSkin) ? cellSize / 2 : cellSize; }
 
     /** Le style de la case de l'élément de ce numéro : pour les vérifications. */
-    String cellStyle(int number) {
-        return cells.get(number).getStyle();
-    }
+    String cellStyle(int number) { return cells.get(number).getStyle(); }
 
     /** Le texte de la case de l'élément de ce numéro : pour les vérifications. */
-    String cellText(int number) {
-        return cells.get(number).getText();
-    }
+    String cellText(int number) { return cells.get(number).getText(); }
 
     /** Le style du fond du tableau : pour les vérifications. */
-    String tableStyle() {
-        return table.getStyle();
-    }
-
-    /** Le bouton du filtre du prochain astre : pour les vérifications. */
-    public Button nextFilterButton() {
-        return nextFilter;
-    }
-
-    /** Vrai si cette case est éclairée par le filtre du prochain astre : pour les vérifications. */
-    public boolean isFilteredIn(int number) {
-        return filterOn && filtered.contains(number);
-    }
+    String tableStyle() { return table.getStyle(); }
 
     /** Écrit et colore chaque case d'après ce que le joueur possède. */
     private void paintCells() {

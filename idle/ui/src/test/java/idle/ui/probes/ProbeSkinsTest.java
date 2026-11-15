@@ -6,29 +6,21 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeTrip;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.probes.*;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.194 : les quatre skins des sondes, sous Xvfb. Chacun dessine la vue des sondes, à deux tailles, avec
+ * Les quatre skins des sondes, sous Xvfb. Chacun dessine la vue des sondes, à deux tailles, avec
  * une sonde en vol et une arrivée, sans exception, et autrement que le Classique ; le dos de la carte du butin le suit.
  */
 class ProbeSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> probeSkins() {
         List<Skin> skins = new ArrayList<>();
@@ -46,8 +38,8 @@ class ProbeSkinsTest {
         probes.add(new Probe(ProbeDestination.NEBULA, ProbeTrip.HOUR, 0, 3600, 2));
         game.state().setProbes(probes);
         // Deux sondes en vol demandent deux places : avec une seule, la seconde voie tombait hors de la vue.
-        game.state().setProbeUpgradeLevel(idle.core.probes.ProbeUpgrade.HANGAR, 1);
-        game.state().setProbeRewards(List.of(new idle.core.probes.ProbeReward(idle.core.probes.ProbeReward.Type.SPACE, "", 100, ProbeDestination.NEBULA, 2)));
+        game.state().setProbeUpgradeLevel(ProbeUpgrade.HANGAR, 1);
+        game.state().setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.SPACE, "", 100, ProbeDestination.NEBULA, 2)));
         return game;
     }
 

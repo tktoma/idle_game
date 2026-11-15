@@ -1,41 +1,39 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.*;
+import idle.core.bigbang.*;
+import idle.core.math.BigNum;
+import java.util.*;
 import idle.core.Game;
-import idle.core.GameState;
+import idle.core.state.GameState;
 import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkUpgrades;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
+import idle.core.upgrades.*;
 import idle.ui.automation.AutomationPage;
 import idle.ui.common.PlanBar;
-import java.util.Random;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /** Test d'interaction sur le véritable thread JavaFX, sous Xvfb dans la CI. */
 class GuiInteractionsTest {
     @BeforeAll static void setup() { FxTestSupport.start(); }
-    // Version 0.137 : plus de Platform.exit() après ces tests. Le toolkit est partagé (FxTestSupport) et ne redémarre
+    // Plus de Platform.exit() après ces tests. Le toolkit est partagé (FxTestSupport) et ne redémarre
     // pas : toute classe de test JavaFX lancée ensuite attendait 20 s et échouait (ArrosoirPageTest l'a montré).
 
     /**
-     * Version 0.178 : la création automatique n'a plus de réglage à part pour la liste ou la matière ; sa carte dit ce
+     * La création automatique n'a plus de réglage à part pour la liste ou la matière ; sa carte dit ce
      * qu'elle suit, un clic la coupe et la relance, et les amas confiés se retirent d'une pastille.
      */
     @Test void creationAutomatiqueSeCoupeEtRendSesAmas() {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         g.start();g.state().setBigBangs(8);
-        // Version 0.124 : un palier de Big Bang ne compte qu'une fois payé (création automatique des molécules au 2e).
-        for(idle.core.bigbang.BigBangMilestone milestone:idle.core.bigbang.BigBangMilestones.DEFAULT)
-            g.state().addBoughtMilestone(milestone.name());
+        // Un palier de Big Bang ne compte qu'une fois payé (création automatique des molécules au 2e).
+        for(BigBangMilestone milestone:BigBangMilestones.DEFAULT) g.state().addBoughtMilestone(milestone.name());
         for(SpaceUpgrade upgrade:g.spaceUpgrades())
             if(!(upgrade.effect() instanceof SpaceUpgrade.Boost))g.state().addSpaceUpgrade(upgrade.id());
         assertTrue(g.isStateCapUnlocked());
         // Un amas confié : de l'eau rassemblée.
-        g.state().setSpace(idle.core.math.BigNum.of(1e9));
+        g.state().setSpace(BigNum.of(1e9));
         g.state().addMolecules("H2O",Game.SUBSTANCE_MOLECULES);
         assertTrue(g.formSubstance("H2O"));
         assertTrue(g.setMoleculeAutomated("H2O",true));
@@ -59,7 +57,7 @@ class GuiInteractionsTest {
 
     @Test void barreDesPlansSauvegardePuisRecharge() {
         FxTestSupport.fx(() -> {
-            String[] saved=new String[5];java.util.Arrays.fill(saved,"");
+            String[] saved=new String[5];Arrays.fill(saved,"");
             final String[] current={"arbre:dark_rich_fusion"};
             final boolean[] active={false};
             PlanBar.Plan fake=new PlanBar.Plan(){

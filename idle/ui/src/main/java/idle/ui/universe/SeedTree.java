@@ -1,13 +1,12 @@
 package idle.ui.universe;
 
 import idle.core.universe.Skin;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Les arbres de la graine (version 0.121), du bonsaï (palier 5) à l'arbre-monde (palier 11), et leurs effets.
+ * Les arbres de la graine, du bonsaï (palier 5) à l'arbre-monde (palier 11), et leurs effets.
  *
  * <p>Chaque palier remplit davantage la vue : l'arbre grandit bien plus vite que la vue ne s'éloigne. Le tronc
  * s'effile en polygones, porte son écorce, puis ses nœuds ; les rameaux se divisent de plus en plus finement ;
@@ -16,24 +15,23 @@ import javafx.scene.paint.Color;
  * étoiles, des mondes en orbite et des racines de lumière. Tout est tiré d'un bruit fixe : rien ne clignote d'une
  * image à l'autre, sauf ce qui doit bouger.
  *
- * <p>Version 0.185 : les essences. Le skin choisi pour l'arbre ({@link Skin#TREES}) change l'écorce, les feuilles et
+ * <p>Les essences. Le skin choisi pour l'arbre ({@link Skin#TREES}) change l'écorce, les feuilles et
  * la silhouette à tous les paliers : une essence est un jeu de paramètres ({@link Essence}), et le Classique est celui
  * d'aujourd'hui, tous ses facteurs à 1, ses décalages à 0, de sorte que sans skin le dessin ne bouge pas d'un pixel.
  * Trois essences ont leur propre silhouette : le baobab (bouteille et couronne courte), le séquoia (colonne et
  * couches étagées), le palmier (un stipe et un bouquet de palmes, sans touffes).
  *
- * <p>Version 0.197 : la saison figée, la fantaisie et le sol ({@link TreeSkinArt}) se combinent avec l'essence. La
+ * <p>La saison figée, la fantaisie et le sol ({@link TreeSkinArt}) se combinent avec l'essence. La
  * fantaisie remplace le feuillage et le bois (teintes, bois, forme des feuilles ; l'arbre inversé est dessiné la tête en
  * bas) ; le sol remplace le pied ; la saison fige ce que l'arbre montre du temps : ses teintes et ses fleurs sans
  * fantaisie, et dans tous les cas ce qui tombe, les lucioles et ce qui couvre le pied. Sans ces skins, rien ne change.
  */
 final class SeedTree {
-
     private SeedTree() {
     }
 
     /**
-     * Hauteur de l'arbre, en part de la hauteur de la vue, du palier 5 au palier 11. Version 0.143 : le jeune arbre un
+     * Hauteur de l'arbre, en part de la hauteur de la vue, du palier 5 au palier 11. Le jeune arbre un
      * peu plus grand (0,46 avant), il paraissait plus petit que l'arbuste d'avant.
      */
     private static final double[] HEIGHT = {0.36, 0.40, 0.50, 0.51, 0.54, 0.56, 0.58};
@@ -171,7 +169,7 @@ final class SeedTree {
     static int lastTips;
 
     /**
-     * Les skins de la saison, de la fantaisie et du sol de l'arbre en cours de dessin (version 0.197), posés par
+     * Les skins de la saison, de la fantaisie et du sol de l'arbre en cours de dessin, posés par
      * {@link #draw} et rendus au Classique à la fin : le dessin se fait sur le fil JavaFX, un arbre à la fois.
      */
     private static TreeSkinArt.Look look = TreeSkinArt.Look.CLASSIC;
@@ -191,12 +189,8 @@ final class SeedTree {
         final List<Tip> tips = new ArrayList<>();
     }
 
-    /**
-     * L'intensité des effets, de 0 au palier 4 à 1 à l'arbre-monde : chaque palier en montre un peu plus.
-     */
-    static double prominence(int stage) {
-        return Math.max(0, Math.min(1, (stage - 4) / 7.0));
-    }
+    /** L'intensité des effets, de 0 au palier 4 à 1 à l'arbre-monde : chaque palier en montre un peu plus. */
+    static double prominence(int stage) { return Math.max(0, Math.min(1, (stage - 4) / 7.0)); }
 
     /**
      * Dessine l'arbre Classique du palier {@code stage} (5 à 11) dont le pied est en {@code baseX, baseY}, et ses effets.
@@ -212,12 +206,10 @@ final class SeedTree {
      * passage. Rend le centre du feuillage et son rayon.
      */
     static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
-            Skin skin) {
-        return draw(g, w, h, baseX, baseY, stage, growth, time, skin, null, null, null);
-    }
+            Skin skin) { return draw(g, w, h, baseX, baseY, stage, growth, time, skin, null, null, null); }
 
     /**
-     * Version 0.197 : l'arbre de l'essence {@code skin}, avec sa saison figée, sa fantaisie et son sol ({@code null} :
+     * L'arbre de l'essence {@code skin}, avec sa saison figée, sa fantaisie et son sol ({@code null} :
      * le Classique de chacun). L'arbre inversé est dessiné la tête en bas, autour du milieu de sa hauteur ; le centre
      * rendu est celui de l'arbre à l'endroit (la place des bulles ne dépend pas de la fantaisie).
      */
@@ -236,7 +228,7 @@ final class SeedTree {
         }
         try {
             double[] crown = tree(g, w, h, baseX, baseY, stage, growth, time, e, i, height);
-            // Version 0.203 : le centre rendu reste celui de l'arbre à l'endroit. Les bulles se rangent sur toute la hauteur
+            // Le centre rendu reste celui de l'arbre à l'endroit. Les bulles se rangent sur toute la hauteur
             // de l'arbre, comme sous les autres fantaisies ; avec le centre retourné (près du sol), elles s'entassaient
             // toutes sur la graine, ou sortaient de la vue.
             return crown;
@@ -311,8 +303,8 @@ final class SeedTree {
         }
         if (stage >= 6 && season != TreeSkinArt.Season.WINTER) fireflies(g, shape, stage, time);
         if (stage >= 8) sap(g, shape, stage, time);
-        // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent (version 0.142).
-        // Version 0.203 : sous une essence aux rameaux retombants (le saule), la moyenne des touffes descend au tiers de
+        // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent.
+        // Sous une essence aux rameaux retombants (le saule), la moyenne des touffes descend au tiers de
         // l'arbre, et les bulles, rangées jusqu'au feuillage, s'écrasaient en bas. Le centre rendu reste à la hauteur
         // ordinaire du houppier ; les effets dessinés plus haut ont suivi les touffes.
         double crownY = e.droop > 0 ? Math.min(shape.crownY, baseY - height * 0.72) : shape.crownY;
@@ -761,7 +753,7 @@ final class SeedTree {
             case NEEDLES -> {
                 g.setStroke(tone);
                 g.setLineWidth(Math.max(0.8, size * 0.12));
-                // Version 0.203 : les quatre aiguilles d'un seul tracé (quatre traits séparés avant : le pin coûtait moitié plus
+                // Les quatre aiguilles d'un seul tracé (quatre traits séparés avant : le pin coûtait moitié plus
                 // à dessiner que les autres essences).
                 g.beginPath();
                 for (int k = 0; k < 4; k++) {

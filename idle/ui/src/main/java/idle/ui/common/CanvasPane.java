@@ -1,24 +1,21 @@
 package idle.ui.common;
 
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 
 /**
  * Zone qui donne à un dessin ({@link Canvas}) la place disponible dans la fenêtre.
  *
- * <p>Un {@code Canvas} a une taille fixe : il ne suit pas la fenêtre tout seul. Cette zone, elle,
- * s'étire et rétrécit librement ; à chaque changement de taille, elle redimensionne le dessin :
+ * <p>Un {@code Canvas} a une taille fixe : il ne suit pas la fenêtre tout seul. Cette zone, elle, s'étire et rétrécit
+ * librement ; à chaque changement de taille, elle redimensionne le dessin :
  * <ul>
- *   <li>soit pour remplir toute la zone ({@link #filling(Canvas)}) ;</li>
- *   <li>soit en gardant un carré centré, le plus grand possible sans dépasser une taille
- *       maximale ({@link #square(Canvas, double)}).</li>
- * </ul>
- * Le dessin doit se redessiner à chaque image d'après {@code getWidth()} et {@code getHeight()}.
+ * <li>soit pour remplir toute la zone ({@link #filling(Canvas)}) ;</li>
+ * <li>soit en gardant un carré centré, le plus grand possible sans dépasser une taille maximale ({@link #square(Canvas,
+ * double)}).</li>
+ * </ul> Le dessin doit se redessiner à chaque image d'après {@code getWidth()} et {@code getHeight()}.
  */
 public final class CanvasPane extends Pane {
-
     private final Canvas canvas;
     private final boolean square;
     private final double maxSize;
@@ -33,14 +30,10 @@ public final class CanvasPane extends Pane {
     }
 
     /** Le dessin occupe toute la zone. */
-    public static CanvasPane filling(Canvas canvas) {
-        return new CanvasPane(canvas, false, Double.MAX_VALUE);
-    }
+    public static CanvasPane filling(Canvas canvas) { return new CanvasPane(canvas, false, Double.MAX_VALUE); }
 
     /** Le dessin reste carré, centré dans la zone, sans dépasser {@code maxSize} pixels de côté. */
-    public static CanvasPane square(Canvas canvas, double maxSize) {
-        return new CanvasPane(canvas, true, maxSize);
-    }
+    public static CanvasPane square(Canvas canvas, double maxSize) { return new CanvasPane(canvas, true, maxSize); }
 
     @Override
     public void layoutChildren() {

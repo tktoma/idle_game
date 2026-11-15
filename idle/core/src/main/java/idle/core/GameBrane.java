@@ -1,16 +1,16 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.Hadron;
+
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
 /**
- * La brane, sixième dimension (version 0.154) : une membrane carrée, de −1 à 1 sur chaque axe. Le joueur la tire en
+ * La brane, sixième dimension : une membrane carrée, de −1 à 1 sur chaque axe. Le joueur la tire en
  * un point et la relâche : une onde en part, un cercle qui grandit jusqu'à sa portée, et rebondit sur les bords. Des
  * points apparaissent sur la membrane ; chacun que l'onde touche donne des ondes (la ressource), davantage s'il est
  * touché après un rebond, et davantage pour chaque point de plus que la même onde touche. Petites au début, les ondes
@@ -20,7 +20,7 @@ import java.util.random.RandomGenerator;
  * <p>Les rebonds se calculent par les images : une onde partie de (x, y) et renvoyée par un bord est la même que celle
  * partie du symétrique de (x, y) par rapport à ce bord ; renvoyée plusieurs fois, c'est celle partie d'une image plus
  * lointaine ({@link #images}). Chaque source touche un point quand son front passe sur lui : une fois en direct, puis
- * une fois par rebond qui le retrouve, aussi souvent que l'onde rebondit (version 0.155) ; le nombre de bords traversés
+ * une fois par rebond qui le retrouve, aussi souvent que l'onde rebondit ; le nombre de bords traversés
  * est celui des rebonds. Exact quel que soit le pas. Les points touchés restent, et comptent encore, tant que l'onde
  * court, puis partent avec elle. Une seule onde à la fois.
  *
@@ -28,7 +28,6 @@ import java.util.random.RandomGenerator;
  * par seconde de l'arrosoir et du tuyau.
  */
 public abstract class GameBrane extends GameLoop {
-
     GameBrane(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
@@ -49,14 +48,10 @@ public abstract class GameBrane extends GameLoop {
 
         private final Price price;
 
-        BraneUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
-        }
+        BraneUpgrade(double cost, double growth, int max) { price = new Price(cost, growth, max); }
 
         @Override
-        public Price price() {
-            return price;
-        }
+        public Price price() { return price; }
     }
 
     /** Un point posé sur la membrane, qui attend une onde. */
@@ -68,7 +63,7 @@ public abstract class GameBrane extends GameLoop {
         private final double x, y, reach;
         private double radius;
         private int touched, lastBounces;
-        private final java.util.Set<Strike> hit = new java.util.HashSet<>();
+        private final Set<Strike> hit = new HashSet<>();
         private final List<BranePoint> struck = new ArrayList<>();
 
         BraneWave(double x, double y, double reach) {
@@ -77,36 +72,22 @@ public abstract class GameBrane extends GameLoop {
             this.reach = reach;
         }
 
-        public double x() {
-            return x;
-        }
+        public double x() { return x; }
 
-        public double y() {
-            return y;
-        }
+        public double y() { return y; }
 
-        public double radius() {
-            return radius;
-        }
+        public double radius() { return radius; }
 
-        public double reach() {
-            return reach;
-        }
+        public double reach() { return reach; }
 
         /** Ses passages sur un point, rebonds compris. */
-        public int touched() {
-            return touched;
-        }
+        public int touched() { return touched; }
 
         /** Les rebonds de son dernier passage sur un point : 0 en direct. */
-        public int lastBounces() {
-            return lastBounces;
-        }
+        public int lastBounces() { return lastBounces; }
 
         /** Vrai si elle a touché ce point : il s'en ira avec elle. */
-        public boolean hasStruck(BranePoint point) {
-            return struck.contains(point);
-        }
+        public boolean hasStruck(BranePoint point) { return struck.contains(point); }
     }
 
     /** La membrane va de −{@value} à {@value} sur chaque axe. */
@@ -117,7 +98,7 @@ public abstract class GameBrane extends GameLoop {
     public static final double BRANE_MIN_PULL = 0.3;
     /** La vitesse du front, en unités par seconde. */
     public static final double BRANE_WAVE_SPEED = 0.6;
-    /** Une seule onde à la fois (version 0.155) : on ne lance pas la suivante avant que la précédente s'éteigne. */
+    /** Une seule onde à la fois : on ne lance pas la suivante avant que la précédente s'éteigne. */
     public static final int BRANE_MAX_WAVES = 1;
     /** Les points : six au plus, un nouveau toutes les deux secondes. */
     public static final int BRANE_MAX_POINTS = 6;
@@ -125,7 +106,7 @@ public abstract class GameBrane extends GameLoop {
     /** Le rebond : ×1,5 au départ, +0,25 par niveau ; la suite : +10 % par point de plus, +5 points par niveau. */
     public static final double BRANE_BOUNCE = 1.5, BRANE_BOUNCE_STEP = 0.25, BRANE_COMBO = 0.1, BRANE_COMBO_STEP = 0.05;
 
-    private final java.util.Random braneRandom = new java.util.Random(6);
+    private final Random braneRandom = new Random(6);
     private final List<BranePoint> branePoints = new ArrayList<>();
     private final List<BraneWave> braneWaves = new ArrayList<>();
     private double braneSpawnTimer, braneAutoTimer;
@@ -134,23 +115,15 @@ public abstract class GameBrane extends GameLoop {
     private double braneLastGain;
 
     /** Vrai dès que la sixième dimension est ouverte : au sixième univers. */
-    public boolean isBraneOpen() {
-        return dimensionsUnlocked() >= 6;
-    }
+    public boolean isBraneOpen() { return dimensionsUnlocked() >= 6; }
 
-    public int braneLevel(BraneUpgrade upgrade) {
-        return state.braneLevel(upgrade.ordinal());
-    }
+    public int braneLevel(BraneUpgrade upgrade) { return state.braneLevel(upgrade.ordinal()); }
 
     /** Ce que donne un point touché, avant les multiplicateurs : 1, plus 1 par niveau de gain, et le bonus des omégas. */
-    public double braneValue() {
-        return (1 + braneLevel(BraneUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
-    }
+    public double braneValue() { return (1 + braneLevel(BraneUpgrade.GAIN)) * hadronBoost(Hadron.OMEGA); }
 
     /** La portée d'une onde tirée à fond. */
-    public double braneMaxReach() {
-        return BRANE_REACH * (1 + BRANE_SIZE_STEP * braneLevel(BraneUpgrade.SIZE));
-    }
+    public double braneMaxReach() { return BRANE_REACH * (1 + BRANE_SIZE_STEP * braneLevel(BraneUpgrade.SIZE)); }
 
     /** La portée d'une onde tirée de {@code pull} (0 à peine, 1 à fond), élasticité comprise. */
     public double braneReach(double pull) {
@@ -159,14 +132,10 @@ public abstract class GameBrane extends GameLoop {
     }
 
     /** Le multiplicateur d'un point touché après un rebond. */
-    public double braneBounceFactor() {
-        return BRANE_BOUNCE + BRANE_BOUNCE_STEP * braneLevel(BraneUpgrade.BOUNCE);
-    }
+    public double braneBounceFactor() { return BRANE_BOUNCE + BRANE_BOUNCE_STEP * braneLevel(BraneUpgrade.BOUNCE); }
 
     /** Ce que gagne chaque point de plus touché par une même onde. */
-    public double braneComboStep() {
-        return BRANE_COMBO + BRANE_COMBO_STEP * braneLevel(BraneUpgrade.COMBO);
-    }
+    public double braneComboStep() { return BRANE_COMBO + BRANE_COMBO_STEP * braneLevel(BraneUpgrade.COMBO); }
 
     /**
      * Ce que donne le {@code rank}-ième passage (1 le premier) d'une onde, après {@code bounces} rebonds (un par bord
@@ -176,42 +145,26 @@ public abstract class GameBrane extends GameLoop {
         return braneValue() * Math.pow(braneBounceFactor(), bounces) * (1 + braneComboStep() * Math.max(0, rank - 1));
     }
 
-    public List<BranePoint> branePoints() {
-        return Collections.unmodifiableList(branePoints);
-    }
+    public List<BranePoint> branePoints() { return Collections.unmodifiableList(branePoints); }
 
-    public List<BraneWave> braneWaves() {
-        return Collections.unmodifiableList(braneWaves);
-    }
+    public List<BraneWave> braneWaves() { return Collections.unmodifiableList(braneWaves); }
 
     /** Les points touchés depuis le lancement : l'interface y voit ceux de la dernière image. */
-    public long braneTouches() {
-        return braneTouches;
-    }
+    public long braneTouches() { return braneTouches; }
 
     /** Les passages après un rebond depuis le lancement. */
-    public long braneBounces() {
-        return braneBounces;
-    }
+    public long braneBounces() { return braneBounces; }
 
     /** Le plus de rebonds d'un passage depuis le lancement. */
-    public int braneMostBounces() {
-        return braneMostBounces;
-    }
+    public int braneMostBounces() { return braneMostBounces; }
 
-    public long braneWavesSent() {
-        return braneWavesSent;
-    }
+    public long braneWavesSent() { return braneWavesSent; }
 
     /** Ce qu'a donné le dernier point touché. */
-    public double braneLastGain() {
-        return braneLastGain;
-    }
+    public double braneLastGain() { return braneLastGain; }
 
     /** Vrai si une onde de plus peut partir. */
-    public boolean canPullBrane() {
-        return isBraneOpen() && braneWaves.size() < BRANE_MAX_WAVES;
-    }
+    public boolean canPullBrane() { return isBraneOpen() && braneWaves.size() < BRANE_MAX_WAVES; }
 
     /**
      * La membrane, tirée en ({@code x}, {@code y}) de {@code pull} (0 à 1), est relâchée : une onde en part. Faux si
@@ -226,7 +179,7 @@ public abstract class GameBrane extends GameLoop {
     }
 
     /**
-     * Où l'automatisme tire (version 0.163) : sur le point d'où une onde à fond en touche le plus, directement ; au
+     * Où l'automatisme tire : sur le point d'où une onde à fond en touche le plus, directement ; au
      * milieu de la membrane s'il n'y en a aucun. Avant, il tirait au centre des points : quand ils étaient plus écartés
      * que la portée, l'onde n'en touchait aucun, aucun ne partait, aucun nouveau ne venait, et la brane s'arrêtait pour
      * de bon. Viser un point en touche toujours au moins un.
@@ -266,7 +219,7 @@ public abstract class GameBrane extends GameLoop {
      */
     void runBrane(double dt) {
         if (!isBraneOpen() || dt <= 0) return;
-        // Version 0.163 : la tirée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert : d'un coup,
+        // La tirée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert : d'un coup,
         // l'onde et la tirée suivante ne s'enchaînaient pas pareil, et la brane rapportait de −17 % à +46 % selon le pas.
         if (dt > PLANE_AUTO_STEP && isBraneAutomatic()) {
             for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runBraneStep(Math.min(PLANE_AUTO_STEP, left));
@@ -292,7 +245,7 @@ public abstract class GameBrane extends GameLoop {
             }
             if (!canPullBrane()) braneAutoTimer = Math.min(braneAutoTimer, every);
         }
-        for (java.util.Iterator<BraneWave> it = braneWaves.iterator(); it.hasNext(); ) {
+        for (Iterator<BraneWave> it = braneWaves.iterator(); it.hasNext(); ) {
             BraneWave wave = it.next();
             double from = wave.radius, to = Math.min(wave.reach, from + BRANE_WAVE_SPEED * dt);
             wave.radius = to;
@@ -324,7 +277,7 @@ public abstract class GameBrane extends GameLoop {
                 }
             }
         }
-        hits.sort(java.util.Comparator.comparingDouble(Hit::distance));
+        hits.sort(Comparator.comparingDouble(Hit::distance));
         for (Hit hit : hits) {
             wave.hit.add(new Strike(hit.point(), hit.image()));
             if (!wave.struck.contains(hit.point())) wave.struck.add(hit.point());
@@ -364,14 +317,10 @@ public abstract class GameBrane extends GameLoop {
     }
 
     /** Vrai quand l'automatisme de la brane joue (automatisation des dimensions, version 0.154). */
-    boolean isBraneAutomatic() {
-        return isDimensionPlayed(6);
-    }
+    boolean isBraneAutomatic() { return isDimensionPlayed(6); }
 
     /** Prix du prochain niveau, en ondes ; infini une fois au plus haut. */
-    public double braneCost(BraneUpgrade upgrade) {
-        return upgrade.cost(braneLevel(upgrade));
-    }
+    public double braneCost(BraneUpgrade upgrade) { return upgrade.cost(braneLevel(upgrade)); }
 
     public boolean canBuyBrane(BraneUpgrade upgrade) {
         return isBraneOpen() && braneLevel(upgrade) < upgrade.max() && state.braneShards() >= braneCost(upgrade) - 1e-9;
@@ -385,9 +334,7 @@ public abstract class GameBrane extends GameLoop {
     }
 
     @Override
-    boolean buyBraneUpgrade(int index) {
-        return buyBrane(BraneUpgrade.values()[index]);
-    }
+    boolean buyBraneUpgrade(int index) { return buyBrane(BraneUpgrade.values()[index]); }
 
     // ------------------------------------------------------------------
     // La lumière astrale, pour la graine
@@ -397,13 +344,9 @@ public abstract class GameBrane extends GameLoop {
     public static final double ASTRAL_STEP = 0.2;
 
     /** Le multiplicateur de la lumière astrale : 1 sans elle. */
-    public double astralLight() {
-        return 1 + ASTRAL_STEP * seedUpgradeLevel(SeedUpgrade.ASTRAL_LIGHT);
-    }
+    public double astralLight() { return 1 + ASTRAL_STEP * seedUpgradeLevel(SeedUpgrade.ASTRAL_LIGHT); }
 
     /** L'arrosage par seconde de l'arrosoir et du tuyau, multiplié par la lumière astrale. */
     @Override
-    public double wateringBoost() {
-        return super.wateringBoost() * astralLight();
-    }
+    public double wateringBoost() { return super.wateringBoost() * astralLight(); }
 }

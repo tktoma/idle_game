@@ -1,27 +1,21 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.BangChallenge;
+import idle.core.achievements.*;
+import idle.core.bigbang.*;
 import idle.core.darkmatter.Challenge;
-import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
-import idle.core.molecules.ShoppingList;
-import idle.core.sky.Body;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import idle.core.molecules.*;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Le troisième acte et ce qui vient après : la prime de vitesse, la
@@ -29,10 +23,7 @@ import org.junit.jupiter.api.Test;
  * fin de partie, les records par étape, les succès du troisième acte et les défis de Big Bang.
  */
 class TroisiemeActeTest {
-
-    private static Game newGame() {
-        return GameTestSupport.realGame();
-    }
+    private static Game newGame() { return GameTestSupport.realGame(); }
 
     private static Game afterBigBangs(int bigBangs, double space) {
         Game game = newGame();
@@ -41,17 +32,12 @@ class TroisiemeActeTest {
         return game;
     }
 
-    private static void fillTable(Game game) {
-        GameTestSupport.fillTable(game, 1);
-    }
+    private static void fillTable(Game game) { GameTestSupport.fillTable(game, 1); }
 
-    private static void readyForBigBang(Game game) {
-        GameTestSupport.readyForBigBang(game);
-    }
+    private static void readyForBigBang(Game game) { GameTestSupport.readyForBigBang(game); }
 
     @Nested
     class PrimeDeVitesse {
-
         @Test
         void laPremiereExplosionPoseLeRecordSansPrime() {
             Game game = newGame();
@@ -158,7 +144,6 @@ class TroisiemeActeTest {
 
     @Nested
     class VarieteDuCosmos {
-
         @Test
         void lAmasDeGalaxiesEtLUniversDemandentDesSortes() {
             assertTrue(Cosmos.GALAXY.sorts().isEmpty());
@@ -218,7 +203,6 @@ class TroisiemeActeTest {
 
     @Nested
     class Comete {
-
         @Test
         void aucuneAvantLePremierBigBang() {
             Game game = newGame();
@@ -313,7 +297,6 @@ class TroisiemeActeTest {
 
     @Nested
     class AmeliorationsDeFinDePartie {
-
         @Test
         void deuxInflationsEtUneCadenceTardives() {
             Game game = afterBigBangs(5, 0);
@@ -344,15 +327,14 @@ class TroisiemeActeTest {
 
     @Nested
     class Records {
-
         @Test
         void lesDefisDeBigBangDuDeuxiemeUniversMultiplientLesMolecules() {
             // Version 0.118 : ×2 molécules par création et par défi réussi, même prix en éléments ; chacune prend sa place.
             Game game = afterBigBangs(1, 1e9);
             game.state().setUniverseFormed(true);
             GameTestSupport.fillTable(game, 9);
-            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
-            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FROZEN.name());
+            game.state().addCompletedBangChallenge(BangChallenge.RAISED.name());
+            game.state().addCompletedBangChallenge(BangChallenge.FROZEN.name());
             int hydrogen = game.elementCount(1), oxygen = game.elementCount(8);
             assertTrue(game.createMolecule("H2O"));
             assertEquals(2, game.moleculeCount("H2O"), "deux défis : ×2 (version 0.119)");
@@ -361,18 +343,18 @@ class TroisiemeActeTest {
             Game counted = afterBigBangs(1, 1e9);
             counted.state().setUniverseFormed(true);
             for (int done = 0; done <= 5; done++) {
-                if (done > 0) counted.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.values()[done - 1].name());
+                if (done > 0) counted.state().addCompletedBangChallenge(BangChallenge.values()[done - 1].name());
                 assertEquals(expected[done], counted.universeMoleculeFactor(), 0, done + " défis");
             }
             assertEquals(oxygen - 1, game.elementCount(8));
-            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
+            game.state().addCompletedBangChallenge(BangChallenge.VOID.name());
             assertTrue(game.createMolecule("H2O"));
             assertEquals(2 + 4, game.moleculeCount("H2O"), "trois défis : ×4");
             // Sans place, il en vient moins.
             Game tight = afterBigBangs(1, 0);
             tight.state().setUniverseFormed(true);
             GameTestSupport.fillTable(tight, 9);
-            tight.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+            tight.state().addCompletedBangChallenge(BangChallenge.RAISED.name());
             tight.state().setSpace(BigNum.of(tight.volumeOf(tight.molecule("H2O")) * 1.5));
             assertTrue(tight.createMolecule("H2O"));
             assertEquals(1, tight.moleculeCount("H2O"), "la place d'une seule");
@@ -476,7 +458,6 @@ class TroisiemeActeTest {
 
     @Nested
     class SuccesDuTroisiemeActe {
-
         @Test
         void quatorzeSuccesDeLaPremiereMoleculeALUnivers() {
             List<Achievement> all = Achievements.DEFAULT;
@@ -486,7 +467,7 @@ class TroisiemeActeTest {
             }
             assertEquals(50, first);                                   // à la suite des cinquante premiers
             // Quatorze jusqu'à l'univers (seize avant la 0.178 : les deux succès de collection sont partis), puis
-            // (version 0.174) les dix-sept du deuxième univers, « Grappe d'univers » (0.081) et les quinze de la fin de partie.
+            // les dix-sept du deuxième univers, « Grappe d'univers » (0.081) et les quinze de la fin de partie.
             int universe = all.indexOf(Achievements.byId("step_universe"));
             assertEquals(14, universe - first + 1);
             assertEquals("univ_skins", all.get(universe + 1).id());
@@ -524,7 +505,6 @@ class TroisiemeActeTest {
 
     @Nested
     class DefisDeBigBang {
-
         private Game ready(int bigBangs) {
             Game game = afterBigBangs(bigBangs, 1e9);
             game.state().addSpaceUpgrade("space_states");

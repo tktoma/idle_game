@@ -8,11 +8,9 @@ import java.util.Locale;
 import java.util.Map;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 /**
  * De quoi trier une grille de cartes : une barre de recherche, et des rangées de pastilles où l'on
@@ -27,7 +25,6 @@ import javafx.scene.layout.VBox;
  * ({@link GameApp}) : Entrée ou Échap rendent le clavier au jeu, Échap en effaçant la recherche.
  */
 public final class FilterBar extends VBox {
-
     private static final String FIELD_STYLE = "-fx-font-size: 12px; -fx-padding: 4 12; -fx-background-radius: 12;"
             + " -fx-border-radius: 12; -fx-background-color: #121923; -fx-text-fill: #e8ecf4;"
             + " -fx-prompt-text-fill: #7c8798; -fx-border-color: ";
@@ -52,9 +49,7 @@ public final class FilterBar extends VBox {
         }
 
         /** Le type choisi, ou {@code null} pour tout montrer. */
-        public T selected() {
-            return selected;
-        }
+        public T selected() { return selected; }
 
         /** Choisit un type, ou tout avec {@code null} ; choisir celui qui l'est déjà revient à tout montrer. */
         public void select(T choice) {
@@ -150,24 +145,16 @@ public final class FilterBar extends VBox {
     }
 
     /** Le texte cherché, tel qu'il est écrit. */
-    public String text() {
-        return field.getText();
-    }
+    public String text() { return field.getText(); }
 
     /** Écrit dans la barre, comme le ferait le joueur. */
-    public void search(String text) {
-        field.setText(text);
-    }
+    public void search(String text) { field.setText(text); }
 
     /** Vrai tant que le joueur écrit dans la barre. */
-    public boolean typing() {
-        return field.isFocused();
-    }
+    public boolean typing() { return field.isFocused(); }
 
     /** Rend le clavier au jeu, si la barre l'avait. */
-    public void release() {
-        if (field.isFocused()) keyboardHome.requestFocus();
-    }
+    public void release() { if (field.isFocused()) keyboardHome.requestFocus(); }
 
     /**
      * Un texte tel que la recherche le compare : en minuscules, sans accents, les indices et

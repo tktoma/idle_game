@@ -7,20 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.math.BigNum;
 import idle.ui.Settings;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /** Version 0.200 : les six notations nouvelles, sur 0, 1, 1 234, 1e6, 1e21, 1e85000 et une durée. Sans affichage. */
 class NotationsTest {
-
     private static final List<BigNum> SAMPLES = List.of(BigNum.of(0), BigNum.of(1), BigNum.of(1234), BigNum.of(1, 6), BigNum.of(1, 21), BigNum.of(1, 85_000));
     private static final List<Settings.Notation> NEW = List.of(Settings.Notation.BINARY, Settings.Notation.HEX, Settings.Notation.JAPANESE,
             Settings.Notation.MORSE, Settings.Notation.SI, Settings.Notation.HEARTBEATS);
 
     @AfterEach
-    void scientifique() {
-        Format.setNotation(Settings.Notation.SCIENTIFIC);
-    }
+    void scientifique() { Format.setNotation(Settings.Notation.SCIENTIFIC); }
 
     @Test
     void chaqueNotationNouvelleEstADebloquerEtResteLisible() {

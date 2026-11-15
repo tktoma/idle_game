@@ -3,7 +3,7 @@ import idle.core.universe.DimensionAutomation;
 import java.util.Locale;
 
 /**
- * Version 0.209 : le temps de jeu à la main qu'il faut, dans chaque dimension, pour payer ses automatismes. Une partie
+ * Le temps de jeu à la main qu'il faut, dans chaque dimension, pour payer ses automatismes. Une partie
  * d'essai ouvre la dimension et ses automatismes d'un coup, dimension neuve ; un joueur appliqué la joue seule, au pas
  * de 0,05 s : le plan, le volume et la durée avec leur joueur de {@link DimensionBots}, la ligne avec ses achats toutes
  * les cinq secondes, les autres avec ce que ferait l'automatisme qui les joue, une action par seconde
@@ -14,7 +14,6 @@ import java.util.Locale;
  * joue vers dix minutes, le dernier vers une demi-heure.
  */
 final class CalibrageAutomatismes {
-
     static final double STEP = 0.05;
 
     public static void main(String[] args) {

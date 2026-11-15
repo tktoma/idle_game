@@ -42,26 +42,23 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 /**
- * L'onglet « Profil » (version 0.147), là dès le premier générateur : qui joue, jusqu'où il est allé, et ce qu'il a
- * trouvé en route. Six sous-onglets :
+ * L'onglet « Profil », là dès le premier générateur : qui joue, jusqu'où il est allé, et ce qu'il a trouvé en route.
+ * Six sous-onglets :
  * <ul>
- *   <li>« Profil » : l'avatar, le nom du joueur (modifiable : Entrée ou un clic ailleurs le valide, le jeu le nettoie),
- *       le titre porté, le temps de jeu, les univers, les Big Bangs et les titres obtenus ; puis la galerie des avatars
- *       ({@link Avatar}, dessinés par le jeu, la plupart ouverts par un titre, et l'image que le joueur importe, copiée
- *       dans le dossier des données et recadrée en rond) ; enfin la liste des {@link Title titres}, obtenus (cliquables
- *       pour les porter) et à venir (avec leur condition). L'avatar de l'en-tête et l'aperçu de l'image portent le cadre
- *       choisi dans l'onglet Skins ({@link SkinVisual#AVATAR_FRAME}, version 0.189) ; les cartes de la galerie restent
- *       rondes ;</li>
- *   <li>« Journal » : les dernières annonces du jeu ({@link EventLog}), la plus récente en haut ; il était la dernière
- *       sous-page des statistiques jusqu'à la 0.144 ;</li>
- *   <li>« Molécules », « États de la matière », « Assemblages », « Astres » : les albums ({@link AlbumPane}) de ce qui a
- *       été obtenu au moins une fois, ouverts avec le premier Big Bang ou dès qu'ils ont quelque chose.</li>
- * </ul>
- * Titres, nom, avatar et albums traversent le Big Bang, l'univers et « Recommencer de zéro » : la page ne fait que les
- * lire dans la partie, et seul le sous-onglet affiché se recopie.
+ * <li>« Profil » : l'avatar, le nom du joueur (modifiable : Entrée ou un clic ailleurs le valide, le jeu le nettoie),
+ * le titre porté, le temps de jeu, les univers, les Big Bangs et les titres obtenus ; puis la galerie des avatars
+ * ({@link Avatar}, dessinés par le jeu, la plupart ouverts par un titre, et l'image que le joueur importe, copiée dans
+ * le dossier des données et recadrée en rond) ; enfin la liste des {@link Title titres}, obtenus (cliquables pour les
+ * porter) et à venir (avec leur condition). L'avatar de l'en-tête et l'aperçu de l'image portent le cadre choisi dans
+ * l'onglet Skins ({@link SkinVisual#AVATAR_FRAME}, version 0.189) ; les cartes de la galerie restent rondes ;</li>
+ * <li>« Journal » : les dernières annonces du jeu ({@link EventLog}), la plus récente en haut ; il était la dernière
+ * sous-page des statistiques jusqu'à la 0.144 ;</li>
+ * <li>« Molécules », « États de la matière », « Assemblages », « Astres » : les albums ({@link AlbumPane}) de ce qui a
+ * été obtenu au moins une fois, ouverts avec le premier Big Bang ou dès qu'ils ont quelque chose.</li>
+ * </ul> Titres, nom, avatar et albums traversent le Big Bang, l'univers et « Recommencer de zéro » : la page ne fait
+ * que les lire dans la partie, et seul le sous-onglet affiché se recopie.
  */
 public final class ProfilePage extends VBox {
-
     /** La couleur du profil : un orangé tiède, à part des ressources. */
     public static final String COLOR = "#f4b183";
     /** Les sous-onglets, dans l'ordre. */
@@ -101,7 +98,7 @@ public final class ProfilePage extends VBox {
 
     // La galerie.
     private final Map<Avatar, Card> avatarCards = new EnumMap<>(Avatar.class);
-    /** Les dessins de la galerie, pour leur donner le style des avatars (version 0.198). */
+    /** Les dessins de la galerie, pour leur donner le style des avatars. */
     private final Map<Avatar, AvatarView> avatarPictures = new EnumMap<>(Avatar.class);
     private final Card customCard = new Card(COLOR);
     private final AvatarView customPreview = new AvatarView(56);
@@ -206,9 +203,7 @@ public final class ProfilePage extends VBox {
             commitName();
             requestFocus();
         });
-        nameField.focusedProperty().addListener((seen, before, focused) -> {
-            if (!focused) commitName();
-        });
+        nameField.focusedProperty().addListener((seen, before, focused) -> { if (!focused) commitName(); });
         titleLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         for (Label label : new Label[] {playedLabel, universesLabel, bangsLabel, titlesLabel}) label.setStyle(NAME_STYLE);
         VBox identity = new VBox(6, nameField, titleLabel, playedLabel, universesLabel, bangsLabel, titlesLabel);
@@ -316,12 +311,12 @@ public final class ProfilePage extends VBox {
         return entries;
     }
 
-    /** Le dessin d'une molécule pour son album (version 0.198), dans le skin et la palette des molécules du moment. */
+    /** Le dessin d'une molécule pour son album, dans le skin et la palette des molécules du moment. */
     private AlbumPane.Picture moleculePicture(Molecule molecule) {
         return (g, w, h) -> CatalogArt.drawMolecule(g, molecule, w, h, game.chosenSkin(SkinVisual.MOLECULE), game.chosenSkin(SkinVisual.MOLECULE_PALETTE));
     }
 
-    /** La clé des skins dans lesquels les albums dessinent (version 0.198) : un album se remplit de nouveau si elle change. */
+    /** La clé des skins dans lesquels les albums dessinent : un album se remplit de nouveau si elle change. */
     private String pictureKey() {
         return game.chosenSkin(SkinVisual.MOLECULE) + "/" + game.chosenSkin(SkinVisual.MOLECULE_PALETTE) + "/"
                 + game.chosenSkin(SkinVisual.BODY) + "/" + game.chosenSkin(SkinVisual.BLOCKS);
@@ -332,9 +327,7 @@ public final class ProfilePage extends VBox {
     // ------------------------------------------------------------------
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
-    public HBox subTabs() {
-        return subTabs;
-    }
+    public HBox subTabs() { return subTabs; }
 
     /** Montre ce sous-onglet ; un album pas encore ouvert ramène au profil. */
     public void select(int index) {
@@ -345,9 +338,7 @@ public final class ProfilePage extends VBox {
         }
     }
 
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Passe au sous-onglet ouvert suivant ou précédent, en boucle. */
     public void step(int direction) {
@@ -452,7 +443,7 @@ public final class ProfilePage extends VBox {
             framed.setStampValue(game.state().earnedTitles().size());
             framed.setFrame(frame);
         }
-        // Version 0.198 : le style des avatars, sur l'en-tête, l'aperçu et toute la galerie ; l'image importée n'en change pas.
+        // Le style des avatars, sur l'en-tête, l'aperçu et toute la galerie ; l'image importée n'en change pas.
         Skin style = game.chosenSkin(SkinVisual.AVATAR_STYLE);
         avatarView.setAvatarStyle(style);
         customPreview.setAvatarStyle(style);
@@ -651,20 +642,16 @@ public final class ProfilePage extends VBox {
     }
 
     /** Nombre d'annonces du journal affichées. */
-    public int journalRows() {
-        return journalList.getChildren().size();
-    }
+    public int journalRows() { return journalList.getChildren().size(); }
 
-    /** Le texte d'une ligne du journal, la plus récente d'abord : « 12:00  ·  3 s de jeu | texte ». */
+    /** Le texte d'une ligne du journal, la plus récente d'abord : « 12:00 · 3 s de jeu | texte ». */
     public String journalRow(int index) {
         HBox box = (HBox) journalList.getChildren().get(index);
         return ((Label) box.getChildren().get(0)).getText() + " | " + ((Label) box.getChildren().get(1)).getText();
     }
 
     /** Le champ du nom. */
-    public TextField nameField() {
-        return nameField;
-    }
+    public TextField nameField() { return nameField; }
 
     /** Les lignes de l'en-tête : le titre porté, le temps de jeu, les univers, les Big Bangs, les titres. */
     public List<String> headerLines() {
@@ -672,21 +659,15 @@ public final class ProfilePage extends VBox {
     }
 
     /** Ce que montre l'avatar de l'en-tête : l'identifiant d'un avatar du jeu, ou {@link Avatar#CUSTOM}. */
-    public String shownAvatar() {
-        return avatarView.shown();
-    }
+    public String shownAvatar() { return avatarView.shown(); }
 
     /** Le cadre de l'avatar de l'en-tête, ou {@code null} pour le Classique. */
-    public Skin avatarFrame() {
-        return avatarView.frame();
-    }
+    public Skin avatarFrame() { return avatarView.frame(); }
 
     /** Le cadre de l'aperçu de l'image importée, dans la galerie. */
-    public Skin previewFrame() {
-        return customPreview.frame();
-    }
+    public Skin previewFrame() { return customPreview.frame(); }
 
-    /** Le style des avatars de l'en-tête et de la galerie (version 0.198), ou {@code null} pour le Classique. */
+    /** Le style des avatars de l'en-tête et de la galerie, ou {@code null} pour le Classique. */
     public Skin avatarStyle() {
         Skin style = avatarView.avatarStyle();
         for (AvatarView picture : avatarPictures.values()) if (picture.avatarStyle() != style) return null;
@@ -694,31 +675,21 @@ public final class ProfilePage extends VBox {
     }
 
     /** La carte d'un avatar de la galerie. */
-    public Card avatarCard(Avatar avatar) {
-        return avatarCards.get(avatar);
-    }
+    public Card avatarCard(Avatar avatar) { return avatarCards.get(avatar); }
 
     /** La carte de l'image importée. */
-    public Card customCard() {
-        return customCard;
-    }
+    public Card customCard() { return customCard; }
 
     /** Le bouton qui ouvre le sélecteur de fichiers. */
-    public Button importButton() {
-        return importButton;
-    }
+    public Button importButton() { return importButton; }
 
     /** La carte d'un titre. */
-    public Card titleCard(Title title) {
-        return titleCards.get(title);
-    }
+    public Card titleCard(Title title) { return titleCards.get(title); }
 
     /** Le bouton « Porter le plus récent ». */
-    public Button wearLatestButton() {
-        return wearLatest;
-    }
+    public Button wearLatestButton() { return wearLatest; }
 
-    /** Le skin d'un album après l'avoir recopié (version 0.198), ou {@code null} pour le Classique : pour les vérifications. */
+    /** Le skin d'un album après l'avoir recopié, ou {@code null} pour le Classique : pour les vérifications. */
     public Skin albumSkin(int index) {
         albums[index - MOLECULES].setLook(game.chosenSkin(SkinVisual.ALBUM), pictureKey());
         albums[index - MOLECULES].refresh();
@@ -744,7 +715,5 @@ public final class ProfilePage extends VBox {
     }
 
     /** Ne montre que les molécules d'un rayon ; {@code null} les montre toutes. */
-    public void filterMolecules(Molecule.Kind kind) {
-        albums[0].filter(kind);
-    }
+    public void filterMolecules(Molecule.Kind kind) { albums[0].filter(kind); }
 }

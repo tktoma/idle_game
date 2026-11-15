@@ -1,5 +1,8 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.math.BigNum;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,11 +11,8 @@ import idle.core.achievements.Achievements;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import idle.core.upgrades.*;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -21,19 +21,13 @@ import org.junit.jupiter.api.Test;
  * réservation par recette) sont ignorés, et la partie tourne. Une sauvegarde neuve n'écrit plus ces clés.
  */
 class Sauvegarde178Test {
-
     private static Game play(GameState state) {
         return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(1));
     }
 
     /** Une sauvegarde écrite à la main dans l'ancien format : un troisième acte entamé avec des molécules de la 0.177. */
     private static String oldSave() {
-        return String.join("\n",
-                "idle-save 1",
-                "savedAt=1700000000000",
-                "started=1",
-                "bigBangs=3",
-                "space=1000000000",
+        return String.join("\n", "idle-save 1", "savedAt=1700000000000", "started=1", "bigBangs=3", "space=1000000000",
                 "moleculeLog=C6H12O6:5,H2O:3,NiTi:4,NaCl:2",
                 "substances=NiTi,H2O,Nd2Fe14B",
                 "automatedMolecules=NiTi,H2O",
@@ -114,7 +108,7 @@ class Sauvegarde178Test {
     void uneSauvegardeNeuveNEcritPlusLesReglagesDisparus() throws Exception {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 3);
-        game.state().setSpace(idle.core.math.BigNum.of(1, 9));
+        game.state().setSpace(BigNum.of(1, 9));
         GameTestSupport.openSpace(game);
         game.state().setMoleculeCount("H2O", 3);
         game.state().addSubstance("H2O");

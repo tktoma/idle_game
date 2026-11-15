@@ -1,14 +1,13 @@
 package idle.ui.common;
 
 import idle.core.Game;
+import idle.core.universe.*;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangChallenge;
 import idle.core.elements.ElementEffect;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.universe.Skin;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 import javafx.scene.Node;
 import javafx.scene.control.Tooltip;
@@ -22,13 +21,12 @@ import javafx.util.Duration;
  * noire par explosion, l'espace par seconde. Un facteur qui vaut 1 n'est pas listé : la bulle ne
  * montre que ce qui agit. Rien n'est calculé ici que {@link Game} n'expose déjà.
  *
- * <p>Version 0.192 : les bulles ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochaine remise à jour :
+ * <p>Les bulles ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochaine remise à jour :
  * « Parchemin » (papier brun clair, encre brune, police à empattements, bord sombre), « Post-it » (jaune pâle
  * {@code #f9eeda}, sans bord, une ombre portée, un peu penché par l'italique), « Terminal » (noir, texte vert à chasse
  * fixe, bord vert, coins carrés).
  */
 public final class Breakdown {
-
     /** Les compteurs qui savent dire d'où ils viennent. */
     public enum Of { PARTICLES, ATOMS, DARK_MATTER, SPACE }
 
@@ -38,7 +36,7 @@ public final class Breakdown {
     static final String CLASSIC_STYLE = "-fx-font-size: 12px; -fx-padding: 8 10; -fx-text-fill: #e8f4ff;"
             + " -fx-background-color: #16202e; -fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #3a4a5e;";
 
-    /** Le skin des bulles (version 0.192), commun à toutes, ou {@code null} pour le Classique. */
+    /** Le skin des bulles, commun à toutes, ou {@code null} pour le Classique. */
     private static volatile Skin skin = null;
 
     private final Tooltip tooltip = new Tooltip();
@@ -58,14 +56,10 @@ public final class Breakdown {
     }
 
     /** Change le skin de toutes les bulles ; chacune le prend à sa prochaine remise à jour. */
-    public static void setSkin(Skin chosen) {
-        skin = chosen;
-    }
+    public static void setSkin(Skin chosen) { skin = chosen; }
 
     /** Le skin des bulles, ou {@code null} pour le Classique : pour les vérifications. */
-    public static Skin skin() {
-        return skin;
-    }
+    public static Skin skin() { return skin; }
 
     /** Le style d'une bulle sous ce skin ; {@code null} ou un skin d'un autre visuel donnent le style de toujours. */
     public static String style(Skin skin) {
@@ -84,9 +78,7 @@ public final class Breakdown {
     }
 
     /** Le style de la bulle en ce moment : pour les vérifications. */
-    public String tooltipStyle() {
-        return tooltip.getStyle();
-    }
+    public String tooltipStyle() { return tooltip.getStyle(); }
 
     /** Pose sur {@code node} l'info-bulle d'un compteur. Appeler {@link #refresh()} quand sa page se recopie. */
     public static Breakdown attach(Node node, Game game, Of what) {
@@ -107,14 +99,10 @@ public final class Breakdown {
     }
 
     /** Le texte de la bulle en ce moment : pour les vérifications. */
-    public String text() {
-        return text.get();
-    }
+    public String text() { return text.get(); }
 
     /** Le texte d'une bulle : son titre, puis une ligne par facteur. */
-    public static String text(Game game, Of what) {
-        return String.join("\n", lines(game, what));
-    }
+    public static String text(Game game, Of what) { return String.join("\n", lines(game, what)); }
 
     /** Ce qui compose un compteur : un titre, puis une ligne par facteur qui agit. */
     public static List<String> lines(Game game, Of what) {
@@ -124,8 +112,8 @@ public final class Breakdown {
                 lines.add("Particules par seconde : " + Format.amount(game.productionPerSecond()));
                 lines.add("Générateurs en activité : " + game.generatorCount());
                 lines.add("Créations par seconde et par générateur : " + Format.amount(game.speed()));
-                // Le premier élan (version 0.095) : la création va moins vite jusqu'au tout premier atome.
-                if (game.firstRunSlowdown() > 1) lines.add("  dont ÷" + idle.ui.common.ElementText.number(game.firstRunSlowdown())
+                // Le premier élan : la création va moins vite jusqu'au tout premier atome.
+                if (game.firstRunSlowdown() > 1) lines.add("  dont ÷" + ElementText.number(game.firstRunSlowdown())
                         + "  premier élan : la création accélère au premier atome, au cinquième, puis au trentième");
                 BigNum perCreation = game.particlesPerCreation();
                 lines.add("Particules par création : " + Format.amount(perCreation) + ", faites de");
@@ -165,7 +153,7 @@ public final class Breakdown {
                 double challenges = game.bangReward(BangChallenge.Reward.DARK_MATTER);
                 double base = Game.DARK_MATTER_PER_EXPLOSION.toDouble();
                 double universes = game.universeDarkMatterFactor();
-                double reserve = game.cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1;
+                double reserve = game.cycleChoice() == CycleChoice.RESERVE ? 1 + CycleChoice.RESERVE_GAIN : 1;
                 double added = perExplosion.toDouble() / (factor * challenges * universes * reserve) - base;
                 lines.add("Base : " + ElementText.number(base));
                 if (added > 1e-9) lines.add("+" + ElementText.number(added) + "  arbre de matière noire");
@@ -187,7 +175,7 @@ public final class Breakdown {
                 times(lines, "matière noire en réserve", game.darkMatterSpaceBoost());
                 times(lines, "défis de Big Bang", game.bangReward(BangChallenge.Reward.SPACE));
                 times(lines, "sillage de comète", game.cometBoost());
-                // Version 0.167 : l'amorti au-delà de 10 000 par seconde (les autres bonus ne sont pas tous listés ici).
+                // L'amorti au-delà de 10 000 par seconde (les autres bonus ne sont pas tous listés ici).
                 double raw = game.rawSpacePerSecond();
                 if (raw > Game.SPACE_DAMPING_START) times(lines, "amorti au-delà de " + ElementText.number(Game.SPACE_DAMPING_START)
                         + " par seconde", Game.dampedSpace(raw) / raw);
@@ -196,7 +184,7 @@ public final class Breakdown {
         return lines;
     }
 
-    /** Ajoute « ×2.5  nom » si le facteur agit, et rend le produit des facteurs listés jusque-là. */
+    /** Ajoute « ×2.5 nom » si le facteur agit, et rend le produit des facteurs listés jusque-là. */
     private static BigNum factor(List<String> lines, BigNum listed, String name, BigNum factor) {
         if (factor.subtract(BigNum.ONE).abs().toDouble() > 1e-9) lines.add("  " + Format.multiplier(factor) + "  " + name);
         return listed.multiply(factor);

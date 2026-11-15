@@ -3,14 +3,12 @@ package idle.ui.common;
 import javafx.scene.layout.Region;
 
 /**
- * Empêche un texte qui change souvent de faire sauter ce qui est en dessous. Quand un nombre
- * s'allonge ou raccourcit vingt fois par seconde, sa ligne peut passer d'une à deux lignes et
- * retour : tout ce qui suit monte et descend, et un clic sur un sous-onglet tombe à côté. Une
- * zone stable garde la plus grande hauteur qu'elle a prise, tant que sa largeur ne change pas ;
- * une nouvelle largeur (fenêtre redimensionnée) repart de zéro.
+ * Empêche un texte qui change souvent de faire sauter ce qui est en dessous. Quand un nombre s'allonge ou raccourcit
+ * vingt fois par seconde, sa ligne peut passer d'une à deux lignes et retour : tout ce qui suit monte et descend, et un
+ * clic sur un sous-onglet tombe à côté. Une zone stable garde la plus grande hauteur qu'elle a prise, tant que sa
+ * largeur ne change pas ; une nouvelle largeur (fenêtre redimensionnée) repart de zéro.
  */
 public final class StableHeight {
-
     private StableHeight() {}
 
     public static <T extends Region> T of(T region) {

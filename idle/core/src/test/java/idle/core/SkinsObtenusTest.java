@@ -1,19 +1,18 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.collider.ColliderUpgrade;
 import idle.core.math.BigNum;
-import idle.core.universe.Skin;
-import idle.core.universe.Trial;
+import idle.core.universe.*;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.088 : comment s'obtiennent les skins — record, recherches, paliers et épreuves. */
 class SkinsObtenusTest {
-
     /** Le deuxième univers, l'onglet Skins ouvert. */
     static Game skins() {
         Game game = DeuxiemeUniversTest.second();
@@ -106,7 +105,7 @@ class SkinsObtenusTest {
     @Test
     void lAutomatismeDesGenerateursRespecteLEpreuveDuGenerateurSeul() {
         Game game = skins(), witness = skins();
-        for (Game each : java.util.List.of(game, witness)) {
+        for (Game each : List.of(game, witness)) {
             each.state().setExplosions(1);
             each.state().addAutomation("auto_generator");
             each.state().setAutomationEnabled("auto_generator", true);

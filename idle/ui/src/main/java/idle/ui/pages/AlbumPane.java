@@ -19,21 +19,20 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 
 /**
- * Un album du profil (version 0.147), façon Pokédex : tout ce qu'un catalogue contient, une case chacun, numérotée.
+ * Un album du profil, façon Pokédex : tout ce qu'un catalogue contient, une case chacun, numérotée.
  * Ce qui a été obtenu au moins une fois montre son nom, ce qui le décrit et le temps de jeu de la première fois ; le
  * reste n'est qu'un « ??? » éteint. En tête, le compte « obtenus / total ».
  *
  * <p>Les cases ne sont créées qu'à la première visite, et ne se remplissent de nouveau que lorsque le nombre de
  * découvertes change : un album ne coûte rien tant que rien de neuf n'arrive. L'album des molécules se filtre par rayon.
  *
- * <p>Version 0.198 : le skin des albums ({@link idle.core.universe.SkinVisual#ALBUM}, {@link #setLook}) met sur chaque
+ * <p>Le skin des albums ({@link idle.core.universe.SkinVisual#ALBUM}, {@link #setLook}) met sur chaque
  * case le dessin de ce qu'elle garde ({@link Entry#picture()}), nu pour « Illustré », ou sur une vignette autocollante,
  * un timbre, une carte de collection, une fiche d'herbier ({@link AlbumSkinArt}) ; ce qui n'est pas trouvé reste une
  * case vide dans la même manière. Le Classique n'a pas de dessin.
  */
 final class AlbumPane extends VBox {
-
-    /** Ce qui dessine une entrée dans un cadre donné (version 0.198), dans les skins du moment. */
+    /** Ce qui dessine une entrée dans un cadre donné, dans les skins du moment. */
     interface Picture {
         void draw(javafx.scene.canvas.GraphicsContext g, double width, double height);
     }
@@ -45,12 +44,10 @@ final class AlbumPane extends VBox {
      * @param name    le nom, montré une fois découvert
      * @param line    ce qui le décrit en quelques mots : formule, état, famille ou échelle
      * @param kind    le rayon d'une molécule, pour le filtre ; {@code null} ailleurs
-     * @param picture son dessin (version 0.198), ou {@code null} pour une case sans dessin
+     * @param picture son dessin, ou {@code null} pour une case sans dessin
      */
     record Entry(String id, String name, String line, Molecule.Kind kind, Picture picture) {
-        Entry(String id, String name, String line, Molecule.Kind kind) {
-            this(id, name, line, kind, null);
-        }
+        Entry(String id, String name, String line, Molecule.Kind kind) { this(id, name, line, kind, null); }
     }
 
     private static final String FILTER_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
@@ -72,7 +69,7 @@ final class AlbumPane extends VBox {
     /** Le nombre de découvertes au dernier remplissage, et si les cartes écrivaient leur signe ; −1 : à refaire. */
     private int filledWith = -1;
     private boolean filledSigns;
-    /** Le skin des albums (version 0.198), {@code null} pour le Classique, et la clé des skins des dessins ; ceux du dernier remplissage. */
+    /** Le skin des albums, {@code null} pour le Classique, et la clé des skins des dessins ; ceux du dernier remplissage. */
     private Skin skin;
     private String pictureKey = "";
     private Skin filledSkin;
@@ -119,12 +116,10 @@ final class AlbumPane extends VBox {
     }
 
     /** La partie vient d'être remplacée : les cases seront remplies de nouveau à la prochaine visite. */
-    void forget() {
-        filledWith = -1;
-    }
+    void forget() { filledWith = -1; }
 
     /**
-     * Le skin des albums (version 0.198) et la clé des skins dans lesquels les dessins se font (molécules, palette,
+     * Le skin des albums et la clé des skins dans lesquels les dessins se font (molécules, palette,
      * astres, blocs) : l'album se remplit de nouveau au prochain {@link #refresh()} si l'un des deux a changé.
      */
     void setLook(Skin chosen, String key) {
@@ -133,9 +128,7 @@ final class AlbumPane extends VBox {
     }
 
     /** Le skin des albums en place, ou {@code null} pour le Classique : pour les vérifications. */
-    Skin skin() {
-        return skin;
-    }
+    Skin skin() { return skin; }
 
     /** Recopie l'album, s'il a changé depuis la dernière fois. */
     void refresh() {
@@ -196,9 +189,7 @@ final class AlbumPane extends VBox {
     }
 
     /** Le compte en tête, « 3 / 120 » : pour les vérifications. */
-    String counterText() {
-        return counter.getText();
-    }
+    String counterText() { return counter.getText(); }
 
     /** Le texte des cases affichées, dans l'ordre : pour les vérifications. */
     List<String> shownTexts() {

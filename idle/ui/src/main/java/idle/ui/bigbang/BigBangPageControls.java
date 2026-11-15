@@ -1,39 +1,32 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.CycleChoice;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.layout.*;
 import idle.core.molecules.Molecule;
 import idle.ui.GameApp;
 import idle.ui.Readiness;
 import idle.ui.common.Card;
 import idle.ui.common.ElementText;
 import idle.ui.common.FilterBar;
-import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.geometry.Pos;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
-import javafx.scene.layout.HBox;
 
 /**
  * La page du Big Bang : le choix des sous-pages, les filtres et le tri des molécules, le meilleur achat et les cartes.
  */
 public abstract class BigBangPageControls extends BigBangPageBase {
-
-    BigBangPageControls(Game game) {
-        super(game);
-    }
-
-
-    /** Le bouton « Tout confier » ou « Tout retirer » de la sous-page des états : pour les vérifications. */
-    public Button entrustAllButton() {
-        return entrustAll;
-    }
+    BigBangPageControls(Game game) { super(game); }
 
     /** Prépare un bouton de geste groupé : il fait tout ce qui est possible, puis la page se recopie. */
     void bulk(Button button, Runnable action) {
@@ -109,19 +102,13 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /** Les sondes : pour les vérifications et le raccourci. */
-    public ProbesPane probesPane() {
-        return probesPane;
-    }
+    public ProbesPane probesPane() { return probesPane; }
 
     /** La liste de courses : pour les vérifications. */
-    public ShoppingPane shoppingPane() {
-        return shoppingPane;
-    }
+    public ShoppingPane shoppingPane() { return shoppingPane; }
 
     /** La sous-page affichée, numérotée comme dans {@link #select(int)}. */
-    public int selected() {
-        return selected;
-    }
+    public int selected() { return selected; }
 
     /** Affiche un rayon du catalogue ; ses cartes sont construites à la première visite. */
     public void selectKind(Molecule.Kind wanted) {
@@ -141,11 +128,6 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         gridHolder.getChildren().clear();
         gridHolder.getChildren().add(favoriteGrid);
         paintChips();
-    }
-
-    /** Vrai si la page montre les molécules épinglées plutôt qu'un rayon : pour les vérifications. */
-    public boolean showsFavorites() {
-        return favoritesShown;
     }
 
     private void paintChips() {
@@ -181,9 +163,8 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /**
-     * Un filtre ou la recherche vient de changer. Si plus rien ne correspond dans le rayon affiché,
-     * la page passe au premier rayon ouvert où quelque chose correspond : on cherche une molécule,
-     * pas un rayon.
+     * Un filtre ou la recherche vient de changer. Si plus rien ne correspond dans le rayon affiché, la page passe au
+     * premier rayon ouvert où quelque chose correspond : on cherche une molécule, pas un rayon.
      */
     void moleculeFilterChanged() {
         if (useFilter == null) return;      // les pastilles se peignent pendant la construction de la page
@@ -199,14 +180,10 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /** La barre de recherche des molécules : pour les vérifications. */
-    public FilterBar moleculeFilter() {
-        return moleculeFilter;
-    }
+    public FilterBar moleculeFilter() { return moleculeFilter; }
 
     /** Le rayon affiché : pour les vérifications. */
-    public Molecule.Kind kind() {
-        return kind;
-    }
+    public Molecule.Kind kind() { return kind; }
 
     /** Les cartes d'un rayon, dans l'ordre du catalogue, chacune avec le dessin de sa molécule. */
     private TileGrid build(Molecule.Kind wanted) {
@@ -232,7 +209,7 @@ public abstract class BigBangPageControls extends BigBangPageBase {
             grid.unsort();
             return;
         }
-        Map<javafx.scene.layout.Region, Double> yields = new java.util.HashMap<>();
+        Map<Region, Double> yields = new HashMap<>();
         cards.forEach((molecule, card) -> {
             if (molecule.kind() == kind) yields.put(card, game.moleculeYield(molecule.id()));
         });
@@ -240,51 +217,24 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /** Vrai si les cartes des molécules sont rangées par rendement : pour les vérifications. */
-    public boolean sortedByYield() {
-        return sortedByYield;
-    }
+    public boolean sortedByYield() { return sortedByYield; }
 
     /** Le bouton du tri : pour les vérifications. */
-    public Button sortButton() {
-        return sortButton;
-    }
+    public Button sortButton() { return sortButton; }
 
     /** Le bouton qui crée le meilleur achat : pour les vérifications. */
-    public Button bestButton() {
-        return bestButton;
-    }
-
-    /** La ligne du meilleur achat, ou un texte vide quand elle est cachée : pour les vérifications. */
-    public String bestText() {
-        return best == null ? "" : bestLabel.getText();
-    }
+    public Button bestButton() { return bestButton; }
 
     /** Largeur de la barre du meilleur achat, et du bouton « Créer » : fixes pour que le bouton reste sous la souris. */
     static final double BEST_BAR_WIDTH = 760;
     static final double BEST_BUTTON_WIDTH = 96;
 
     /** Le meilleur achat du moment, tous rayons ouverts confondus : pour les vérifications. */
-    public Molecule best() {
-        return best;
-    }
-
-    /** Les molécules du rayon affiché, dans l'ordre où leurs cartes sont rangées : pour les vérifications. */
-    public java.util.List<Molecule> shownOrder() {
-        java.util.List<Molecule> order = new java.util.ArrayList<>();
-        TileGrid grid = grids.get(kind);
-        if (grid == null) return order;
-        for (javafx.scene.layout.Region tile : grid.shownTiles()) {
-            cards.forEach((molecule, card) -> {
-                if (card == tile) order.add(molecule);
-            });
-        }
-        return order;
-    }
+    public Molecule best() { return best; }
 
     /**
-     * Cherche le meilleur achat ({@link Game#bestMolecule()}) et le meilleur du rayon affiché. Le
-     * calcul parcourt tout le catalogue : il n'est refait que deux fois par seconde, ou dès qu'une
-     * molécule a été créée.
+     * Cherche le meilleur achat ({@link Game#bestMolecule()}) et le meilleur du rayon affiché. Le calcul parcourt tout
+     * le catalogue : il n'est refait que deux fois par seconde, ou dès qu'une molécule a été créée.
      */
     void findBest() {
         long now = System.nanoTime();
@@ -307,14 +257,10 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /** La comète et son bouton : pour les vérifications. */
-    public Button cometButton() {
-        return cometButton;
-    }
+    public Button cometButton() { return cometButton; }
 
     /** Les défis de Big Bang : pour les vérifications. */
-    public BangChallengesPane bangChallenges() {
-        return bangChallenges;
-    }
+    public BangChallengesPane bangChallenges() { return bangChallenges; }
 
     /** « +0.42 % » : ce qu'une création ajoute, en proportion ; « moins de 0.01 % » quand c'est trop peu pour s'écrire. */
     static String gainText(double gain) {
@@ -336,18 +282,11 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return card;
     }
 
-    /** La carte d'une molécule parmi les favorites, ou {@code null} si elle n'y est pas : pour les vérifications. */
-    public Card favoriteCard(Molecule molecule) {
-        return favoriteCards.get(molecule);
-    }
-
     /**
-     * Le petit dessin d'une molécule pour l'en-tête de sa carte d'achat (version 0.178) : un carré de
+     * Le petit dessin d'une molécule pour l'en-tête de sa carte d'achat : un carré de
      * {@link #SMALL_PICTURE} pixels, fait une fois, puis refait seulement si le skin des molécules change.
      */
-    HBox smallPicture(Molecule molecule) {
-        return picture(molecule, SMALL_PICTURE, SMALL_PICTURE, 11, 2);
-    }
+    HBox smallPicture(Molecule molecule) { return picture(molecule, SMALL_PICTURE, SMALL_PICTURE, 11, 2); }
 
     /** Le dessin d'une molécule, centré dans la largeur de sa carte (états de la matière), refait si le skin change. */
     HBox picture(Molecule molecule) {
@@ -362,15 +301,15 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     private HBox picture(Molecule molecule, double width, double height, double perExtent, double margin) {
         Canvas canvas = new Canvas(width, height);
         Runnable paint = () -> {
-            // La mise en place suit la palette en cours (version 0.194) : elle est redemandée à chaque dessin.
+            // La mise en place suit la palette en cours : elle est redemandée à chaque dessin.
             MoleculeArt.Shape shape = MoleculeArt.of(molecule);
             double radius = Math.min(height / 2 - margin, shape.extent() * perExtent);
             GraphicsContext g = canvas.getGraphicsContext2D();
             g.clearRect(0, 0, width, height);
-            shape.draw(g, width / 2, height / 2, radius, -Math.PI / 6, game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE));
+            shape.draw(g, width / 2, height / 2, radius, -Math.PI / 6, game.chosenSkin(SkinVisual.MOLECULE));
         };
         paint.run();
-        // Version 0.201 : le constructeur de BigBangPageBase passe ici avant que les champs de cette classe soient posés.
+        // Le constructeur de BigBangPageBase passe ici avant que les champs de cette classe soient posés.
         if (moleculePictures == null) moleculePictures = new ArrayList<>();
         moleculePictures.add(paint);
         HBox box = new HBox(canvas);
@@ -379,10 +318,10 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return box;
     }
 
-    /** Redessine les molécules des cartes si le joueur a changé leur skin ou leur palette (version 0.194) depuis la dernière fois. */
+    /** Redessine les molécules des cartes si le joueur a changé leur skin ou leur palette depuis la dernière fois. */
     void refreshMoleculePictures() {
-        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE);
-        MoleculeArt.setPalette(game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE_PALETTE));
+        Skin skin = game.chosenSkin(SkinVisual.MOLECULE);
+        MoleculeArt.setPalette(game.chosenSkin(SkinVisual.MOLECULE_PALETTE));
         if (skin == drawnMoleculeSkin && MoleculeArt.palette() == drawnPalette) return;
         drawnMoleculeSkin = skin;
         drawnPalette = MoleculeArt.palette();
@@ -391,21 +330,17 @@ public abstract class BigBangPageControls extends BigBangPageBase {
 
     /**
      * Les dessins des cartes de molécules, à refaire quand leur skin change, et le skin dans lequel ils ont été faits. Créée
-     * à la demande (version 0.201) : la classe mère en pose déjà pendant son constructeur.
+     * à la demande : la classe mère en pose déjà pendant son constructeur.
      */
     private List<Runnable> moleculePictures;
-    private idle.core.universe.Skin drawnMoleculeSkin;
-    private idle.core.universe.Skin drawnPalette;
+    private Skin drawnMoleculeSkin;
+    private Skin drawnPalette;
 
     /** La carte d'une molécule, ou {@code null} si son rayon n'a pas encore été ouvert : pour les vérifications. */
-    public Card card(Molecule molecule) {
-        return cards.get(molecule);
-    }
+    public Card card(Molecule molecule) { return cards.get(molecule); }
 
     /** La sous-page des astres : pour les vérifications. */
-    public BodiesPane bodiesPane() {
-        return bodiesPane;
-    }
+    public BodiesPane bodiesPane() { return bodiesPane; }
 
     /** La sous-page de la galaxie : pour les vérifications. */
     /** Le petit arbre du cycle : le choix fait éclairé, les autres fermés jusqu'au prochain Big Bang. */
@@ -414,7 +349,7 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         cycleRow.setVisible(open);
         cycleRow.setManaged(open);
         if (!open) return;
-        idle.core.universe.CycleChoice chosen = game.cycleChoice();
+        CycleChoice chosen = game.cycleChoice();
         cycleTitle.setText(chosen == null ? "Choix du cycle, jusqu'au prochain Big Bang :" : "Choix du cycle : " + chosen.effect());
         cycleButtons.forEach((choice, button) -> {
             boolean on = choice == chosen;
@@ -427,18 +362,12 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     /** Les systèmes solaires : pour les vérifications. */
-    public SystemsPane systemsPane() {
-        return systemsPane;
-    }
+    public SystemsPane systemsPane() { return systemsPane; }
 
-    public GalaxyPane galaxyPane() {
-        return galaxyPane;
-    }
+    public GalaxyPane galaxyPane() { return galaxyPane; }
 
     /** La vue de l'espace : pour les vérifications. */
-    public SpaceView spaceView() {
-        return spaceView;
-    }
+    public SpaceView spaceView() { return spaceView; }
 
     /** Le jeu recommence de zéro : retour à la première sous-page et au premier rayon. */
     public void reset() {
@@ -456,18 +385,14 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     private static boolean motion = true;
 
     /** Allume ou coupe les animations du Big Bang (réglage « Animations du Big Bang »). */
-    public static void setMotion(boolean on) {
-        motion = on;
-    }
+    public static void setMotion(boolean on) { motion = on; }
 
     /** Vrai si les vues du Big Bang font avancer leur temps. */
-    static boolean moving() {
-        return motion;
-    }
+    static boolean moving() { return motion; }
 
     public void frame(double elapsed) {
-        // La palette des molécules (version 0.194) : les vues la lisent à chaque image.
-        MoleculeArt.setPalette(game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE_PALETTE));
+        // La palette des molécules : les vues la lisent à chaque image.
+        MoleculeArt.setPalette(game.chosenSkin(SkinVisual.MOLECULE_PALETTE));
         if (selected == 1) spaceView.frame(elapsed);
         if (selected == 5) bodiesPane.frame(elapsed);
         if (selected == 7) bangChallenges.frame(elapsed);

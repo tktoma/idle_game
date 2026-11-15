@@ -25,16 +25,13 @@ import idle.core.universe.Skin;
  * </ul>
  */
 final class TableSkinStyles {
-
     private static final String COMMON = "-fx-font-weight: bold; -fx-cursor: hand;";
 
     private TableSkinStyles() {
     }
 
     /** Vrai si ce skin réduit les cases de moitié : « Minuscule ». */
-    static boolean compact(Skin skin) {
-        return skin == Skin.TABLE_TINY;
-    }
+    static boolean compact(Skin skin) { return skin == Skin.TABLE_TINY; }
 
     /** Le style du fond du tableau entier sous ce skin, vide pour ceux qui n'en changent pas. */
     static String tableStyle(Skin skin) {

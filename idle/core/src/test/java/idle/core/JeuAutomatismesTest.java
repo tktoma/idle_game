@@ -1,31 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.elements.Element;
-import idle.core.elements.ElementCategory;
-import idle.core.elements.ElementEffect;
-import idle.core.elements.PeriodicTable;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
 import idle.core.upgrades.Automation;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
-/**
- * Les règles du jeu : l'automatisation, sa cadence et son rythme, le tableau périodique et la synthèse.
- */
+/** Les règles du jeu : l'automatisation, sa cadence et son rythme, le tableau périodique et la synthèse. */
 class JeuAutomatismesTest extends GameTestSupport {
-
-
     @Nested
     class Automatisation {
-
         /** Partie où l'automatisation est débloquée, avec {@code atoms} atomes à dépenser, sans particule. */
         private Game gameWithAutomation(int atoms) {
             Game game = newGame();
@@ -232,14 +223,11 @@ class JeuAutomatismesTest extends GameTestSupport {
                     Automation.Kind.FUSION, BigNum.ONE, "speed", 1, 0, BigNum.ONE, 1));
         }
 
-        private void game(String automationId) {
-            newGame().buyAutomation(automationId);
-        }
+        private void game(String automationId) { newGame().buyAutomation(automationId); }
     }
 
     @Nested
     class CadenceDesAutomatismes {
-
         /** Partie avec l'automatisme lent acheté, {@code atoms} atomes restants et beaucoup de particules. */
         private Game gameWithSlowAutomation(int atoms) {
             Game game = newGame();
@@ -367,7 +355,6 @@ class JeuAutomatismesTest extends GameTestSupport {
 
     @Nested
     class RythmeDesAutomatismes {
-
         /** Partie où la fusion et l'achat de générateurs sont automatiques, au délai minimal. */
         private Game fullyAutomatedGame() {
             Game game = newGame();
@@ -381,7 +368,7 @@ class JeuAutomatismesTest extends GameTestSupport {
 
         @Test
         void auPlusDixActionsParSecondeParAutomatisme() {
-            // Version 0.167 : un générateur par action, deux actions pour les deux générateurs, puis la fusion suit :
+            // Un générateur par action, deux actions pour les deux générateurs, puis la fusion suit :
             // même avec des particules illimitées, cinq fusions par seconde au mieux (dix quand ils s'achetaient d'un coup).
             Game game = fullyAutomatedGame();
             for (int i = 0; i < 100; i++) {          // 5 secondes à 20 ticks/s
@@ -410,7 +397,6 @@ class JeuAutomatismesTest extends GameTestSupport {
 
     @Nested
     class TableauPeriodique {
-
         @Test
         void leTableauCompte118ElementsNumerotesDansLOrdre() {
             assertEquals(118, PeriodicTable.ELEMENTS.size());
@@ -468,9 +454,7 @@ class JeuAutomatismesTest extends GameTestSupport {
             for (ElementCategory category : ElementCategory.values()) {
                 boolean rarest = category == ElementCategory.NOBLE_GAS || category == ElementCategory.ACTINIDE;
                 assertEquals(rarest, category.unique());
-                if (!rarest) {
-                    assertTrue(category.chance() > ElementCategory.NOBLE_GAS.chance());
-                }
+                if (!rarest) assertTrue(category.chance() > ElementCategory.NOBLE_GAS.chance());
             }
         }
 
@@ -494,7 +478,6 @@ class JeuAutomatismesTest extends GameTestSupport {
 
     @Nested
     class Synthese {
-
         private static final double MAX = Game.MAX_ATOMS.toDouble();
 
         /** Partie où le tableau périodique est débloqué, sans atome ni automatisme en marche. */
@@ -639,8 +622,7 @@ class JeuAutomatismesTest extends GameTestSupport {
             }
             for (ElementCategory category : ElementCategory.values()) {
                 double frequency = draws.getOrDefault(category, 0) / (double) total;
-                assertEquals(category.chance(), frequency, 0.01,
-                        () -> category.label() + " : " + frequency);
+                assertEquals(category.chance(), frequency, 0.01, () -> category.label() + " : " + frequency);
             }
         }
 
@@ -668,9 +650,7 @@ class JeuAutomatismesTest extends GameTestSupport {
             assertTrue(game.synthesize().isEmpty());
             assertValue(MAX, game.state().atoms());
             assertEquals(count, game.state().synthesisCount());
-            for (ElementCategory category : ElementCategory.values()) {
-                assertEquals(0, game.categoryChance(category));
-            }
+            for (ElementCategory category : ElementCategory.values()) assertEquals(0, game.categoryChance(category));
         }
 
         @Test

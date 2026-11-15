@@ -1,8 +1,7 @@
 import idle.core.Game;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.Locale;
 
 /**
@@ -13,15 +12,15 @@ import java.util.Locale;
  * de securite en heures simulees. Cette derniere n'est PAS une victoire. L'horizon est global a l'essai, quel que
  * soit le nombre d'univers vises : rien ne repart d'une sauvegarde de reference si un univers manque.
  *
- * <p>Version 0.126 : par defaut, la campagne n'echoue que sur un vrai probleme (BLOCKED ou ERROR) ; un
+ * <p>Par defaut, la campagne n'echoue que sur un vrai probleme (BLOCKED ou ERROR) ; un
  * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
  * argument {@code strict} exige au contraire que chaque profil forme son univers.
  *
- * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut ; 3 au plus de la 0.133 a la 0.151, 11 depuis la 0.152) dit combien d'univers former. Au-dela du
+ * <p>Le septieme argument {@code univers} (1 par defaut ; 3 au plus de la 0.133 a la 0.151, 11 depuis la 0.152) dit combien d'univers former. Au-dela du
  * premier, le bot lance l'univers suivant des que l'univers se forme, et rejoue les trois actes avec ce que le deuxieme
  * univers ajoute ({@link NextUniversePolicy}), sans dimensions ni graine. La victoire est alors le dernier univers vise.
  *
- * <p>Version 0.152 : jusqu'a {@link #MAX_UNIVERSES} univers (11). A partir du quatrieme, le bot attend le palier de la
+ * <p>Jusqu'a {@link #MAX_UNIVERSES} univers (11). A partir du quatrieme, le bot attend le palier de la
  * graine qui ouvre l'univers suivant, et joue l'arbre : bulles, hadrons, ligne, automatisation des dimensions
  * ({@link UniverseTreePolicy}). Les univers 1 a 3 se jouent exactement comme avant.
  */
@@ -34,16 +33,11 @@ public final class FreshUniverseAudit {
      */
     static final int MAX_UNIVERSES = Game.SEED_STAGES;
 
-    private static String clean(String text) {
-        return String.valueOf(text).replace('\n', ' ').replace('\r', ' ');
-    }
+    private static String clean(String text) { return String.valueOf(text).replace('\n', ' ').replace('\r', ' '); }
 
-    private static String csv(String value) {
-        return "\"" + clean(value).replace("\"", "\"\"") + "\"";
-    }
+    private static String csv(String value) { return "\"" + clean(value).replace("\"", "\"\"") + "\""; }
 
-    private static String diagnosis(Game game, IdleProfiles24 bot,
-                                    String verdict, String reason, long seed) {
+    private static String diagnosis(Game game, IdleProfiles24 bot, String verdict, String reason, long seed) {
         StringBuilder report = new StringBuilder();
         report.append("profil=").append(bot.p.id()).append('_').append(bot.p.name()).append('\n');
         report.append("graine=").append(seed).append('\n');
@@ -108,14 +102,12 @@ public final class FreshUniverseAudit {
         double maxHours = Double.parseDouble(args[2]);
         double dt = Double.parseDouble(args[3]);
         Path root = Path.of(args[4]);
-        if (first < 1 || last > 24 || first > last
-                || !Double.isFinite(maxHours) || maxHours <= 0
+        if (first < 1 || last > 24 || first > last || !Double.isFinite(maxHours) || maxHours <= 0
                 || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > MAX_UNIVERSES) {
             throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 à " + MAX_UNIVERSES + ") invalides");
         }
         Files.createDirectories(root);
-        StringBuilder csv = new StringBuilder(
-                "id,profil,verdict,raison,heures,heures_jeu,heures_en_ligne,big_bangs,"
+        StringBuilder csv = new StringBuilder("id,profil,verdict,raison,heures,heures_jeu,heures_en_ligne,big_bangs,"
                 + "explosions,succes,defis,astres_murs,cosmos,decisions,univers,univers_vises,univers_formes,univers_h,anomalies\n");
         int wins = 0, blocked = 0, limits = 0, errors = 0;
         for (int id = first; id <= last; id++) {
@@ -127,8 +119,7 @@ public final class FreshUniverseAudit {
             Path dir = root.resolve(String.format(Locale.ROOT, "%02d_%s", id, profile.name()));
             Files.createDirectories(dir);
             String verdict = "LIMIT";
-            String reason = "Plafond de securite de " + maxHours
-                    + " heures simulees, sans univers forme";
+            String reason = "Plafond de securite de " + maxHours + " heures simulees, sans univers forme";
             try {
                 // execute s'arrete immediatement a la formation de l'univers.
                 // Son garde-fou detecte les blocages reels et les etats invalides.
@@ -142,8 +133,7 @@ public final class FreshUniverseAudit {
                 }
             } catch (Exception failure) {
                 ProfileProgressGuard.Assessment assessment = bot.progressGuard.latest();
-                if (assessment != null
-                        && assessment.verdict() == ProfileProgressGuard.Verdict.BLOCKED) {
+                if (assessment != null && assessment.verdict() == ProfileProgressGuard.Verdict.BLOCKED) {
                     verdict = "BLOCKED";
                     reason = assessment.reason();
                 } else {
@@ -154,8 +144,7 @@ public final class FreshUniverseAudit {
             }
             try {
                 Files.writeString(dir.resolve("end.save"), SaveCodec.write(game.state(), 0));
-                Files.writeString(dir.resolve("diagnostic.txt"),
-                        diagnosis(game, bot, verdict, reason, seed));
+                Files.writeString(dir.resolve("diagnostic.txt"), diagnosis(game, bot, verdict, reason, seed));
             } catch (Exception failure) {
                 verdict = "ERROR";
                 reason = "Impossible de sauvegarder le diagnostic : " + failure;
@@ -167,8 +156,7 @@ public final class FreshUniverseAudit {
                 case "LIMIT" -> limits++;
                 default -> errors++;
             }
-            csv.append(String.format(Locale.ROOT,
-                    "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%s,%d%n",
+            csv.append(String.format(Locale.ROOT, "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%s,%d%n",
                     id, csv(profile.name()), csv(verdict), csv(reason),
                     bot.wallSeconds / 3600, game.state().timePlayed() / 3600,
                     bot.onlineSeconds / 3600, game.bigBangs(), game.state().explosions(),
@@ -178,16 +166,14 @@ public final class FreshUniverseAudit {
                     csv(bot.universeHours()), bot.skyEventsCaught));
             Files.writeString(root.resolve(String.format(Locale.ROOT,
                     "resume_%02d-%02d.csv", first, last)), csv.toString());
-            System.out.printf(Locale.ROOT,
-                    "FRESH_AUDIT,%02d_%s,verdict=%s,wall_h=%.3f,bb=%d,"
+            System.out.printf(Locale.ROOT, "FRESH_AUDIT,%02d_%s,verdict=%s,wall_h=%.3f,bb=%d,"
                     + "succes=%d,defis=%d/%d,astres=%d,cosmos=%d,univers=%d/%d,univers_h=%s,raison=%s%n",
                     id, profile.name(), verdict, bot.wallSeconds / 3600,
                     game.bigBangs(), game.achievementCount(), game.completedChallenges(),
                     game.challenges().size(), game.bodiesMature(),
                     RobotCosmosPlanner.cosmosStage(game), game.universes(), universes, bot.universeHours(), clean(reason));
         }
-        System.out.printf(Locale.ROOT,
-                "FRESH_AUDIT_BILAN,segment=%d-%d,victoires=%d,bloques=%d,"
+        System.out.printf(Locale.ROOT, "FRESH_AUDIT_BILAN,segment=%d-%d,victoires=%d,bloques=%d,"
                 + "limites=%d,erreurs=%d%n",
                 first, last, wins, blocked, limits, errors);
         // L'avertissement d'abord : il reste dans le journal meme quand un blocage fait echouer le segment.
@@ -196,8 +182,7 @@ public final class FreshUniverseAudit {
                     + " trop lents, pas bloques. Relancer avec strict=true pour en faire un echec.%n", limits, maxHours);
         }
         if (blocked + errors > 0 || (strict && wins != last - first + 1)) {
-            throw new IllegalStateException(
-                    "Campagne non validee : " + wins + "/" + (last - first + 1)
+            throw new IllegalStateException("Campagne non validee : " + wins + "/" + (last - first + 1)
                     + " univers termines, " + blocked + " bloques, " + errors + " erreurs"
                     + (strict ? " (mode strict)" : "") + ". Lire les diagnostics et les CSV sauvegardes.");
         }

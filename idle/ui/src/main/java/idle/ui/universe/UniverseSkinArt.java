@@ -2,15 +2,11 @@ package idle.ui.universe;
 
 import idle.core.universe.Skin;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.paint.*;
+import javafx.scene.shape.*;
 
 /**
- * Les skins des univers en bulles (version 0.196), dessinés à côté de {@link UniverseView} pour la garder lisible : trois
+ * Les skins des univers en bulles, dessinés à côté de {@link UniverseView} pour la garder lisible : trois
  * visuels.
  * <ul>
  * <li>Les bulles : « Bulle de savon » (une sphère presque transparente, irisée d'arcs-en-ciel qui tournent, deux reflets),
@@ -28,7 +24,6 @@ import javafx.scene.shape.StrokeLineCap;
  * </ul>
  */
 final class UniverseSkinArt {
-
     private static final Color GLASS = Color.web("#dff4ff");
     private static final Color BRASS = Color.web("#d2aa55");
     private static final Color BRASS_DARK = Color.web("#8a6a2a");
@@ -379,7 +374,7 @@ final class UniverseSkinArt {
         for (double y = h * 0.15; y < h * 0.9; y += Math.max(14, h * 0.06)) g.strokeLine(w * 0.08, y, Math.min(edge - 10, w * 0.92), y);
         double curl = Math.min(w * 0.18, edge) * (0.3 + 0.7 * Math.sin(Math.PI * eased));
         g.setGlobalAlpha(0.5);
-        g.setFill(new javafx.scene.paint.LinearGradient(edge - curl, 0, edge, 0, false, CycleMethod.NO_CYCLE,
+        g.setFill(new LinearGradient(edge - curl, 0, edge, 0, false, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.color(0, 0, 0, 0)), new Stop(1, Color.color(0, 0, 0, 0.6))));
         g.fillRect(edge - curl, 0, curl, h);
         g.setGlobalAlpha(0.95);

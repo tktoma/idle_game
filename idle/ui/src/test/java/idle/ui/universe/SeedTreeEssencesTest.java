@@ -1,37 +1,31 @@
 package idle.ui.universe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.universe.Skin;
 import idle.ui.FxTestSupport;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import javafx.scene.canvas.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Les essences de l'arbre (version 0.185), sous Xvfb : chacun des huit skins de l'arbre se dessine à chaque palier,
+ * Les essences de l'arbre, sous Xvfb : chacun des huit skins de l'arbre se dessine à chaque palier,
  * du bonsaï (5) à l'arbre-monde (11), sans exception ; le centre du feuillage rendu reste dans la vue, au-dessus du pied
  * et près de son axe (les bulles de l'arbre s'y posent, même pour le bouquet du palmier et la couronne du baobab) ; et
  * le nombre de touffes (ou de palmes) reste borné, pour le coût du dessin. Sans skin, l'essence est le Classique.
  */
 class SeedTreeEssencesTest {
-
     private static final double W = 800, H = 600, BASE_X = 400, BASE_Y = 560;
     /** L'arbre-monde Classique en dessine environ 150 : aucune essence ne doit en coûter plus du double. */
     private static final int MAX_TIPS = 400;
 
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
-    private static GraphicsContext canvas() {
-        return new Canvas(W, H).getGraphicsContext2D();
-    }
+    private static GraphicsContext canvas() { return new Canvas(W, H).getGraphicsContext2D(); }
 
     @Test
     void chaqueEssenceSeDessineAChaquePalierLeFeuillageDansLaVue() {
@@ -77,7 +71,7 @@ class SeedTreeEssencesTest {
         assertSame(SeedTree.Essence.CLASSIC, SeedTree.Essence.of(null));
         assertSame(SeedTree.Essence.CLASSIC, SeedTree.Essence.of(Skin.ATOM_DENSE), "un skin d'un autre visuel : le Classique");
         for (Skin skin : Skin.TREES) assertNotEquals(SeedTree.Essence.CLASSIC, SeedTree.Essence.of(skin), skin.label());
-        assertEquals(Skin.TREES.length, java.util.Arrays.stream(Skin.TREES).map(SeedTree.Essence::of).distinct().count(), "une essence par skin");
+        assertEquals(Skin.TREES.length, Arrays.stream(Skin.TREES).map(SeedTree.Essence::of).distinct().count(), "une essence par skin");
         FxTestSupport.fx(() -> {
             // Le chemin par défaut : dessiner sans skin ou avec null rend la même chose.
             GraphicsContext g = canvas();

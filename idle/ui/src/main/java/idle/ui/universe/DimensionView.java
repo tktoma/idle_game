@@ -1,17 +1,36 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.core.math.BigNum;
+import idle.core.universe.SkinVisual;
 import idle.ui.common.CanvasPane;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
+import java.util.function.IntConsumer;
+import javafx.geometry.*;
+import javafx.scene.Cursor;
+import javafx.scene.input.MouseButton;
+import javafx.scene.paint.*;
+import javafx.scene.robot.Robot;
+import javafx.scene.shape.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import javafx.scene.canvas.*;
+import javafx.scene.text.*;
 
 /**
- * Le visuel d'une dimension, dans sa fenêtre (version 0.081) : une tentative, sans logique, pour
+ * Le visuel d'une dimension, dans sa fenêtre : une tentative, sans logique, pour
  * chacune des dix. De la ligne (un point qui va et vient) au point qui contient tout, en passant
  * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, la brane, le clicker, la grille et le miroir.
  *
@@ -44,7 +63,7 @@ import javafx.scene.text.TextAlignment;
  * onde part du point appuyé. Chaque onde est un cercle qui grandit et s'efface vers sa portée ; ses rebonds sur les bords
  * se dessinent comme les cercles des sources symétriques (les images), découpés au carré. Les points attendent sur la
  * membrane ; touchés par une onde qui court, ils changent de couleur, et chaque passage fait monter son gain (marqué
- * « rebond » après un bord). Version 0.155 : une seule onde à la fois, qui rebondit plusieurs fois (les cent images de
+ * « rebond » après un bord). Une seule onde à la fois, qui rebondit plusieurs fois (les cent images de
  * {@code Game.images}) ; un front se colore et s'épaissit avec ses rebonds, un éclat marque le bord où il rebondit, le
  * gain dit ses rebonds (« +9, 2 rebonds »), et le point touché affiche ses passages jusqu'à partir avec l'onde.
  *
@@ -86,11 +105,10 @@ import javafx.scene.text.TextAlignment;
  * (le Classique), rien ne change.
  */
 public final class DimensionView extends Canvas {
-
     private static final Color BACK = Color.web("#05060e");
 
     // ------------------------------------------------------------------
-    // Les skins des dix mini-jeux (version 0.187) : fonds, décors et couleurs, en cache
+    // Les skins des dix mini-jeux : fonds, décors et couleurs, en cache
     // ------------------------------------------------------------------
 
     /** Le fond de chaque dimension sous son skin, dans l'ordre des dimensions. */
@@ -99,13 +117,13 @@ public final class DimensionView extends Canvas {
             Color.web("#0a0d12"), Color.web("#bfe3ff"), Color.web("#c0c0c0"), Color.web("#0d0b10"), Color.BLACK};
     /** Les rails et wagons : l'acier des rails, le bois des traverses, le ciel de nuit sur la terre. */
     private static final Color RAIL = Color.web("#9aa3ad"), SLEEPER = Color.web("#5a4634"), IRON = Color.web("#1e1e22");
-    private static final javafx.scene.paint.LinearGradient RAILS_SKY = vertical("#101a24", "#2a3a2a");
+    private static final LinearGradient RAILS_SKY = vertical("#101a24", "#2a3a2a");
     /** La feuille de cahier : le papier (plus sombre au loin), les carreaux, la marge, l'encre du stylo. */
     private static final Color PAPER = Color.web("#f6f1e3"), PAPER_FAR = Color.web("#b9b3a2");
     private static final Color PAPER_SQUARE = Color.web("#b8cfe8"), PAPER_MARGIN = Color.web("#d9534f"), INK = Color.web("#1f3f8f"),
             NIB = Color.web("#c9c9d2");
     /** L'aquarium : l'eau du haut vers le fond, les arêtes claires, le sable, les bulles, et les robes des poissons. */
-    private static final javafx.scene.paint.LinearGradient WATER = vertical("#0b3d4a", "#126b6b");
+    private static final LinearGradient WATER = vertical("#0b3d4a", "#126b6b");
     private static final Color AQUA_EDGE = Color.web("#cfe9ee"), SAND = Color.web("#d8c08a"), BUBBLE = Color.web("#e6f7ff");
     private static final Color[] FISH = {Color.web("#ff9a3c"), Color.web("#ffd23c"), Color.web("#4fc3f7"), Color.web("#ff6b6b")};
     /** Le vinyle : le disque, ses sillons, le sillon lu, l'aiguille et son bras. */
@@ -120,17 +138,17 @@ public final class DimensionView extends Canvas {
             {Color.web("#f6d56a"), Color.web("#f9e39a"), Color.web("#fdf2cc")}};
     private static final Color STRAW = Color.web("#c9a86a"), STRAW_EDGE = Color.web("#8a6f3a"), ARROW_WOOD = Color.web("#5a3a1a"),
             FLETCH = Color.web("#d8362a");
-    private static final javafx.scene.paint.LinearGradient GRASS = vertical("#5a8a3c", "#2f4d26");
+    private static final LinearGradient GRASS = vertical("#5a8a3c", "#2f4d26");
     /** La toile : ses fils argentés, la rosée, l'araignée. */
     private static final Color THREAD = Color.web("#cfd6dd"), DEW = Color.web("#e8f4ff"), SPIDER = Color.web("#2b2b30");
     /** Les fils radiaux de la toile, et le pas d'échantillonnage de chaque fil. */
     private static final int WEB_RADIALS = 16, WEB_STEPS = 24;
     /** Les bulles de savon : le ciel, les teintes irisées qui tournent, l'encre bleue des textes sur le ciel, le vert des clics automatiques. */
-    private static final javafx.scene.paint.LinearGradient SKY = vertical("#bfe3ff", "#eaf6ff");
+    private static final LinearGradient SKY = vertical("#bfe3ff", "#eaf6ff");
     private static final Color[] BUBBLE_HUES = new Color[24];
-    private static final javafx.scene.paint.RadialGradient BUBBLE_FILL = new javafx.scene.paint.RadialGradient(0, 0, 0.35, 0.35, 0.65, true,
-            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.color(1, 1, 1, 0.05)),
-            new javafx.scene.paint.Stop(0.85, Color.color(1, 1, 1, 0.1)), new javafx.scene.paint.Stop(1, Color.color(0.62, 0.82, 1, 0.5)));
+    private static final RadialGradient BUBBLE_FILL = new RadialGradient(0, 0, 0.35, 0.35, 0.65, true,
+            CycleMethod.NO_CYCLE, new Stop(0, Color.color(1, 1, 1, 0.05)),
+            new Stop(0.85, Color.color(1, 1, 1, 0.1)), new Stop(1, Color.color(0.62, 0.82, 1, 0.5)));
     private static final Color SKY_INK = Color.web("#1f3f5f"), SKY_AUTO = Color.web("#2e7d4a");
     /** Le démineur : la case, son biseau clair et son biseau sombre, le texte, la mine, les chiffres de 1 à 8. */
     private static final Color MINE_FACE = Color.web("#c0c0c0"), MINE_LIGHT = Color.WHITE, MINE_DARK = Color.web("#808080"),
@@ -146,8 +164,8 @@ public final class DimensionView extends Canvas {
     private static final Color[] GLASS_LIT = {
             Color.web("#4f7fe0"), Color.web("#e04a4a"), Color.web("#4fc96a"), Color.web("#b060e0"), Color.web("#ffb640")};
     /** Le kaléidoscope : le fond de la lunette, le contour, et les couleurs saturées des cinq copies du décor. */
-    private static final javafx.scene.paint.RadialGradient LENS = new javafx.scene.paint.RadialGradient(0, 0, 0.5, 0.5, 0.5, true,
-            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.web("#1a1030")), new javafx.scene.paint.Stop(1, Color.web("#050308")));
+    private static final RadialGradient LENS = new RadialGradient(0, 0, 0.5, 0.5, 0.5, true,
+            CycleMethod.NO_CYCLE, new Stop(0, Color.web("#1a1030")), new Stop(1, Color.web("#050308")));
     private static final Color LENS_RIM = Color.web("#444444");
     private static final Color[] KALEIDO = {
             Color.web("#ff2d55"), Color.web("#ff9f0a"), Color.web("#ffd60a"), Color.web("#30d158"), Color.web("#0a84ff")};
@@ -157,12 +175,12 @@ public final class DimensionView extends Canvas {
     }
 
     /** Un dégradé vertical du haut vers le bas, en proportion de la forme remplie : constant, il se garde en cache. */
-    private static javafx.scene.paint.LinearGradient vertical(String top, String bottom) {
-        return new javafx.scene.paint.LinearGradient(0, 0, 0, 1, true, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                new javafx.scene.paint.Stop(0, Color.web(top)), new javafx.scene.paint.Stop(1, Color.web(bottom)));
+    private static LinearGradient vertical(String top, String bottom) {
+        return new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.web(top)), new Stop(1, Color.web(bottom)));
     }
 
-    /** Vrai à l'image en cours quand la dimension montrée a un skin choisi (version 0.187) ; faux pour le Classique. */
+    /** Vrai à l'image en cours quand la dimension montrée a un skin choisi ; faux pour le Classique. */
     private boolean skinned;
     /** Le contour du sable de l'aquarium, rempli à chaque image sans rien allouer. */
     private final double[] sandX = new double[14], sandY = new double[14];
@@ -173,7 +191,7 @@ public final class DimensionView extends Canvas {
         double at, age;
     }
 
-    /** Un éclat du plan qui vient d'être ramassé (version 0.104). */
+    /** Un éclat du plan qui vient d'être ramassé. */
     private static final class Pickup {
         double x, y, age;
         String text;
@@ -194,7 +212,7 @@ public final class DimensionView extends Canvas {
     private Dimension dimension = Dimension.LINE;
     private double time;
 
-    // Le volume (version 0.128).
+    // Le volume.
     /** Où en est la vue : dehors (le cube tourne), en train de plonger, dedans, en train de ressortir. */
     public enum Dive { OUTSIDE, ENTERING, INSIDE, LEAVING }
 
@@ -215,15 +233,15 @@ public final class DimensionView extends Canvas {
     private double dragX, dragY;
     private boolean dragging;
     /** Quand chaque boule est apparue, pour la faire grossir en naissant. */
-    private final java.util.Map<Game.VolumeBall, Double> born = new java.util.IdentityHashMap<>();
+    private final Map<Game.VolumeBall, Double> born = new IdentityHashMap<>();
     /** Les clics droits qui n'ont rien touché : un petit cercle qui s'efface. */
     private final List<Pickup> misses = new ArrayList<>();
     private final List<Pickup> volumePickups = new ArrayList<>();
     private boolean motion = true;
-    /** La durée (version 0.134) : les éclats donnés au relâchement, qui montent du bouton. */
+    /** La durée : les éclats donnés au relâchement, qui montent du bouton. */
     private final List<Pickup> durationPickups = new ArrayList<>();
     /**
-     * Les boules cueillies et les relâchements de la durée que la vue a déjà montrés (version 0.150) : ce que la partie
+     * Les boules cueillies et les relâchements de la durée que la vue a déjà montrés : ce que la partie
      * compte de plus vient de l'automatisation des dimensions. −1 tant que la vue n'a rien vu.
      */
     private long lastVolumeCollected = -1, lastReleases = -1;
@@ -232,15 +250,15 @@ public final class DimensionView extends Canvas {
     /** Le rond et le bouton, relatifs au plus petit côté de la vue. */
     private static final double DURATION_RING = 0.4, DURATION_BUTTON = 0.08;
 
-    // La caméra libre (version 0.128) : dedans, le regard suit la souris sans clic, comme dans un jeu à la première personne.
+    // La caméra libre : dedans, le regard suit la souris sans clic, comme dans un jeu à la première personne.
     /** Vrai quand le joueur a choisi la caméra libre (un pixel de souris tourne le regard d'un pixel d'écran au centre). */
     private boolean freeCamera;
     /** Où était la souris à son dernier mouvement sur le volume ; NaN quand elle n'y est pas. */
     private double mouseX = Double.NaN, mouseY = Double.NaN;
     /** De quoi ramener la souris au centre ; {@code null} tant qu'il n'a pas servi, ou si le système le refuse. */
-    private javafx.scene.robot.Robot robot;
+    private Robot robot;
     private boolean robotRefused;
-    /** Échap a libéré la souris (version 0.128) : le regard ne la suit plus jusqu'au prochain clic dans la vue. */
+    /** Échap a libéré la souris : le regard ne la suit plus jusqu'au prochain clic dans la vue. */
     private boolean mouseReleased;
     /** La fenêtre du jeu avait-elle la main à l'image d'avant : au retour, la souris revient au centre sans tourner le regard. */
     private boolean hadFocus = true;
@@ -252,9 +270,9 @@ public final class DimensionView extends Canvas {
     public DimensionView(Game game) {
         super(800, 480);
         this.game = game;
-        // Le volume se joue à la souris (version 0.128) : ces gestes ne servent à rien dans les autres dimensions.
+        // Le volume se joue à la souris : ces gestes ne servent à rien dans les autres dimensions.
         setOnMousePressed(event -> {
-            if (press(event.getX(), event.getY(), event.getButton() == javafx.scene.input.MouseButton.SECONDARY)) event.consume();
+            if (press(event.getX(), event.getY(), event.getButton() == MouseButton.SECONDARY)) event.consume();
             setCursor(cursorAt(event.getX(), event.getY()));
         });
         setOnMouseDragged(event -> {
@@ -262,12 +280,12 @@ public final class DimensionView extends Canvas {
                     || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
         });
         setOnMouseReleased(event -> {
-            // La durée (version 0.134) : relâcher le bouton, où que soit la souris, donne les éclats.
+            // La durée : relâcher le bouton, où que soit la souris, donne les éclats.
             releaseHold();
-            // La brane (version 0.154) : relâcher la membrane, où que soit la souris, lance l'onde.
+            // La brane : relâcher la membrane, où que soit la souris, lance l'onde.
             if (gestured(releaseBrane())) event.consume();
-            // Le mélange (version 0.159) : le bouton droit relâché verse la charge ; le gauche lâche le point.
-            if (gestured(releaseMix(event.getButton() == javafx.scene.input.MouseButton.SECONDARY))) event.consume();
+            // Le mélange : le bouton droit relâché verse la charge ; le gauche lâche le point.
+            if (gestured(releaseMix(event.getButton() == MouseButton.SECONDARY))) event.consume();
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
@@ -291,10 +309,10 @@ public final class DimensionView extends Canvas {
             gridHoverI = -1;
             gridHoverJ = -1;
         });
-        // La grille (version 0.156) : la molette monte ou descend d'une couche.
+        // La grille : la molette monte ou descend d'une couche.
         setOnScroll(event -> {
             if (dimension == Dimension.GRID && game.isGridOpen() && event.getDeltaY() != 0) shiftGridLayer(event.getDeltaY() > 0 ? 1 : -1);
-            // Le mélange (version 0.159) : la molette vers soi plonge le point, vers l'avant le fait remonter.
+            // Le mélange : la molette vers soi plonge le point, vers l'avant le fait remonter.
             if (dimension == Dimension.MIX && event.getDeltaY() != 0) shiftMixDepth(event.getDeltaY() > 0 ? -1 : 1);
         });
     }
@@ -312,9 +330,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Vrai quand la caméra libre tient la souris : dans le cube, sans Échap depuis le dernier clic. */
-    public boolean mouseHeld() {
-        return freeInside();
-    }
+    public boolean mouseHeld() { return freeInside(); }
 
     /** Échap, en caméra libre : la souris est rendue, la plongée continue ; un clic dans la vue la reprend. */
     public void releaseMouse() {
@@ -322,7 +338,7 @@ public final class DimensionView extends Canvas {
         mouseReleased = true;
         mouseX = Double.NaN;
         mouseY = Double.NaN;
-        setCursor(javafx.scene.Cursor.DEFAULT);
+        setCursor(Cursor.DEFAULT);
     }
 
     /** Vrai si la fenêtre du jeu a la main : sans elle (Alt+Tab), la souris n'est jamais retenue. */
@@ -348,15 +364,13 @@ public final class DimensionView extends Canvas {
             return;
         }
         if (robot == null || robotRefused) return;
-        javafx.geometry.Bounds area = localToScreen(getBoundsInLocal());
+        Bounds area = localToScreen(getBoundsInLocal());
         if (area == null) return;
         double x = robot.getMouseX(), y = robot.getMouseY();
         if (x < area.getMinX() + 2 || x > area.getMaxX() - 2 || y < area.getMinY() + 2 || y > area.getMaxY() - 2) recenter();
     }
 
-    public boolean freeCamera() {
-        return freeCamera;
-    }
+    public boolean freeCamera() { return freeCamera; }
 
     private boolean freeInside() {
         return freeCamera && !mouseReleased && dive == Dive.INSIDE && dimension == Dimension.VOLUME;
@@ -396,10 +410,10 @@ public final class DimensionView extends Canvas {
      */
     private void recenter() {
         if (robotRefused || getScene() == null) return;
-        javafx.geometry.Point2D center = localToScreen(getWidth() / 2, getHeight() / 2);
+        Point2D center = localToScreen(getWidth() / 2, getHeight() / 2);
         if (center == null) return;
         try {
-            if (robot == null) robot = new javafx.scene.robot.Robot();
+            if (robot == null) robot = new Robot();
             robot.mouseMove(center.getX(), center.getY());
             if (Math.abs(robot.getMouseX() - center.getX()) > 3 || Math.abs(robot.getMouseY() - center.getY()) > 3) {
                 robotRefused = true;
@@ -438,7 +452,7 @@ public final class DimensionView extends Canvas {
         loopMarks.clear();
         lastLoopHits = -1;
         lastBeatPhase = Double.NaN;
-        java.util.Arrays.fill(ringFlash, 0);
+        Arrays.fill(ringFlash, 0);
         lastLoopAuto = -1;
         cancelBrane();
         braneMarks.clear();
@@ -470,13 +484,9 @@ public final class DimensionView extends Canvas {
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
-    public int touchesShown() {
-        return touches.size();
-    }
+    public int touchesShown() { return touches.size(); }
 
-    public Dimension dimension() {
-        return dimension;
-    }
+    public Dimension dimension() { return dimension; }
 
     public void frame(double elapsed, boolean moving) {
         if (moving) time += Math.min(elapsed, 0.1);
@@ -506,27 +516,19 @@ public final class DimensionView extends Canvas {
     }
 
     // ------------------------------------------------------------------
-    // Le volume (version 0.128) : la plongée, le regard, la cueillette
+    // Le volume : la plongée, le regard, la cueillette
     // ------------------------------------------------------------------
 
     /** Où en est la vue du volume : pour les vérifications et la fenêtre. */
-    public Dive dive() {
-        return dive;
-    }
+    public Dive dive() { return dive; }
 
     /** Le regard dedans : pour les vérifications. */
-    public double lookYaw() {
-        return lookYaw;
-    }
+    public double lookYaw() { return lookYaw; }
 
-    public double lookPitch() {
-        return lookPitch;
-    }
+    public double lookPitch() { return lookPitch; }
 
     /** Les gains de boules cueillies qui montent encore : pour les vérifications. */
-    public int volumePickupsShown() {
-        return volumePickups.size();
-    }
+    public int volumePickupsShown() { return volumePickups.size(); }
 
     /** Où se dessine ce point du cube à l'image en cours, ou {@code null} s'il est derrière l'œil : pour les vérifications. */
     public double[] screenOf(double x, double y, double z) {
@@ -546,41 +548,35 @@ public final class DimensionView extends Canvas {
     }
 
     /** L'orientation du cube qui tourne, dehors, à cet instant : la même que depuis la version 0.081. */
-    private double outsideYaw() {
-        return time * 0.6;
-    }
+    private double outsideYaw() { return time * 0.6; }
 
-    private double outsidePitch() {
-        return time * 0.6 * 0.7;
-    }
+    private double outsidePitch() { return time * 0.6 * 0.7; }
 
     /** Le rayon, à l'écran, de la zone où un clic sur le cube du dehors y fait plonger. */
-    private double cubeReach() {
-        return Math.min(getWidth(), getHeight()) * OUTSIDE_SIZE * 1.8;
-    }
+    private double cubeReach() { return Math.min(getWidth(), getHeight()) * OUTSIDE_SIZE * 1.8; }
 
     private boolean overCube(double x, double y) {
         return Math.hypot(x - getWidth() / 2, y - getHeight() / 2) <= cubeReach();
     }
 
-    private javafx.scene.Cursor cursorAt(double x, double y) {
-        if (dimension == Dimension.DURATION && game.isDurationOpen() && overDurationButton(x, y)) return javafx.scene.Cursor.HAND;
-        if (dimension == Dimension.LOOP && game.isLoopOpen() && loopRingAt(x, y) >= 0) return javafx.scene.Cursor.HAND;
+    private Cursor cursorAt(double x, double y) {
+        if (dimension == Dimension.DURATION && game.isDurationOpen() && overDurationButton(x, y)) return Cursor.HAND;
+        if (dimension == Dimension.LOOP && game.isLoopOpen() && loopRingAt(x, y) >= 0) return Cursor.HAND;
         if (dimension == Dimension.BRANE && game.isBraneOpen() && (braneHeld || overBrane(x, y) && game.canPullBrane())) {
-            return braneHeld ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.HAND;
+            return braneHeld ? Cursor.CLOSED_HAND : Cursor.HAND;
         }
-        if (dimension == Dimension.CLICKER && game.isClickerOpen() && overClicker(x, y)) return javafx.scene.Cursor.HAND;
-        if (dimension == Dimension.MIX && game.isMixOpen() && game.isMixing(2) && mixAt(x, y) != null) return javafx.scene.Cursor.CROSSHAIR;
-        if (dimension == Dimension.GRID && game.isGridOpen() && gridCellAt(x, y) != null) return javafx.scene.Cursor.HAND;
+        if (dimension == Dimension.CLICKER && game.isClickerOpen() && overClicker(x, y)) return Cursor.HAND;
+        if (dimension == Dimension.MIX && game.isMixOpen() && game.isMixing(2) && mixAt(x, y) != null) return Cursor.CROSSHAIR;
+        if (dimension == Dimension.GRID && game.isGridOpen() && gridCellAt(x, y) != null) return Cursor.HAND;
         if (dimension == Dimension.MIRROR && game.isMirrorOpen()) {
             Game.MirrorCell cell = mirrorCellAt(x, y);
-            if (cell != null && cell.column() >= game.mirrorHalf()) return javafx.scene.Cursor.HAND;
+            if (cell != null && cell.column() >= game.mirrorHalf()) return Cursor.HAND;
         }
-        if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
+        if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return Cursor.DEFAULT;
         // La caméra libre cache la souris : la croix au centre de la vue la remplace.
-        if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
-        if (dive == Dive.INSIDE) return dragging ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.CROSSHAIR;
-        return dive == Dive.OUTSIDE && overCube(x, y) ? javafx.scene.Cursor.HAND : javafx.scene.Cursor.DEFAULT;
+        if (freeInside()) return robotRefused ? Cursor.CROSSHAIR : Cursor.NONE;
+        if (dive == Dive.INSIDE) return dragging ? Cursor.CLOSED_HAND : Cursor.CROSSHAIR;
+        return dive == Dive.OUTSIDE && overCube(x, y) ? Cursor.HAND : Cursor.DEFAULT;
     }
 
     /**
@@ -588,7 +584,7 @@ public final class DimensionView extends Canvas {
      * gauche commence à faire tourner le regard et le droit cueille la boule visée. En caméra libre, le regard suit
      * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Dans la durée, la boucle, la brane, le
      * clicker, la grille et le miroir, le bouton du milieu, le cercle, la membrane, la surface ou la case ; dans le
-     * mélange, l'arène (version 0.159). Vrai si le geste a servi.
+     * mélange, l'arène. Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension == Dimension.DURATION) return gestured(pressDuration(x, y));
@@ -639,7 +635,7 @@ public final class DimensionView extends Canvas {
             double[] at = camera.project(hit.x(), hit.y(), hit.z());
             mark.x = at == null ? x : at[0];
             mark.y = at == null ? y : at[1];
-            mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.volumeValue()));
+            mark.text = "+" + Format.darkMatter(BigNum.of(game.volumeValue()));
             if (volumePickups.size() < 30) volumePickups.add(mark);
         } else {
             mark.x = x;
@@ -663,13 +659,9 @@ public final class DimensionView extends Canvas {
         return true;
     }
 
-    private double insideFocal() {
-        return Math.min(getWidth(), getHeight()) * INSIDE_FOCAL;
-    }
+    private double insideFocal() { return Math.min(getWidth(), getHeight()) * INSIDE_FOCAL; }
 
-    private static double wrap(double angle) {
-        return VolumeCamera.closest(angle, 0);
-    }
+    private static double wrap(double angle) { return VolumeCamera.closest(angle, 0); }
 
     /** Fait avancer la plongée ou la sortie, et suit le jeu : le cube qui rejette le joueur fait ressortir la vue. */
     private void runDive(double elapsed) {
@@ -708,7 +700,7 @@ public final class DimensionView extends Canvas {
                     fromPitch = lookPitch;
                     dragging = false;
                     dive = Dive.LEAVING;
-                    setCursor(javafx.scene.Cursor.DEFAULT);
+                    setCursor(Cursor.DEFAULT);
                     diveProgress = 0;
                     if (!motion) runDive(0);
                 }
@@ -722,7 +714,7 @@ public final class DimensionView extends Canvas {
                 }
             }
             case OUTSIDE -> {
-                // La plongée automatique (version 0.150) a plongé sans clic : la vue plonge à son tour.
+                // La plongée automatique a plongé sans clic : la vue plonge à son tour.
                 if (game.isInVolume()) {
                     fromYaw = wrap(outsideYaw());
                     fromPitch = wrap(outsidePitch());
@@ -732,7 +724,7 @@ public final class DimensionView extends Canvas {
             }
         }
         // Les boules nées depuis l'image d'avant : on note l'instant pour les faire grossir.
-        java.util.Set<Game.VolumeBall> present = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        Set<Game.VolumeBall> present = Collections.newSetFromMap(new IdentityHashMap<>());
         present.addAll(game.volumeBalls());
         // Celles que la plongée automatique a cueillies depuis : leur gain monte de là où elles étaient.
         long collected = game.volumeCollected();
@@ -748,7 +740,7 @@ public final class DimensionView extends Canvas {
                 Pickup mark = new Pickup();
                 mark.x = at[0];
                 mark.y = at[1];
-                mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.volumeValue()));
+                mark.text = "+" + Format.darkMatter(BigNum.of(game.volumeValue()));
                 volumePickups.add(mark);
             }
         }
@@ -795,9 +787,7 @@ public final class DimensionView extends Canvas {
         }
     }
 
-    private static double ease(double t) {
-        return t * t * (3 - 2 * t);
-    }
+    private static double ease(double t) { return t * t * (3 - 2 * t); }
 
     /** Ce que la plongée a d'avancé, de 0 (dehors) à 1 (au centre) : pour estomper le petit cube du dedans. */
     private double depthIn() {
@@ -809,7 +799,7 @@ public final class DimensionView extends Canvas {
         };
     }
 
-    // 3. Le volume : dehors, le cube qui tourne et un plus petit dedans, dans l'autre sens (version 0.081) ;
+    // 3. Le volume : dehors, le cube qui tourne et un plus petit dedans, dans l'autre sens ;
     // depuis la version 0.128, on y plonge, et l'on cueille de son centre les boules qui y apparaissent.
     private void volumeScene(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         if (dive == Dive.OUTSIDE) {
@@ -878,8 +868,8 @@ public final class DimensionView extends Canvas {
             }
             UniverseView.glow(g, ball[0], ball[1], r * 2.4, c, 0.55);
             g.setGlobalAlpha(1);
-            g.setFill(new javafx.scene.paint.RadialGradient(0, 0, ball[0] - r * 0.35, ball[1] - r * 0.35, r * 1.3, false,
-                    javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.WHITE), new javafx.scene.paint.Stop(1, c)));
+            g.setFill(new RadialGradient(0, 0, ball[0] - r * 0.35, ball[1] - r * 0.35, r * 1.3, false,
+                    CycleMethod.NO_CYCLE, new Stop(0, Color.WHITE), new Stop(1, c)));
             g.fillOval(ball[0] - r, ball[1] - r, 2 * r, 2 * r);
         }
         // Ce qui vient d'être cueilli : un éclat et le gain qui monte ; un clic dans le vide, un petit cercle.
@@ -947,7 +937,7 @@ public final class DimensionView extends Canvas {
         g.setFill(Color.WHITE);
         g.setFont(Font.font(13));
         g.setTextAlign(TextAlignment.CENTER);
-        g.fillText(String.format(java.util.Locale.ROOT, "%.1f s", Math.max(0, left)), w / 2, y + 26);
+        g.fillText(String.format(Locale.ROOT, "%.1f s", Math.max(0, left)), w / 2, y + 26);
     }
 
     /** Un coin du cube, de 0 à 7 : un bit par axe. */
@@ -1014,7 +1004,7 @@ public final class DimensionView extends Canvas {
             Pickup pickup = new Pickup();
             pickup.x = at[0];
             pickup.y = at[1];
-            pickup.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.planeValue() * (collected - lastCollected)));
+            pickup.text = "+" + Format.darkMatter(BigNum.of(game.planeValue() * (collected - lastCollected)));
             if (pickups.size() < 20) pickups.add(pickup);
             // Un éclat ramassé par le joueur sonne ; celui que l'automatisme ramasse, non.
             if (!game.isDimensionAutoPlayed(Dimension.PLANE.number())) gesture();
@@ -1023,9 +1013,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Les éclats ramassés à l'instant : pour les vérifications. */
-    public int pickupsShown() {
-        return pickups.size();
-    }
+    public int pickupsShown() { return pickups.size(); }
 
     /** Les traits que les boules ont touchés depuis l'image d'avant : chacun s'allume. */
     private void noteTouches(double elapsed, boolean moving) {
@@ -1055,15 +1043,13 @@ public final class DimensionView extends Canvas {
         lastPhase = phase;
     }
 
-    private Color color() {
-        return DimensionPalette.color(dimension.number());
-    }
+    private Color color() { return DimensionPalette.color(dimension.number()); }
 
     private void draw() {
         double w = getWidth(), h = getHeight();
-        skinned = game.chosenSkin(idle.core.universe.SkinVisual.DIMENSIONS[dimension.ordinal()]) != null;
-        // La palette des dimensions (version 0.197) : le skin choisi, lu à chaque image, vaut pour toutes les couleurs.
-        DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
+        skinned = game.chosenSkin(SkinVisual.DIMENSIONS[dimension.ordinal()]) != null;
+        // La palette des dimensions : le skin choisi, lu à chaque image, vaut pour toutes les couleurs.
+        DimensionPalette.setSkin(game.chosenSkin(SkinVisual.DIMENSION_PALETTE));
         GraphicsContext g = CanvasPane.begin(this, skinned ? SKIN_BACKS[dimension.ordinal()] : BACK);
         if (g == null) return;
         double cx = w / 2, cy = h / 2, u = Math.min(w, h);
@@ -1105,13 +1091,13 @@ public final class DimensionView extends Canvas {
                 }
             }
             case PLANE -> {
-                // Version 0.203 : la feuille est le plan lui-même, couchée sur le bureau et vue en perspective comme la grille
+                // La feuille est le plan lui-même, couchée sur le bureau et vue en perspective comme la grille
                 // du Classique ; ses carreaux fuient avec elle, plus serrés au loin. Avant : une feuille à plat, de face, sur
                 // toute la vue, et la perspective tracée au crayon par-dessus : deux quadrillages qui se contredisaient.
                 double cx = w / 2, top = h * 0.25, bottom = h * 0.9, lean = w * 0.32 / (bottom - top);
                 double head = top - h * 0.1, headHalf = w * 0.18 - lean * (top - head), footHalf = w * 0.5 + lean * (h - bottom);
-                g.setFill(new javafx.scene.paint.LinearGradient(0, head, 0, h, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                        new javafx.scene.paint.Stop(0, PAPER_FAR), new javafx.scene.paint.Stop(1, PAPER)));
+                g.setFill(new LinearGradient(0, head, 0, h, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, PAPER_FAR), new Stop(1, PAPER)));
                 g.fillPolygon(new double[] {cx - headHalf, cx + headHalf, cx + footHalf, cx - footHalf}, new double[] {head, head, h, h}, 4);
                 // Les petits carreaux : deux fois plus serrés que les traits du jeu, que plane() repasse en plus appuyé.
                 g.setStroke(PAPER_SQUARE);
@@ -1175,7 +1161,7 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // 1. La ligne (version 0.101) : les boules du jeu vont et viennent, un trait à chaque bout et d'autres à
+    // 1. La ligne : les boules du jeu vont et viennent, un trait à chaque bout et d'autres à
     // égale distance ; chaque trait touché s'allume, et ses éclats montent. Avec l'amélioration (0.102),
     // plusieurs lignes l'une sous l'autre, et plusieurs boules sur chacune.
     private void line(GraphicsContext g, double w, double cx, double cy, double u) {
@@ -1231,7 +1217,7 @@ public final class DimensionView extends Canvas {
         // Les éclats de chaque trait touché montent et s'effacent.
         g.setFont(Font.font(13));
         g.setTextAlign(TextAlignment.CENTER);
-        String gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.lineShardsPerTouch()));
+        String gain = "+" + Format.darkMatter(BigNum.of(game.lineShardsPerTouch()));
         for (Touch touch : touches) {
             if (touch.line != index) continue;
             double x = x0 + (x1 - x0) * touch.at;
@@ -1279,13 +1265,13 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // 2. Le plan : la grille vue en perspective (version 0.081), où le joueur mène le point (Z Q S D,
+    // 2. Le plan : la grille vue en perspective, où le joueur mène le point (Z Q S D,
     // version 0.104) ; sa traînée dessine la courbe de son passage, et les éclats attendent sur la grille.
     private void plane(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         // Sur la feuille de cahier, la perspective est celle de la feuille, les éclats des taches d'encre, le point un stylo.
         Color c = skinned ? INK : color(), gem = skinned ? INK : SHARD;
         double top = h * 0.25, bottom = h * 0.9;
-        // Version 0.203 : sur le cahier, ces traits sont les grands carreaux de la feuille couchée (voir backdrop).
+        // Sur le cahier, ces traits sont les grands carreaux de la feuille couchée (voir backdrop).
         g.setStroke(skinned ? PAPER_SQUARE.darker() : c);
         g.setLineWidth(1);
         for (int k = 0; k <= 12; k++) {
@@ -1363,12 +1349,12 @@ public final class DimensionView extends Canvas {
     private static void pen(GraphicsContext g, double x, double y) {
         g.setStroke(INK);
         g.setLineWidth(5);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         g.strokeLine(x + 8, y - 10, x + 26, y - 34);
         g.setStroke(SHARD);
         g.setLineWidth(5);
         g.strokeLine(x + 24, y - 31, x + 28, y - 36);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setLineCap(StrokeLineCap.SQUARE);
         g.setFill(NIB);
         g.fillPolygon(new double[] {x, x + 9, x + 5}, new double[] {y, y - 5, y - 11}, 3);
         g.setFill(INK);
@@ -1436,16 +1422,12 @@ public final class DimensionView extends Canvas {
     }
 
     // ------------------------------------------------------------------
-    // La durée (version 0.134) : le rond, le bouton, les spirales
+    // La durée : le rond, le bouton, les spirales
     // ------------------------------------------------------------------
 
-    private double durationRing() {
-        return Math.min(getWidth(), getHeight()) * DURATION_RING;
-    }
+    private double durationRing() { return Math.min(getWidth(), getHeight()) * DURATION_RING; }
 
-    private double durationButton() {
-        return Math.min(getWidth(), getHeight()) * DURATION_BUTTON;
-    }
+    private double durationButton() { return Math.min(getWidth(), getHeight()) * DURATION_BUTTON; }
 
     /** Vrai si ce point de la vue est sur le bouton du milieu. */
     public boolean overDurationButton(double x, double y) {
@@ -1460,12 +1442,11 @@ public final class DimensionView extends Canvas {
 
     /**
      * Le bouton relâché (la souris, la barre d'espace, la fenêtre qui se ferme) : les spirales donnent leurs éclats,
-     * qui montent du bouton. Vrai s'il était tenu. Tant que l'appui automatique le tient (version 0.150), le joueur ne
+     * qui montent du bouton. Vrai s'il était tenu. Tant que l'appui automatique le tient, le joueur ne
      * le relâche pas : c'est l'automatisme qui relâche, au centre.
      */
     public boolean releaseHold() {
-        if (dimension != Dimension.DURATION || !game.isDurationHeld()
-                || game.isDimensionAutoPlayed(4)) return false;
+        if (dimension != Dimension.DURATION || !game.isDurationHeld() || game.isDimensionAutoPlayed(4)) return false;
         durationPickup(game.releaseDuration());
         lastReleases = game.durationReleases();
         return true;
@@ -1477,14 +1458,12 @@ public final class DimensionView extends Canvas {
         Pickup mark = new Pickup();
         mark.x = getWidth() / 2;
         mark.y = getHeight() / 2;
-        mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(reward));
+        mark.text = "+" + Format.darkMatter(BigNum.of(reward));
         durationPickups.add(mark);
     }
 
     /** Les gains de la durée qui montent encore : pour les vérifications. */
-    public int durationPickupsShown() {
-        return durationPickups.size();
-    }
+    public int durationPickupsShown() { return durationPickups.size(); }
 
     /**
      * Le rond et ses spirales : chacune part du bord et s'enroule jusqu'au bouton ; la part déjà faite brille, la
@@ -1557,16 +1536,16 @@ public final class DimensionView extends Canvas {
         if (held) {
             g.setLineWidth(4);
             g.strokeArc(cx - button - 6, cy - button - 6, button * 2 + 12, button * 2 + 12, 90, -360 * progress,
-                    javafx.scene.shape.ArcType.OPEN);
+                    ArcType.OPEN);
         }
         g.setFill(Color.WHITE);
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font(14));
-        g.fillText(!held ? "Tenir" : full ? "Relâchez" : String.format(java.util.Locale.ROOT, "%.1f s", game.durationHeldSeconds()),
+        g.fillText(!held ? "Tenir" : full ? "Relâchez" : String.format(Locale.ROOT, "%.1f s", game.durationHeldSeconds()),
                 cx, cy + 5);
         if (held) {
             g.setFont(Font.font(16));
-            g.fillText("+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.durationPending())), cx, cy - button - 18);
+            g.fillText("+" + Format.darkMatter(BigNum.of(game.durationPending())), cx, cy - button - 18);
         }
         // Les éclats donnés au relâchement montent du bouton.
         for (Pickup pickup : durationPickups) {
@@ -1595,8 +1574,8 @@ public final class DimensionView extends Canvas {
         g.setFill(Color.WHITE);
         g.setGlobalAlpha(0.07);
         double shine = 100 + 8 * Math.sin(time * 0.5);
-        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine, 35, javafx.scene.shape.ArcType.ROUND);
-        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine + 180, 35, javafx.scene.shape.ArcType.ROUND);
+        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine, 35, ArcType.ROUND);
+        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine + 180, 35, ArcType.ROUND);
         g.setGlobalAlpha(1);
         g.setFill(label);
         g.fillOval(cx - button * 2.4, cy - button * 2.4, button * 4.8, button * 4.8);
@@ -1611,9 +1590,9 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
         g.setStroke(TONEARM);
         g.setLineWidth(5);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         g.strokeLine(px, py, headX, headY);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setLineCap(StrokeLineCap.SQUARE);
         g.setFill(GROOVE_READ);
         g.fillOval(px - 9, py - 9, 18, 18);
         g.setFill(CARTRIDGE);
@@ -1621,7 +1600,7 @@ public final class DimensionView extends Canvas {
     }
 
     // ------------------------------------------------------------------
-    // La boucle (version 0.153) : les cercles, leurs points, leurs zones
+    // La boucle : les cercles, leurs points, leurs zones
     // ------------------------------------------------------------------
 
     /** Le premier cercle (dehors) et le dernier possible (dedans), relatifs au plus petit côté de la vue. */
@@ -1646,18 +1625,16 @@ public final class DimensionView extends Canvas {
     private double lastBeatPhase = Double.NaN;
     /** Le métronome : ce qu'il joue à chaque battement ; {@code null} quand il est coupé. */
     private Runnable onBeat;
-    /** Ce qui suit un geste du joueur dans le mini-jeu (version 0.210) : son son, avec le numéro de la dimension. */
-    private java.util.function.IntConsumer onGesture = dimension -> { };
+    /** Ce qui suit un geste du joueur dans le mini-jeu : son son, avec le numéro de la dimension. */
+    private IntConsumer onGesture = dimension -> { };
 
     /** Branche ce qui suit un geste du joueur dans le mini-jeu : un tir, un clic, un sondage, la membrane relâchée… */
-    public void setOnGesture(java.util.function.IntConsumer gesture) {
+    public void setOnGesture(IntConsumer gesture) {
         onGesture = gesture == null ? dimension -> { } : gesture;
     }
 
     /** Un geste du joueur dans la dimension montrée. */
-    private void gesture() {
-        onGesture.accept(dimension.number());
-    }
+    private void gesture() { onGesture.accept(dimension.number()); }
 
     /** Fait suivre d'un geste une action qui a servi, et rend si elle a servi. */
     private boolean gestured(boolean done) {
@@ -1669,7 +1646,7 @@ public final class DimensionView extends Canvas {
     private final double[] ringFlash = new double[Game.MAX_RINGS];
     private final Game.LoopHit[] ringFlashHit = new Game.LoopHit[Game.MAX_RINGS];
     /**
-     * Les clics du rythme automatique que la vue a déjà montrés (version 0.154), −1 tant qu'elle n'a rien vu, et
+     * Les clics du rythme automatique que la vue a déjà montrés, −1 tant qu'elle n'a rien vu, et
      * l'attente de chaque cercle à l'image d'avant : un cercle dont l'attente remonte vient d'être joué par lui.
      */
     private long lastLoopAuto = -1;
@@ -1677,29 +1654,19 @@ public final class DimensionView extends Canvas {
     private long loopAutoFlashes;
 
     /** Le métronome de la boucle : ce qu'il joue à chaque battement, ou {@code null} pour le couper. */
-    public void setOnBeat(Runnable beat) {
-        onBeat = beat;
-    }
+    public void setOnBeat(Runnable beat) { onBeat = beat; }
 
     /** Les battements du métronome depuis l'ouverture du jeu : pour les vérifications. */
-    public long beats() {
-        return beats;
-    }
+    public long beats() { return beats; }
 
     /** Les mots de clics qui montent encore : pour les vérifications. */
-    public int loopMarksShown() {
-        return loopMarks.size();
-    }
+    public int loopMarksShown() { return loopMarks.size(); }
 
-    /** Les clics du rythme automatique que la vue a montrés sur leur cercle (version 0.154) : pour les vérifications. */
-    public long loopAutoFlashes() {
-        return loopAutoFlashes;
-    }
+    /** Les clics du rythme automatique que la vue a montrés sur leur cercle : pour les vérifications. */
+    public long loopAutoFlashes() { return loopAutoFlashes; }
 
     /** Le texte du dernier mot de clic, ou rien : pour les vérifications. */
-    public String lastLoopMark() {
-        return loopMarks.isEmpty() ? "" : loopMarks.get(loopMarks.size() - 1).text;
-    }
+    public String lastLoopMark() { return loopMarks.isEmpty() ? "" : loopMarks.get(loopMarks.size() - 1).text; }
 
     /** L'écart entre deux cercles voisins : sept tiennent entre le premier et le dernier rayon. */
     private double loopGap() {
@@ -1707,9 +1674,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Le rayon du cercle {@code ring} : le premier dehors, les suivants vers le centre. */
-    public double loopRadius(int ring) {
-        return Math.min(getWidth(), getHeight()) * LOOP_OUTER - ring * loopGap();
-    }
+    public double loopRadius(int ring) { return Math.min(getWidth(), getHeight()) * LOOP_OUTER - ring * loopGap(); }
 
     /** Le cercle sous ce point de la vue (à une demi-largeur d'écart près), ou −1. */
     public int loopRingAt(double x, double y) {
@@ -1761,7 +1726,7 @@ public final class DimensionView extends Canvas {
         mark.y = at[1];
         mark.hit = hit;
         mark.text = hitWord(hit);
-        mark.gain = hit == Game.LoopHit.MISS ? "" : "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(hit)));
+        mark.gain = hit == Game.LoopHit.MISS ? "" : "+" + Format.darkMatter(BigNum.of(game.loopReward(hit)));
         if (loopMarks.size() >= 20) loopMarks.remove(0);
         loopMarks.add(mark);
         ringFlash[ring] = 1;
@@ -1818,7 +1783,7 @@ public final class DimensionView extends Canvas {
             mark.y = getHeight() / 2;
             mark.hit = Game.LoopHit.GOOD;
             mark.text = "";
-            mark.gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(Game.LoopHit.GOOD) * counted));
+            mark.gain = "+" + Format.darkMatter(BigNum.of(game.loopReward(Game.LoopHit.GOOD) * counted));
             loopMarks.add(mark);
         }
         lastLoopHits = hits;
@@ -1905,7 +1870,7 @@ public final class DimensionView extends Canvas {
                 g.strokeOval(x - ring2, y - ring2, ring2 * 2, ring2 * 2);
                 g.setGlobalAlpha(0.95);
                 g.setStroke(c);
-                g.strokeArc(x - ring2, y - ring2, ring2 * 2, ring2 * 2, 90, -360 * done, javafx.scene.shape.ArcType.OPEN);
+                g.strokeArc(x - ring2, y - ring2, ring2 * 2, ring2 * 2, 90, -360 * done, ArcType.OPEN);
             }
         }
         // Ce qu'ont valu les derniers clics : le mot et le gain montent du point, et s'effacent ; sur la cible, le clic plante une flèche.
@@ -1924,7 +1889,7 @@ public final class DimensionView extends Canvas {
             if (!mark.gain.isEmpty()) g.fillText(mark.gain, mark.x, mark.y - (mark.text.isEmpty() ? 6 : 32) - 26 * t);
         }
         g.setGlobalAlpha(1);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setLineCap(StrokeLineCap.SQUARE);
     }
 
     /** L'anneau de la cible du cercle {@code ring} parmi {@code rings} : blanc dehors, or au centre, les cinq couleurs réparties. */
@@ -1971,12 +1936,12 @@ public final class DimensionView extends Canvas {
         g.setStroke(color);
         g.setLineWidth(band);
         g.setGlobalAlpha(alpha);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.BUTT);
-        g.strokeArc(cx - r, cy - r, r * 2, r * 2, start, extent, javafx.scene.shape.ArcType.OPEN);
+        g.setLineCap(StrokeLineCap.BUTT);
+        g.strokeArc(cx - r, cy - r, r * 2, r * 2, start, extent, ArcType.OPEN);
     }
 
     // ------------------------------------------------------------------
-    // La brane (version 0.154) : la membrane, ses ondes, leurs rebonds, ses points
+    // La brane : la membrane, ses ondes, leurs rebonds, ses points
     // ------------------------------------------------------------------
 
     /** La demi-largeur de la membrane, relative au plus petit côté de la vue. */
@@ -1988,7 +1953,7 @@ public final class DimensionView extends Canvas {
     /** Un point touché par l'onde qui court. */
     public static final Color BRANE_STRUCK = Color.web("#fff1c9");
     /**
-     * La couleur d'un front selon ses rebonds (version 0.155) : blanc en direct, orangé après un bord, puis rose, bleu,
+     * La couleur d'un front selon ses rebonds : blanc en direct, orangé après un bord, puis rose, bleu,
      * vert pour quatre rebonds et plus. Les gains des passages prennent la même.
      */
     private static final Color[] BRANE_BOUNCE_COLORS = {
@@ -2020,20 +1985,18 @@ public final class DimensionView extends Canvas {
      * Ce que la vue a vu de chaque onde à l'image d'avant : son rayon et ses passages. Entre deux images, chaque front
      * (l'onde et ses images) passé sur un point est un passage : son gain monte de ce point.
      */
-    private final java.util.Map<Game.BraneWave, double[]> braneSeen = new java.util.IdentityHashMap<>();
+    private final Map<Game.BraneWave, double[]> braneSeen = new IdentityHashMap<>();
     /** Les points de l'image d'avant : une onde qui s'éteint emporte ceux qu'elle a touchés. */
     private List<Game.BranePoint> braneSeenPoints = List.of();
-    /** Les passages sur chaque point encore sur la membrane (version 0.155) : il les affiche jusqu'à partir avec l'onde. */
-    private final java.util.Map<Game.BranePoint, Integer> branePointPasses = new java.util.HashMap<>();
+    /** Les passages sur chaque point encore sur la membrane : il les affiche jusqu'à partir avec l'onde. */
+    private final Map<Game.BranePoint, Integer> branePointPasses = new HashMap<>();
     /** Les passages que la vue a déjà montrés, −1 tant qu'elle n'a rien vu. */
     private long lastBraneTouches = -1;
     /** Les fronts d'onde dessinés à la dernière image, rebonds compris. */
     private int braneFronts;
 
     /** La demi-largeur de la membrane à l'écran, en pixels. */
-    public double braneHalf() {
-        return Math.min(getWidth(), getHeight()) * BRANE_HALF;
-    }
+    public double braneHalf() { return Math.min(getWidth(), getHeight()) * BRANE_HALF; }
 
     /** Où se dessine ce point de la membrane (−1 à 1 sur chaque axe). */
     public double[] braneScreen(double x, double y) {
@@ -2053,9 +2016,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Vrai pendant qu'on tient la membrane. */
-    public boolean braneHeld() {
-        return braneHeld;
-    }
+    public boolean braneHeld() { return braneHeld; }
 
     /** La force de la tirée en cours, de 0 à 1 : la longueur du glissé, à fond à {@link #BRANE_FULL_PULL}. */
     public double branePull() {
@@ -2091,38 +2052,23 @@ public final class DimensionView extends Canvas {
     }
 
     /** La membrane lâchée sans onde : la fenêtre se ferme, ou la vue change de dimension. */
-    public void cancelBrane() {
-        braneHeld = false;
-    }
+    public void cancelBrane() { braneHeld = false; }
 
     /** Les fronts d'onde (l'onde et ses rebonds) dessinés à la dernière image : pour les vérifications. */
-    public int braneFrontsDrawn() {
-        return braneFronts;
-    }
-
-    /** Les gains de passages qui montent encore : pour les vérifications. */
-    public int braneMarksShown() {
-        return braneMarks.size();
-    }
+    public int braneFrontsDrawn() { return braneFronts; }
 
     /** Le texte du dernier gain monté, ou rien : pour les vérifications. */
-    public String lastBraneMark() {
-        return braneMarks.isEmpty() ? "" : braneMarks.get(braneMarks.size() - 1).text;
-    }
+    public String lastBraneMark() { return braneMarks.isEmpty() ? "" : braneMarks.get(braneMarks.size() - 1).text; }
 
     /** Les éclats de bord (le front touche un bord, et rebondit) depuis l'ouverture : pour les vérifications. */
-    public long braneEdgeFlashes() {
-        return braneEdgeFlashes;
-    }
+    public long braneEdgeFlashes() { return braneEdgeFlashes; }
 
     /** Les passages que la vue a comptés sur ce point, tant qu'il est sur la membrane : pour les vérifications. */
-    public int branePasses(Game.BranePoint point) {
-        return branePointPasses.getOrDefault(point, 0);
-    }
+    public int branePasses(Game.BranePoint point) { return branePointPasses.getOrDefault(point, 0); }
 
     /** « +3 », « +4.5, rebond », « +9, 2 rebonds » : le gain d'un passage et ses rebonds. */
     public static String passText(double gain, int bounces) {
-        return "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(gain))
+        return "+" + Format.darkMatter(BigNum.of(gain))
                 + (bounces <= 0 ? "" : bounces == 1 ? ", rebond" : ", " + bounces + " rebonds");
     }
 
@@ -2146,10 +2092,10 @@ public final class DimensionView extends Canvas {
         if (braneHeld && !game.canPullBrane()) braneHeld = false;
         long touches = game.braneTouches();
         List<Game.BraneWave> current = game.braneWaves();
-        java.util.Set<Game.BraneWave> waves = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        Set<Game.BraneWave> waves = Collections.newSetFromMap(new IdentityHashMap<>());
         waves.addAll(braneSeen.keySet());
         waves.addAll(current);
-        java.util.Set<Game.BranePoint> points = new java.util.LinkedHashSet<>(braneSeenPoints);
+        Set<Game.BranePoint> points = new LinkedHashSet<>(braneSeenPoints);
         points.addAll(game.branePoints());
         long left = lastBraneTouches < 0 ? 0 : touches - lastBraneTouches;
         for (Game.BraneWave wave : waves) {
@@ -2162,7 +2108,7 @@ public final class DimensionView extends Canvas {
         braneSeen.clear();
         for (Game.BraneWave wave : current) braneSeen.put(wave, new double[] {wave.radius(), wave.touched()});
         braneSeenPoints = List.copyOf(game.branePoints());
-        branePointPasses.keySet().retainAll(new java.util.HashSet<>(game.branePoints()));
+        branePointPasses.keySet().retainAll(new HashSet<>(game.branePoints()));
         lastBraneTouches = touches;
     }
 
@@ -2196,7 +2142,7 @@ public final class DimensionView extends Canvas {
      * monte de son point, qui en compte un de plus. {@code rank} est le nombre de passages qu'elle avait déjà. Rend le
      * nombre de passages montrés.
      */
-    private int branePasses(Game.BraneWave wave, double from, double to, int rank, java.util.Collection<Game.BranePoint> points, long most) {
+    private int branePasses(Game.BraneWave wave, double from, double to, int rank, Collection<Game.BranePoint> points, long most) {
         record Pass(double distance, Game.BranePoint point, int bounces) {
         }
         List<Pass> passes = new ArrayList<>();
@@ -2209,7 +2155,7 @@ public final class DimensionView extends Canvas {
                 }
             }
         }
-        passes.sort(java.util.Comparator.comparingDouble(Pass::distance));
+        passes.sort(Comparator.comparingDouble(Pass::distance));
         int shown = 0;
         for (Pass pass : passes) {
             if (shown >= most) break;
@@ -2253,7 +2199,7 @@ public final class DimensionView extends Canvas {
      */
     private void web(GraphicsContext g, double cx, double cy, double half, boolean open, double pullX, double pullY) {
         g.setStroke(THREAD);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         double[] xs = new double[WEB_RADIALS * BRANE_GRID + 1], ys = new double[WEB_RADIALS * BRANE_GRID + 1];
         for (int i = 0; i < WEB_RADIALS; i++) {
             double a = webAngle(i), cos = Math.cos(a), sin = Math.sin(a), reach = 1 / Math.max(Math.abs(cos), Math.abs(sin));
@@ -2279,7 +2225,7 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(0.85);
         g.setLineWidth(1.5);
         g.strokeRect(cx - half, cy - half, half * 2, half * 2);
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setLineCap(StrokeLineCap.SQUARE);
         spider(g, cx - half * 0.86, cy - half * 0.86, half * 0.05);
     }
 
@@ -2427,7 +2373,7 @@ public final class DimensionView extends Canvas {
             }
             int passes = branePasses(point);
             if (struck && passes > 0) {
-                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 11));
+                g.setFont(Font.font(null, FontWeight.BOLD, 11));
                 g.setFill(BRANE_STRUCK);
                 g.fillText(passes + (passes > 1 ? " passages" : " passage"), at[0], at[1] + r + 14);
             }
@@ -2451,14 +2397,14 @@ public final class DimensionView extends Canvas {
             g.fillRoundRect(mark.x - width / 2, y - size, width, size + 6, 8, 8);
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.setFill(tint);
-            g.setFont(mark.bounces > 0 ? Font.font(null, javafx.scene.text.FontWeight.BOLD, size) : Font.font(size));
+            g.setFont(mark.bounces > 0 ? Font.font(null, FontWeight.BOLD, size) : Font.font(size));
             g.fillText(mark.text, mark.x, y);
         }
         g.setGlobalAlpha(1);
     }
 
     // ------------------------------------------------------------------
-    // Le clicker (version 0.155) : la surface, ses clics, ses zones qui se superposent
+    // Le clicker : la surface, ses clics, ses zones qui se superposent
     // ------------------------------------------------------------------
 
     /** La demi-largeur de la surface, relative au plus petit côté de la vue. */
@@ -2495,9 +2441,7 @@ public final class DimensionView extends Canvas {
     private long clickerAutoFlashes;
 
     /** La demi-largeur de la surface à l'écran, en pixels. */
-    public double clickerHalf() {
-        return Math.min(getWidth(), getHeight()) * CLICKER_HALF;
-    }
+    public double clickerHalf() { return Math.min(getWidth(), getHeight()) * CLICKER_HALF; }
 
     /** Où se dessine ce point de la surface (0 à 1 sur chaque axe). */
     public double[] clickerScreen(double x, double y) {
@@ -2530,7 +2474,7 @@ public final class DimensionView extends Canvas {
         ClickerMark mark = new ClickerMark();
         mark.x = x;
         mark.y = y;
-        mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(gain));
+        mark.text = "+" + Format.darkMatter(BigNum.of(gain));
         mark.auto = auto;
         mark.stack = stack;
         if (clickerMarks.size() >= 30) clickerMarks.remove(0);
@@ -2551,9 +2495,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Les gains de clics qui montent encore : pour les vérifications. */
-    public int clickerMarksShown() {
-        return clickerMarks.size();
-    }
+    public int clickerMarksShown() { return clickerMarks.size(); }
 
     /** Le texte du dernier gain monté, ou rien : pour les vérifications. */
     public String lastClickerMark() {
@@ -2561,9 +2503,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Les clics automatiques que la vue a montrés depuis l'ouverture : pour les vérifications. */
-    public long clickerAutoFlashes() {
-        return clickerAutoFlashes;
-    }
+    public long clickerAutoFlashes() { return clickerAutoFlashes; }
 
     /**
      * Le clicker avance d'une image : les gains montent et s'effacent ; les clics automatiques joués depuis l'image
@@ -2591,9 +2531,8 @@ public final class DimensionView extends Canvas {
      * La surface : un carré sombre au bord lumineux. Les zones colorent chaque endroit selon combien d'entre elles le
      * couvrent : un disque doré par zone, et là où plusieurs se superposent, une case par endroit à la couleur de leur
      * nombre (de l'orange pour deux au blanc pour huit) ; chacune a son bord et l'anneau du temps qu'il lui reste, qui
-     * se vide. Sous la souris, le multiplicateur des zones (×N). En haut, la cadence et son
-     * multiplicateur. Les clics font une onde et leur gain monte, vert pour les clics automatiques. Fermée, la surface
-     * attend, sans rien.
+     * se vide. Sous la souris, le multiplicateur des zones (×N). En haut, la cadence et son multiplicateur. Les clics
+     * font une onde et leur gain monte, vert pour les clics automatiques. Fermée, la surface attend, sans rien.
      */
     private void clickerScene(GraphicsContext g, double cx, double cy) {
         Color c = color();
@@ -2667,7 +2606,7 @@ public final class DimensionView extends Canvas {
             g.setStroke(skinned ? SKY_INK : Color.WHITE);
             g.setLineWidth(3);
             g.setGlobalAlpha(share < 0.25 ? 0.6 + 0.4 * Math.sin(time * 14) : 0.85);
-            g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
+            g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, ArcType.OPEN);
         }
         g.setTextAlign(TextAlignment.CENTER);
         // Sous la souris : combien de zones, et ce qu'elles multiplient.
@@ -2682,8 +2621,8 @@ public final class DimensionView extends Canvas {
             if (stack > 0) {
                 g.setGlobalAlpha(1);
                 g.setFill(tint);
-                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 14));
-                String text = "×" + idle.ui.common.ElementText.number(game.clickerStackMultiplier(stack))
+                g.setFont(Font.font(null, FontWeight.BOLD, 14));
+                String text = "×" + ElementText.number(game.clickerStackMultiplier(stack))
                         + (stack > 1 ? " (" + stack + " zones)" : "");
                 // Sur un fond sombre : lisible au-dessus des zones.
                 double width = text.length() * 8 + 10;
@@ -2732,7 +2671,7 @@ public final class DimensionView extends Canvas {
         g.setStroke(Color.WHITE);
         g.setLineWidth(Math.max(1.5, r * 0.08));
         g.setGlobalAlpha(0.8);
-        g.strokeArc(x - r * 0.75, y - r * 0.75, r * 1.5, r * 1.5, 110, 40, javafx.scene.shape.ArcType.OPEN);
+        g.strokeArc(x - r * 0.75, y - r * 0.75, r * 1.5, r * 1.5, 110, 40, ArcType.OPEN);
     }
 
     /** La bulle d'un clic, d'âge {@code t} de 0 à 1 : elle monte, puis éclate en gouttelettes qui s'écartent. */
@@ -2757,12 +2696,12 @@ public final class DimensionView extends Canvas {
 
     /** « 3.5 clics par seconde, ×1.18 » : la cadence et ce qu'elle multiplie. */
     public String cadenceText(double rate) {
-        return idle.ui.common.ElementText.number(rate) + (rate >= 2 ? " clics" : " clic") + " par seconde, "
-                + idle.ui.common.Format.multiplier(game.clickerSpeedFactor(rate));
+        return ElementText.number(rate) + (rate >= 2 ? " clics" : " clic") + " par seconde, "
+                + Format.multiplier(game.clickerSpeedFactor(rate));
     }
 
     // ------------------------------------------------------------------
-    // La grille (version 0.156, refaite en 0.157) : la carte de la couche, la case visée, le cube vu de biais
+    // La grille : la carte de la couche, la case visée, le cube vu de biais
     // ------------------------------------------------------------------
 
     /** Une case essayée, au plus loin (bleu), à mi-chemin (jaune), tout près (rouge) ; trouvée, dorée ; sans l'affichage, neutre. */
@@ -2790,7 +2729,7 @@ public final class DimensionView extends Canvas {
     /** Le zoom de la carte : 0 montre toute la couche, chaque cran quatre fois moins de cases par côté. */
     private int gridZoom;
     /** Les cases déjà essayées, et ce qu'elles ont donné ; oubliées quand la grille change de taille. */
-    private final java.util.Map<Long, Game.GridProbe> gridProbed = new java.util.HashMap<>();
+    private final Map<Long, Game.GridProbe> gridProbed = new HashMap<>();
     private int gridProbedDivisions = -1;
     private final List<GridMark> gridMarks = new ArrayList<>();
     /** Les essais que la vue a déjà montrés, −1 tant qu'elle n'a rien vu : ceux de plus viennent de l'automatisme. */
@@ -2800,22 +2739,14 @@ public final class DimensionView extends Canvas {
     private int gridHoverI = -1, gridHoverJ = -1;
 
     /** Le côté de la carte de la couche, à l'écran. */
-    private double gridSide() {
-        return Math.min(getHeight() * 0.8, getWidth() * 0.55);
-    }
+    private double gridSide() { return Math.min(getHeight() * 0.8, getWidth() * 0.55); }
 
-    private double gridLeft() {
-        return getWidth() * 0.4 - gridSide() / 2;
-    }
+    private double gridLeft() { return getWidth() * 0.4 - gridSide() / 2; }
 
-    private double gridTop() {
-        return getHeight() / 2 - gridSide() / 2;
-    }
+    private double gridTop() { return getHeight() / 2 - gridSide() / 2; }
 
     /** Vrai quand la grille est assez petite pour se montrer case par case, et qu'un clic y essaie la case. */
-    public boolean gridClickable() {
-        return game.gridDivisions() <= GRID_CLICK_CELLS;
-    }
+    public boolean gridClickable() { return game.gridDivisions() <= GRID_CLICK_CELLS; }
 
     /** Les cases par côté que la carte montre : toute la couche sans zoom, quatre fois moins par cran, une petite grille entière. */
     public int gridSpan() {
@@ -2837,9 +2768,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Le zoom de la carte : 0 pour toute la couche. */
-    public int gridZoom() {
-        return gridZoom;
-    }
+    public int gridZoom() { return gridZoom; }
 
     /** Le centre de la case (i, j) de la couche, à l'écran, d'après la partie de la couche que la carte montre. */
     public double[] gridCellScreen(int i, int j) {
@@ -2858,19 +2787,13 @@ public final class DimensionView extends Canvas {
     }
 
     /** La couche montrée (z, de 0 à N − 1). */
-    public int gridLayer() {
-        return Math.max(0, Math.min(game.gridDivisions() - 1, gridLayer));
-    }
+    public int gridLayer() { return Math.max(0, Math.min(game.gridDivisions() - 1, gridLayer)); }
 
     /** Montre la couche {@code layer}, ramenée dans la grille. */
-    public void setGridLayer(int layer) {
-        gridLayer = Math.max(0, Math.min(game.gridDivisions() - 1, layer));
-    }
+    public void setGridLayer(int layer) { gridLayer = Math.max(0, Math.min(game.gridDivisions() - 1, layer)); }
 
     /** Monte ou descend d'une couche (la molette, les flèches, les boutons de la fenêtre). */
-    public void shiftGridLayer(int step) {
-        setGridLayer(gridLayer() + step);
-    }
+    public void shiftGridLayer(int step) { setGridLayer(gridLayer() + step); }
 
     /** La case visée : x, y, et la couche z. */
     public int[] gridSelected() {
@@ -2924,20 +2847,16 @@ public final class DimensionView extends Canvas {
         mark.k = probe.k();
         mark.found = probe.found();
         mark.auto = auto;
-        mark.text = (probe.found() ? "Trouvé ! ×" + idle.ui.common.ElementText.number(Game.GRID_FOUND) + "  " : "")
-                + "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(probe.gain()));
+        mark.text = (probe.found() ? "Trouvé ! ×" + ElementText.number(Game.GRID_FOUND) + "  " : "")
+                + "+" + Format.darkMatter(BigNum.of(probe.gain()));
         if (gridMarks.size() >= 12) gridMarks.remove(0);
         gridMarks.add(mark);
     }
 
     /** Oublie les cases essayées contre un point qui n'est plus là : elles ne se colorent plus. */
-    private void forgetDeadProbes() {
-        gridProbed.values().removeIf(probe -> !game.isGridPointAlive(probe.pointId()));
-    }
+    private void forgetDeadProbes() { gridProbed.values().removeIf(probe -> !game.isGridPointAlive(probe.pointId())); }
 
-    private static long gridKey(int i, int j, int k) {
-        return ((long) i * 4096 + j) * 4096 + k;
-    }
+    private static long gridKey(int i, int j, int k) { return ((long) i * 4096 + j) * 4096 + k; }
 
     /** La souris bouge : la case sous elle s'éclaire. */
     private void hoverGrid(double x, double y) {
@@ -2947,24 +2866,13 @@ public final class DimensionView extends Canvas {
     }
 
     /** Ce qu'a donné la case (i, j, k) au dernier essai qui l'a touchée, ou {@code null} : pour les vérifications. */
-    public Game.GridProbe gridProbedAt(int i, int j, int k) {
-        return gridProbed.get(gridKey(i, j, k));
-    }
-
-    /** Les gains d'essais qui montent encore : pour les vérifications. */
-    public int gridMarksShown() {
-        return gridMarks.size();
-    }
+    public Game.GridProbe gridProbedAt(int i, int j, int k) { return gridProbed.get(gridKey(i, j, k)); }
 
     /** Le texte du dernier gain monté, ou rien : pour les vérifications. */
-    public String lastGridMark() {
-        return gridMarks.isEmpty() ? "" : gridMarks.get(gridMarks.size() - 1).text;
-    }
+    public String lastGridMark() { return gridMarks.isEmpty() ? "" : gridMarks.get(gridMarks.size() - 1).text; }
 
     /** Les essais automatiques que la vue a montrés depuis l'ouverture : pour les vérifications. */
-    public long gridAutoFlashes() {
-        return gridAutoFlashes;
-    }
+    public long gridAutoFlashes() { return gridAutoFlashes; }
 
     /**
      * La couleur d'une case essayée : sans l'affichage de la distance (niveau 0), neutre, rien ne dit si elle brûle ;
@@ -2994,7 +2902,7 @@ public final class DimensionView extends Canvas {
 
     /**
      * La grille avance d'une image : les gains montent et s'effacent ; les cases essayées contre un point parti (trouvé,
-     * ou ses essais épuisés) s'oublient, leurs couleurs ne diraient plus rien (version 0.158) ; une grille réduite oublie
+     * ou ses essais épuisés) s'oublient, leurs couleurs ne diraient plus rien ; une grille réduite oublie
      * toutes les cases essayées, revient à la carte entière et ramène la case visée en elle ; les essais de l'automatisme depuis l'image d'avant se montrent comme ceux du joueur.
      */
     private void runGrid(double elapsed) {
@@ -3119,15 +3027,15 @@ public final class DimensionView extends Canvas {
                 double[] at = gridCellScreen(probe.i(), probe.j());
                 g.setFill(Color.WHITE);
                 g.setGlobalAlpha(0.9);
-                g.fillText("+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(probe.gain())), at[0], at[1] + (game.gridReveal() >= 1 ? -2 : 4));
-                if (game.gridReveal() >= 1) g.fillText(idle.ui.common.ElementText.number(probe.distance()), at[0], at[1] + 12);
+                g.fillText("+" + Format.darkMatter(BigNum.of(probe.gain())), at[0], at[1] + (game.gridReveal() >= 1 ? -2 : 4));
+                if (game.gridReveal() >= 1) g.fillText(ElementText.number(probe.distance()), at[0], at[1] + 12);
             }
         }
         if (waiting) {
             g.setGlobalAlpha(0.85);
             g.setFill(skinned ? MINE_GRAY : Color.web("#8a93b0"));
             g.setFont(Font.font(13));
-            g.fillText(String.format(java.util.Locale.ROOT, "Attente : %.1f s", game.gridWait()), left + side / 2, top + side + 20);
+            g.fillText(String.format(Locale.ROOT, "Attente : %.1f s", game.gridWait()), left + side / 2, top + side + 20);
         }
         // Le cube vu de biais.
         gridCube(g, w * 0.82, h / 2, Math.min(w * 0.12, h * 0.26), n, layer, revealed, c);
@@ -3141,7 +3049,7 @@ public final class DimensionView extends Canvas {
             UniverseView.glow(g, at[0], at[1], glow * (0.6 + t), tint, (mark.found ? 0.9 : 0.5) * (1 - t));
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.setFill(skinned ? mark.found ? MINE_HIT : mark.auto ? SKY_AUTO : MINE_TEXT : tint);
-            g.setFont(mark.found ? Font.font(null, javafx.scene.text.FontWeight.BOLD, 17) : Font.font(14));
+            g.setFont(mark.found ? Font.font(null, FontWeight.BOLD, 17) : Font.font(14));
             g.fillText(mark.text, at[0], at[1] - 10 - 30 * t);
         }
         g.setGlobalAlpha(1);
@@ -3196,7 +3104,7 @@ public final class DimensionView extends Canvas {
             g.fillOval(x - r * 0.6, y - r * 0.6, r * 0.5, r * 0.5);
         } else if (revealed) {
             g.setFill(MINE_DIGITS[digit - 1]);
-            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, cell * 0.55));
+            g.setFont(Font.font(null, FontWeight.BOLD, cell * 0.55));
             g.setTextAlign(TextAlignment.CENTER);
             g.fillText(String.valueOf(digit), x, y + cell * 0.2);
         } else {
@@ -3327,7 +3235,7 @@ public final class DimensionView extends Canvas {
     }
 
     // ------------------------------------------------------------------
-    // Le miroir (version 0.157) : le plateau, le motif qui s'allume, sa reproduction en miroir
+    // Le miroir : le plateau, le motif qui s'allume, sa reproduction en miroir
     // ------------------------------------------------------------------
 
     /** La case du motif qui s'allume, une case reproduite, un clic juste, une erreur. */
@@ -3355,9 +3263,7 @@ public final class DimensionView extends Canvas {
     private static final double MIRROR_GROW_SECONDS = 1.5;
 
     /** Les agrandissements du plateau que la vue a montrés depuis l'ouverture : pour les vérifications. */
-    public long mirrorGrowths() {
-        return mirrorGrowths;
-    }
+    public long mirrorGrowths() { return mirrorGrowths; }
     /** Ce que la dernière image a montré du motif : ses cases allumées à gauche, les cases reproduites à droite. */
     private int mirrorPatternDrawn, mirrorReproducedDrawn;
 
@@ -3414,19 +3320,13 @@ public final class DimensionView extends Canvas {
     }
 
     /** Les clics de l'automatisme que la vue a montrés depuis l'ouverture : pour les vérifications. */
-    public long mirrorAutoFlashes() {
-        return mirrorAutoFlashes;
-    }
+    public long mirrorAutoFlashes() { return mirrorAutoFlashes; }
 
     /** Les cases du motif allumées à gauche à la dernière image (une pendant l'allumage, aucune sinon) : pour les vérifications. */
-    public int mirrorPatternDrawn() {
-        return mirrorPatternDrawn;
-    }
+    public int mirrorPatternDrawn() { return mirrorPatternDrawn; }
 
     /** Les cases reproduites montrées à droite à la dernière image : pour les vérifications. */
-    public int mirrorReproducedDrawn() {
-        return mirrorReproducedDrawn;
-    }
+    public int mirrorReproducedDrawn() { return mirrorReproducedDrawn; }
 
     /**
      * Le miroir avance d'une image : les éclats des clics s'éteignent (un plateau agrandi les efface) ; ce que
@@ -3439,7 +3339,7 @@ public final class DimensionView extends Canvas {
         if (!game.isMirrorOpen()) return;
         if (mirrorShownColumns != game.mirrorColumns()) {
             mirrorFlashes.clear();
-            // Le plateau s'agrandit (version 0.158) : un éclat le dit.
+            // Le plateau s'agrandit : un éclat le dit.
             if (mirrorShownColumns >= 0 && game.mirrorColumns() > mirrorShownColumns) {
                 mirrorGrowAge = 0;
                 mirrorGrowths++;
@@ -3517,7 +3417,7 @@ public final class DimensionView extends Canvas {
                             g.fillRoundRect(at[0] - cell / 2 + 5, at[1] - cell / 2 + 5, cell - 10, cell - 10, 8, 8);
                         }
                         g.setFill(BACK);
-                        g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, Math.max(12, cell * 0.3)));
+                        g.setFont(Font.font(null, FontWeight.BOLD, Math.max(12, cell * 0.3)));
                         g.fillText(String.valueOf(shown + 1), at[0], at[1] + cell * 0.1);
                         mirrorPatternDrawn = 1;
                     }
@@ -3548,8 +3448,8 @@ public final class DimensionView extends Canvas {
                         boolean success = result == Game.MirrorAnswer.SUCCESS;
                         g.setGlobalAlpha(1);
                         g.setFill(success ? MIRROR_DONE : MIRROR_WRONG);
-                        g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 22));
-                        g.fillText((success ? "Réussi ! +" : "Manqué : +") + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mirrorLastGain())),
+                        g.setFont(Font.font(null, FontWeight.BOLD, 22));
+                        g.fillText((success ? "Réussi ! +" : "Manqué : +") + Format.darkMatter(BigNum.of(game.mirrorLastGain())),
                                 w / 2, top + rows * cell + 30);
                     }
                 }
@@ -3593,7 +3493,7 @@ public final class DimensionView extends Canvas {
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.strokeRoundRect(left - 6 - 10 * t, top - 6 - 10 * t, columns * cell + 12 + 20 * t, rows * cell + 12 + 20 * t, 12, 12);
             g.setFill(MIRROR_LIT);
-            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 20));
+            g.setFont(Font.font(null, FontWeight.BOLD, 20));
             g.fillText("Le plateau s'agrandit !", w / 2, top + rows * cell / 2);
         }
         if (open) {
@@ -3636,7 +3536,7 @@ public final class DimensionView extends Canvas {
     }
 
     // ------------------------------------------------------------------
-    // Le mélange (version 0.159) : une arène où se mêlent, étape par étape, les mécaniques des neuf autres
+    // Le mélange : une arène où se mêlent, étape par étape, les mécaniques des neuf autres
     // ------------------------------------------------------------------
 
     /** Un gain qui monte de l'arène (relâchement, trésor), ou l'éclat d'un éclat ramassé : où (dans l'arène), son âge. */
@@ -3657,7 +3557,7 @@ public final class DimensionView extends Canvas {
     private final List<MixMark> mixMarks = new ArrayList<>();
     private final List<MixMark> mixFlashes = new ArrayList<>();
     /** Les éclats de l'image d'avant : ceux qui ont disparu depuis ont été ramassés, et s'éclairent. */
-    private final java.util.Map<Long, Game.MixShard> mixSeen = new java.util.HashMap<>();
+    private final Map<Long, Game.MixShard> mixSeen = new HashMap<>();
     private long lastMixReleases = -1, lastMixTreasures = -1;
     private int lastMixStage = -1;
     /** Le bouton droit tient la charge ; le gauche, tenu, mène le point. */
@@ -3726,9 +3626,7 @@ public final class DimensionView extends Canvas {
     }
 
     /** Vrai tant que le bouton droit tient la charge : pour les vérifications. */
-    public boolean mixHeld() {
-        return mixHeld;
-    }
+    public boolean mixHeld() { return mixHeld; }
 
     /** Le point plonge ({@code steps} positif) ou remonte d'autant de pas : la molette, ou les touches de la fenêtre. */
     public void shiftMixDepth(int steps) {
@@ -3739,19 +3637,10 @@ public final class DimensionView extends Canvas {
         game.setMixDepth(mixDepthAim);
     }
 
-    /** Les gains qui montent, et les éclats ramassés qui s'éclairent : pour les vérifications. */
-    public int mixMarksShown() {
-        return mixMarks.size();
-    }
-
-    public int mixFlashesShown() {
-        return mixFlashes.size();
-    }
+    public int mixFlashesShown() { return mixFlashes.size(); }
 
     /** Le dernier gain qui monte (« Excellent ! +12 », « Trésor ! +40 »), ou une chaîne vide : pour les vérifications. */
-    public String mixLastMark() {
-        return mixMarks.isEmpty() ? "" : mixMarks.get(mixMarks.size() - 1).text;
-    }
+    public String mixLastMark() { return mixMarks.isEmpty() ? "" : mixMarks.get(mixMarks.size() - 1).text; }
 
     /** Le mot d'un rythme, sous le cercle et dans le gain d'un relâchement. */
     public static String rhythmWord(Game.MixRhythm rhythm) {
@@ -3778,7 +3667,7 @@ public final class DimensionView extends Canvas {
         if (!Double.isNaN(mixDepthAim) && Math.abs(game.mixDepth() - mixDepthAim) < 1e-9) mixDepthAim = Double.NaN;
         boolean sameStage = lastMixStage == game.mixStage();
         lastMixStage = game.mixStage();
-        java.util.Set<Long> present = new java.util.HashSet<>();
+        Set<Long> present = new HashSet<>();
         for (Game.MixShard shard : game.mixShardList()) present.add(shard.id());
         if (sameStage) {
             for (Game.MixShard gone : mixSeen.values()) {
@@ -3792,11 +3681,11 @@ public final class DimensionView extends Canvas {
         if (sameStage && lastMixReleases >= 0 && releases > lastMixReleases && game.mixLastGain() > 0) {
             String word = rhythmWord(game.mixLastRhythm());
             mixMarks.add(mixMark(game.mixX(), game.mixY(), (word.isEmpty() ? "" : word + " ") + "+"
-                    + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixLastGain())), color()));
+                    + Format.darkMatter(BigNum.of(game.mixLastGain())), color()));
         }
         if (sameStage && lastMixTreasures >= 0 && treasures > lastMixTreasures) {
             mixMarks.add(mixMark(game.mixX(), game.mixY(), "Trésor ! +"
-                    + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixLastGain())), MIX_HOT));
+                    + Format.darkMatter(BigNum.of(game.mixLastGain())), MIX_HOT));
         }
         while (mixMarks.size() > 12) mixMarks.remove(0);
         lastMixReleases = releases;
@@ -3846,7 +3735,7 @@ public final class DimensionView extends Canvas {
             double[] at = mixScreen(mark.x, mark.y);
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.setFill(mark.tint);
-            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 16));
+            g.setFont(Font.font(null, FontWeight.BOLD, 16));
             g.fillText(mark.text, at[0], at[1] - 18 - 40 * t);
         }
         if (game.isMixing(5)) mixRing(g, left, top, side);
@@ -3897,10 +3786,10 @@ public final class DimensionView extends Canvas {
                 g.setStroke(full ? stackColor(1) : c);
                 g.setLineWidth(2);
                 g.setGlobalAlpha(0.8 * fade);
-                g.strokeArc(at[0] - r, at[1] - r, 2 * r, 2 * r, 90, 360 * zone.left() / Game.MIX_ZONE_SECONDS, javafx.scene.shape.ArcType.OPEN);
+                g.strokeArc(at[0] - r, at[1] - r, 2 * r, 2 * r, 90, 360 * zone.left() / Game.MIX_ZONE_SECONDS, ArcType.OPEN);
                 if (!full) continue;
                 g.setFill(Color.WHITE);
-                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 12));
+                g.setFont(Font.font(null, FontWeight.BOLD, 12));
                 g.setTextAlign(TextAlignment.CENTER);
                 g.fillText("×2", at[0], at[1] + 4);
             }
@@ -3936,7 +3825,7 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
         g.setFill(LENS);
         g.fillOval(cx - lens, cy - lens, lens * 2, lens * 2);
-        // Version 0.203 : plus de découpe ronde autour des copies. L'arène, carrée et centrée, tient dans la lunette quel
+        // Plus de découpe ronde autour des copies. L'arène, carrée et centrée, tient dans la lunette quel
         // que soit l'angle (sa demi-diagonale vaut 0,707 côté, la lunette 0,72), et le contour noir, large de dix pixels,
         // couvre ce qui dépasserait d'une lueur. La découpe coûtait à elle seule la moitié du dessin : le kaléidoscope
         // prenait plus de deux fois le temps du Classique.
@@ -3992,7 +3881,7 @@ public final class DimensionView extends Canvas {
     private void mixShards(GraphicsContext g, double side, Color tint, double fade) {
         List<Game.MixShard> shards = game.mixShardList();
         if (game.isMixing(9)) {
-            java.util.Map<Long, Game.MixShard> byId = new java.util.HashMap<>();
+            Map<Long, Game.MixShard> byId = new HashMap<>();
             for (Game.MixShard shard : shards) byId.put(shard.id(), shard);
             g.setStroke(tint == null ? DimensionPalette.color(9) : tint);
             g.setLineWidth(1);
@@ -4059,8 +3948,7 @@ public final class DimensionView extends Canvas {
 
     /** « 12,5 ×1,40 » : la charge tenue et son multiplicateur, sous le point. */
     public String mixChargeText() {
-        return idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixPot())) + " "
-                + idle.ui.common.Format.multiplier(game.mixChargeMultiplier());
+        return Format.darkMatter(BigNum.of(game.mixPot())) + " " + Format.multiplier(game.mixChargeMultiplier());
     }
 
     /**
@@ -4112,10 +4000,10 @@ public final class DimensionView extends Canvas {
         double half = game.mixRingHalfWidth(), zone = game.mixRingZone();
         g.setStroke(DimensionPalette.color(5));
         g.setLineWidth(6);
-        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + half), 720 * half, javafx.scene.shape.ArcType.OPEN);
+        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + half), 720 * half, ArcType.OPEN);
         g.setStroke(Color.WHITE);
         g.setLineWidth(7);
-        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + 0.2 * half), 144 * half, javafx.scene.shape.ArcType.OPEN);
+        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + 0.2 * half), 144 * half, ArcType.OPEN);
         double angle = 2 * Math.PI * game.mixRingPhase();
         double px = x + r * Math.sin(angle), py = y - r * Math.cos(angle);
         UniverseView.glow(g, px, py, 16, DimensionPalette.color(5), 0.8);
@@ -4123,7 +4011,7 @@ public final class DimensionView extends Canvas {
         g.setFill(Color.WHITE);
         g.fillOval(px - 5, py - 5, 10, 10);
         g.setTextAlign(TextAlignment.CENTER);
-        g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 13));
+        g.setFont(Font.font(null, FontWeight.BOLD, 13));
         g.setFill(DimensionPalette.color(5));
         g.fillText(rhythmWord(game.mixRhythmNow()), x, y + r + 20);
         if (game.mixLastRhythm() != Game.MixRhythm.NONE) {
@@ -4140,8 +4028,8 @@ public final class DimensionView extends Canvas {
     private void mixGauge(GraphicsContext g, double left, double top, double side) {
         double x = left + side + Math.min(36, Math.max(10, (getWidth() - left - side) * 0.25)), width = 14;
         g.setGlobalAlpha(0.8);
-        g.setFill(new javafx.scene.paint.LinearGradient(0, top, 0, top + side, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
-                new javafx.scene.paint.Stop(0, Color.web("#3a3626")), new javafx.scene.paint.Stop(1, Color.web("#1d1a4a"))));
+        g.setFill(new LinearGradient(0, top, 0, top + side, false, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.web("#3a3626")), new Stop(1, Color.web("#1d1a4a"))));
         g.fillRoundRect(x, top, width, side, 6, 6);
         double depth = game.mixDepth(), tolerance = game.mixDepthTolerance();
         double from = Math.max(0, depth - tolerance), to = Math.min(1, depth + tolerance);

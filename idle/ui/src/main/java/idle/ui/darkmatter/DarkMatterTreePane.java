@@ -1,24 +1,14 @@
 package idle.ui.darkmatter;
 
 import idle.core.Game;
+import idle.core.darkmatter.*;
+import javafx.scene.effect.DropShadow;
 import idle.core.bigbang.BigBangCondition;
-import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
-import idle.ui.Confirm;
-import idle.ui.GameApp;
-import idle.ui.NextReset;
-import idle.ui.common.Card;
-import idle.ui.common.DarkText;
-import idle.ui.common.Detail;
-import idle.ui.common.ElementText;
-import idle.ui.common.Format;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import idle.core.universe.*;
+import idle.ui.*;
+import idle.ui.common.*;
+import java.util.*;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
@@ -30,40 +20,36 @@ import javafx.scene.text.TextAlignment;
 /**
  * L'arbre d'améliorations de la matière noire, toutes branches réunies.
  *
- * <p>En haut, la racine : la matière noire. Elle se divise en quatre branches, une colonne
- * chacune, coiffée d'un en-tête qui dit avec quoi la branche se paie et ce que le joueur en a :
+ * <p>En haut, la racine : la matière noire. Elle se divise en quatre branches, une colonne chacune, coiffée d'un
+ * en-tête qui dit avec quoi la branche se paie et ce que le joueur en a :
  * <ul>
- *   <li><b>particules</b> et <b>atomes</b> : les cases s'enchaînent, chacune demande celle du dessus ;</li>
- *   <li><b>taille</b> : les cases s'enchaînent aussi, mais se débloquent en atteignant une taille,
- *       sans rien dépenser ;</li>
- *   <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas
- *       les unes des autres : au lieu de s'enchaîner, elles partent toutes d'un même tronc. Depuis la version 0.209,
- *       cette colonne vient en tête, et Noyaux sombres, sa première case, doit être prise avant les autres.</li>
- * </ul>
- * Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle
- * fait en quelques mots et son prix ; l'explication complète, avec la valeur actuelle, vient en
- * mode détails ({@link Detail}), et les cases grandissent alors toutes ensemble. Un trait
- * s'allume quand la case qu'il mène est accessible.
+ * <li><b>particules</b> et <b>atomes</b> : les cases s'enchaînent, chacune demande celle du dessus ;</li>
+ * <li><b>taille</b> : les cases s'enchaînent aussi, mais se débloquent en atteignant une taille, sans rien dépenser
+ * ;</li>
+ * <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas les unes des autres : au
+ * lieu de s'enchaîner, elles partent toutes d'un même tronc. Depuis la version 0.209, cette colonne vient en tête, et
+ * Noyaux sombres, sa première case, doit être prise avant les autres.</li>
+ * </ul> Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle fait en quelques mots
+ * et son prix ; l'explication complète, avec la valeur actuelle, vient en mode détails ({@link Detail}), et les cases
+ * grandissent alors toutes ensemble. Un trait s'allume quand la case qu'il mène est accessible.
  *
- * <p>L'arbre est construit d'après le catalogue du jeu ({@link Game#darkUpgrades()}) : ajouter
- * une case dans core suffit à la faire apparaître ici. La zone place elle-même ses cases et ses
- * traits : ils suivent la largeur de la fenêtre. Dans une fenêtre étroite, les branches ne
- * tiennent plus côte à côte : elles se rangent en deux étages de deux, reliés par le tronc.
+ * <p>L'arbre est construit d'après le catalogue du jeu ({@link Game#darkUpgrades()}) : ajouter une case dans core
+ * suffit à la faire apparaître ici. La zone place elle-même ses cases et ses traits : ils suivent la largeur de la
+ * fenêtre. Dans une fenêtre étroite, les branches ne tiennent plus côte à côte : elles se rangent en deux étages de
+ * deux, reliés par le tronc.
  *
- * <p>Les liaisons et les accords (versions 0.070 et 0.071) s'ouvrent avec les voies des bifurcations.
- * Ils ont leur planche sous la case du Big Bang, un rang par rang de bifurcations, et chaque carte
- * dit, voie par voie, ce qui l'ouvre : des traits à travers tout l'arbre se lisaient mal.
+ * <p>Les liaisons et les accords s'ouvrent avec les voies des bifurcations. Ils ont leur planche sous la case du Big
+ * Bang, un rang par rang de bifurcations, et chaque carte dit, voie par voie, ce qui l'ouvre : des traits à travers
+ * tout l'arbre se lisaient mal.
  *
- * <p>Tout en bas, là où les branches se rejoignent, la case du Big Bang ({@link Game#bigBang()}).
- * Elle se paie avec les trois ressources à la fois et demande des succès et tous les défis : elle
- * liste ses conditions (cinq, six avec le ciel), avec ce que le joueur en a. Comme elle efface tout, elle demande un
- * second clic dans les cinq secondes.
+ * <p>Tout en bas, là où les branches se rejoignent, la case du Big Bang ({@link Game#bigBang()}). Elle se paie avec les
+ * trois ressources à la fois et demande des succès et tous les défis : elle liste ses conditions (cinq, six avec le
+ * ciel), avec ce que le joueur en a. Comme elle efface tout, elle demande un second clic dans les cinq secondes.
  *
- * <p>Version 0.193 : l'arbre a ses skins ({@link #setSkin}), dessinés par {@link DarkTreeSkinArt} : les traits
- * changent d'allure et chaque case reçoit une vignette au coin, qui suit son niveau.
+ * <p>L'arbre a ses skins ({@link #setSkin}), dessinés par {@link DarkTreeSkinArt} : les traits changent d'allure et
+ * chaque case reçoit une vignette au coin, qui suit son niveau.
  */
 public final class DarkMatterTreePane extends Pane {
-
     /** Une couleur par branche. */
     private static final Map<DarkUpgrade.Branch, String> COLORS = new EnumMap<>(DarkUpgrade.Branch.class);
 
@@ -96,7 +82,7 @@ public final class DarkMatterTreePane extends Pane {
     private static final String CARD_STYLE = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-background-radius: 6;"
             + " -fx-border-radius: 6;";
 
-    /** Le style de la racine et celui des en-têtes (à finir par leur couleur de fond) ; un skin y ajoute le sien (version 0.203). */
+    /** Le style de la racine et celui des en-têtes (à finir par leur couleur de fond) ; un skin y ajoute le sien. */
     private static final String ROOT_STYLE = CARD_STYLE + " -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a0f2e;"
             + " -fx-background-color: " + GameApp.DARK_MATTER_COLOR + ";";
     private static final String HEADER_STYLE = CARD_STYLE + " -fx-font-weight: bold; -fx-text-fill: #10151f; -fx-background-color: ";
@@ -113,18 +99,18 @@ public final class DarkMatterTreePane extends Pane {
         final Line link = new Line();
         /** Petit trait horizontal du tronc à la case, pour une branche en éventail ; pour une voie de bifurcation, le trait qui rejoint la case d'après. */
         final Line elbow = new Line();
-        /** Une voie de bifurcation (version 0.069) : 0 à gauche, 1 à droite ; −1 pour une case ordinaire. */
+        /** Une voie de bifurcation : 0 à gauche, 1 à droite ; −1 pour une case ordinaire. */
         final int side;
         /** Sa place à la dernière mise en page : les traits des liaisons en partent. */
         double x, y, width;
-        /** Sa vignette sous un skin (version 0.193), posée au coin de la carte. */
+        /** Sa vignette sous un skin, posée au coin de la carte. */
         final Canvas art = new Canvas(DarkTreeSkinArt.ART, DarkTreeSkinArt.ART);
 
         Cell(DarkUpgrade upgrade, int row, int side) {
             this.upgrade = upgrade;
             this.row = row;
             this.side = side;
-            // Version 0.206 : la case qui compte le plus (Noyaux sombres) porte la couleur des atomes qu'elle multiplie.
+            // La case qui compte le plus (Noyaux sombres) porte la couleur des atomes qu'elle multiplie.
             this.card = new Card(upgrade.id().equals(Game.KEY_DARK_UPGRADE) ? GameApp.ATOMS_COLOR : COLORS.get(upgrade.branch()));
         }
     }
@@ -138,7 +124,7 @@ public final class DarkMatterTreePane extends Pane {
     static final String KEY_FIRST = "Après ★ Noyaux sombres";
 
     /**
-     * Une liaison ou un accord (versions 0.070 et 0.071) : sa carte, les voies qui l'ouvrent, et le rang
+     * Une liaison ou un accord : sa carte, les voies qui l'ouvrent, et le rang
      * de bifurcations auquel elle appartient (le premier ou le second de chaque branche).
      */
     private static final class LinkCell {
@@ -147,12 +133,10 @@ public final class DarkMatterTreePane extends Pane {
         final List<Cell> options = new ArrayList<>();
         /** 1 pour le premier rang de bifurcations, 2 pour le second. */
         int level;
-        /** Sa vignette sous un skin (version 0.193). */
+        /** Sa vignette sous un skin. */
         final Canvas art = new Canvas(DarkTreeSkinArt.ART, DarkTreeSkinArt.ART);
 
-        LinkCell(DarkUpgrade upgrade) {
-            this.upgrade = upgrade;
-        }
+        LinkCell(DarkUpgrade upgrade) { this.upgrade = upgrade; }
     }
 
     private final Game game;
@@ -171,11 +155,11 @@ public final class DarkMatterTreePane extends Pane {
     private final List<LinkCell> links = new ArrayList<>();
     /** Le titre de la planche des liaisons, et celui de chacun de ses rangs. */
     private final Label linksTitle = new Label();
-    private final Map<Integer, Label> levelTitles = new java.util.TreeMap<>();
+    private final Map<Integer, Label> levelTitles = new TreeMap<>();
     /** Pour chaque voie, les liaisons et accords qu'elle aide à ouvrir : son rappel, en mode détails. */
     private final Map<String, List<String>> opens = new HashMap<>();
     /** Les bifurcations suivies d'une case : les autres (la dernière d'une branche) n'ont pas de trait vers le bas. */
-    private final java.util.Set<String> forksWithChild = new java.util.HashSet<>();
+    private final Set<String> forksWithChild = new HashSet<>();
     /** Hauteur commune des cases : celle de la plus haute, mesurée à chaque mise en page. */
     private double cardHeight = MIN_CARD_HEIGHT;
     /** La largeur de case et le mode (détails ou non) pour lesquels {@link #cardHeight} a été mesurée. */
@@ -189,15 +173,15 @@ public final class DarkMatterTreePane extends Pane {
     private final Line stem = new Line();
     /** Secondes qu'il reste pour confirmer le Big Bang ; 0 quand aucun premier clic n'attend. */
     private double armedFor = 0;
-    /** Durée du surlignage du chemin d'une bifurcation, en secondes (version 0.084). */
+    /** Durée du surlignage du chemin d'une bifurcation, en secondes. */
     public static final double LIT_SECONDS = 6;
     /** Les cases surlignées : la voie ou la liaison cliquée, et tout ce qu'il faut au-dessus d'elle. */
-    private final java.util.Set<Cell> lit = new java.util.LinkedHashSet<>();
-    private final java.util.Set<LinkCell> litLinks = new java.util.HashSet<>();
+    private final Set<Cell> lit = new LinkedHashSet<>();
+    private final Set<LinkCell> litLinks = new HashSet<>();
     private double litFor = 0;
     /** Les deux voies de chaque bifurcation, par son nom. */
     private final Map<String, List<Cell>> forkCells = new HashMap<>();
-    /** Le skin de l'arbre (version 0.193), ou {@code null} pour le Classique ; et celui dont les vignettes sont posées. */
+    /** Le skin de l'arbre, ou {@code null} pour le Classique ; et celui dont les vignettes sont posées. */
     private Skin skin;
     private Skin pictured;
 
@@ -230,7 +214,7 @@ public final class DarkMatterTreePane extends Pane {
             if (upgrade.isFork()) forkCells.computeIfAbsent(upgrade.fork(), key -> new ArrayList<>()).add(cell);
         }
         rowCounts.putAll(filled);
-        // Version 0.209 : la colonne de la matière noire passe en tête, à gauche (en haut dans une fenêtre étroite) :
+        // La colonne de la matière noire passe en tête, à gauche (en haut dans une fenêtre étroite) :
         // Noyaux sombres, sa première case, est le premier achat en matière noire de chaque univers.
         if (branches.remove(DarkUpgrade.Branch.DARK_MATTER)) branches.add(0, DarkUpgrade.Branch.DARK_MATTER);
         // Le rang d'une bifurcation : la première de sa branche, ou la deuxième. Une liaison prend le rang de ses voies.
@@ -303,7 +287,7 @@ public final class DarkMatterTreePane extends Pane {
                 game.buyDark(cell.upgrade.id());
                 refresh();
             });
-            // Une voie cliquée (version 0.084), prenable ou non : le chemin qui y mène s'allume.
+            // Une voie cliquée, prenable ou non : le chemin qui y mène s'allume.
             if (cell.upgrade.isFork()) cell.card.setOnLook(() -> {
                 light(cell, null);
                 refresh();
@@ -386,9 +370,7 @@ public final class DarkMatterTreePane extends Pane {
         litFor = LIT_SECONDS;
     }
 
-    private Cell first() {
-        return lit.isEmpty() ? null : lit.iterator().next();
-    }
+    private Cell first() { return lit.isEmpty() ? null : lit.iterator().next(); }
 
     private void addPath(Cell cell) {
         lit.add(cell);       // la case cliquée d'abord : elle mène le surlignage
@@ -398,19 +380,7 @@ public final class DarkMatterTreePane extends Pane {
         }
     }
 
-    /** Les cases surlignées, liaisons comprises : pour les vérifications. */
-    public int litCount() {
-        return lit.size() + litLinks.size();
-    }
-
-    /** Vrai si cette case est surlignée : pour les vérifications. */
-    public boolean isLit(String darkUpgradeId) {
-        for (Cell cell : lit) if (cell.upgrade.id().equals(darkUpgradeId)) return true;
-        for (LinkCell link : litLinks) if (link.upgrade.id().equals(darkUpgradeId)) return true;
-        return false;
-    }
-
-    /** La carte de cette amélioration, ou {@code null} : pour les vérifications (version 0.206). */
+    /** La carte de cette amélioration, ou {@code null} : pour les vérifications. */
     public Card card(String darkUpgradeId) {
         for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) return cell.card;
         return null;
@@ -431,19 +401,13 @@ public final class DarkMatterTreePane extends Pane {
     }
 
     /** La case du Big Bang : pour les vérifications. */
-    public Card bangCard() {
-        return bang;
-    }
+    public Card bangCard() { return bang; }
 
-    /** Le skin de l'arbre (version 0.193) : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
-    void setSkin(Skin chosen) {
-        skin = chosen != null && chosen.visual() == SkinVisual.DARK_TREE ? chosen : null;
-    }
+    /** Le skin de l'arbre : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
+    void setSkin(Skin chosen) { skin = chosen != null && chosen.visual() == SkinVisual.DARK_TREE ? chosen : null; }
 
     /** Le skin de l'arbre, ou {@code null} : pour les vérifications. */
-    public Skin skin() {
-        return skin;
-    }
+    public Skin skin() { return skin; }
 
     /** La largeur du trait qui mène à cette case : pour les vérifications (les skins la changent). */
     public double linkWidth(String darkUpgradeId) {
@@ -465,7 +429,7 @@ public final class DarkMatterTreePane extends Pane {
             boolean art = DarkTreeSkinArt.draws(skin);
             for (Cell cell : cells) cell.card.setInlinePicture(art ? cell.art : null);
             for (LinkCell link : links) link.card.setInlinePicture(art ? link.art : null);
-            // Version 0.203 : le fond de l'arbre et ses en-têtes prennent le skin, eux aussi.
+            // Le fond de l'arbre et ses en-têtes prennent le skin, eux aussi.
             setBackground(DarkTreeSkinArt.backdrop(skin));
             root.setStyle(ROOT_STYLE + DarkTreeSkinArt.header(skin, GameApp.DARK_MATTER_COLOR));
             for (DarkUpgrade.Branch branch : branches) {
@@ -502,7 +466,7 @@ public final class DarkMatterTreePane extends Pane {
             boolean oneTime = upgrade.maxLevel() == 1;
             DarkUpgrade rival = game.darkForkRival(upgrade.id());
             if (upgrade.isFork() && (rival != null || level == 0)) {
-                // Une voie de bifurcation (version 0.069) : prise, ouverte au choix, ou fermée par l'autre jusqu'au prochain Big Bang.
+                // Une voie de bifurcation : prise, ouverte au choix, ou fermée par l'autre jusqu'au prochain Big Bang.
                 // Avec la Superposition du collisionneur (0.070), les deux voies se prennent.
                 boolean both = game.hasSuperposition();
                 boolean absence = game.darkStyle(upgrade) == Game.Style.ABSENCE;
@@ -521,7 +485,7 @@ public final class DarkMatterTreePane extends Pane {
             }
 
             // Acquise : couleur pleine. À portée : éclairée. Entamée : teintée. Trop chère ou verrouillée : éteinte.
-            // Version 0.206 : Noyaux sombres, la case qui compte le plus, le dit sur sa carte et au survol.
+            // Noyaux sombres, la case qui compte le plus, le dit sur sa carte et au survol.
             boolean key = upgrade.id().equals(Game.KEY_DARK_UPGRADE);
             cell.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY
                             : !available ? Card.State.LOCKED : level > 0 ? Card.State.STARTED : Card.State.WAITING,
@@ -548,14 +512,14 @@ public final class DarkMatterTreePane extends Pane {
         refreshBang();
     }
 
-    /** Vrai si cette case attend dans le plan de l'arbre (version 0.084). */
+    /** Vrai si cette case attend dans le plan de l'arbre. */
     private boolean planned(DarkUpgrade upgrade) {
         return game.darkLevelOf(upgrade.id()) == 0 && game.state().darkPlan().contains(upgrade.id());
     }
 
     /** Le surlignage : un halo blanc autour des cases, leurs traits épaissis et blanchis. */
     private void showLit() {
-        javafx.scene.effect.DropShadow halo = new javafx.scene.effect.DropShadow(16, Color.web("#ffffff"));
+        DropShadow halo = new DropShadow(16, Color.web("#ffffff"));
         halo.setSpread(0.45);
         for (Cell cell : cells) {
             boolean on = lit.contains(cell);
@@ -576,7 +540,7 @@ public final class DarkMatterTreePane extends Pane {
     }
 
     /**
-     * Ce qu'une voie d'absence ajoute au temps rejoué, en une ligne. Version 0.126 : une fois tout le temps d'absence
+     * Ce qu'une voie d'absence ajoute au temps rejoué, en une ligne. Une fois tout le temps d'absence
      * rejoué (l'univers formé), elle n'ajoute plus rien, et la carte le dit.
      */
     private String absenceBrief() {
@@ -584,7 +548,7 @@ public final class DarkMatterTreePane extends Pane {
                 : "\nAbsence +" + ElementText.number(Game.ABSENCE_PATH_BONUS * 100) + " points";
     }
 
-    /** Ce que dit le style d'une voie (version 0.070), en mode détails. */
+    /** Ce que dit le style d'une voie, en mode détails. */
     private String style(DarkUpgrade upgrade) {
         return game.darkStyle(upgrade) == Game.Style.ABSENCE
                 ? ". Voie d'absence : un peu moins forte tant que vous êtes là, mais elle rend "
@@ -692,16 +656,16 @@ public final class DarkMatterTreePane extends Pane {
         return switch (condition) {
             case PARTICLES -> Format.count(game.bigBangParticles()) + " particules ("
                     + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")"
-                    // Le calme du Big Bang (version 0.114) : ce qu'il a déjà effacé du seuil, et ce qu'il reste à attendre.
+                    // Le calme du Big Bang : ce qu'il a déjà effacé du seuil, et ce qu'il reste à attendre.
                     + (game.bigBangCalmRelief() > 0 ? ", calme " + Math.round(100 * game.bigBangCalmRelief()) + " % : "
                             + (game.bigBangCalmRelief() >= 1 ? "plus rien à attendre"
-                            // Version 0.126 : le compteur du calme lui-même, que les achats des automatismes rompent aussi.
+                            // Le compteur du calme lui-même, que les achats des automatismes rompent aussi.
                             : "encore " + Format.wait(Game.BIG_BANG_CALM_SECONDS - game.state().bangCalm()) + " sans aucun achat d'amélioration") : "");
             case ATOMS -> Format.count(game.bigBangAtoms()) + " atomes (" + Format.count(game.state().atoms()) + ")";
             case DARK_MATTER -> Format.count(game.bigBangDarkMatter()) + " matières noires en réserve ("
                     + Format.darkMatter(game.state().darkMatter()) + ")";
             case ACHIEVEMENTS -> Game.BIG_BANG_ACHIEVEMENTS + " succès (" + game.achievementCount() + ")";
-            case CHALLENGES -> "Les " + idle.core.darkmatter.Challenges.DEFAULT.size() + " défis réussis (" + game.baseChallengesCompleted() + ")";
+            case CHALLENGES -> "Les " + Challenges.DEFAULT.size() + " défis réussis (" + game.baseChallengesCompleted() + ")";
             case SKY -> game.bigBangSkyRequirement() + " astres mûrs (" + game.bodiesMature() + ")";
         };
     }
@@ -719,9 +683,7 @@ public final class DarkMatterTreePane extends Pane {
     }
 
     /** La place d'une rangée d'une branche. */
-    private int slot(int row) {
-        return row;
-    }
+    private int slot(int row) { return row; }
 
     @Override
     public void layoutChildren() {
@@ -849,7 +811,7 @@ public final class DarkMatterTreePane extends Pane {
     private static final double LINK_GAP = 10;
 
     /**
-     * La planche des liaisons et des accords (version 0.071), sous la case du Big Bang : un titre, puis
+     * La planche des liaisons et des accords, sous la case du Big Bang : un titre, puis
      * un rang par rang de bifurcations, liaisons d'abord, accords ensuite, chacun sur une ligne qui
      * passe à la suivante quand la fenêtre est étroite. Pas de traits : chaque carte dit ses voies.
      *

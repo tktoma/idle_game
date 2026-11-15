@@ -7,45 +7,43 @@ import java.util.List;
 /**
  * Les améliorations de matière noire : l'arbre, puis celles qui se paient en matière noire.
  *
- * <p>L'arbre a trois branches, dont chaque case est débloquée par la case du dessus. Depuis la
- * version 0.069, des bifurcations (sept depuis la 0.070) ({@link DarkUpgrade#fork()}) proposent deux voies côte à côte :
- * en prendre une ferme l'autre jusqu'au prochain Big Bang, et la case d'après demande l'une ou
- * l'autre. Trois cases de plus ferment les branches. Depuis la
- * 0.070, six liaisons ({@link DarkUpgrade#isLink()}) relient les voies de deux branches voisines,
- * et la « Superposition » du collisionneur ouvre les deux voies de chaque bifurcation.
+ * <p>L'arbre a trois branches, dont chaque case est débloquée par la case du dessus. Depuis la version 0.069, des
+ * bifurcations (sept depuis la 0.070) ({@link DarkUpgrade#fork()}) proposent deux voies côte à côte : en prendre une
+ * ferme l'autre jusqu'au prochain Big Bang, et la case d'après demande l'une ou l'autre. Trois cases de plus ferment
+ * les branches. Depuis la 0.070, six liaisons ({@link DarkUpgrade#isLink()}) relient les voies de deux branches
+ * voisines, et la « Superposition » du collisionneur ouvre les deux voies de chaque bifurcation.
  *
  * <ul>
- *   <li><b>particules</b> : se paie avec les particules de la partie en cours ;</li>
- *   <li><b>atomes</b> : se paie avec les atomes disponibles. Tant que le plafond d'atomes n'est
- *       pas levé, rien ne peut coûter plus de 118 atomes ;</li>
- *   <li><b>taille</b> : se débloque en faisant grossir la matière noire, sans rien dépenser.</li>
+ * <li><b>particules</b> : se paie avec les particules de la partie en cours ;</li>
+ * <li><b>atomes</b> : se paie avec les atomes disponibles. Tant que le plafond d'atomes n'est pas levé, rien ne peut
+ * coûter plus de 118 atomes ;</li>
+ * <li><b>taille</b> : se débloque en faisant grossir la matière noire, sans rien dépenser.</li>
  * </ul>
  *
- * <p>Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires gagnées : seuls
- * les prix rythment l'arbre. Ils ont été réglés au robot sur ce que chaque partie du deuxième acte
- * réunit (particules, atomes, taille), pour que l'arbre s'étale sur une vingtaine d'explosions au lieu
- * de tomber d'un coup. Les bifurcations sont fortes, et leurs deux voies se valent à quelques minutes
- * près : aucune ne rapporte de matière noire par explosion, ce qui ferait de celle-là le seul bon choix
- * (la matière noire en réserve est ce qui ferme le deuxième acte). Ce sont les accords de présence
- * qui en rapportent, pour qui garde un style.
+ * <p>Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires gagnées : seuls les prix rythment
+ * l'arbre. Ils ont été réglés au robot sur ce que chaque partie du deuxième acte réunit (particules, atomes, taille),
+ * pour que l'arbre s'étale sur une vingtaine d'explosions au lieu de tomber d'un coup. Les bifurcations sont fortes, et
+ * leurs deux voies se valent à quelques minutes près : aucune ne rapporte de matière noire par explosion, ce qui ferait
+ * de celle-là le seul bon choix (la matière noire en réserve est ce qui ferme le deuxième acte). Ce sont les accords de
+ * présence qui en rapportent, pour qui garde un style.
  *
- * <p>Hors de l'arbre, six améliorations se paient en matière noire
- * ({@link DarkUpgrade.Branch#DARK_MATTER}). La matière noire dépensée reste comptée comme gagnée,
- * et leur effet grandit avec toute la matière noire gagnée : chaque explosion les renforce.
+ * <p>Hors de l'arbre, six améliorations se paient en matière noire ({@link DarkUpgrade.Branch#DARK_MATTER}). La matière
+ * noire dépensée reste comptée comme gagnée, et leur effet grandit avec toute la matière noire gagnée : chaque
+ * explosion les renforce.
  *
- * <p>Depuis la version 0.071, la voie de gauche de chaque bifurcation est celle de la présence et la
- * voie de droite celle de l'absence ({@link Game#darkStyle}) : chaque voie d'absence rend un peu plus
- * du temps passé jeu fermé. Quatre accords demandent trois voies du même style : ceux de présence
- * rapportent de la matière noire à chaque explosion, ceux d'absence du temps d'absence. Un ensemble
- * cohérent rapporte ainsi plus qu'un tirage, et le bon ensemble dépend de la façon de jouer.
+ * <p>Depuis la version 0.071, la voie de gauche de chaque bifurcation est celle de la présence et la voie de droite
+ * celle de l'absence ({@link Game#darkStyle}) : chaque voie d'absence rend un peu plus du temps passé jeu fermé. Quatre
+ * accords demandent trois voies du même style : ceux de présence rapportent de la matière noire à chaque explosion,
+ * ceux d'absence du temps d'absence. Un ensemble cohérent rapporte ainsi plus qu'un tirage, et le bon ensemble dépend
+ * de la façon de jouer.
  *
- * <p>Réglage vérifié par simulation (version 0.073, robot qui choisit bien) : deuxième acte de 5 h
- * avec toutes les voies de présence, 5 h 30 avec toutes celles d'absence. Les cases du bas de
- * chaque branche s'étalent jusqu'à la fin de l'acte : Singularité en trente niveaux, Réacteur en
- * huit, Horizon en dix. Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules depuis la version 0.125 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en ordres de grandeur).
+ * <p>Réglage vérifié par simulation (robot qui choisit bien) : deuxième acte de 5 h avec toutes les voies de présence,
+ * 5 h 30 avec toutes celles d'absence. Les cases du bas de chaque branche s'étalent jusqu'à la fin de l'acte :
+ * Singularité en trente niveaux, Réacteur en huit, Horizon en dix. Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules
+ * depuis la version 0.125 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en
+ * ordres de grandeur).
  */
 public final class DarkUpgrades {
-
     public static final List<DarkUpgrade> DEFAULT = List.of(
             // ----- Particules -----
             // Particules de base ×2 par niveau.
@@ -99,7 +97,7 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_singularity", "Singularité", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 3480), 3.16e130, 30, DarkUpgrade.FORK_PREFIX + "elan",
                     new DarkEffect.MultiplyBaseParticles(100)),
-            // Le seuil du Big Bang (version 0.097) : six cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰
+            // Le seuil du Big Bang : six cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰
             // particules (0.124), pendant la montée vers le premier Big Bang : la fin du deuxième acte a encore
             // des étapes, une toutes les vingt à trente minutes. Chacune demande la précédente ; elles donnent
             // particules ×10³⁰⁰ ou +1 matière noire par explosion.
@@ -172,23 +170,19 @@ public final class DarkUpgrades {
             // Croissance ×2 par niveau, cinq niveaux : à 1 nm, 1 mm, 1 km, un million de km, puis 1e15 m.
             // Limité à cinq niveaux (×32 en tout) : sans limite, chaque niveau amènerait le suivant deux
             // fois plus vite, et la taille s'emballerait.
-            new DarkUpgrade("dark_inflation", "Inflation", DarkUpgrade.Branch.SIZE,
-                    BigNum.of(1, -9), 1e6, 5, null,
+            new DarkUpgrade("dark_inflation", "Inflation", DarkUpgrade.Branch.SIZE, BigNum.of(1, -9), 1e6, 5, null,
                     new DarkEffect.MultiplyExpansion(2)),
             // Un clic verrouille l'appui. À atteindre : 1 micromètre.
-            new DarkUpgrade("dark_lock", "Verrou", DarkUpgrade.Branch.SIZE,
-                    BigNum.of(1, -6), 1, 1, "dark_inflation",
+            new DarkUpgrade("dark_lock", "Verrou", DarkUpgrade.Branch.SIZE, BigNum.of(1, -6), 1, 1, "dark_inflation",
                     new DarkEffect.HoldLock()),
             // Chaque fusion vaut 0,2 s d'appui. À atteindre : 1 mètre.
-            new DarkUpgrade("dark_wave", "Onde de fusion", DarkUpgrade.Branch.SIZE,
-                    BigNum.ONE, 1, 1, "dark_lock",
+            new DarkUpgrade("dark_wave", "Onde de fusion", DarkUpgrade.Branch.SIZE, BigNum.ONE, 1, 1, "dark_lock",
                     new DarkEffect.FusionPulse(0.2)),
             // Bifurcation « croissance » (0.069) : croissance ×10, ou 2 s d'appui à chaque fusion. À atteindre : 10 mètres.
             new DarkUpgrade("dark_steady", "Croissance soutenue", DarkUpgrade.Branch.SIZE,
                     BigNum.of(10), 1, 1, "dark_wave",
                     new DarkEffect.MultiplyExpansion(10), "croissance"),
-            new DarkUpgrade("dark_echo", "Onde amplifiée", DarkUpgrade.Branch.SIZE,
-                    BigNum.of(10), 1, 1, "dark_wave",
+            new DarkUpgrade("dark_echo", "Onde amplifiée", DarkUpgrade.Branch.SIZE, BigNum.of(10), 1, 1, "dark_wave",
                     new DarkEffect.FusionPulse(2), "croissance"),
             // Grossit seule : 0,1 %, puis 1 %, puis 10 % de la vitesse d'appui. À atteindre : 1, 100, 10 000 années-lumière.
             new DarkUpgrade("dark_spontaneous", "Expansion spontanée", DarkUpgrade.Branch.SIZE,
@@ -221,7 +215,7 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_deep_harvest", "Moisson profonde", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e125), 1, 1, "dark_horizon",
                     new DarkEffect.AtomsByDarkMatter(1), "abime"),
-            // Après l'abîme (version 0.097) : deux cases de taille pour la fin du deuxième acte. +1 matière noire par
+            // Après l'abîme : deux cases de taille pour la fin du deuxième acte. +1 matière noire par
             // explosion, puis la croissance ×2. À atteindre : 10¹²⁹, puis 10¹³³ années-lumière.
             new DarkUpgrade("dark_background", "Fond diffus", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(BigNum.of(1, 129)), 1, 1, DarkUpgrade.FORK_PREFIX + "abime",
@@ -291,8 +285,7 @@ public final class DarkUpgrades {
                     new DarkEffect.SynthesisByDarkMatter(0.1)),
             // 5 atomes comptés comme créés au départ de chaque partie, par matière noire gagnée : à
             // 6 matières noires, l'automatisation et le tableau périodique sont ouverts d'entrée.
-            new DarkUpgrade("dark_shop_start", "Départ lancé", DarkUpgrade.Branch.DARK_MATTER,
-                    BigNum.of(2), 1, 1, null,
+            new DarkUpgrade("dark_shop_start", "Départ lancé", DarkUpgrade.Branch.DARK_MATTER, BigNum.of(2), 1, 1, null,
                     new DarkEffect.HeadStartByDarkMatter(5)),
             // Ouvre la synthèse ciblée. Elle coûte cher en synthèses : elle n'a d'intérêt que lorsque
             // les atomes ne manquent plus, donc après la première explosion.
@@ -300,8 +293,7 @@ public final class DarkUpgrades {
                     BigNum.of(2), 1, 1, null,
                     new DarkEffect.TargetedSynthesis()),
             // Ouvre l'achat par dix et « max » des améliorations en atomes : un confort, pour une matière noire.
-            new DarkUpgrade("dark_shop_bulk", "Achat groupé", DarkUpgrade.Branch.DARK_MATTER,
-                    BigNum.ONE, 1, 1, null,
+            new DarkUpgrade("dark_shop_bulk", "Achat groupé", DarkUpgrade.Branch.DARK_MATTER, BigNum.ONE, 1, 1, null,
                     new DarkEffect.BulkAtomUpgrades()));
 
     private DarkUpgrades() {}

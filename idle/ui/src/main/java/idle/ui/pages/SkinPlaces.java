@@ -3,12 +3,11 @@ package idle.ui.pages;
 import idle.core.universe.SkinVisual;
 
 /**
- * Version 0.203 : où se voit chaque visuel de l'onglet Skins, en une phrase écrite sous son nom. Plusieurs skins semblaient
+ * Où se voit chaque visuel de l'onglet Skins, en une phrase écrite sous son nom. Plusieurs skins semblaient
  * ne rien faire parce qu'ils ne changent qu'un détail, ou qu'ils ne se voient qu'à un endroit précis du jeu (les signes des
  * états de la matière, le cadre des mini-jeux, la galaxie, le tic du métronome).
  */
 final class SkinPlaces {
-
     private SkinPlaces() {
     }
 

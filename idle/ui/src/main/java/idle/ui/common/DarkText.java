@@ -1,7 +1,9 @@
 package idle.ui.common;
 
 import idle.core.Game;
-import idle.core.darkmatter.DarkEffect;
+import idle.core.darkmatter.*;
+import idle.core.elements.ElementCategory;
+import java.util.*;
 import idle.core.math.BigNum;
 
 /**
@@ -12,23 +14,22 @@ import idle.core.math.BigNum;
  * ajouté dans core, le compilateur signale qu'il manque ici.
  */
 public final class DarkText {
-
     /**
-     * Les crans du maximum d'exemplaires, famille par famille (version 0.126) : « 9 → 16 → 25 (4 → 9 → 16 pour les
+     * Les crans du maximum d'exemplaires, famille par famille : « 9 → 16 → 25 (4 → 9 → 16 pour les
      * lanthanides) », lus dans le catalogue au lieu d'être écrits à la main. Les familles uniques n'en ont pas.
      */
     static String copiesLadder(DarkEffect.IncreaseMaxCopies more) {
-        int levels = idle.core.darkmatter.DarkUpgrades.DEFAULT.stream()
+        int levels = DarkUpgrades.DEFAULT.stream()
                 .filter(dark -> dark.effect() instanceof DarkEffect.IncreaseMaxCopies)
-                .mapToInt(idle.core.darkmatter.DarkUpgrade::maxLevel).max().orElse(1);
-        java.util.Map<Integer, java.util.List<String>> byBase = new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
-        for (idle.core.elements.ElementCategory category : idle.core.elements.ElementCategory.values()) {
-            if (!category.unique()) byBase.computeIfAbsent(category.maxCopies(), base -> new java.util.ArrayList<>())
-                    .add(category.label().toLowerCase(java.util.Locale.ROOT));
+                .mapToInt(DarkUpgrade::maxLevel).max().orElse(1);
+        Map<Integer, List<String>> byBase = new TreeMap<>(Comparator.reverseOrder());
+        for (ElementCategory category : ElementCategory.values()) {
+            if (!category.unique()) byBase.computeIfAbsent(category.maxCopies(), base -> new ArrayList<>())
+                    .add(category.label().toLowerCase(Locale.ROOT));
         }
         StringBuilder text = new StringBuilder();
         boolean first = true;
-        for (java.util.Map.Entry<Integer, java.util.List<String>> entry : byBase.entrySet()) {
+        for (Map.Entry<Integer, List<String>> entry : byBase.entrySet()) {
             int root = (int) Math.round(Math.sqrt(entry.getKey()));
             StringBuilder ladder = new StringBuilder(String.valueOf(root * root));
             for (int level = 1; level <= levels; level++) {

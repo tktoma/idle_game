@@ -1,20 +1,18 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.Sound.Cue;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.200 : les skins des sons. Chaque son se synthétise dans chaque banque, et sonne autrement que le Classique. Sans affichage ni carte son. */
+/** Les skins des sons. Chaque son se synthétise dans chaque banque, et sonne autrement que le Classique. Sans affichage ni carte son. */
 class SoundBanksTest {
-
     private static List<Skin> of(SkinVisual visual) {
         return Arrays.stream(Skin.values()).filter(skin -> skin.visual() == visual).toList();
     }
@@ -67,7 +65,7 @@ class SoundBanksTest {
 
     @Test
     void lesSonsRelusSuiventLeChoixEtLeSilenceNePartPas() throws InterruptedException {
-        List<byte[]> sent = new java.util.ArrayList<>();
+        List<byte[]> sent = new ArrayList<>();
         Sound silent = new Sound();
         silent.sink = sent::add;
         silent.setSkins(Skin.SOUND_SILENCE, null, null);
@@ -81,7 +79,7 @@ class SoundBanksTest {
         assertTrue(skinned.play(Cue.BIG_BANG, 100));
         skinned.player.shutdown();
         silent.player.shutdown();
-        assertTrue(skinned.player.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS) && silent.player.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS));
+        assertTrue(skinned.player.awaitTermination(5, TimeUnit.SECONDS) && silent.player.awaitTermination(5, TimeUnit.SECONDS));
         assertEquals(3, sent.size());
         assertEquals(Sound.pcm(SoundBanks.synthesize(Cue.BIG_BANG, null, Skin.BANG_SOUND_WIND, null), 1).length, sent.get(2).length, "le souffle de vent, au volume plein");
     }

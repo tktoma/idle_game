@@ -2,18 +2,16 @@ package idle.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import idle.core.universe.Skin;
+import javafx.geometry.*;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
 /**
- * Les notifications : de courts messages empilés en bas à droite de la fenêtre, qui s'effacent
- * d'eux-mêmes au bout de quelques secondes. La zone ne prend aucun clic : ce qui est dessous
- * reste cliquable.
+ * Les notifications : de courts messages empilés en bas à droite de la fenêtre, qui s'effacent d'eux-mêmes au bout de
+ * quelques secondes. La zone ne prend aucun clic : ce qui est dessous reste cliquable.
  */
 final class ToastPane extends VBox {
-
     /** Durée d'affichage d'un message, en secondes ; il s'estompe pendant la dernière. */
     private static final double SECONDS = 5;
     private static final double FADE_SECONDS = 1;
@@ -24,9 +22,9 @@ final class ToastPane extends VBox {
 
     private final List<Label> toasts = new ArrayList<>();
     private final List<Double> remaining = new ArrayList<>();
-    /** Le skin des messages à venir (version 0.199), {@code null} pour le classique ; ceux déjà affichés gardent le leur. */
-    private idle.core.universe.Skin skin;
-    /** Les messages affichés depuis l'ouverture du jeu (version 0.199) : les skins des notifications s'en débloquent. */
+    /** Le skin des messages à venir, {@code null} pour le classique ; ceux déjà affichés gardent le leur. */
+    private Skin skin;
+    /** Les messages affichés depuis l'ouverture du jeu : les skins des notifications s'en débloquent. */
     private int shown;
 
     ToastPane() {
@@ -50,24 +48,16 @@ final class ToastPane extends VBox {
         while (toasts.size() > MAX_VISIBLE) remove(0);
     }
 
-    /** Le skin des prochains messages (version 0.199) ; {@code null} pour le classique. */
-    void setSkin(idle.core.universe.Skin skin) {
-        this.skin = skin;
-    }
+    /** Le skin des prochains messages ; {@code null} pour le classique. */
+    void setSkin(Skin skin) { this.skin = skin; }
 
-    idle.core.universe.Skin skin() {
-        return skin;
-    }
+    Skin skin() { return skin; }
 
-    /** Les messages affichés depuis l'ouverture du jeu (version 0.199), effacés ou non. */
-    int shown() {
-        return shown;
-    }
+    /** Les messages affichés depuis l'ouverture du jeu, effacés ou non. */
+    int shown() { return shown; }
 
     /** Nombre de messages affichés en ce moment. */
-    int count() {
-        return toasts.size();
-    }
+    int count() { return toasts.size(); }
 
     /**
      * Fait passer le temps : les messages s'estompent puis disparaissent.
@@ -87,9 +77,7 @@ final class ToastPane extends VBox {
     }
 
     /** Efface tous les messages : la partie recommence, ou les notifications viennent d'être coupées. */
-    void clear() {
-        while (!toasts.isEmpty()) remove(0);
-    }
+    void clear() { while (!toasts.isEmpty()) remove(0); }
 
     private void remove(int index) {
         getChildren().remove(toasts.remove(index));

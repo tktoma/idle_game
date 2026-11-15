@@ -1,11 +1,9 @@
 package idle.ui.darkmatter;
 
 import idle.core.universe.Skin;
+import javafx.scene.shape.*;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 
 /**
  * Les skins de la matière noire de la version 0.191, dessinés à côté de {@link DarkMatterView} pour la
@@ -21,7 +19,6 @@ import javafx.scene.paint.Stop;
  * </ul>
  */
 final class DarkSkinArt {
-
     private static final Color ROPE = Color.web("#8a4cff");
     private static final Color ROPE_DARK = Color.web("#3d1a7a");
     private static final Color PAPER = Color.web("#f6d9a0");
@@ -38,11 +35,6 @@ final class DarkSkinArt {
     static boolean draws(Skin skin) {
         return skin == Skin.DARK_MERCURY || skin == Skin.DARK_HOLE
                 || skin == Skin.DARK_KNOT || skin == Skin.DARK_LANTERN;
-    }
-
-    /** Vrai pour les animations dessinées ici : celles de la version 0.191. */
-    static boolean animates(Skin skin) {
-        return skin == Skin.DARK_SNOW || skin == Skin.DARK_HOURGLASS;
     }
 
     /** Un nombre entre 0 et 1, toujours le même pour une même graine. */
@@ -168,7 +160,7 @@ final class DarkSkinArt {
         }
         glow(g, cx, cy, r * 1.3, ROPE, 0.2 + 0.25 * hold);
         double rope = Math.max(2, r * (0.16 + 0.05 * hold));
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.setLineCap(StrokeLineCap.ROUND);
         g.setGlobalAlpha(1);
         g.setStroke(ROPE_DARK);
         g.setLineWidth(rope * 1.35);
@@ -188,7 +180,7 @@ final class DarkSkinArt {
             int i = (int) Math.min(steps, k + slide);
             g.strokeLine(xs[i] - nx + dx * 0.4, ys[i] - ny + dy * 0.4, xs[i] + nx - dx * 0.4, ys[i] + ny - dy * 0.4);
         }
-        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setLineCap(StrokeLineCap.SQUARE);
         // Un reflet par-dessus.
         g.setStroke(Color.WHITE);
         g.setLineWidth(Math.max(0.6, rope * 0.15));
@@ -236,7 +228,7 @@ final class DarkSkinArt {
         double sway = (growing ? 0.25 : 0.08) * Math.sin(time * 3);
         g.setStroke(RIB);
         g.setLineWidth(Math.max(1, r * 0.04));
-        g.strokeArc(cx - rx * 0.35 + sway * r, cy - ry * 1.45, rx * 0.7, ry * 0.75, 0, 180, javafx.scene.shape.ArcType.OPEN);
+        g.strokeArc(cx - rx * 0.35 + sway * r, cy - ry * 1.45, rx * 0.7, ry * 0.75, 0, 180, ArcType.OPEN);
     }
 
     // ------------------------------------------------------------------
@@ -335,5 +327,4 @@ final class DarkSkinArt {
             g.fillOval(x - 1.2, y - 1.2, 2.4, 2.4);
         }
     }
-
 }

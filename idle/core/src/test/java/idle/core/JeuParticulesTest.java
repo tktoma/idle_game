@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,19 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.math.BigNum;
 import idle.core.upgrades.Upgrade;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * Les règles du jeu : le démarrage, le temps, les achats, les générateurs, la fusion,
  * le plafond d'atomes et les améliorations en atomes.
  */
 class JeuParticulesTest extends GameTestSupport {
-
-
     @Nested
     class Demarrage {
-
         @Test
         void unePartieNeuveNAAucunGenerateur() {
             Game game = unstartedGame();
@@ -68,7 +66,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class Temps {
-
         @Test
         void unePartieNeuveCommenceAZero() {
             Game game = newGame();
@@ -139,7 +136,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class Achats {
-
         @Test
         void acheterRetireLeCoutEtMonteLeNiveau() {
             Game game = gameWithParticles(25);
@@ -220,14 +216,12 @@ class JeuParticulesTest extends GameTestSupport {
 
         @Test
         void catalogueAvecDoublonRefuse() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Game(new GameState(), List.of(SPEED, SPEED)));
+            assertThrows(IllegalArgumentException.class, () -> new Game(new GameState(), List.of(SPEED, SPEED)));
         }
     }
 
     @Nested
     class Vitesse {
-
         @Test
         void chaqueNiveauMultiplieLaVitesse() {
             Game game = gameWithParticles(1000);
@@ -248,7 +242,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class Generateurs {
-
         @Test
         void chaqueNiveauAjouteUnGenerateur() {
             Game game = gameWithParticles(1e6);
@@ -307,7 +300,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class Fusion {
-
         @Test
         void impossibleTantQuIlManqueDesGenerateurs() {
             Game game = gameWithParticles(1e9);
@@ -320,9 +312,7 @@ class JeuParticulesTest extends GameTestSupport {
         }
 
         @Test
-        void possibleQuandTousLesGenerateursSontDebloques() {
-            assertTrue(gameReadyToFuse().canFuse());
-        }
+        void possibleQuandTousLesGenerateursSontDebloques() { assertTrue(gameReadyToFuse().canFuse()); }
 
         @Test
         void fusionnerDonneUnAtomeEtRepartDUnSeulGenerateur() {
@@ -377,13 +367,10 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class PlafondDAtomes {
-
         private static final double MAX = Game.MAX_ATOMS.toDouble();
 
         @Test
-        void lePlafondEstLeNombreDElementsDuTableauPeriodique() {
-            assertValue(118, Game.MAX_ATOMS);
-        }
+        void lePlafondEstLeNombreDElementsDuTableauPeriodique() { assertValue(118, Game.MAX_ATOMS); }
 
         @Test
         void auPlafondLaFusionEstBloquee() {
@@ -437,7 +424,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class AmeliorationsEnAtomes {
-
         /** Partie qui vient de fusionner {@code fusions} fois, sans avoir rien dépensé. */
         private Game gameWithAtoms(int fusions) {
             Game game = gameReadyToFuse();
@@ -580,7 +566,6 @@ class JeuParticulesTest extends GameTestSupport {
 
     @Nested
     class AmeliorationsDesAmeliorations {
-
         /** Partie démarrée avec des atomes et des particules à dépenser, sans rien d'acheté. */
         private Game richGame() {
             Game game = gameWithParticles(1e9);

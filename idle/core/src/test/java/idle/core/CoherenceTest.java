@@ -1,18 +1,19 @@
 package idle.core;
 
+import idle.core.state.*;
+import idle.core.collider.ColliderUpgrade;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
+import idle.core.darkmatter.*;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * Les règles qui doivent tenir d'une partie à l'autre : les étapes et les records de chaque partie au-delà du premier
@@ -21,10 +22,7 @@ import org.junit.jupiter.api.Test;
  * minutés (surchauffe, régime, sursaut des sondes) sur un gros pas de temps.
  */
 class CoherenceTest {
-
-    private static GameState reread(GameState state) {
-        return GameTestSupport.reread(state);
-    }
+    private static GameState reread(GameState state) { return GameTestSupport.reread(state); }
 
     /** Le premier univers formé à ce temps de jeu, puis la partie suivante lancée à cet autre. */
     private static Game secondAt(double formedAt, double startedAt) {
@@ -38,7 +36,6 @@ class CoherenceTest {
 
     @Nested
     class LesEtapesDeChaquePartie {
-
         @Test
         void leDelaiEntreLesEchellesDuCosmosVautAussiApresLePremierUnivers() {
             Game game = GameTestSupport.realGame();
@@ -149,7 +146,6 @@ class CoherenceTest {
 
     @Nested
     class LesReglagesDuJoueur {
-
         private void choose(Game game) {
             game.state().setAutomationPaused(true);
             game.state().setAutoGather(false);
@@ -158,7 +154,7 @@ class CoherenceTest {
             game.state().setFusionThreshold(37);
             game.state().setAutoMoleculeReserve(0.25);
             game.state().setAtomUpgradeOrder(List.of("double", "mass"));
-            game.state().setColliderPaused(idle.core.collider.ColliderUpgrade.PARTICLES, true);
+            game.state().setColliderPaused(ColliderUpgrade.PARTICLES, true);
         }
 
         private void assertChosen(GameState state) {
@@ -169,7 +165,7 @@ class CoherenceTest {
             assertEquals(37, state.fusionThreshold());
             assertEquals(0.25, state.autoMoleculeReserve(), 1e-12);
             assertEquals(List.of("double", "mass"), state.atomUpgradeOrder());
-            assertTrue(state.isColliderPaused(idle.core.collider.ColliderUpgrade.PARTICLES));
+            assertTrue(state.isColliderPaused(ColliderUpgrade.PARTICLES));
         }
 
         @Test
@@ -239,7 +235,6 @@ class CoherenceTest {
 
     @Nested
     class LesBonusMinutes {
-
         /** Une partie qui produit, avec cinq secondes de surchauffe. */
         private Game overheated() {
             Game game = GameTestSupport.realGame();

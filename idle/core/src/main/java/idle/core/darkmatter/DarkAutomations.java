@@ -4,21 +4,18 @@ import idle.core.math.BigNum;
 import java.util.List;
 
 /**
- * Catalogue des automatismes de matière noire : ils prennent en charge ce que les automatismes
- * ordinaires laissent au joueur. Chacun se débloque une fois assez de matière noire gagnée, et
- * agit une fois par seconde.
+ * Catalogue des automatismes de matière noire : ils prennent en charge ce que les automatismes ordinaires laissent au
+ * joueur. Chacun se débloque une fois assez de matière noire gagnée, et agit une fois par seconde.
  *
- * <p>Aucun ne fait double emploi avec un automatisme ordinaire. Le premier ne joue pas à leur
- * place : il les offre, dès le début de chaque partie. Les suivants achètent ce que les
- * automatismes ordinaires n'achètent pas (améliorations en atomes, cadences), et le dernier
- * déclenche l'explosion.
+ * <p>Aucun ne fait double emploi avec un automatisme ordinaire. Le premier ne joue pas à leur place : il les offre, dès
+ * le début de chaque partie. Les suivants achètent ce que les automatismes ordinaires n'achètent pas (améliorations en
+ * atomes, cadences), et le dernier déclenche l'explosion.
  *
- * <p>Avec les quatre premiers en marche, le jeu enchaîne les explosions sans aucun clic ; seules
- * restent au joueur la croissance de la matière noire et ses améliorations. Le cinquième n'existe
- * qu'après un premier Big Bang : il rachète l'arbre, que le joueur a déjà parcouru une fois.
+ * <p>Avec les quatre premiers en marche, le jeu enchaîne les explosions sans aucun clic ; seules restent au joueur la
+ * croissance de la matière noire et ses améliorations. Le cinquième n'existe qu'après un premier Big Bang : il rachète
+ * l'arbre, que le joueur a déjà parcouru une fois.
  */
 public final class DarkAutomations {
-
     public static final List<DarkAutomation> DEFAULT = List.of(
             // Les automatismes ordinaires, offerts dès le début de chaque partie ; la synthèse
             // automatique, une fois les autres à leur cadence maximale et le tableau ouvert.
@@ -29,8 +26,7 @@ public final class DarkAutomations {
             new DarkAutomation("dark_auto_machines", "Achat des automatismes", DarkAutomation.Kind.AUTOMATIONS,
                     BigNum.of(8), 1),
             // Le dernier : avec lui, les explosions s'enchaînent toutes seules.
-            new DarkAutomation("dark_auto_explosion", "Explosion", DarkAutomation.Kind.EXPLOSION,
-                    BigNum.of(14), 1),
+            new DarkAutomation("dark_auto_explosion", "Explosion", DarkAutomation.Kind.EXPLOSION, BigNum.of(14), 1),
             // Après un premier Big Bang seulement : l'arbre, que le joueur a déjà fait une fois, se rachète tout seul.
             new DarkAutomation("dark_auto_tree", "Arbre de matière noire", DarkAutomation.Kind.DARK_TREE,
                     BigNum.ONE, 1));

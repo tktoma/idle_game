@@ -1,94 +1,83 @@
-import idle.core.history.Photo;
-import idle.core.history.PurchaseHistory;
-import idle.core.history.Noms;
-import idle.core.history.Achats;
-import idle.core.Game;
-import idle.core.GameState;
+import idle.core.history.*;
+import idle.core.darkmatter.DarkUpgrades;
+import java.lang.reflect.Field;
+import java.text.Normalizer;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
+import idle.core.*;
+import idle.core.state.GameState;
 import idle.core.GameUniverse.TreeBubble;
-import idle.core.Multipliers;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import idle.core.universe.DimensionAutomation;
-import idle.core.upgrades.Upgrade;
 import idle.core.upgrades.Upgrades;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
 /**
- * Le bot analyste (version 0.161) : il joue comme le meilleur profil (le Speedrunner), mais à vitesse humaine, une
- * décision toutes les cinq secondes, et note tout, à la seconde de jeu près :
+ * Le bot analyste : il joue comme le meilleur profil (le Speedrunner), mais à vitesse humaine, une décision toutes les
+ * cinq secondes, et note tout, à la seconde de jeu près :
  * <ul>
- *   <li>chaque achat : quoi, combien de niveaux, ce qu'il a coûté et dans quelle monnaie, la part de la réserve que
- *       cela représentait, son poids sur chaque grandeur du jeu (particules, atomes, matière noire, espace…) et le temps
- *       qu'il fait gagner selon l'estimation du moment ;</li>
- *   <li>chaque chose obtenue sans payer (succès, titres, défis réussis), chaque automatisme mis en marche ou coupé ;</li>
- *   <li>chaque palier : les trois actes de chaque univers (première explosion, premier Big Bang, univers formé) et leurs
- *       étapes (huitième Big Bang, galaxie, amas), les paliers de la graine, les dimensions, leurs seuils et leurs paliers
- *       finals (version 0.168), le défi final
- *       et la fin ; avec une sauvegarde à chaque palier ;</li>
- *   <li>une estimation régulière du temps jusqu'au prochain palier, en jouant la suite sur une copie de la partie, et
- *       le goulot du moment.</li>
- * </ul>
- * Si rien n'avance (plus de 24 h estimées avant le prochain palier, ou 30 minutes sans palier, achat ni dépense), il
- * s'arrête et dit pourquoi. Tout s'écrit en texte brut, en CSV et en une page HTML ({@link AnalyseRapport}).
+ * <li>chaque achat : quoi, combien de niveaux, ce qu'il a coûté et dans quelle monnaie, la part de la réserve que cela
+ * représentait, son poids sur chaque grandeur du jeu (particules, atomes, matière noire, espace…) et le temps qu'il
+ * fait gagner selon l'estimation du moment ;</li>
+ * <li>chaque chose obtenue sans payer (succès, titres, défis réussis), chaque automatisme mis en marche ou coupé ;</li>
+ * <li>chaque palier : les trois actes de chaque univers (première explosion, premier Big Bang, univers formé) et leurs
+ * étapes (huitième Big Bang, galaxie, amas), les paliers de la graine, les dimensions, leurs seuils et leurs paliers
+ * finals, le défi final et la fin ; avec une sauvegarde à chaque palier ;</li>
+ * <li>une estimation régulière du temps jusqu'au prochain palier, en jouant la suite sur une copie de la partie, et le
+ * goulot du moment.</li>
+ * </ul> Si rien n'avance (plus de 24 h estimées avant le prochain palier, ou 30 minutes sans palier, achat ni dépense),
+ * il s'arrête et dit pourquoi. Tout s'écrit en texte brut, en CSV et en une page HTML ({@link AnalyseRapport}).
  *
- * <p>Version 0.162 : il dit aussi pourquoi. Chaque achat a sa rentabilité (le temps de production qu'il a coûté, contre
- * le temps qu'il fait gagner) et le rapport classe tout ce qui a été acheté. Chaque défi lancé dit sa contrainte, sa
- * récompense, pourquoi maintenant et combien de temps il prendra (joué sur une copie) ; chaque succès, ce qu'il
- * demandait, ce qu'il apporte et son poids ; chaque automatisme, ce qu'il fait ; chaque explosion, la matière noire
- * qu'elle rapporte par heure. À chaque palier principal, « et si » : la suite jouée sur des copies par un joueur qui
- * passe une fois par minute, puis toutes les dix minutes.
+ * <p>Il dit aussi pourquoi. Chaque achat a sa rentabilité (le temps de production qu'il a coûté, contre le temps qu'il
+ * fait gagner) et le rapport classe tout ce qui a été acheté. Chaque défi lancé dit sa contrainte, sa récompense,
+ * pourquoi maintenant et combien de temps il prendra (joué sur une copie) ; chaque succès, ce qu'il demandait, ce qu'il
+ * apporte et son poids ; chaque automatisme, ce qu'il fait ; chaque explosion, la matière noire qu'elle rapporte par
+ * heure. À chaque palier principal, « et si » : la suite jouée sur des copies par un joueur qui passe une fois par
+ * minute, puis toutes les dix minutes.
  *
- * <p>Version 0.163 : il va jusqu'à la fin de la partie. Après l'univers 11, il continue de former des univers (l'énergie
- * du vide paie les bulles), prend les bulles du sommet (l'automatisation des dimensions) et des racines (le défi final),
- * laisse les automatismes jouer les dimensions, et s'arrête quand les dix paliers du défi final sont atteints ; le défi
- * ouvert, il estime le palier suivant du défi. Il peut aussi repartir d'une sauvegarde (un palier d'une partie
- * d'avant, par exemple).
+ * <p>Il va jusqu'à la fin de la partie. Après l'univers 11, il continue de former des univers (l'énergie du vide paie
+ * les bulles), prend les bulles du sommet (l'automatisation des dimensions) et des racines (le défi final), laisse les
+ * automatismes jouer les dimensions, et s'arrête quand les dix paliers du défi final sont atteints ; le défi ouvert, il
+ * estime le palier suivant du défi. Il peut aussi repartir d'une sauvegarde (un palier d'une partie d'avant, par
+ * exemple).
  *
- * <p>Usage : {@code BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false]
- * [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner] [ordre]} ; {@code univers} est un nombre d'univers, ou {@code fin} pour jouer
- * jusqu'à la fin. Version 0.164 : {@code sans} retire ces améliorations du jeu (identifiants des améliorations ordinaires
- * ou de l'arbre de matière noire) ; avec {@link AnalyseComparaison}, on voit ce que chacune apporte. À la fin, les
- * détecteurs d'illogismes ({@link AnalyseIllogismes}) relisent la partie.
+ * <p>Usage : {@code BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30]
+ * [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner] [ordre]} ; {@code univers} est un
+ * nombre d'univers, ou {@code fin} pour jouer jusqu'à la fin. Version 0.164 : {@code sans} retire ces améliorations du
+ * jeu (identifiants des améliorations ordinaires ou de l'arbre de matière noire) ; avec {@link AnalyseComparaison}, on
+ * voit ce que chacune apporte. À la fin, les détecteurs d'illogismes ({@link AnalyseIllogismes}) relisent la partie.
  * Avec {@code comparer=true}, il compare aussi six façons de jouer à chaque palier principal et garde la plus rapide
  * ({@link #choisirStrategie()}) : six parties d'essai par palier, la partie dure plusieurs fois plus longtemps. Avec
  * {@code etsi=false}, il ne joue pas les « et si » : la partie se calcule environ deux fois plus vite.
  *
- * <p>Version 0.166 : {@code profil} choisit le joueur : le Speedrunner (par défaut), le Régulier (une décision par minute,
- * moins attentif), ou l'absent (le Speedrunner, cinq minutes par heure, le jeu fermé entre deux). Chaque palier dit sa
- * cause (la dernière chose faite dans la minute d'avant ; pour un Big Bang, sa dernière condition remplie), le temps réel,
- * en ligne et hors ligne ; le suivi continu ({@link AnalyseSuivi}) mesure les améliorations des dimensions et de la graine
- * sur leur propre palier et nourrit deux détecteurs de plus ; decisions.csv compte les décisions par heure.
+ * <p>Version 0.166 : {@code profil} choisit le joueur : le Speedrunner (par défaut), le Régulier (une décision par
+ * minute, moins attentif), ou l'absent (le Speedrunner, cinq minutes par heure, le jeu fermé entre deux). Chaque palier
+ * dit sa cause (la dernière chose faite dans la minute d'avant ; pour un Big Bang, sa dernière condition remplie), le
+ * temps réel, en ligne et hors ligne ; le suivi continu ({@link AnalyseSuivi}) mesure les améliorations des dimensions
+ * et de la graine sur leur propre palier et nourrit deux détecteurs de plus ; decisions.csv compte les décisions par
+ * heure.
  *
- * <p>Version 0.168 : à chaque palier, la mémoire du bot et le hasard de la partie s'écrivent à côté de la sauvegarde
- * ({@link AnalyseMemoire}) ; repartie de cette sauvegarde, la tranche suivante continue la même partie. {@code sans}
- * retire aussi des bulles de l'arbre ({@code bulle:LEAVES_LEFT}), et {@code ordre} impose l'ordre des bulles à tous les
- * profils ({@code meilleur} ou {@code moins-cher}). Les achats faits au pas d'une remise à zéro se notent, le palier final
- * de chaque dimension aussi, et l'attente d'une seule condition de la galaxie dit laquelle.
+ * <p>À chaque palier, la mémoire du bot et le hasard de la partie s'écrivent à côté de la sauvegarde ({@link
+ * AnalyseMemoire}) ; repartie de cette sauvegarde, la tranche suivante continue la même partie. {@code sans} retire
+ * aussi des bulles de l'arbre ({@code bulle:LEAVES_LEFT}), et {@code ordre} impose l'ordre des bulles à tous les
+ * profils ({@code meilleur} ou {@code moins-cher}). Les achats faits au pas d'une remise à zéro se notent, le palier
+ * final de chaque dimension aussi, et l'attente d'une seule condition de la galaxie dit laquelle.
  */
 public final class BotAnalyste extends IdleProfiles24 {
-
     /** Le Speedrunner, à vitesse humaine : une décision toutes les cinq secondes. */
     static final Profile ANALYSTE = new Profile(1, "Analyste", "Le meilleur jeu connu, à vitesse humaine", 5, 0, 0, 1, 1, 1, 1, 1, 0, "doubleplan");
     /**
-     * Version 0.166 : le joueur absent. Il joue comme le Speedrunner, mais ne passe que cinq minutes par heure ; le jeu
+     * Le joueur absent. Il joue comme le Speedrunner, mais ne passe que cinq minutes par heure ; le jeu
      * est fermé entre deux visites et compte l'absence au taux hors ligne. Il garde le numéro du Speedrunner pour en
      * garder les choix (styles des univers, du vide, de l'arbre).
      */
     static final Profile ABSENT = new Profile(1, "Absent", "Une visite de 5 minutes toutes les heures, le jeu fermé entre deux", 5, 3600, 300,
             1, 1, 1, 1, 1, 0, "doubleplan");
 
-    /** Le profil d'un nom (version 0.166) : speedrunner (par défaut), regulier (le Régulier des profils), absent. */
+    /** Le profil d'un nom : speedrunner (par défaut), regulier (le Régulier des profils), absent. */
     static Profile profil(String nom) {
         return switch (nom == null ? "" : nom.trim().toLowerCase(Locale.ROOT)) {
             case "", "speedrunner", "analyste" -> ANALYSTE;
@@ -104,7 +93,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     /** Sans palier, achat ni dépense pendant ce temps, la partie est bloquée. */
     static final double IMMOBILE = 30 * 60;
     /**
-     * Version 0.170 : la cadence des estimations suit le palier. Une estimation qui annonce le palier dans {@code d} fait
+     * La cadence des estimations suit le palier. Une estimation qui annonce le palier dans {@code d} fait
      * attendre la suivante {@code d × PART_ESTIMATION} au moins (jamais moins que {@code estimationEvery}). Un palier à
      * 20 h se mesure ainsi cinq ou six fois (à 0, 10, 15, 17 h 30…) au lieu de quarante, et les copies jouées pour
      * l'estimer pèsent au plus deux fois le temps du palier au lieu de vingt fois. La partie elle-même ne change pas :
@@ -117,10 +106,10 @@ public final class BotAnalyste extends IdleProfiles24 {
     AnalyseStrategies.Strategie strategie = AnalyseStrategies.TOUTES.get(0);
     boolean comparer = false;
     /** Version 0.164 : les améliorations retirées du jeu (leurs identifiants), pour mesurer ce que chacune apporte. */
-    java.util.Set<String> sans = java.util.Set.of();
-    /** Version 0.168 : la mémoire du bot écrite à côté de la sauvegarde de départ ({@link AnalyseMemoire}), vide sans. */
-    java.util.Map<String, byte[]> memoireReprise = java.util.Map.of();
-    /** Version 0.163 : jouer jusqu'à la fin de la partie (les dix paliers du défi final), plutôt qu'à un nombre d'univers. */
+    Set<String> sans = Set.of();
+    /** La mémoire du bot écrite à côté de la sauvegarde de départ ({@link AnalyseMemoire}), vide sans. */
+    Map<String, byte[]> memoireReprise = Map.of();
+    /** Jouer jusqu'à la fin de la partie (les dix paliers du défi final), plutôt qu'à un nombre d'univers. */
     boolean jusquALaFin = false;
     /** Version 0.162 : les « et si » à chaque palier principal (deux parties d'essai de plus par palier). */
     boolean etsi = true;
@@ -142,7 +131,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     private Map<Multipliers.Quantity, Double> grandeursAvant;
     private int indexPrincipal, seedStage, dimensions, finalTiers, bigBangs;
     private final boolean[] seuils = new boolean[Game.MAX_DIMENSIONS + 1];
-    // Version 0.168 : le palier final de chaque dimension, noté à part (avant, le journal n'en gardait que le nombre).
+    // Le palier final de chaque dimension, noté à part (avant, le journal n'en gardait que le nombre).
     private final boolean[] finals = new boolean[Game.MAX_DIMENSIONS + 1];
     private boolean fini;
     /** Le dernier palier, et la dernière activité (un achat, une chose obtenue, une dépense). */
@@ -150,22 +139,21 @@ public final class BotAnalyste extends IdleProfiles24 {
     /** Le moment que la dernière estimation annonçait pour le palier visé (temps de jeu), et ce palier. */
     private double annonceAbsolue = Double.NaN;
     /**
-     * Version 0.162 : le même moment, raccourci de ce que chaque achat a fait gagner depuis l'estimation. Chaque achat
+     * Le même moment, raccourci de ce que chaque achat a fait gagner depuis l'estimation. Chaque achat
      * part de ce qui reste après les précédents : les gains d'une même attente ne dépassent jamais l'attente.
      */
     private double annonceAjustee = Double.NaN;
-    /** Le moment de la dernière estimation (version 0.163). */
+    /** Le moment de la dernière estimation. */
     private double derniereEstimation = Double.NEGATIVE_INFINITY;
     private String annonceVisee = "";
     /** Ce qui bouge dans la partie, même sans décision : les compteurs et les grandeurs ; changé, la partie avance. */
     private String signature = "";
     private String visee = "";
-    private final Map<String, Double> grandeursLog = new LinkedHashMap<>();
     /** Les relevés des grandeurs, une fois par minute de jeu : de quoi tracer les courbes du rapport. */
     final List<double[]> releves = new ArrayList<>();
     double prochainReleve;
     /**
-     * Version 0.162 : ce que rapporte chaque ressource par seconde (en ordres de grandeur), mesuré sur le dernier pas où
+     * Ce que rapporte chaque ressource par seconde (en ordres de grandeur), mesuré sur le dernier pas où
      * elle a monté sans décision ; la matière noire, sur la dernière explosion. De quoi dire ce qu'un achat a coûté en
      * temps de production.
      */
@@ -180,11 +168,11 @@ public final class BotAnalyste extends IdleProfiles24 {
     /** Version 0.166 : le suivi continu (réserves, conditions, dimensions et graine). */
     final AnalyseSuivi suivi = new AnalyseSuivi();
     /**
-     * Version 0.166 : le temps en ligne au dernier palier ou à la dernière activité. Le blocage se juge sur le temps où le
+     * Le temps en ligne au dernier palier ou à la dernière activité. Le blocage se juge sur le temps où le
      * joueur est là : un joueur absent ne fait rien pendant 55 minutes, sans que rien ne soit bloqué.
      */
     private double ligneTouchee;
-    /** Version 0.166 : la dernière chose faite (un achat, une chose obtenue, un défi), et quand : la cause d'un palier. */
+    /** La dernière chose faite (un achat, une chose obtenue, un défi), et quand : la cause d'un palier. */
     private String derniereAction = "";
     private double derniereActionT = Double.NEGATIVE_INFINITY;
     /** Le délai au-delà duquel un palier ne doit rien à la dernière action : il vient du temps qui passe. */
@@ -204,7 +192,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         indexPrincipal = indexPrincipal(game);
         seedStage = game.seedStage();
         dimensions = game.dimensionsUnlocked();
-        // Version 0.163 : une partie reprise d'une sauvegarde garde ce qu'elle avait déjà atteint ; seul le neuf est un palier.
+        // Une partie reprise d'une sauvegarde garde ce qu'elle avait déjà atteint ; seul le neuf est un palier.
         for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) seuils[d] = game.isDimensionThresholdReached(d);
         for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) finals[d] = game.isFinalTierReached(d);
         finalTiers = game.isFinalChallengeOpen() ? game.finalTiersReached() : 0;
@@ -254,13 +242,9 @@ public final class BotAnalyste extends IdleProfiles24 {
      * Le numéro de l'univers en cours, lu sur les étapes : celui qui vient de se former tant que le suivant n'est pas
      * lancé (la dimension qu'il ouvre et les paliers de graine qu'il donne restent les siens).
      */
-    int univers() {
-        return indexPrincipal / 7 + 1;
-    }
+    int univers() { return indexPrincipal / 7 + 1; }
 
-    private void palier(String nom) {
-        palier(nom, univers());
-    }
+    private void palier(String nom) { palier(nom, univers()); }
 
     /** Un palier de l'univers {@code u} (un univers formé reste le sien, même si le suivant est déjà lancé). */
     private void palier(String nom, int u) {
@@ -293,15 +277,13 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /**
-     * Vrai pour un joueur qui ferme le jeu entre deux visites (version 0.166) : une estimation au-delà de l'horizon n'est
+     * Vrai pour un joueur qui ferme le jeu entre deux visites : une estimation au-delà de l'horizon n'est
      * pas un blocage pour lui, il avance surtout hors ligne.
      */
-    boolean absences() {
-        return p.cycleSeconds() > 0;
-    }
+    boolean absences() { return p.cycleSeconds() > 0; }
 
     /**
-     * Ce qui a débloqué un palier (version 0.166) : la dernière chose faite dans la minute d'avant, ou le temps qui passe ;
+     * Ce qui a débloqué un palier : la dernière chose faite dans la minute d'avant, ou le temps qui passe ;
      * pour un Big Bang, la dernière de ses conditions à se remplir, et combien de temps elle a manqué seule.
      */
     private String cause(String nom) {
@@ -344,7 +326,7 @@ public final class BotAnalyste extends IdleProfiles24 {
      * « formé » ou « sphères » ne passent pas dans un nom de fichier).
      */
     static String nomSauvegarde(double t, String nom) {
-        String ascii = java.text.Normalizer.normalize(nom, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        String ascii = Normalizer.normalize(nom, Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
         return AnalyseJournal.chrono(t).replace(':', '-') + "_" + ascii.replaceAll("[^A-Za-z0-9]+", "_").replaceAll("^_|_$", "") + ".save";
     }
 
@@ -354,7 +336,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             Files.createDirectories(saves);
             Path save = saves.resolve(nomSauvegarde(temps(), nom));
             Files.writeString(save, SaveCodec.write(g.state(), 0));
-            // Version 0.168 : la mémoire du bot et le hasard de la partie, à côté, pour reprendre la même partie.
+            // La mémoire du bot et le hasard de la partie, à côté, pour reprendre la même partie.
             AnalyseMemoire.ecrire(this, save);
         } catch (Exception failure) {
             journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, "Sauvegarde impossible : " + failure);
@@ -423,9 +405,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     // Les décisions
     // ------------------------------------------------------------------
 
-    double temps() {
-        return g.state().timePlayed();
-    }
+    double temps() { return g.state().timePlayed(); }
 
     private Map<Multipliers.Quantity, Double> grandeurs() {
         Map<Multipliers.Quantity, Double> out = new EnumMap<>(Multipliers.Quantity.class);
@@ -472,7 +452,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         List<Photo.Changement> automatismes = new ArrayList<>();
         // Dans l'ordre où le joueur les vit : le défi qui finit, puis celui qui commence, puis le reste.
         List<Photo.Changement> ordre = new ArrayList<>(changes);
-        ordre.sort(java.util.Comparator.comparingInt(c -> !c.cle().startsWith("active") ? 2 : c.retire() != null ? 0 : 1));
+        ordre.sort(Comparator.comparingInt(c -> !c.cle().startsWith("active") ? 2 : c.retire() != null ? 0 : 1));
         for (Photo.Changement c : ordre) {
             String key = c.cle();
             if (key.equals("achievements") && c.ajoute() != null) {
@@ -609,7 +589,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             prochainReleve = t + 60;
         }
         if (t + 1e-6 >= prochaineEstimation && blocage == null) {
-            // Version 0.163 : pas deux fois de suite la même estimation (deux paliers dans la même minute).
+            // Pas deux fois de suite la même estimation (deux paliers dans la même minute).
             if (t - derniereEstimation >= 60 || !Objects.equals(viseeDuMoment(), annonceVisee)) {
                 prochaineEstimation = t + estimationEvery;
                 estimer();
@@ -741,7 +721,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             double rentabilite = Double.isFinite(cout) && cout > 0 && Double.isFinite(gagne) ? gagne / cout : Double.NaN;
             journal.achats.add(new AnalyseJournal.Achat(t, univers(), a.groupe(), a.chose(), a.quantite(), paye, montant, part, montantLog, texte,
                     poidsMax / lot, gain / lot, cout, rentabilite));
-            // Version 0.166 : une amélioration de dimension ou de graine se juge sur son propre palier, cinq minutes plus tard.
+            // Une amélioration de dimension ou de graine se juge sur son propre palier, cinq minutes plus tard.
             boolean suivie = suivi.achat(g, t, journal.achats.size() - 1, a.groupe(), a.monnaie(), montantLog, lot);
             List<String> details = new ArrayList<>();
             details.add("Payé : " + montant + " " + paye + (Double.isNaN(part) ? "" : String.format(Locale.FRANCE, " (%.1f %% de la réserve)", 100 * part)));
@@ -757,7 +737,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /**
-     * Version 0.168 : les achats faits au pas d'une remise à zéro (l'univers lancé, une explosion, un Big Bang) se notent
+     * Les achats faits au pas d'une remise à zéro (l'univers lancé, une explosion, un Big Bang) se notent
      * aussi. Les bulles de l'arbre s'y prennent souvent, juste avant de lancer l'univers suivant ; elles manquaient dans
      * achats.csv. Leur poids sur les grandeurs ne se mesure pas (la remise à zéro du même pas change tout), et le montant
      * payé n'est lisible que si la monnaie n'a fait que baisser.
@@ -777,7 +757,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         }
     }
 
-    /** Le poids d'un achat fait au pas d'une remise à zéro (version 0.168). */
+    /** Le poids d'un achat fait au pas d'une remise à zéro. */
     static final String POIDS_REMISE = "poids non mesuré, remise à zéro au même pas";
 
     /** « Coûte 3 min 10 s de production de particules ; en fait gagner 12 min : ×3,8, rentable avant le palier. » */
@@ -850,9 +830,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         }
     }
 
-    private static String noms(List<String> ids) {
-        return String.join(", ", ids.stream().map(Noms::chose).toList());
-    }
+    private static String noms(List<String> ids) { return String.join(", ", ids.stream().map(Noms::chose).toList()); }
 
     private static String pourquoiMarche() {
         return "Pourquoi : il fait ce geste plus souvent et sans oubli ; le bot garde ses propres décisions pour le reste.";
@@ -894,9 +872,7 @@ public final class BotAnalyste extends IdleProfiles24 {
      * Joue la suite sur une copie de la partie, avec le même jeu, jusqu'au prochain palier principal : le temps qu'il a
      * fallu, ou −1 au-delà de l'horizon (24 h).
      */
-    double essai(int cible, int bigBangCible, double horizon) {
-        return essai(cible, bigBangCible, horizon, null);
-    }
+    double essai(int cible, int bigBangCible, double horizon) { return essai(cible, bigBangCible, horizon, null); }
 
     /** Le même essai, la copie jouant avec les choix de cette façon de jouer ({@code null} : la sienne). */
     double essai(int cible, int bigBangCible, double horizon, AnalyseStrategies.Strategie strategie) {
@@ -911,7 +887,7 @@ public final class BotAnalyste extends IdleProfiles24 {
      * l'horizon. La copie joue avec les choix de {@code strategie} ({@code null} : les siens), et passe toutes les
      * {@code rythme} secondes ({@code 0} : à son rythme).
      */
-    double essai(java.util.function.Predicate<Game> but, double horizon, AnalyseStrategies.Strategie strategie, double rythme) {
+    double essai(Predicate<Game> but, double horizon, AnalyseStrategies.Strategie strategie, double rythme) {
         GameState copy;
         try {
             copy = SaveCodec.read(SaveCodec.write(g.state(), 0)).state();
@@ -966,7 +942,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         AnalyseCopie.memoire(this, clone);
         clone.quiet = true;
         try {
-            java.lang.reflect.Field field = RobotCosmosPlanner.class.getDeclaredField("step");
+            Field field = RobotCosmosPlanner.class.getDeclaredField("step");
             field.setAccessible(true);
             field.setDouble(clone, pas);
         } catch (ReflectiveOperationException impossible) {
@@ -1016,7 +992,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /**
-     * Le défi final ouvert (version 0.163) : l'estimation vise son palier suivant, joué sur une copie. Au-delà de 24 h,
+     * Le défi final ouvert : l'estimation vise son palier suivant, joué sur une copie. Au-delà de 24 h,
      * le bot s'arrête, comme ailleurs.
      */
     private void estimerDefiFinal() {
@@ -1067,7 +1043,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /**
-     * Le choix de la façon de jouer jusqu'au prochain palier principal (version 0.162) : chacune joue la suite sur une
+     * Le choix de la façon de jouer jusqu'au prochain palier principal : chacune joue la suite sur une
      * copie de la partie, avec la mémoire du bot ; la plus rapide est gardée. Le journal donne le classement, et ce que
      * chaque autre aurait coûté : le « et si ».
      */
@@ -1109,7 +1085,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /**
-     * « Et si » au palier principal qui vient d'être atteint (version 0.162) : la suite jusqu'au palier principal suivant,
+     * « Et si » au palier principal qui vient d'être atteint : la suite jusqu'au palier principal suivant,
      * jouée sur des copies par un joueur qui passe une fois par minute, puis toutes les dix minutes. Le temps réel, celui
      * du bot, s'ajoute quand le palier suivant arrive.
      */
@@ -1122,7 +1098,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         System.setOut(SILENCE);
         System.setErr(SILENCE);
         try {
-            java.util.stream.IntStream.range(0, RYTHMES_ETSI.length).parallel()
+            IntStream.range(0, RYTHMES_ETSI.length).parallel()
                     .forEach(i -> temps[i] = essai(game -> indexPrincipal(game) >= cible, HORIZON, null, RYTHMES_ETSI[i]));
         } finally {
             System.setOut(out);
@@ -1159,9 +1135,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /** Le nom d'une condition du Big Bang dans une phrase (« les particules »). */
-    static String conditionNom(BigBangCondition c) {
-        return condition(c);
-    }
+    static String conditionNom(BigBangCondition c) { return condition(c); }
 
     private static String condition(BigBangCondition c) {
         return switch (c) {
@@ -1230,10 +1204,9 @@ public final class BotAnalyste extends IdleProfiles24 {
             bloque("Garde-fou des profils : " + guard.getMessage());
         }
         double seconds = (System.nanoTime() - start) / 1e9;
-        String fin = blocage != null ? "Arrêt sur blocage : " + blocage
-                : fini ? "Fin de la partie atteinte"
+        String fin = blocage != null ? "Arrêt sur blocage : " + blocage : fini ? "Fin de la partie atteinte"
                 : NextUniversePolicy.reached(g, targetUniverses) ? "Objectif atteint : " + targetUniverses + " univers" : "Limite de " + heures + " h atteinte";
-        // Version 0.164 : les détecteurs d'illogismes relisent la partie.
+        // Les détecteurs d'illogismes relisent la partie.
         suivi.fin(temps());
         illogismes = AnalyseIllogismes.detecter(this);
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, illogismes.size() + " illogismes repérés (détail dans illogismes.txt et le rapport)");
@@ -1241,7 +1214,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         journal.ecrire(dossier);
         AnalyseIllogismes.ecrire(illogismes, dossier);
         Files.writeString(dossier.resolve("fin.save"), SaveCodec.write(g.state(), 0));
-        // Version 0.168 : la mémoire du bot à côté, pour qu'une tranche suivante reparte de fin.save comme d'un palier.
+        // La mémoire du bot à côté, pour qu'une tranche suivante reparte de fin.save comme d'un palier.
         AnalyseMemoire.ecrire(this, dossier.resolve("fin.save"));
         AnalyseRapport.ecrire(this, dossier.resolve("rapport.html"), fin);
         System.out.println("ANALYSTE," + fin + "," + AnalyseJournal.chrono(temps()) + "," + dossier.toAbsolutePath());
@@ -1258,32 +1231,32 @@ public final class BotAnalyste extends IdleProfiles24 {
         };
     }
 
-    /** Le préfixe d'une bulle de l'arbre dans {@code sans} (version 0.168). */
+    /** Le préfixe d'une bulle de l'arbre dans {@code sans}. */
     static final String BULLE = "bulle:";
 
-    /** Les bulles retirées par {@code sans} (version 0.168). */
-    static java.util.Set<Game.TreeBubble> bullesSans(java.util.Set<String> sans) {
-        java.util.Set<Game.TreeBubble> out = java.util.EnumSet.noneOf(Game.TreeBubble.class);
+    /** Les bulles retirées par {@code sans}. */
+    static Set<Game.TreeBubble> bullesSans(Set<String> sans) {
+        Set<Game.TreeBubble> out = EnumSet.noneOf(Game.TreeBubble.class);
         for (String id : sans) if (id.startsWith(BULLE)) out.add(Game.TreeBubble.valueOf(id.substring(BULLE.length())));
         return out;
     }
 
-    /** Le nom de ce que {@code sans} retire : une amélioration, une case de l'arbre ou une bulle (version 0.168). */
+    /** Le nom de ce que {@code sans} retire : une amélioration, une case de l'arbre ou une bulle. */
     static String nomSans(String id) {
         return id.startsWith(BULLE) ? Game.TreeBubble.valueOf(id.substring(BULLE.length())).label() : Noms.chose(id);
     }
 
-    static java.util.Set<String> sans(String text) {
-        java.util.Set<String> ids = new java.util.LinkedHashSet<>();
+    static Set<String> sans(String text) {
+        Set<String> ids = new LinkedHashSet<>();
         for (String part : text.split(",")) if (!part.isBlank()) ids.add(part.trim());
         for (String id : ids) {
             if (id.startsWith(BULLE)) {
-                // Version 0.168 : une bulle de l'arbre, par son nom (bulle:LEAVES_LEFT) ; une inconnue lève une erreur.
+                // Une bulle de l'arbre, par son nom (bulle:LEAVES_LEFT) ; une inconnue lève une erreur.
                 Game.TreeBubble.valueOf(id.substring(BULLE.length()));
                 continue;
             }
             boolean known = Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id))
-                    || idle.core.darkmatter.DarkUpgrades.DEFAULT.stream().anyMatch(d -> d.id().equals(id));
+                    || DarkUpgrades.DEFAULT.stream().anyMatch(d -> d.id().equals(id));
             if (!known) throw new IllegalArgumentException("Amélioration inconnue : " + id + " (identifiants dans le catalogue : upgrades, arbre de matière noire)");
         }
         return ids;
@@ -1303,9 +1276,9 @@ public final class BotAnalyste extends IdleProfiles24 {
         boolean comparer = args.length > 6 && Boolean.parseBoolean(args[6]);
         boolean etsi = args.length <= 7 || Boolean.parseBoolean(args[7]);
         String depart = args.length > 8 && !args[8].isBlank() ? args[8] : null;
-        java.util.Set<String> sans = args.length > 9 ? sans(args[9]) : java.util.Set.of();
+        Set<String> sans = args.length > 9 ? sans(args[9]) : Set.of();
         Profile profile = profil(args.length > 10 ? args[10] : "");
-        // Version 0.168 : les bulles retirées, et l'ordre des bulles imposé (meilleur, moins-cher) pour mesurer la dispersion.
+        // Les bulles retirées, et l'ordre des bulles imposé (meilleur, moins-cher) pour mesurer la dispersion.
         UniverseTreePolicy.withoutBubbles = bullesSans(sans);
         UniverseTreePolicy.forcedPlan = args.length > 11 ? ordre(args[11]) : null;
         GameState state = depart == null ? new GameState() : SaveCodec.read(Files.readString(Path.of(depart))).state();

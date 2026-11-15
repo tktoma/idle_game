@@ -8,19 +8,15 @@ import idle.ui.common.CanvasPane;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Labels;
+import idle.ui.common.PlanBar;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.geometry.*;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 
 /**
- * Les systèmes solaires, sous-page du Big Bang (version 0.054, redessinée en 0.059). En haut, les trois
+ * Les systèmes solaires, sous-page du Big Bang (redessinée en 0.059). En haut, les trois
  * pas à suivre et où l'on en est. Puis un cadre par système : son dessin, où chaque orbite dit si sa
  * planète est à sa place, les planètes à déplacer ou retirer, celles qu'on peut ajouter avec la
  * place qui leur convient, et « Ranger au mieux » quand un autre ordre rapporterait plus.
@@ -29,7 +25,6 @@ import javafx.scene.layout.VBox;
  * reste sous le curseur tant qu'on ne l'a pas pressé.
  */
 public final class SystemsPane extends VBox {
-
     private static final String COLOR = GameApp.BIG_BANG_COLOR;
     private static final String BUTTON_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand; -fx-background-radius: 4;"
             + " -fx-border-radius: 4; -fx-text-fill: " + COLOR + "; -fx-background-color: #121923; -fx-border-color: " + COLOR + "66;";
@@ -47,8 +42,8 @@ public final class SystemsPane extends VBox {
     private final VBox systems = new VBox(14);
     private final List<SystemView> views = new ArrayList<>();
     private String shown = "";
-    /** Le plan de la disposition (version 0.084) : la sauvegarder, la recharger, la copier en texte. */
-    private final idle.ui.common.PlanBar plan;
+    /** Le plan de la disposition : la sauvegarder, la recharger, la copier en texte. */
+    private final PlanBar plan;
 
     SystemsPane(Game game, Runnable changed) {
         super(10);
@@ -78,7 +73,7 @@ public final class SystemsPane extends VBox {
         stars.setAlignment(Pos.CENTER);
         stars.setMaxWidth(780);
         systems.setAlignment(Pos.TOP_CENTER);
-        plan = new idle.ui.common.PlanBar(new idle.ui.common.PlanBar.Plan() {
+        plan = new PlanBar(new PlanBar.Plan() {
             public String code() { return game.systemsCode(); }
             public Game.PlanLoad load(String code) { return game.loadSystemPlan(code); }
             public void save(int slot) { game.saveSystemPlan(slot); }
@@ -99,9 +94,7 @@ public final class SystemsPane extends VBox {
     }
 
     /** La barre du plan des systèmes : pour les vérifications. */
-    public idle.ui.common.PlanBar plan() {
-        return plan;
-    }
+    public PlanBar plan() { return plan; }
 
     /** Une étape : faite (verte), en cours (dorée), ou à venir (grise). */
     private void step(int index, String text, boolean done, boolean current) {
@@ -138,14 +131,10 @@ public final class SystemsPane extends VBox {
     }
 
     /** Fait tourner les planètes : appelé à chaque image tant que la sous-page est affichée. */
-    void frame(double elapsed) {
-        for (SystemView view : views) view.frame(elapsed);
-    }
+    void frame(double elapsed) { for (SystemView view : views) view.frame(elapsed); }
 
     /** Le dessin de chaque système : pour les vérifications. */
-    List<SystemView> views() {
-        return List.copyOf(views);
-    }
+    List<SystemView> views() { return List.copyOf(views); }
 
     /** Refait les boutons : les étoiles libres, puis un cadre par système. */
     private void rebuild() {
@@ -289,9 +278,7 @@ public final class SystemsPane extends VBox {
         return box;
     }
 
-    private static void tip(Button button, String text) {
-        button.setTooltip(new javafx.scene.control.Tooltip(text));
-    }
+    private static void tip(Button button, String text) { button.setTooltip(new Tooltip(text)); }
 
     private Button button(String text, Runnable action) {
         Button button = new Button(text);

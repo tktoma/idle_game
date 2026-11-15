@@ -1,27 +1,22 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.scene.paint.*;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
 import idle.ui.GameApp;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.effect.GaussianBlur;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 
-/**
- * La vue de l'espace, première partie : ses réglages, son état, le zoom et le cadrage.
- */
+/** La vue de l'espace, première partie : ses réglages, son état, le zoom et le cadrage. */
 public abstract class SpaceViewBase extends Canvas {
-
     /** La vue entière : chaque partie de la chaîne est une {@link SpaceView}. */
-    final SpaceView self() {
-        return (SpaceView) this;
-    }
+    final SpaceView self() { return (SpaceView) this; }
 
     SpaceViewBase(Game game) {
         super(600, 360);
@@ -42,7 +37,6 @@ public abstract class SpaceViewBase extends Canvas {
         });
         setOnMouseReleased(event -> dragX = Double.NaN);
     }
-
 
     /** Échelle la plus rapprochée, en pixels par unité de longueur : une molécule d'eau y fait une centaine de pixels de large. */
     static final double CLOSEST = 10;
@@ -90,10 +84,9 @@ public abstract class SpaceViewBase extends Canvas {
     /** Part de sa place qu'occupe le dessin d'une molécule rassemblée : le reste laisse voir son amas. */
     static final double GATHERED_SHARE = 0.8;
     /**
-     * Rayon le plus grand du rond qu'une molécule rassemblée apporte à l'amas de sa sorte, en
-     * rayons de place : à 1,25, les ronds de deux voisines de la même sorte se recouvrent et
-     * l'amas est d'un seul tenant. Un rond est plus petit dès qu'il rencontre un autre amas, une
-     * molécule isolée ou le bord du cœur ({@link #collide}).
+     * Rayon le plus grand du rond qu'une molécule rassemblée apporte à l'amas de sa sorte, en rayons de place : à 1,25,
+     * les ronds de deux voisines de la même sorte se recouvrent et l'amas est d'un seul tenant. Un rond est plus petit
+     * dès qu'il rencontre un autre amas, une molécule isolée ou le bord du cœur ({@link #collide}).
      */
     static final double BLOB_SHARE = 1.25;
     /** Demi-largeur la plus grande d'un pont entre deux molécules d'un même amas, en rayons de place. */
@@ -112,9 +105,8 @@ public abstract class SpaceViewBase extends Canvas {
      */
     static final double NEIGHBOUR = 3.1;
     /**
-     * Distance en deçà de laquelle deux molécules d'un même amas sont soudées par un pont, dans la
-     * même unité : assez pour relier aussi les deux coins opposés de quatre places en carré, ce qui
-     * ne laisse aucun trou au milieu.
+     * Distance en deçà de laquelle deux molécules d'un même amas sont soudées par un pont, dans la même unité : assez
+     * pour relier aussi les deux coins opposés de quatre places en carré, ce qui ne laisse aucun trou au milieu.
      */
     static final double JOIN = 3.6;
     /** Taille d'une place à l'écran, en pixels, en dessous de laquelle la matière commence à se fondre en gaz. */
@@ -151,10 +143,10 @@ public abstract class SpaceViewBase extends Canvas {
     /** La galaxie tourne plus vite que la matière ne dérivait : un tour en deux minutes et demie environ. */
     static final double GALAXY_SPIN = 4;
     /** La lueur de la galaxie : vive et chaude au bulbe, pâle et bleue dans les bras, éteinte au bord. */
-    static final javafx.scene.paint.Stop[] GALAXY_GLOW = {
-            new javafx.scene.paint.Stop(0, Color.web("#fff4d8", 0.85)), new javafx.scene.paint.Stop(0.06, Color.web("#ffe2a8", 0.6)),
-            new javafx.scene.paint.Stop(0.2, Color.web("#ffcf90", 0.26)), new javafx.scene.paint.Stop(0.55, Color.web("#8fa8ff", 0.1)),
-            new javafx.scene.paint.Stop(1, Color.web("#8fa8ff", 0))};
+    static final Stop[] GALAXY_GLOW = {
+            new Stop(0, Color.web("#fff4d8", 0.85)), new Stop(0.06, Color.web("#ffe2a8", 0.6)),
+            new Stop(0.2, Color.web("#ffcf90", 0.26)), new Stop(0.55, Color.web("#8fa8ff", 0.1)),
+            new Stop(1, Color.web("#8fa8ff", 0))};
 
     /**
      * Part du rayon de sa clairière qu'un astre garde pour son dessin : le reste est la couronne où
@@ -224,10 +216,9 @@ public abstract class SpaceViewBase extends Canvas {
     double[] skyX = new double[0];
     double[] skyY = new double[0];
     /**
-     * Ce qui ne change qu'avec la mise en place, calculé une fois plutôt qu'à chaque image : le
-     * cosinus et le sinus de l'angle de chaque place, et ceux des deux phases dont sa bouffée de gaz
-     * remue ; pour chaque corps, ses deux couleurs, le milieu de ses places et le rayon du cercle qui
-     * le contient tout entier, en rayons de place.
+     * Ce qui ne change qu'avec la mise en place, calculé une fois plutôt qu'à chaque image : le cosinus et le sinus de
+     * l'angle de chaque place, et ceux des deux phases dont sa bouffée de gaz remue ; pour chaque corps, ses deux
+     * couleurs, le milieu de ses places et le rayon du cercle qui le contient tout entier, en rayons de place.
      */
     double[] cosines = new double[0];
     double[] sines = new double[0];
@@ -247,10 +238,9 @@ public abstract class SpaceViewBase extends Canvas {
     double[] xs = new double[0];
     double[] ys = new double[0];
     /**
-     * Une image sur {@link #EVERY} seulement est dessinée tant que rien ne change : la dérive de
-     * l'ensemble et la rotation des molécules sont trop lentes pour que cela se voie. Dès que la vue
-     * bouge (molette, boutons, souris), que sa taille change ou qu'une molécule s'ajoute, l'image
-     * suivante est dessinée sans attendre.
+     * Une image sur {@link #EVERY} seulement est dessinée tant que rien ne change : la dérive de l'ensemble et la
+     * rotation des molécules sont trop lentes pour que cela se voie. Dès que la vue bouge (molette, boutons, souris),
+     * que sa taille change ou qu'une molécule s'ajoute, l'image suivante est dessinée sans attendre.
      */
     static final int EVERY = 2;
     int beat = 0;
@@ -313,8 +303,8 @@ public abstract class SpaceViewBase extends Canvas {
     /** Part de gaz dans la dernière image : 0 de près, 1 quand il ne reste que du gaz. */
     double mist = 0;
     int placedVersion = -1;
-    /** La palette des molécules de la dernière mise en place (version 0.194) : en changer remet en place, pour reprendre les couleurs. */
-    idle.core.universe.Skin placedPalette;
+    /** La palette des molécules de la dernière mise en place : en changer remet en place, pour reprendre les couleurs. */
+    Skin placedPalette;
     /** Distance au centre du bord du dessin le plus éloigné, à la dernière image, en unités de longueur. */
     double reach = 0;
 
@@ -371,38 +361,22 @@ public abstract class SpaceViewBase extends Canvas {
     }
 
     /** Vrai si la vue ne peut pas reculer davantage : tout l'espace est déjà visible. */
-    public boolean isFitted() {
-        return following;
-    }
+    public boolean isFitted() { return following; }
 
     /** Vrai si la vue ne peut pas s'approcher davantage. */
-    public boolean isClosest() {
-        return !Double.isNaN(scale) && scale >= CLOSEST * 0.9999;
-    }
+    public boolean isClosest() { return !Double.isNaN(scale) && scale >= CLOSEST * 0.9999; }
 
     /** Le grossissement par rapport à la vue d'ensemble : 1 quand tout l'espace est visible. */
-    public double magnification() {
-        return Double.isNaN(scale) ? 1 : scale / fitScale();
-    }
-
-    /** Jusqu'où va le dessin le plus éloigné du centre, à la dernière image, en parts du rayon de l'espace : pour les vérifications. */
-    public double reachShare() {
-        double radius = spaceRadius();
-        return radius <= 0 ? 0 : reach / radius;
-    }
+    public double magnification() { return Double.isNaN(scale) ? 1 : scale / fitScale(); }
 
     /**
      * Part de gaz dans la dernière image : 0 tant qu'une place fait au moins {@link #MIST_FROM}
      * pixels, 1 quand elle en fait moins de {@link #MIST_FULL} et qu'il ne reste que des nuages.
      */
-    public double mist() {
-        return mist;
-    }
+    public double mist() { return mist; }
 
     /** Nombre de points placés dans la vue, un par molécule tant qu'il y en a moins de {@link #MOST_DOTS} : pour les vérifications. */
-    public int placed() {
-        return shapes.length;
-    }
+    public int placed() { return shapes.length; }
 
     /**
      * Le plus grand nombre de points que la vue place. Un amas attire la matière par centaines : au-delà
@@ -414,14 +388,10 @@ public abstract class SpaceViewBase extends Canvas {
     int perDot = 1;
 
     /** Nombre de molécules que vaut un point de la vue, à la dernière image. */
-    public int perDot() {
-        return perDot;
-    }
+    public int perDot() { return perDot; }
 
     /** Nombre de points qui montrent {@code molecules} molécules : autant, ou moins quand un point en vaut plusieurs. */
-    int dots(int molecules) {
-        return perDot == 1 ? molecules : (molecules + perDot - 1) / perDot;
-    }
+    int dots(int molecules) { return perDot == 1 ? molecules : (molecules + perDot - 1) / perDot; }
 
     /** Nombre de molécules rassemblées dans cet état, à la dernière image : pour les vérifications. */
     public long gathered(Molecule.State place) {
@@ -449,34 +419,17 @@ public abstract class SpaceViewBase extends Canvas {
         return total;
     }
 
-    /** Nombre de ponts qui n'ont pas la place de passer entre deux autres amas : pour les vérifications. */
-    public int blockedBridges() {
-        int total = 0;
-        for (double[] each : widths) {
-            for (double width : each) {
-                if (width <= 0) total++;
-            }
-        }
-        return total;
-    }
-
     /**
      * Le plus grand chevauchement entre deux ronds d'amas différents, en rayons de place, à la
      * dernière mise en place : nul ou négatif quand aucun amas n'en recouvre un autre. Pour les vérifications.
      */
-    public double overlap() {
-        return overlap;
-    }
+    public double overlap() { return overlap; }
 
     /** Nombre de paires de ronds d'amas différents qui se touchent exactement : pour les vérifications. */
-    public int contacts() {
-        return contacts;
-    }
+    public int contacts() { return contacts; }
 
     /** Nombre de corps, blocs d'assemblage et amas confondus : pour les vérifications. */
-    public int clusters() {
-        return clusters.length;
-    }
+    public int clusters() { return clusters.length; }
 
     /** Nombre de blocs d'assemblage placés dans la vue : pour les vérifications. */
     public int blocks() {
@@ -504,10 +457,10 @@ public abstract class SpaceViewBase extends Canvas {
     /** Les couleurs des points d'une galaxie vue de loin, celles des molécules du joueur, et la liste de molécules dont elles viennent. */
     private final Color[] farColors = new Color[GalaxyView.DOTS];
     private int farColored = -1;
-    /** Le skin de la toile ou de l'amas du dernier dessin lointain (version 0.194) : en changer redessine sans attendre. */
-    idle.core.universe.Skin farSkin;
-    /** La palette des molécules des couleurs de l'amas (version 0.194). */
-    private idle.core.universe.Skin farPalette;
+    /** Le skin de la toile ou de l'amas du dernier dessin lointain : en changer redessine sans attendre. */
+    Skin farSkin;
+    /** La palette des molécules des couleurs de l'amas. */
+    private Skin farPalette;
     boolean farDrawn = false;
 
     /**
@@ -521,9 +474,7 @@ public abstract class SpaceViewBase extends Canvas {
     }
 
     /** L'échelle au-dessus de la galaxie que la vue montre en ce moment, ou {@code null} si elle montre l'espace. */
-    public Cosmos cosmosShown() {
-        return far != null && game.hasCosmos(far) ? far : null;
-    }
+    public Cosmos cosmosShown() { return far != null && game.hasCosmos(far) ? far : null; }
 
     /** Dessine l'amas de galaxies ou l'univers, à la place de l'espace, avec en haut à gauche ce que l'on regarde. */
     void drawFar(GraphicsContext g, double w, double h, Cosmos scale) {
@@ -531,7 +482,7 @@ public abstract class SpaceViewBase extends Canvas {
         g.setGlobalAlpha(1);
         g.setFill(VOID);
         g.fillRect(0, 0, w, h);
-        farSkin = game.chosenSkin(scale == Cosmos.UNIVERSE ? idle.core.universe.SkinVisual.COSMIC_WEB : idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+        farSkin = game.chosenSkin(scale == Cosmos.UNIVERSE ? SkinVisual.COSMIC_WEB : SkinVisual.GALAXY_CLUSTER);
         if (scale == Cosmos.UNIVERSE) {
             GalaxyView.universe(g, w, h, farSkin);
         } else {
@@ -555,47 +506,16 @@ public abstract class SpaceViewBase extends Canvas {
     }
 
     /** Vrai si la vue montre la galaxie, ou la montrera dès qu'elle sera formée. */
-    public boolean showsGalaxy() {
-        return asGalaxy;
-    }
+    public boolean showsGalaxy() { return asGalaxy; }
 
     /** Vrai si la dernière image montrait la galaxie : pour les vérifications. */
-    public boolean swirled() {
-        return swirled;
-    }
+    public boolean swirled() { return swirled; }
 
     /** Nombre d'astres placés dans la vue : pour les vérifications. */
-    public int bodies() {
-        return sky.length;
-    }
-
-    /** Nombre de molécules que les astres contiennent, et qui ne sont donc pas dessinées : pour les vérifications. */
-    public int bodyCells() {
-        int total = 0;
-        for (boolean each : hidden) {
-            if (each) total++;
-        }
-        return total;
-    }
+    public int bodies() { return sky.length; }
 
     /** Ce dont les clairières des astres ont rétréci pour tenir dans le cœur, 1 si elles ont toute leur place : pour les vérifications. */
-    public double tightened() {
-        return tightened;
-    }
-
-    /** Le rayon du cercle où tient le dessin d'un astre, en rayons de place : pour les vérifications. */
-    public double bodyRadius(int index) {
-        return skyRadius[index];
-    }
-
-    /** Nombre de molécules placées dans des blocs d'assemblage : pour les vérifications. */
-    public int assembledCells() {
-        int total = 0;
-        for (boolean each : assembled) {
-            if (each) total++;
-        }
-        return total;
-    }
+    public double tightened() { return tightened; }
 
     /** Installe une molécule à une place de la spirale, dans le lieu de {@code state} ou hors de tout lieu ({@code null}). */
     /** Places restées vides à la dernière mise en place, reprises par une sorte possédée : pour les vérifications. */

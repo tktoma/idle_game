@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les visuels du jeu qui peuvent changer d'apparence (version 0.087) : l'onglet Skins en donne un
+ * Les visuels du jeu qui peuvent changer d'apparence : l'onglet Skins en donne un
  * choix pour chacun. « Classique » est l'apparence d'origine, toujours là.
  */
 public enum SkinVisual {
@@ -36,7 +36,7 @@ public enum SkinVisual {
     AMBIENT("Le fond de la fenêtre"),
     TABS("Les onglets"),
     CARD("Les cartes"),
-    /** Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
+    /** Les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
     TAB_ICONS("Les icônes d'onglet"),
     CARD_SIGNS("Les signes d'état des cartes"),
     MATTER_SIGNS("Les signes des états de la matière"),
@@ -48,7 +48,7 @@ public enum SkinVisual {
     DARK_RULER("L'échelle des grandeurs"),
     DARK_TREE("L'arbre de matière noire"),
     CHALLENGES("Les défis"),
-    /** Version 0.194 : le Big Bang au-delà des molécules : leur palette, les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes. */
+    /** Le Big Bang au-delà des molécules : leur palette, les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes. */
     MOLECULE_PALETTE("La palette des molécules"),
     CLUMPS("Les amas rassemblés"),
     BLOCKS("Les blocs d'assemblage"),
@@ -83,7 +83,7 @@ public enum SkinVisual {
     GROWTH_RING("Le rond de croissance"),
     WEATHER("La météo de la graine"),
     SEASONS("Les saisons"),
-    /** Version 0.197 : l'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les cadres et la palette des mini-jeux. */
+    /** L'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les cadres et la palette des mini-jeux. */
     TREE_SEASON("La saison de l'arbre"),
     TREE_FANTASY("L'arbre de fantaisie"),
     TREE_GROUND("Le sol de l'arbre"),
@@ -93,7 +93,7 @@ public enum SkinVisual {
     FINALE_FILL("Le remplissage du défi final"),
     DIMENSION_FRAME("Le cadre des mini-jeux"),
     DIMENSION_PALETTE("La palette des dimensions"),
-    /** Version 0.198 : le profil, les succès et les statistiques : le style des avatars, les albums, les tuiles des succès, les courbes, la frise. */
+    /** Le profil, les succès et les statistiques : le style des avatars, les albums, les tuiles des succès, les courbes, la frise. */
     AVATAR_STYLE("Le style des avatars"),
     ALBUM("Les albums"),
     ACHIEVEMENT_TILE("Les tuiles des succès"),
@@ -101,7 +101,7 @@ public enum SkinVisual {
     CHART("Les courbes des statistiques"),
     CHART_PALETTE("La palette des courbes"),
     TIMELINE("La frise des univers"),
-    /** Version 0.199 : les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur. */
+    /** Les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur. */
     TOAST("Les notifications"),
     PANEL("Les panneaux"),
     TRANSITION("La transition entre univers"),
@@ -113,16 +113,12 @@ public enum SkinVisual {
     BIG_BANG_SOUND("Le son du Big Bang"),
     METRONOME("Le métronome de la boucle");
 
-    /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
+    /** Les visuels des dix dimensions, dans l'ordre : {@code DIMENSIONS[n - 1]} pour la dimension n. */
     public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};
 
     private final String label;
 
-    SkinVisual(String label) {
-        this.label = label;
-    }
+    SkinVisual(String label) { this.label = label; }
 
-    public String label() {
-        return label;
-    }
+    public String label() { return label; }
 }

@@ -7,15 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
 import idle.core.save.SaveCodec;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Version 0.127 : les points de reprise nommés et la mise de côté. Sans affichage JavaFX. */
 class SaveStoreTest {
-
     private static Game played(double seconds) {
         Game game = new Game();
         game.start();

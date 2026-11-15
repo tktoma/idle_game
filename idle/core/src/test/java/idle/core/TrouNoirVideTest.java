@@ -8,11 +8,10 @@ import idle.core.sky.Body;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.177 : le trou noir du vide, ouvert, raccourcit la maturation du trou noir et du trou noir supermassif de
+ * Le trou noir du vide, ouvert, raccourcit la maturation du trou noir et du trou noir supermassif de
  * 10 % par univers formé à partir du quatrième (durée ÷ (1 + 10 % × univers comptés)).
  */
 class TrouNoirVideTest {
-
     /** Le vide ouvert, avec {@code formed} univers formés en tout. */
     private static Game withUniverses(int formed) {
         Game game = VideTest.open();

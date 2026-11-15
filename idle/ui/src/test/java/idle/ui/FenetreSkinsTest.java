@@ -1,36 +1,34 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import idle.core.Absence;
+import idle.core.Game;
+import java.util.prefs.Preferences;
+import javafx.scene.*;
+import javafx.scene.canvas.Canvas;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.Game;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.199 : les skins de la fenêtre autour du jeu, sous Xvfb. Chaque skin des notifications, des panneaux, de
+ * Les skins de la fenêtre autour du jeu, sous Xvfb. Chaque skin des notifications, des panneaux, de
  * l'écran de fin, de la transition, du bouton de démarrage et du curseur s'applique et se dessine sans exception, à deux
  * tailles ; quelque chose change par rapport au classique (style, texte, inclinaison, image) ; et le classique rend aux
  * étiquettes leur style d'origine.
  */
 class FenetreSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -88,7 +86,7 @@ class FenetreSkinsTest {
             assertEquals(3, skinsOf(SkinVisual.PANEL).size());
             assertEquals(3, skinsOf(SkinVisual.ENDING).size());
             Game game = finished();
-            java.util.prefs.Preferences store = new NotificationsEtSignesTest.MemoryPreferences();
+            Preferences store = new NotificationsEtSignesTest.MemoryPreferences();
             Settings settings = Settings.load(store);
             List<Skin> skins = new ArrayList<>(skinsOf(SkinVisual.PANEL));
             skins.addAll(skinsOf(SkinVisual.ENDING));
@@ -103,7 +101,7 @@ class FenetreSkinsTest {
                 finale.open();
                 end.fill();
                 end.reveal();
-                absence.open(new idle.core.Absence(game, 120));
+                absence.open(new Absence(game, 120));
                 String classicCard = help.card().getStyle(), classicVeil = help.getStyle();
                 String classicTitle = finale.titleText();
                 Label finaleTitle = (Label) finale.card().getChildren().get(0);
@@ -212,7 +210,7 @@ class FenetreSkinsTest {
                 button.layout();
                 assertNotEquals(classic, button.getStyle(), skin.label());
                 assertNotNull(button.getGraphic(), skin.label() + " a une icône");
-                assertEquals(StartButtonArt.ICON, ((javafx.scene.canvas.Canvas) button.getGraphic()).getWidth());
+                assertEquals(StartButtonArt.ICON, ((Canvas) button.getGraphic()).getWidth());
                 assertEquals("Créer le premier générateur", button.getText());
             }
             Button plain = new Button("Créer le premier générateur");
@@ -232,7 +230,7 @@ class FenetreSkinsTest {
             assertNull(CursorSkinArt.cursor(null));
             assertNull(CursorSkinArt.cursor(Skin.TOAST_POSTIT));
             for (Skin skin : skinsOf(SkinVisual.CURSOR)) {
-                javafx.scene.ImageCursor cursor = CursorSkinArt.cursor(skin);
+                ImageCursor cursor = CursorSkinArt.cursor(skin);
                 assertNotNull(cursor, skin.label());
                 assertEquals(cursor, CursorSkinArt.cursor(skin), "dessiné une fois");
                 assertEquals(CursorSkinArt.SIZE, (int) cursor.getImage().getWidth());
@@ -249,7 +247,7 @@ class FenetreSkinsTest {
                 assertTrue(drawn, skin.label() + " dessine quelque chose");
                 double[] hotspot = CursorSkinArt.hotspot(skin);
                 assertTrue(hotspot[0] >= 0 && hotspot[0] < CursorSkinArt.SIZE && hotspot[1] >= 0 && hotspot[1] < CursorSkinArt.SIZE);
-                // Version 0.203 : tous partout, l'arrosoir et la loupe compris (avant : l'univers et le Big Bang seulement).
+                // Tous partout, l'arrosoir et la loupe compris (avant : l'univers et le Big Bang seulement).
                 for (GameAppBase.Tab tab : GameAppBase.Tab.values()) assertEquals(skin, CursorSkinArt.shownOn(skin, tab), skin.label() + " sur " + tab);
             }
             assertNull(CursorSkinArt.shownOn(null, GameAppBase.Tab.UNIVERSE));

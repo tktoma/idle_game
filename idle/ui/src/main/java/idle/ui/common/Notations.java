@@ -9,7 +9,6 @@ import java.util.Locale;
  * plus grands nombres du jeu (1e85000 : « 2^282 361 », « 16^70 590 », « ×10^85000 »).
  */
 final class Notations {
-
     /** Les préfixes du Système international, de 1e3 (kilo) à 1e30 (quetta). */
     static final String[] SI_PREFIXES = {"k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"};
     /** Les unités japonaises de quatre en quatre chiffres : 万 (1e4), 億 (1e8)… 無量大数 (1e68). */

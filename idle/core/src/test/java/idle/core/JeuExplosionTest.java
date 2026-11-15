@@ -1,22 +1,19 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import idle.core.collider.ColliderUpgrade;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.darkmatter.Landmark;
-import idle.core.darkmatter.SizeScale;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.darkmatter.*;
+import idle.core.elements.*;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.*;
 import java.util.List;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * L'explosion du tableau périodique (ce qu'elle demande, ce qu'elle donne, ce qu'elle efface) et la taille de la
@@ -24,15 +21,10 @@ import org.junit.jupiter.api.Test;
  * liaisons, les accords, la superposition, et les voies d'absence.
  */
 class JeuExplosionTest extends GameTestSupport {
-
-
     @Nested
     class Explosion {
-
         /** Remplit le tableau périodique : chaque élément à son maximum d'exemplaires. */
-        private void fillTable(Game game) {
-            GameTestSupport.fillTableToMax(game);
-        }
+        private void fillTable(Game game) { GameTestSupport.fillTableToMax(game); }
 
         /** Partie bien avancée : améliorations, automatismes, atomes, particules, tableau débloqué. */
         private Game advancedGame() {
@@ -143,7 +135,7 @@ class JeuExplosionTest extends GameTestSupport {
             Game game = newGame();
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.ONE);
-            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);   // ce qui se paie en matière noire l'attend (version 0.209)
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);   // ce qui se paie en matière noire l'attend
             for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
                 if (dark.requires() == null) assertTrue(game.isDarkAvailable(dark.id()), dark.id());
             }
@@ -185,9 +177,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertEquals(0, game.discoveredElements());
             assertEquals(0, game.ownedCopies());
             assertEquals(0, game.state().synthesisCount());
-            for (Upgrade upgrade : game.upgrades()) {
-                assertEquals(0, game.levelOf(upgrade.id()), () -> upgrade.name());
-            }
+            for (Upgrade upgrade : game.upgrades()) assertEquals(0, game.levelOf(upgrade.id()), () -> upgrade.name());
             for (Automation automation : game.automations()) {
                 assertFalse(game.ownsAutomation(automation.id()));
                 assertFalse(game.isAutomationEnabled(automation.id()));
@@ -246,7 +236,6 @@ class JeuExplosionTest extends GameTestSupport {
 
     @Nested
     class TailleDeLaMatiereNoire {
-
         private static final double START = Game.DARK_MATTER_START_SIZE.toDouble();
         /** L'élan qu'apporte une matière noire, par seconde d'appui. */
         private static final double UNIT = Game.DARK_MATTER_GROWTH_PER_UNIT;
@@ -278,7 +267,7 @@ class JeuExplosionTest extends GameTestSupport {
         @Test
         void uneLiaisonSOuvreParLUneOuLAutreDeSesVoies() {
             Game game = gameWithDarkMatter(20);
-            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord
             DarkUpgrade link = DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("link_nuclei")).findFirst().orElseThrow();
             assertTrue(link.isLink() && link.inTree() && !link.branch().inTree());
             assertEquals(List.of("dark_burst", "dark_rich_fusion"), link.linkedIds());
@@ -292,7 +281,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertFalse(game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER).contains(link));
             assertEquals(10, game.darkLinks().size());
             Game other = gameWithDarkMatter(20);
-            other.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
+            other.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord
             other.state().setDarkLevel("dark_burst", 1);                    // ou la voie de droite des particules
             assertTrue(other.canBuyDark("link_nuclei"));
             assertFalse(other.isDarkAvailable("link_flow"));                // celle de gauche n'a qu'une voie
@@ -301,7 +290,7 @@ class JeuExplosionTest extends GameTestSupport {
         @Test
         void unAccordDemandeSesTroisVoies() {
             Game game = gameWithDarkMatter(30);
-            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord
             assertEquals(Game.Style.PRESENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_flow")).findFirst().orElseThrow()));
             assertEquals(Game.Style.ABSENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_burst")).findFirst().orElseThrow()));
             game.state().setDarkLevel("dark_flow", 1);
@@ -325,7 +314,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertEquals(before + 3 * Game.ABSENCE_PATH_BONUS, game.offlineRate(), 1e-9);
             for (String id : List.of("dark_shadow_echo", "dark_double_synthesis", "dark_harvest")) game.state().setDarkLevel(id, 1);
             game.state().setDarkMatter(BigNum.of(60));
-            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord
             assertTrue(game.buyDark("accord_absence_2"));
             assertEquals(before + 6 * Game.ABSENCE_PATH_BONUS + 0.10, game.offlineRate(), 1e-9);
         }
@@ -401,11 +390,11 @@ class JeuExplosionTest extends GameTestSupport {
         @Test
         void laSuperpositionAttendLeCinquiemeBigBang() {
             Game game = gameWithDarkMatter(12);
-            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.FLAVOR_TOP, 1);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.FLAVOR_TOP, 1);
             GameTestSupport.bangs(game, Game.SUPERPOSITION_BIG_BANGS - 1);
-            assertFalse(game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
+            assertFalse(game.isColliderUpgradeOpen(ColliderUpgrade.SUPERPOSITION));
             GameTestSupport.bangs(game, Game.SUPERPOSITION_BIG_BANGS);
-            assertEquals(game.isColliderUpgradesUnlocked(), game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
+            assertEquals(game.isColliderUpgradesUnlocked(), game.isColliderUpgradeOpen(ColliderUpgrade.SUPERPOSITION));
         }
 
         @Test
@@ -414,12 +403,12 @@ class JeuExplosionTest extends GameTestSupport {
             assertTrue(game.buyDark("dark_fine_synthesis"));
             assertFalse(game.canBuyDark("dark_rich_fusion"));
             assertFalse(game.hasSuperposition());
-            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.SUPERPOSITION, 1);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION, 1);
             assertTrue(game.hasSuperposition());
             assertTrue(game.darkForkRival("dark_rich_fusion") == null);
             assertTrue(game.buyDark("dark_rich_fusion"));                     // les deux voies
             assertEquals(1, game.darkLevelOf("dark_fine_synthesis"));
-            assertEquals(idle.core.collider.ColliderUpgrade.FLAVOR_TOP, idle.core.collider.ColliderUpgrade.SUPERPOSITION.requires());
+            assertEquals(ColliderUpgrade.FLAVOR_TOP, ColliderUpgrade.SUPERPOSITION.requires());
         }
 
         @Test

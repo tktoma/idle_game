@@ -3,30 +3,22 @@ package idle.ui.bigbang;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
 
 /**
- * Les skins du ciel des astres (version 0.194, {@link SkinVisual#SKY}) : le fond, ce qui porte chaque
- * ligne d'astres et la façon d'écrire leur nom ; les astres eux-mêmes gardent leur skin
- * ({@link SkinVisual#BODY}).
+ * Les skins du ciel des astres ({@link SkinVisual#SKY}) : le fond, ce qui porte chaque ligne d'astres et la façon
+ * d'écrire leur nom ; les astres eux-mêmes gardent leur skin ({@link SkinVisual#BODY}).
  * <ul>
- *   <li>« Planche naturaliste » ({@link Skin#SKY_PLATE}) : un fond parchemin à fibres, un cadre à double
- *       trait, et chaque astre épinglé d'une tête de laiton ombrée, son nom en italique d'encre brune
- *       souligné d'un trait tremblé ;</li>
- *   <li>« Mobile » ({@link Skin#SKY_MOBILE}) : au-dessus de chaque ligne une tige de bois, d'où chaque
- *       astre pend à un fil, et tous se balancent ({@link #sway}) ;</li>
- *   <li>« Vitrine » ({@link Skin#SKY_SHOWCASE}) : sous chaque ligne une étagère de verre, éclairée par le
- *       bas d'une lumière froide qui monte vers les astres, et les noms sur une plaquette.</li>
+ * <li>« Planche naturaliste » ({@link Skin#SKY_PLATE}) : un fond parchemin à fibres, un cadre à double trait, et chaque
+ * astre épinglé d'une tête de laiton ombrée, son nom en italique d'encre brune souligné d'un trait tremblé ;</li>
+ * <li>« Mobile » ({@link Skin#SKY_MOBILE}) : au-dessus de chaque ligne une tige de bois, d'où chaque astre pend à un
+ * fil, et tous se balancent ({@link #sway}) ;</li>
+ * <li>« Vitrine » ({@link Skin#SKY_SHOWCASE}) : sous chaque ligne une étagère de verre, éclairée par le bas d'une
+ * lumière froide qui monte vers les astres, et les noms sur une plaquette.</li>
  * </ul>
  */
 final class SkySkinArt {
-
     private static final Color PARCHMENT = Color.web("#e9dcc0");
     private static final Color FIBRE = Color.web("#c9b995");
     private static final Color INK = Color.web("#4a3520");
@@ -50,9 +42,7 @@ final class SkySkinArt {
     private SkySkinArt() {}
 
     /** Vrai si ce skin habille le ciel : {@code null} ou un autre visuel, c'est le Classique. */
-    static boolean draws(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.SKY;
-    }
+    static boolean draws(Skin skin) { return skin != null && skin.visual() == SkinVisual.SKY; }
 
     /** La couleur des textes du ciel (le message du ciel vide) : l'encre sur le parchemin, un gris chaud sur le mobile, la plaquette de la vitrine. */
     static Color textColor(Skin skin) {
@@ -64,14 +54,10 @@ final class SkySkinArt {
     }
 
     /** La place à réserver au-dessus d'une ligne pour ce qui la porte : la tige et le fil du mobile ; rien sinon. */
-    static double above(Skin skin, double shrink) {
-        return skin == Skin.SKY_MOBILE ? (THREAD_LENGTH + 6) * shrink : 0;
-    }
+    static double above(Skin skin, double shrink) { return skin == Skin.SKY_MOBILE ? (THREAD_LENGTH + 6) * shrink : 0; }
 
     /** La place à réserver sous une ligne, noms compris : l'étagère de la vitrine ; rien sinon. */
-    static double below(Skin skin, double shrink) {
-        return skin == Skin.SKY_SHOWCASE ? 8 * shrink : 0;
-    }
+    static double below(Skin skin, double shrink) { return skin == Skin.SKY_SHOWCASE ? 8 * shrink : 0; }
 
     /** Le fond du ciel, sur toute la vue : parchemin, nuit, ou salle d'exposition. */
     static void background(GraphicsContext g, double w, double h, Skin skin, double time) {
@@ -114,9 +100,8 @@ final class SkySkinArt {
     }
 
     /**
-     * Ce qui porte une ligne d'astres, dessiné avant eux : pour le mobile, la tige de bois à {@code top} ;
-     * pour la vitrine, l'étagère de verre à {@code bottom} et sa lumière qui monte jusqu'à {@code top}.
-     * La planche n'a rien.
+     * Ce qui porte une ligne d'astres, dessiné avant eux : pour le mobile, la tige de bois à {@code top} ; pour la
+     * vitrine, l'étagère de verre à {@code bottom} et sa lumière qui monte jusqu'à {@code top}. La planche n'a rien.
      */
     static void line(GraphicsContext g, Skin skin, double left, double right, double top, double bottom, double shrink) {
         switch (skin) {

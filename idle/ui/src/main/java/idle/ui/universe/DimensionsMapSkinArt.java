@@ -3,14 +3,10 @@ package idle.ui.universe;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.paint.*;
 
 /**
- * La carte des dimensions et le défi final sous un skin (version 0.197, {@link SkinVisual#DIMENSIONS_MAP} et
+ * La carte des dimensions et le défi final sous un skin ({@link SkinVisual#DIMENSIONS_MAP} et
  * {@link SkinVisual#FINALE_FILL}). Les onze points deviennent les planètes d'un système (chacune de la couleur de sa
  * dimension, les paires avec un anneau, le soleil au milieu), les perles d'un collier (un fil passe par toutes), les
  * pierres d'un cercle de menhirs (debout, gravées d'un signe qui luit une fois la dimension ouverte), les fenêtres d'une
@@ -20,7 +16,6 @@ import javafx.scene.paint.Stop;
  * (une tige et ses feuilles jusqu'au niveau). Sans skin, {@link DimensionsView} dessine comme avant.
  */
 final class DimensionsMapSkinArt {
-
     private DimensionsMapSkinArt() {
     }
 
@@ -34,14 +29,10 @@ final class DimensionsMapSkinArt {
     private static final Color LIGHT = Color.web("#fff1c9"), IVY = Color.web("#3ddc6a"), IVY_DARK = Color.web("#1f7a3a");
 
     /** Vrai pour un skin de la carte. */
-    static boolean maps(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.DIMENSIONS_MAP;
-    }
+    static boolean maps(Skin skin) { return skin != null && skin.visual() == SkinVisual.DIMENSIONS_MAP; }
 
     /** Vrai pour un skin du remplissage du défi final. */
-    static boolean fills(Skin skin) {
-        return skin != null && skin.visual() == SkinVisual.FINALE_FILL;
-    }
+    static boolean fills(Skin skin) { return skin != null && skin.visual() == SkinVisual.FINALE_FILL; }
 
     /** Ce que le skin trace sous les points, avant eux : le fil du collier, le cercle gradué du cadran. */
     static void ring(GraphicsContext g, double cx, double cy, double radius, double dot, int count, Skin skin) {

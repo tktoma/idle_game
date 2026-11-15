@@ -6,31 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.Molecules;
+import idle.core.molecules.*;
 import idle.core.sky.SolarSystem;
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.WritableImage;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.194 : les skins du Big Bang au-delà des molécules, sous Xvfb : la palette des molécules, les amas,
+ * Les skins du Big Bang au-delà des molécules, sous Xvfb : la palette des molécules, les amas,
  * les blocs et le gaz de la vue de l'espace, le ciel des astres, la galaxie, l'amas de galaxies et la toile, les
  * systèmes solaires. Chacun se dessine à deux tailles et dans plusieurs états sans exception, et change quelque
  * chose au dessin par rapport au Classique ; sans skin, le dessin est celui d'avant.
  */
 class CosmosSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     private static List<Skin> skinsOf(SkinVisual visual) {
         List<Skin> skins = new ArrayList<>();
@@ -62,9 +55,7 @@ class CosmosSkinsTest {
      * avant la 0.203, le témoin partageait la partie des vues habillées et se dessinait donc dans leur skin (les tests
      * comparaient un skin à lui-même).
      */
-    private static Game bare() {
-        return game();
-    }
+    private static Game bare() { return game(); }
 
     /** Le nombre de pixels qui diffèrent entre deux dessins, un sur trois dans chaque sens. */
     private static int differing(Canvas a, Canvas b) {

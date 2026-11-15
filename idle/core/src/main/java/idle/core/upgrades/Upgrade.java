@@ -17,7 +17,6 @@ import idle.core.math.BigNum;
  */
 public record Upgrade(String id, String name, Resource resource, BigNum baseCost, double costGrowth,
                       int maxLevel, Effect effect) {
-
     /** Valeur de {@code maxLevel} pour une amélioration achetable sans limite. */
     public static final int NO_LIMIT = Integer.MAX_VALUE;
 
@@ -29,17 +28,10 @@ public record Upgrade(String id, String name, Resource resource, BigNum baseCost
         if (maxLevel < 1) throw new IllegalArgumentException("Il faut au moins un niveau achetable");
     }
 
-    public boolean hasLimit() {
-        return maxLevel != NO_LIMIT;
-    }
+    public boolean hasLimit() { return maxLevel != NO_LIMIT; }
 
-    /**
-     * Coût du prochain achat quand on possède déjà {@code level} niveaux,
-     * arrondi à l'unité supérieure.
-     */
-    public BigNum costAt(int level) {
-        return roundUp(baseCost.multiply(BigNum.of(costGrowth).pow(level)));
-    }
+    /** Coût du prochain achat quand on possède déjà {@code level} niveaux, arrondi à l'unité supérieure. */
+    public BigNum costAt(int level) { return roundUp(baseCost.multiply(BigNum.of(costGrowth).pow(level))); }
 
     /** Arrondit un coût à l'unité supérieure : on ne paie jamais une fraction de ressource. */
     public static BigNum roundUp(BigNum cost) {

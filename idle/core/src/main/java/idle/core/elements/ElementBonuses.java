@@ -1,22 +1,17 @@
 package idle.core.elements;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
- * Le cumul des effets de tous les éléments possédés, calculé une fois puis réutilisé tant que
- * la collection ne change pas. {@link Game} y lit les bonus au lieu de reparcourir le tableau
- * périodique à chaque instant.
+ * Le cumul des effets de tous les éléments possédés, calculé une fois puis réutilisé tant que la collection ne change
+ * pas. {@link Game} y lit les bonus au lieu de reparcourir le tableau périodique à chaque instant.
  *
  * <p>Les ensembles complets ({@link ElementSets}) y ajoutent leur bonus.
  *
- * <p>La force d'un élément est la racine carrée de son nombre d'exemplaires : 1 pour le
- * premier, 2 pour quatre, 3 pour neuf. Un nouvel élément rapporte donc toujours plus qu'un doublon.
+ * <p>La force d'un élément est la racine carrée de son nombre d'exemplaires : 1 pour le premier, 2 pour quatre, 3 pour
+ * neuf. Un nouvel élément rapporte donc toujours plus qu'un doublon.
  */
 public final class ElementBonuses {
-
     /** Une synergie possédée : la grandeur qu'elle améliore et le bonus par unité de sa source. */
     public record SynergyTerm(ElementEffect.SynergySource source, ElementEffect.Stat stat, double perUnit) {}
 
@@ -40,9 +35,7 @@ public final class ElementBonuses {
     private int halfSets = 0;
 
     /** Cumule les effets des éléments possédés (numéro atomique → exemplaires). */
-    public static ElementBonuses of(Map<Integer, Integer> owned) {
-        return of(owned, 1);
-    }
+    public static ElementBonuses of(Map<Integer, Integer> owned) { return of(owned, 1); }
 
     /**
      * Comme {@link #of(Map)}, avec une force des éléments multipliée par {@code elementStrength}
@@ -60,7 +53,7 @@ public final class ElementBonuses {
 
     /**
      * Comme {@link #of(Map, double)}, pour une collection déjà rangée en tableau (exemplaires par numéro atomique), celui
-     * que le jeu tient à jour (version 0.170) : les mêmes opérations dans le même ordre, par numéro croissant, sans
+     * que le jeu tient à jour : les mêmes opérations dans le même ordre, par numéro croissant, sans
      * parcourir la table des éléments possédés. Le jeu recalcule ces bonus à chaque synthèse.
      */
     public static ElementBonuses of(int[] counts, double elementStrength) {
@@ -84,7 +77,7 @@ public final class ElementBonuses {
     }
 
     /**
-     * Version 0.202 : la chance des familles rares et le double tirage seuls, sans le reste des bonus. La synthèse les
+     * La chance des familles rares et le double tirage seuls, sans le reste des bonus. La synthèse les
      * relit à chaque tirage, et chaque tirage change le tableau : recalculer tous les bonus pour ces deux nombres prenait
      * jusqu'à 42 % du calcul d'une partie. Les mêmes termes, ajoutés dans le même ordre que {@link #of(int[], double)}
      * (les éléments par numéro croissant, puis les ensembles dans l'ordre du catalogue) : les mêmes nombres au bit près.
@@ -166,15 +159,13 @@ public final class ElementBonuses {
     /** Le tableau, agrandi au besoin pour contenir cet indice ; les cases ajoutées valent 1. */
     private static double[] grown(double[] values, int index) {
         if (index < values.length) return values;
-        double[] bigger = java.util.Arrays.copyOf(values, index + 1);
-        java.util.Arrays.fill(bigger, values.length, bigger.length, 1.0);
+        double[] bigger = Arrays.copyOf(values, index + 1);
+        Arrays.fill(bigger, values.length, bigger.length, 1.0);
         return bigger;
     }
 
     /** Diviseur d'un prix : 1 sans bonus, 2 quand le prix est divisé par deux. */
-    public double costDivisor(ElementEffect.CostTarget target) {
-        return 1 + costs.getOrDefault(target, 0.0);
-    }
+    public double costDivisor(ElementEffect.CostTarget target) { return 1 + costs.getOrDefault(target, 0.0); }
 
     /** Diviseur du délai d'un automatisme, bonus « tous les automatismes » compris. */
     public double automationDivisor(ElementEffect.AutomationTarget target) {
@@ -183,31 +174,19 @@ public final class ElementBonuses {
     }
 
     /** Ce que les éléments ajoutent à une amélioration (0 sans élément). */
-    public double upgradeBoost(ElementEffect.UpgradeTarget target) {
-        return upgrades.getOrDefault(target, 0.0);
-    }
+    public double upgradeBoost(ElementEffect.UpgradeTarget target) { return upgrades.getOrDefault(target, 0.0); }
 
-    public List<SynergyTerm> synergies() {
-        return synergies;
-    }
+    public List<SynergyTerm> synergies() { return synergies; }
 
     /** Chance qu'une synthèse donne un second élément, entre 0 et 1. */
-    public double doubleDrawChance() {
-        return Math.min(1, doubleDraw);
-    }
+    public double doubleDrawChance() { return Math.min(1, doubleDraw); }
 
     /** Nombre d'ensembles complets dans la collection. */
-    public int completedSets() {
-        return completedSets;
-    }
+    public int completedSets() { return completedSets; }
 
     /** Nombre d'ensembles à moitié réunis, sans être complets. */
-    public int halfSets() {
-        return halfSets;
-    }
+    public int halfSets() { return halfSets; }
 
     /** Multiplicateur de la chance des familles rares. */
-    public double luckMultiplier() {
-        return 1 + luck;
-    }
+    public double luckMultiplier() { return 1 + luck; }
 }

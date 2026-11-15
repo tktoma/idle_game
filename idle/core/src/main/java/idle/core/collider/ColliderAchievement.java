@@ -1,11 +1,10 @@
 package idle.core.collider;
 
 /**
- * Les succès du collisionneur (version 0.060) : ils se gagnent en achetant des générateurs et en
- * enchaînant les collisions, et chacun renforce les générateurs d'une façon. Pour chaque
- * générateur, un premier succès double sa production, un second divise ses prix par deux ; trois
- * succès d'ensemble renforcent l'énergie, tous les générateurs, et la chance de collision. Ils se
- * déduisent de ce qui a été acheté : rien ne les reprend, sauf la remise à zéro.
+ * Les succès du collisionneur : ils se gagnent en achetant des générateurs et en enchaînant les collisions, et chacun
+ * renforce les générateurs d'une façon. Pour chaque générateur, un premier succès double sa production, un second
+ * divise ses prix par deux ; trois succès d'ensemble renforcent l'énergie, tous les générateurs, et la chance de
+ * collision. Ils se déduisent de ce qui a été acheté : rien ne les reprend, sauf la remise à zéro.
  */
 public enum ColliderAchievement {
     BEAM_OUTPUT(ColliderGenerator.BEAM, Kind.OUTPUT, 10),
@@ -56,18 +55,12 @@ public enum ColliderAchievement {
     }
 
     /** Le générateur qu'il concerne, ou {@code null} pour un succès d'ensemble. */
-    public ColliderGenerator generator() {
-        return generator;
-    }
+    public ColliderGenerator generator() { return generator; }
 
-    public Kind kind() {
-        return kind;
-    }
+    public Kind kind() { return kind; }
 
     /** Ce qu'il faut : des exemplaires achetés de son générateur, des générateurs en tout, ou des collisions. */
-    public int threshold() {
-        return threshold;
-    }
+    public int threshold() { return threshold; }
 
     /** Son nom : « Aimant supraconducteur, production », « Cent générateurs »… */
     public String title() {
@@ -104,7 +97,7 @@ public enum ColliderAchievement {
     }
 
     /**
-     * Version 0.214 : les succès par générateur et par sorte. Le collisionneur en cherche à chaque pas de jeu ; les
+     * Les succès par générateur et par sorte. Le collisionneur en cherche à chaque pas de jeu ; les
      * retrouver par leur nom recomposé coûtait une chaîne et une recherche à chaque fois.
      */
     private static final ColliderAchievement[][] BY_GENERATOR = new ColliderAchievement[ColliderGenerator.values().length][Kind.values().length];

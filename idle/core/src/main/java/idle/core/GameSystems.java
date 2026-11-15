@@ -1,34 +1,22 @@
 package idle.core;
 
+import idle.core.state.GameState;
+import java.util.function.Consumer;
+
 import idle.core.achievements.Achievement;
-import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.BigBangMilestones;
-import idle.core.collider.ColliderUpgrade;
-import idle.core.collider.Quark;
+import idle.core.bigbang.*;
+import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
-import idle.core.molecules.ShoppingList;
-import idle.core.probes.Probe;
-import idle.core.probes.ProbeDestination;
-import idle.core.probes.ProbeReward;
-import idle.core.probes.ProbeTrip;
-import idle.core.probes.ProbeUpgrade;
-import idle.core.sky.Body;
-import idle.core.sky.SolarSystem;
-import idle.core.upgrades.Automation;
-import idle.core.upgrades.Effect;
-import idle.core.upgrades.Upgrade;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import idle.core.molecules.*;
+import idle.core.probes.*;
+import idle.core.sky.*;
+import idle.core.upgrades.*;
+import java.util.*;
 import java.util.random.RandomGenerator;
 
-/**
- * Les sondes, la maturation des astres et les systèmes solaires.
- */
+/** Les sondes, la maturation des astres et les systèmes solaires. */
 public abstract class GameSystems extends GameBase {
-
     GameSystems(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog, List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
@@ -36,7 +24,7 @@ public abstract class GameSystems extends GameBase {
     // Ce que fournissent les parties suivantes.
     public abstract boolean isBigBangMilestoneReached(BigBangMilestone milestone);
     public abstract boolean isBigBangUnlocked();
-    public abstract double bangReward(idle.core.bigbang.BangChallenge.Reward reward);
+    public abstract double bangReward(BangChallenge.Reward reward);
     public abstract List<Molecule> molecules();
     public abstract boolean isMoleculeKindUnlocked(Molecule.Kind kind);
     public abstract ShoppingList shoppingList();
@@ -44,11 +32,11 @@ public abstract class GameSystems extends GameBase {
     public abstract BigNum steadySpacePerSecond();
     public abstract int colliderUpgradeLevel(ColliderUpgrade upgrade);
     public abstract int dimensionsUnlocked();
-    /** Ce que le trou noir du vide divise la maturation des trous noirs (version 0.177, {@link GameVoid#voidHoleMaturationFactor()}). */
+    /** Ce que le trou noir du vide divise la maturation des trous noirs ({@link GameVoid#voidHoleMaturationFactor()}). */
     public abstract double voidHoleMaturationFactor();
 
     // ------------------------------------------------------------------
-    // Les sondes (version 0.052) : des voyages dont le butin se réclame d'un clic
+    // Les sondes : des voyages dont le butin se réclame d'un clic
     // ------------------------------------------------------------------
 
     /** Secondes d'expansion que vaut une récompense d'espace de valeur 1 (un saut court). */
@@ -63,25 +51,21 @@ public abstract class GameSystems extends GameBase {
     private final List<ProbeReward> returnedProbes = new ArrayList<>();
 
     /** Vrai une fois les sondes ouvertes : au palier du troisième Big Bang. */
-    public boolean isProbesUnlocked() {
-        return milestoneGives(BigBangMilestone.Probes.class);
-    }
+    public boolean isProbesUnlocked() { return milestoneGives(BigBangMilestone.Probes.class); }
 
     /** Les effets de cette sorte que donnent les paliers de Big Bang atteints, dans l'ordre des paliers. */
-    <E extends BigBangMilestone.Effect> List<E> reachedEffects(Class<E> kind) {
-        return milestoneEffects(kind, false);
-    }
+    <E extends BigBangMilestone.Effect> List<E> reachedEffects(Class<E> kind) { return milestoneEffects(kind, false); }
 
     /**
      * Comme {@link #reachedEffects(Class)}, en comptant aussi le palier que le prochain Big Bang atteindra :
-     * le Big Bang qui ouvre un palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
+     * le Big Bang qui ouvre un palier en profite déjà ; les suivants, une fois le palier payé.
      */
     <E extends BigBangMilestone.Effect> List<E> nextBigBangEffects(Class<E> kind) {
         return milestoneEffects(kind, true);
     }
 
     /**
-     * Version 0.214 : un palier n'est regardé (atteint ? payé ?) que s'il a un effet de cette sorte. Ces effets se
+     * Un palier n'est regardé (atteint ? payé ?) que s'il a un effet de cette sorte. Ces effets se
      * relisent plusieurs fois à chaque pas de jeu, et la plupart des paliers n'en ont pas : les regarder tous était le
      * plus cher du calcul.
      */
@@ -103,9 +87,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Vrai si un palier atteint donne cet effet. */
-    boolean milestoneGives(Class<? extends BigBangMilestone.Effect> kind) {
-        return !reachedEffects(kind).isEmpty();
-    }
+    boolean milestoneGives(Class<? extends BigBangMilestone.Effect> kind) { return !reachedEffects(kind).isEmpty(); }
 
     /** Sondes en vol à la fois : une, plus le hangar. */
     public int probeSlots() {
@@ -122,8 +104,8 @@ public abstract class GameSystems extends GameBase {
     /** Durée d'un voyage, moteurs compris. */
     public double probeDuration(ProbeTrip trip) {
         return trip.seconds() * Math.pow(0.9, state.probeUpgradeLevel(ProbeUpgrade.ENGINE)) / universeBangFactor(BANG_UNIVERSE_PROBE_SPEED)
-                // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
-                / bangReward(idle.core.bigbang.BangChallenge.Reward.PROBES);
+                // La valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
+                / bangReward(BangChallenge.Reward.PROBES);
     }
 
     /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
@@ -147,9 +129,7 @@ public abstract class GameSystems extends GameBase {
     public static final int URGENT_WAVE_BIG_BANGS = 3;
 
     /** Vrai une fois l'onde d'urgence chimique ouverte : les sondes, et le troisième Big Bang. */
-    public boolean isUrgentWaveUnlocked() {
-        return isProbesUnlocked() && state.bigBangs() >= URGENT_WAVE_BIG_BANGS;
-    }
+    public boolean isUrgentWaveUnlocked() { return isProbesUnlocked() && state.bigBangs() >= URGENT_WAVE_BIG_BANGS; }
 
     /** Vrai si l'onde d'urgence peut partir : ouverte, une place libre, et un élément découvert à rapporter. */
     public boolean canLaunchUrgentWave() {
@@ -157,9 +137,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Envoie l'onde d'urgence chimique. */
-    public boolean launchUrgentWave() {
-        return launchProbe(ProbeDestination.VOID, ProbeTrip.URGENT);
-    }
+    public boolean launchUrgentWave() { return launchProbe(ProbeDestination.VOID, ProbeTrip.URGENT); }
 
     /**
      * L'élément que l'astre visé demande le plus : pour chaque molécule qui lui manque, ses
@@ -167,7 +145,7 @@ public abstract class GameSystems extends GameBase {
      * éléments déjà découverts ; à égalité, le plus petit numéro. 0 s'il n'y en a pas.
      */
     public int urgentElement() {
-        Map<Integer, Long> demand = new java.util.TreeMap<>();
+        Map<Integer, Long> demand = new TreeMap<>();
         for (ShoppingList.Item item : shoppingList().items()) {
             long missing = Math.max(item.missing(), item.gather() ? 1 : 0);
             if (missing <= 0) continue;
@@ -272,7 +250,7 @@ public abstract class GameSystems extends GameBase {
         state.setProbeRuns(run + 1);
         double value = probeValue(probe.trip());
         ProbeDestination where = probe.destination();
-        // L'onde d'urgence (version 0.086) : un seul lot, de l'élément le plus demandé à son retour ; rien s'il n'y en a plus.
+        // L'onde d'urgence : un seul lot, de l'élément le plus demandé à son retour ; rien s'il n'y en a plus.
         if (probe.trip().isUrgent()) {
             int element = urgentElement();
             return element > 0 ? List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, String.valueOf(element), value, where, probe.id()))
@@ -308,7 +286,7 @@ public abstract class GameSystems extends GameBase {
      */
     public List<Integer> probeElements(ProbeDestination destination) {
         if (destination.kind() == null) return List.of();
-        java.util.TreeSet<Integer> found = new java.util.TreeSet<>();
+        TreeSet<Integer> found = new TreeSet<>();
         for (Molecule molecule : molecules()) {
             if (molecule.kind() != destination.kind()) continue;
             for (Integer element : molecule.recipe().keySet()) {
@@ -319,14 +297,10 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** La prochaine récompense à réclamer, ou {@code null}. */
-    public ProbeReward nextProbeReward() {
-        return state.probeRewards().isEmpty() ? null : state.probeRewards().get(0);
-    }
+    public ProbeReward nextProbeReward() { return state.probeRewards().isEmpty() ? null : state.probeRewards().get(0); }
 
     /** Exemplaires d'élément que donne cette récompense. */
-    public int probeElementsOf(ProbeReward reward) {
-        return (int) Math.ceil(PROBE_ELEMENTS * reward.value());
-    }
+    public int probeElementsOf(ProbeReward reward) { return (int) Math.ceil(PROBE_ELEMENTS * reward.value()); }
 
     /** Espace que donne cette récompense, à l'expansion du moment. */
     public BigNum probeSpaceOf(ProbeReward reward) {
@@ -344,9 +318,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Quarks charmés que donne cette récompense ; les quarks beaux sont la moitié, arrondie au-dessous. */
-    public int probeCharmOf(ProbeReward reward) {
-        return Math.max(1, (int) Math.round(Math.pow(reward.value(), 0.5)));
-    }
+    public int probeCharmOf(ProbeReward reward) { return Math.max(1, (int) Math.round(Math.pow(reward.value(), 0.5))); }
 
     /**
      * Réclame la prochaine récompense : elle s'applique, et la suivante prend sa place. Un élément
@@ -379,9 +351,7 @@ public abstract class GameSystems extends GameBase {
             type = ProbeReward.Type.SPACE;
         }
         switch (type) {
-            case SPACE -> {
-                if (isBigBangUnlocked()) state.setSpace(state.space().add(probeSpaceOf(reward)));
-            }
+            case SPACE -> { if (isBigBangUnlocked()) state.setSpace(state.space().add(probeSpaceOf(reward))); }
             case BOOST -> state.setProbeBoostLeft(state.probeBoostLeft() + probeBoostOf(reward));
             case SAMPLES -> state.setProbeSamples(state.probeSamples() + probeSamplesOf(reward));
             case QUARKS -> {
@@ -395,13 +365,9 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Ce par quoi un sursaut d'expansion multiplie l'espace par seconde. */
-    public double probeBoostMultiplier() {
-        return state.probeBoostLeft() > 0 ? PROBE_BOOST_FACTOR : 1;
-    }
+    public double probeBoostMultiplier() { return state.probeBoostLeft() > 0 ? PROBE_BOOST_FACTOR : 1; }
 
-    public long probeUpgradeCost(ProbeUpgrade upgrade) {
-        return upgrade.cost(state.probeUpgradeLevel(upgrade));
-    }
+    public long probeUpgradeCost(ProbeUpgrade upgrade) { return upgrade.cost(state.probeUpgradeLevel(upgrade)); }
 
     public boolean canBuyProbeUpgrade(ProbeUpgrade upgrade) {
         int level = state.probeUpgradeLevel(upgrade);
@@ -422,7 +388,7 @@ public abstract class GameSystems extends GameBase {
         return taken;
     }
     // ------------------------------------------------------------------
-    // La maturation des astres (version 0.053) : un astre formé mûrit avant de compter pleinement
+    // La maturation des astres : un astre formé mûrit avant de compter pleinement
     // ------------------------------------------------------------------
 
     /** Part de son bonus que donne un astre pendant qu'il mûrit. */
@@ -452,16 +418,16 @@ public abstract class GameSystems extends GameBase {
             case EXOTIC -> 300;
             case CORE -> 360;
         };
-        // La bulle de l'arbre ancien, à droite (version 0.148) : plus de maturation du tout.
+        // La bulle de l'arbre ancien, à droite : plus de maturation du tout.
         if (hasBubble(GameUniverse.TreeBubble.ANCIENT_RIGHT)) return 0;
-        // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
+        // La valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
         double seconds = minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION)
-                / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION) * maturationShare();
-        // Version 0.177 : le trou noir du vide, ouvert, raccourcit la maturation des deux trous noirs.
+                / bangReward(BangChallenge.Reward.MATURATION) * maturationShare();
+        // Le trou noir du vide, ouvert, raccourcit la maturation des deux trous noirs.
         return isBlackHole(body) ? seconds / voidHoleMaturationFactor() : seconds;
     }
 
-    /** Vrai pour les deux trous noirs (version 0.177) : le trou noir et le trou noir supermassif. */
+    /** Vrai pour les deux trous noirs : le trou noir et le trou noir supermassif. */
     public static boolean isBlackHole(Body body) {
         return body.tier() == Body.Tier.BLACK_HOLE || body.tier() == Body.Tier.CORE;
     }
@@ -472,7 +438,7 @@ public abstract class GameSystems extends GameBase {
      */
     public static final double VOID_MATURE_STEP = 0.05;
 
-    /** La part de la durée de maturation qui reste avec le vide : 1 sans l'amélioration, 0,5 au plus fort (version 0.169). */
+    /** La part de la durée de maturation qui reste avec le vide : 1 sans l'amélioration, 0,5 au plus fort. */
     public double maturationShare() {
         GameUniverse.VoidUpgrade mature = GameUniverse.VoidUpgrade.MATURE;
         return 1 - VOID_MATURE_STEP * Math.min(mature.max(), state.voidLevel(mature.ordinal()));
@@ -485,25 +451,19 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Vrai si cet astre est formé mais mûrit encore. */
-    public boolean isBodyMaturing(String bodyId) {
-        return state.maturingLeft(body(bodyId).id()) > 0;
-    }
+    public boolean isBodyMaturing(String bodyId) { return state.maturingLeft(body(bodyId).id()) > 0; }
 
     /** Secondes de maturation qu'il reste à cet astre. */
-    public double maturationLeft(String bodyId) {
-        return state.maturingLeft(body(bodyId).id());
-    }
+    public double maturationLeft(String bodyId) { return state.maturingLeft(body(bodyId).id()); }
 
     /** Nombre d'astres mûrs. */
-    public int bodiesMature() {
-        return state.bodies().size() - state.maturing().size();
-    }
+    public int bodiesMature() { return state.bodies().size() - state.maturing().size(); }
 
     /** Places de maturation. */
     public int maturationPlaces() {
         int places = MATURATION_PLACES;
         for (BigBangMilestone.MorePlaces more : reachedMorePlaces()) places += more.maturation();
-        // La bulle de la graine (version 0.148) : une place de plus par dimension ouverte.
+        // La bulle de la graine : une place de plus par dimension ouverte.
         if (hasBubble(GameUniverse.TreeBubble.SEED)) places += dimensionsUnlocked();
         return places;
     }
@@ -514,19 +474,13 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Vrai une fois les matières exotiques ouvertes, au huitième Big Bang : leurs astres peuvent se former. */
-    public boolean isExoticUnlocked() {
-        return milestoneGives(BigBangMilestone.ExoticMatter.class);
-    }
+    public boolean isExoticUnlocked() { return milestoneGives(BigBangMilestone.ExoticMatter.class); }
 
     /** Vrai s'il reste une place pour faire mûrir un astre de plus. */
-    public boolean hasMaturationPlace() {
-        return state.maturing().size() < maturationPlaces();
-    }
+    public boolean hasMaturationPlace() { return state.maturing().size() < maturationPlaces(); }
 
     /** Les astres qui mûrissent, dans l'ordre de leur formation. */
-    public List<String> maturingBodies() {
-        return List.copyOf(state.maturing().keySet());
-    }
+    public List<String> maturingBodies() { return List.copyOf(state.maturing().keySet()); }
 
     /** Dépense une charge d'impulsion pour avancer la maturation de cet astre de {@link #MATURATION_HASTE_SECONDS} secondes. */
     public boolean hastenMaturation(String bodyId) {
@@ -554,7 +508,7 @@ public abstract class GameSystems extends GameBase {
         return taken;
     }
     // ------------------------------------------------------------------
-    // Les systèmes solaires (version 0.054) : une étoile, ses planètes, ses lunes
+    // Les systèmes solaires : une étoile, ses planètes, ses lunes
     // ------------------------------------------------------------------
 
     /** Systèmes solaires complets que demande la galaxie. */
@@ -565,14 +519,10 @@ public abstract class GameSystems extends GameBase {
     public static final double SYSTEM_GAIN = 8;
 
     /** Vrai une fois les systèmes solaires ouverts, au sixième Big Bang. */
-    public boolean isSolarSystemsUnlocked() {
-        return milestoneGives(BigBangMilestone.SolarSystems.class);
-    }
+    public boolean isSolarSystemsUnlocked() { return milestoneGives(BigBangMilestone.SolarSystems.class); }
 
     /** Vrai si ce système a assez de planètes. */
-    public boolean isSystemComplete(SolarSystem system) {
-        return system.planets().size() >= SYSTEM_MIN_PLANETS;
-    }
+    public boolean isSystemComplete(SolarSystem system) { return system.planets().size() >= SYSTEM_MIN_PLANETS; }
 
     /** Nombre de systèmes complets. */
     public int solarSystemsComplete() {
@@ -596,10 +546,8 @@ public abstract class GameSystems extends GameBase {
         return count;
     }
 
-    /** Vrai si cette planète peut encore entrer dans un système : une fois, ou deux une fois les trois défis de Big Bang réussis (version 0.116). */
-    private boolean canPlaceAgain(String planetId) {
-        return planetPlacements(planetId) < (planetsTwice() ? 2 : 1);
-    }
+    /** Vrai si cette planète peut encore entrer dans un système : une fois, ou deux une fois les trois défis de Big Bang réussis. */
+    private boolean canPlaceAgain(String planetId) { return planetPlacements(planetId) < (planetsTwice() ? 2 : 1); }
 
     /** Les astres mûrs de cette échelle qui ne sont dans aucun système : ce qu'on peut encore y placer. */
     public List<String> freeForSystems(Body.Tier tier) {
@@ -635,7 +583,7 @@ public abstract class GameSystems extends GameBase {
         if (index < 0 || index >= state.solarSystems().size() || planet.tier() != Body.Tier.PLANET
                 || !isBodyMature(planet.id()) || !canPlaceAgain(planet.id())) return false;
         SolarSystem system = state.solarSystems().get(index);
-        // Deux fois au plus (version 0.116), mais jamais deux fois dans le même système.
+        // Deux fois au plus, mais jamais deux fois dans le même système.
         if (system.planets().contains(planet.id())) return false;
         List<String> planets = new ArrayList<>(system.planets());
         planets.add(planet.id());
@@ -675,7 +623,7 @@ public abstract class GameSystems extends GameBase {
         List<String> planets = new ArrayList<>(system.planets());
         int at = planets.indexOf(planetId), to = at + Integer.signum(direction);
         if (at < 0 || to < 0 || to >= planets.size()) return false;
-        java.util.Collections.swap(planets, at, to);
+        Collections.swap(planets, at, to);
         replaceSystem(index, system.withPlanets(planets));
         return true;
     }
@@ -692,9 +640,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Vrai pour une planète tellurique (roche, lave, océan), dont la place est près de l'étoile. */
-    public boolean isTelluric(String planetId) {
-        return telluric(body(planetId));
-    }
+    public boolean isTelluric(String planetId) { return telluric(body(planetId)); }
 
     /**
      * Vrai si la planète de cette orbite est bien placée : une tellurique n'a que des telluriques plus
@@ -742,7 +688,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /**
-     * Le meilleur ordre des planètes de ce système (version 0.059) : celui qui donne le plus
+     * Le meilleur ordre des planètes de ce système : celui qui donne le plus
      * d'harmonie, et à égalité celui qui bouge le moins de planètes. Les lunes ne changent pas.
      */
     public SolarSystem bestArrangement(SolarSystem system) {
@@ -765,15 +711,15 @@ public abstract class GameSystems extends GameBase {
         return best[0];
     }
 
-    private static void permute(List<String> items, int from, java.util.function.Consumer<List<String>> each) {
+    private static void permute(List<String> items, int from, Consumer<List<String>> each) {
         if (from >= items.size() - 1) {
             each.accept(List.copyOf(items));
             return;
         }
         for (int i = from; i < items.size(); i++) {
-            java.util.Collections.swap(items, from, i);
+            Collections.swap(items, from, i);
             permute(items, from + 1, each);
-            java.util.Collections.swap(items, from, i);
+            Collections.swap(items, from, i);
         }
     }
 
@@ -792,7 +738,5 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Points d'harmonie d'un système : une planète bien placée, une lune, la zone habitable, une géante. */
-    public int systemHarmony(SolarSystem system) {
-        return systemHarmonyReasons(system).size();
-    }
+    public int systemHarmony(SolarSystem system) { return systemHarmonyReasons(system).size(); }
 }

@@ -3,37 +3,33 @@ package idle.core.molecules;
 import java.util.List;
 
 /**
- * Catalogue des molécules, rangées par rayon ({@link Molecule.Kind}) : 73 molécules réelles, de H₂ au
- * naphtalène, en quatre rayons (version 0.178 : 430 molécules et huit rayons avant). Chaque molécule
- * du catalogue sert au ciel : elle entre dans un assemblage ({@link idle.core.sky.Assemblies}) ou un
- * astre ({@link idle.core.sky.Bodies}) la demande. Rien n'y est de trop.
+ * Catalogue des molécules, rangées par rayon ({@link Molecule.Kind}) : 73 molécules réelles, de H₂ au naphtalène, en
+ * quatre rayons (version 0.178 : 430 molécules et huit rayons avant). Chaque molécule du catalogue sert au ciel : elle
+ * entre dans un assemblage ({@link idle.core.sky.Assemblies}) ou un astre ({@link idle.core.sky.Bodies}) la demande.
+ * Rien n'y est de trop.
  *
- * <p>Chaque molécule est décrite par sa formule en clair ({@link Molecule#of}), qui lui sert
- * aussi d'identifiant. Aucune ne contient d'élément unique (gaz nobles, actinides) : un élément
- * unique ne peut pas quitter le tableau périodique.
+ * <p>Chaque molécule est décrite par sa formule en clair ({@link Molecule#of}), qui lui sert aussi d'identifiant.
+ * Aucune ne contient d'élément unique (gaz nobles, actinides) : un élément unique ne peut pas quitter le tableau
+ * périodique.
  *
- * <p>Une création demande toujours la formule, une fois ({@link Game#nextMoleculeCost(String)}),
- * et un exemplaire de chaque élément doit rester dans le tableau. Ce qui limite une sorte, c'est
- * l'espace : chaque molécule en occupe, d'après son nombre de protons et son état
- * ({@link Game#moleculeVolume(String)}). Une sorte rassemblée attire en plus la matière : chaque
- * création y ajoute plusieurs molécules ({@link Game#moleculesPerCreation(String)}), et c'est ainsi
+ * <p>Une création demande toujours la formule, une fois ({@link Game#nextMoleculeCost(String)}), et un exemplaire de
+ * chaque élément doit rester dans le tableau. Ce qui limite une sorte, c'est l'espace : chaque molécule en occupe,
+ * d'après son nombre de protons et son état ({@link Game#moleculeVolume(String)}). Une sorte rassemblée attire en plus
+ * la matière : chaque création y ajoute plusieurs molécules ({@link Game#moleculesPerCreation(String)}), et c'est ainsi
  * qu'on réunit les milliers de molécules d'un astre.
  *
- * <p>Chaque sorte donne quelque chose ({@link Molecule.Bonus}), et peu : quelques pour cent
- * d'espace, de particules, d'atomes ou de croissance de la matière noire, ou un exemplaire de
- * plus au maximum d'un de ses éléments. Elle le donne à sa première molécule, puis chaque fois que
- * leur nombre double ({@link Game#effectiveMolecules(String)}) : mille molécules d'une sorte ne
- * valent que dix fois la première, et il vaut mieux beaucoup de sortes qu'une seule énorme.
- * Les bonus sont ceux de la version 0.166, inchangés ; seules les molécules de trop sont parties.
+ * <p>Chaque sorte donne quelque chose ({@link Molecule.Bonus}), et peu : quelques pour cent d'espace, de particules,
+ * d'atomes ou de croissance de la matière noire, ou un exemplaire de plus au maximum d'un de ses éléments. Elle le
+ * donne à sa première molécule, puis chaque fois que leur nombre double ({@link Game#effectiveMolecules(String)}) :
+ * mille molécules d'une sorte ne valent que dix fois la première, et il vaut mieux beaucoup de sortes qu'une seule
+ * énorme. Les bonus sont ceux de la version 0.166, inchangés ; seules les molécules de trop sont parties.
  *
- * <p>Chaque molécule a aussi un état ({@link Molecule.State}), celui de sa substance à température
- * ambiante, qui décide du lieu où elle se rassemble ({@link Game#formSubstance(String)}) : 18 gaz,
- * 15 liquides et 40 cristaux. Depuis la version 0.178, tout ce qui est solide se range avec les
- * cristaux : les anciens solides (le soufre, le naphtalène, l'anthracène, l'acide borique) sont
- * des cristaux, et il n'y a plus de métal.
+ * <p>Chaque molécule a aussi un état ({@link Molecule.State}), celui de sa substance à température ambiante, qui décide
+ * du lieu où elle se rassemble ({@link Game#formSubstance(String)}) : 18 gaz, 15 liquides et 40 cristaux. Depuis la
+ * version 0.178, tout ce qui est solide se range avec les cristaux : les anciens solides (le soufre, le naphtalène,
+ * l'anthracène, l'acide borique) sont des cristaux, et il n'y a plus de métal.
  */
 public final class Molecules {
-
     public static final List<Molecule> DEFAULT = List.of(
             // Les petites molécules : corps simples, gaz et petites molécules des atmosphères et des glaces.
             Molecule.of(Molecule.Kind.SIMPLE, "Dihydrogène", "H2").uncapping("H").gas(),

@@ -1,8 +1,7 @@
 package idle.core.molecules;
 
 import idle.core.sky.Assembly;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * La liste de courses du troisième acte : ce qu'il manque pour le prochain pas, molécule par
@@ -23,12 +22,9 @@ import java.util.Map;
  */
 public record ShoppingList(Kind kind, String target, boolean ready, List<Item> items, Map<Molecule.State, Integer> matter,
                            List<Assembly> assemblies, Map<Molecule.State, Integer> sorts) {
-
     /** Une liste sans variété demandée : tout sauf les échelles du cosmos. */
     public ShoppingList(Kind kind, String target, boolean ready, List<Item> items, Map<Molecule.State, Integer> matter,
-                        List<Assembly> assemblies) {
-        this(kind, target, ready, items, matter, assemblies, Map.of());
-    }
+                        List<Assembly> assemblies) { this(kind, target, ready, items, matter, assemblies, Map.of()); }
 
     /** Ce qu'est le prochain pas. */
     public enum Kind {
@@ -49,11 +45,8 @@ public record ShoppingList(Kind kind, String target, boolean ready, List<Item> i
      * @param purpose  à quoi elle sert dans ce pas : le nom d'un assemblage, ou un texte vide quand l'astre la demande lui-même
      */
     public record Item(Molecule molecule, int owned, int needed, boolean gather, String purpose) {
-
         /** Molécules qu'il reste à créer. */
-        public int missing() {
-            return Math.max(0, needed - owned);
-        }
+        public int missing() { return Math.max(0, needed - owned); }
     }
 
     /** La liste vide : il n'y a rien à viser. */
@@ -62,13 +55,13 @@ public record ShoppingList(Kind kind, String target, boolean ready, List<Item> i
     public ShoppingList {
         items = List.copyOf(items);
         // Dans l'ordre des états : gaz, liquides, solides, cristaux, métaux.
-        Map<Molecule.State, Integer> ordered = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> ordered = new EnumMap<>(Molecule.State.class);
         ordered.putAll(matter);
-        matter = java.util.Collections.unmodifiableMap(ordered);
+        matter = Collections.unmodifiableMap(ordered);
         assemblies = List.copyOf(assemblies);
-        Map<Molecule.State, Integer> kinds = new java.util.EnumMap<>(Molecule.State.class);
+        Map<Molecule.State, Integer> kinds = new EnumMap<>(Molecule.State.class);
         kinds.putAll(sorts);
-        sorts = java.util.Collections.unmodifiableMap(kinds);
+        sorts = Collections.unmodifiableMap(kinds);
     }
 
     /** Vrai si cette sorte est utile au prochain pas : il en manque, elle reste à rassembler, ou son état manque de matière. */

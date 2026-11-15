@@ -1,25 +1,25 @@
 package idle.core;
 
+import idle.core.state.GameStats;
+import java.util.*;
+
 import idle.core.math.BigNum;
 
 /**
- * Le retour du joueur après une absence : le jeu, fermé, n'a rien fait ; il rejoue maintenant une
- * part du temps écoulé, puis dit ce qu'elle a rapporté.
+ * Le retour du joueur après une absence : le jeu, fermé, n'a rien fait ; il rejoue maintenant une part du temps écoulé,
+ * puis dit ce qu'elle a rapporté.
  *
- * <p>La part rejouée dépend de l'avancée de la partie ({@link Game#offlineRate()}) : un dixième au
- * premier acte, tout une fois l'univers formé. Elle est fixée au retour, pour toute l'absence.
- * Une absence de moins de {@link #MIN_SECONDS} ne compte pas, et rien n'est compté au-delà de
- * {@link #MAX_SECONDS}.
+ * <p>La part rejouée dépend de l'avancée de la partie ({@link Game#offlineRate()}) : un dixième au premier acte, tout
+ * une fois l'univers formé. Elle est fixée au retour, pour toute l'absence. Une absence de moins de {@link
+ * #MIN_SECONDS} ne compte pas, et rien n'est compté au-delà de {@link #MAX_SECONDS}.
  *
- * <p>Le temps est rejoué par {@link Game#tick(double)}, exactement comme s'il passait jeu ouvert :
- * les automatismes agissent, la matière noire verrouillée grossit, l'espace s'étend. Rien n'est
- * fait à la place du joueur, sauf ce que l'accord d'absence de l'arbre lui confie : tenter les défis
- * ouverts ({@link idle.core.darkmatter.DarkEffect.ChallengesWhileAway}). Comme une longue absence demande du calcul, elle se rejoue par
- * morceaux ({@link #advanceFor(long)}), entre deux images, et le joueur peut passer la suite
- * ({@link #skip()}).
+ * <p>Le temps est rejoué par {@link Game#tick(double)}, exactement comme s'il passait jeu ouvert : les automatismes
+ * agissent, la matière noire verrouillée grossit, l'espace s'étend. Rien n'est fait à la place du joueur, sauf ce que
+ * l'accord d'absence de l'arbre lui confie : tenter les défis ouverts ({@link
+ * idle.core.darkmatter.DarkEffect.ChallengesWhileAway}). Comme une longue absence demande du calcul, elle se rejoue par
+ * morceaux ({@link #advanceFor(long)}), entre deux images, et le joueur peut passer la suite ({@link #skip()}).
  */
 public final class Absence {
-
     /** En dessous, l'absence ne compte pas : le joueur a seulement relancé le jeu. */
     public static final double MIN_SECONDS = 60;
     /** Au-delà, l'absence ne compte plus : vingt-quatre heures. */
@@ -44,17 +44,16 @@ public final class Absence {
      * @param space             espace gagné
      * @param moleculeCreations créations de molécules
      * @param achievements      succès obtenus
-     * @param paths             voies d'absence que l'arbre a prises seul (version 0.073)
-     * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.073)
+     * @param paths             voies d'absence que l'arbre a prises seul
+     * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre
      * @param challengesDone    défis réussis pendant l'absence
      * @param challengeRunning  le défi en cours au retour, ou {@code null}
-     * @param probeTrips        voyages de sonde que l'absence a vidés et relancés seule (version 0.086)
+     * @param probeTrips        voyages de sonde que l'absence a vidés et relancés seule
      */
     public record Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                          BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
-                         long moleculeCreations, int achievements, java.util.List<String> paths,
-                         java.util.List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
-
+                         long moleculeCreations, int achievements, List<String> paths,
+                         List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
         /** Vrai si l'absence n'a rien rapporté du tout : il n'y a alors rien à annoncer. */
         public boolean isEmpty() {
             return particles.isZero() && atoms.isZero() && fusions == 0 && syntheses == 0 && explosions == 0
@@ -82,8 +81,8 @@ public final class Absence {
     private final long creationsBefore;
     private final int achievementsBefore;
     private final int challengesBefore;
-    private final java.util.List<String> paths = new java.util.ArrayList<>();
-    private final java.util.List<String> challengesStarted = new java.util.ArrayList<>();
+    private final List<String> paths = new ArrayList<>();
+    private final List<String> challengesStarted = new ArrayList<>();
 
     /**
      * @param game        la partie, telle que la sauvegarde l'a rendue
@@ -116,34 +115,22 @@ public final class Absence {
     }
 
     /** Durée de l'absence, en secondes. */
-    public double away() {
-        return away;
-    }
+    public double away() { return away; }
 
     /** Part du temps retenu qui est rejouée (0,4 pour 40 %). */
-    public double rate() {
-        return rate;
-    }
+    public double rate() { return rate; }
 
     /** Temps de jeu à rejouer en tout, en secondes. */
-    public double total() {
-        return total;
-    }
+    public double total() { return total; }
 
     /** Temps de jeu déjà rejoué, en secondes. */
-    public double done() {
-        return done;
-    }
+    public double done() { return done; }
 
     /** Avancée du rattrapage, de 0 à 1. */
-    public double progress() {
-        return total <= 0 ? 1 : Math.min(1, done / total);
-    }
+    public double progress() { return total <= 0 ? 1 : Math.min(1, done / total); }
 
     /** Vrai quand tout est rejoué, ou que le joueur a passé la fin. */
-    public boolean isDone() {
-        return skipped || done >= total;
-    }
+    public boolean isDone() { return skipped || done >= total; }
 
     /** Rejoue jusqu'à {@code seconds} secondes de jeu de plus. */
     public void advance(double seconds) {
@@ -170,9 +157,7 @@ public final class Absence {
     }
 
     /** Le joueur ne veut pas attendre : ce qui reste à rejouer est abandonné. */
-    public void skip() {
-        skipped = done < total;
-    }
+    public void skip() { skipped = done < total; }
 
     /** Ce que l'absence a rapporté jusqu'ici. */
     public Report report() {
@@ -182,8 +167,8 @@ public final class Absence {
                 stats.fusions() - fusionsBefore, stats.syntheses() - synthesesBefore,
                 stats.elementsObtained() - elementsBefore, stats.timedExplosions() - explosionsBefore,
                 gain(game.state().space(), spaceBefore), stats.moleculeCreations() - creationsBefore,
-                Math.max(0, game.state().achievements().size() - achievementsBefore), java.util.List.copyOf(paths),
-                java.util.List.copyOf(challengesStarted), Math.max(0, game.completedChallenges() - challengesBefore),
+                Math.max(0, game.state().achievements().size() - achievementsBefore), List.copyOf(paths),
+                List.copyOf(challengesStarted), Math.max(0, game.completedChallenges() - challengesBefore),
                 game.activeChallenge() == null ? null : game.activeChallenge().name(), probeTrips);
     }
 

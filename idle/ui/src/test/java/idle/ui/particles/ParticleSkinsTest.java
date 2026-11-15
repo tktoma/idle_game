@@ -3,31 +3,22 @@ package idle.ui.particles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import idle.ui.FxTestSupport;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.util.*;
+import org.junit.jupiter.api.*;
 
 /**
- * Version 0.191 : les neuf skins de la fusion, sous Xvfb. Chacun se laisse choisir et dessine, image après
+ * Les neuf skins de la fusion, sous Xvfb. Chacun se laisse choisir et dessine, image après
  * image, un générateur qui naît, crée des particules à toutes les vitesses (poussières, ondes, arcs d'énergie)
  * et change de taille, sans exception ; un skin d'un autre visuel ramène au classique.
  */
 class ParticleSkinsTest {
-
     @BeforeAll
-    static void setup() {
-        FxTestSupport.start();
-    }
+    static void setup() { FxTestSupport.start(); }
 
     @AfterEach
-    void classic() {
-        ParticleView.setSkin(null);
-    }
+    void classic() { ParticleView.setSkin(null); }
 
     /** Les skins de la fusion, dans l'ordre du catalogue. */
     private static List<Skin> fusionSkins() {

@@ -1,13 +1,12 @@
 package idle.ui.pages;
 
-import idle.core.universe.Skin;
-import idle.core.universe.SkinVisual;
+import idle.core.universe.*;
 import java.util.Map;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Les skins des graphiques (version 0.198). Les courbes ({@link SkinVisual#CHART}) : « Papier millimétré », un
+ * Les skins des graphiques. Les courbes ({@link SkinVisual#CHART}) : « Papier millimétré », un
  * quadrillage fin bleu-vert sur du papier crème, un trait plus marqué tous les cinq ; « Oscilloscope », du vert sur
  * du noir, un réticule au centre et une rémanence : la courbe s'éclaire vers son bout et traîne un halo ;
  * « Crayon », du graphite sur du papier, les courbes tracées deux fois en léger décalage comme à main levée, le
@@ -16,7 +15,6 @@ import javafx.scene.paint.Color;
  * « Pastel », « Néon », « Niveaux de gris » ; la daltonien-sûre est celle d'origine.
  */
 final class ChartSkinStyles {
-
     /** Les couleurs d'un graphique dans un skin : le fond, le quadrillage, le texte, le texte estompé, l'encadré du survol. */
     record Look(Color surface, Color grid, Color text, Color muted, Color box) {
     }
@@ -94,13 +92,9 @@ final class ChartSkinStyles {
     }
 
     /** Les tirets du quadrillage du crayon : posés avant les lignes, retirés après ({@link #plainGrid}). */
-    static void dashedGrid(GraphicsContext g, Skin skin) {
-        if (skin == Skin.CHART_PENCIL) g.setLineDashes(3, 3);
-    }
+    static void dashedGrid(GraphicsContext g, Skin skin) { if (skin == Skin.CHART_PENCIL) g.setLineDashes(3, 3); }
 
-    static void plainGrid(GraphicsContext g) {
-        g.setLineDashes();
-    }
+    static void plainGrid(GraphicsContext g) { g.setLineDashes(); }
 
     /** Ce que le skin ajoute par-dessus le quadrillage : le réticule de l'oscilloscope, deux axes plus clairs au milieu. */
     static void overGrid(GraphicsContext g, Skin skin, double left, double top, double width, double height) {

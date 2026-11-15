@@ -1,6 +1,7 @@
 package idle.ui.common;
 
 import javafx.scene.control.Button;
+import java.util.function.IntConsumer;
 
 /**
  * Les barres de sous-onglets des pages (atomes, matière noire, Big Bang, univers, collisionneur, vide, statistiques,
@@ -8,7 +9,6 @@ import javafx.scene.control.Button;
  * câblage « choisir la sous-page, puis la recopier ».
  */
 public final class SubTabs {
-
     /** Le style commun des sous-onglets. */
     public static final String STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
             + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
@@ -17,9 +17,7 @@ public final class SubTabs {
             + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
 
     /** Le style d'un sous-onglet : souligné de {@code color} s'il est choisi, gris sinon. */
-    public static String style(boolean selected, String color) {
-        return style(STYLE, selected, color);
-    }
+    public static String style(boolean selected, String color) { return style(STYLE, selected, color); }
 
     /** Le même, sur une autre base ({@link #NARROW_STYLE}). */
     public static String style(String base, boolean selected, String color) {
@@ -32,7 +30,7 @@ public final class SubTabs {
      * Câble les onglets : le i-ième choisit la sous-page i puis la recopie (une sous-page n'est recopiée que lorsqu'elle
      * est affichée : elle l'est donc dès qu'on la choisit). {@code focusless} leur retire le parcours au clavier.
      */
-    public static void wire(boolean focusless, java.util.function.IntConsumer select, Runnable refresh, Button... tabs) {
+    public static void wire(boolean focusless, IntConsumer select, Runnable refresh, Button... tabs) {
         for (int i = 0; i < tabs.length; i++) {
             int index = i;
             if (focusless) tabs[i].setFocusTraversable(false);

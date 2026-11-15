@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.state.GameState;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,19 +14,17 @@ import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.148 : les effets des bulles de l'arbre. Chaque bulle achetée change une règle, pour tous les univers
- * suivants ; deux se rachètent cinq fois. Celle du défi final s'achète déjà, son effet est à venir ; celles des hadrons
- * (version 0.149) et de l'automatisation des dimensions (version 0.150) ont leur test, HadronsTest et
- * AutomatisationDimensionsTest.
+ * Les effets des bulles de l'arbre. Chaque bulle achetée change une règle, pour tous les univers suivants ; deux se
+ * rachètent cinq fois. Celle du défi final s'achète déjà, son effet est à venir ; celles des hadrons et de
+ * l'automatisation des dimensions ont leur test, HadronsTest et AutomatisationDimensionsTest.
  */
 class BullesEffetsTest {
-
     /** L'univers formé, la graine à ce palier, de l'énergie du vide accumulée. */
     private static Game at(int stage, double accumulated) {
         Game game = GameTestSupport.realGame();
         game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        // Version 0.179 : la graine ne dépasse pas deux paliers d'avance sur les univers formés.
+        // La graine ne dépasse pas deux paliers d'avance sur les univers formés.
         while (game.universes() + Game.SEED_STAGES_AHEAD < stage) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         if (accumulated > 0) game.state().noteVoidHistory("3", accumulated);
@@ -40,7 +40,7 @@ class BullesEffetsTest {
     }
 
     /**
-     * Forme l'univers, achète les bulles, puis lance le suivant (version 0.169) : ce qui était dans l'univers formé,
+     * Forme l'univers, achète les bulles, puis lance le suivant : ce qui était dans l'univers formé,
      * avant la formation, est gardé par les bulles achetées entre la formation et le lancement.
      */
     private static boolean formThenLaunch(Game game, TreeBubble... bubbles) {
@@ -49,9 +49,7 @@ class BullesEffetsTest {
         return game.startNextUniverse();
     }
 
-    private static void give(Game game, TreeBubble bubble) {
-        game.state().setTreeBubbleBought(bubble.ordinal(), true);
-    }
+    private static void give(Game game, TreeBubble bubble) { game.state().setTreeBubbleBought(bubble.ordinal(), true); }
 
     @Test
     void troisBullesSeRachetentCinqFoisEtCoutentPlusAChaqueNiveau() throws Exception {
@@ -92,7 +90,7 @@ class BullesEffetsTest {
 
     @Test
     void toutesLesBullesOntLeurEffet() {
-        // Version 0.160 : le défi final est là ; plus aucune bulle « à venir ».
+        // Le défi final est là ; plus aucune bulle « à venir ».
         for (TreeBubble bubble : TreeBubble.values()) assertFalse(bubble.effect().contains("à venir"), bubble.toString());
     }
 
@@ -176,7 +174,7 @@ class BullesEffetsTest {
 
     @Test
     void chaqueNiveauDeLArbusteDeDroiteOffreUnNiveauDePersistance() {
-        // Version 0.167 : la bulle se rachète cinq fois ; elle ne reprend jamais un niveau acheté au-delà.
+        // La bulle se rachète cinq fois ; elle ne reprend jamais un niveau acheté au-delà.
         Game game = GameTestSupport.realGame();
         game.state().setTreeBubbleLevel(TreeBubble.CROWN_RIGHT.ordinal(), 3);
         game.tick(1);

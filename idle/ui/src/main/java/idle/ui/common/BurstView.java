@@ -1,38 +1,31 @@
 package idle.ui.common;
 
 import idle.core.universe.Skin;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
+import javafx.scene.canvas.*;
+import javafx.scene.paint.*;
 
 /**
- * Les animations plein écran des skins (version 0.089), par-dessus toute la fenêtre et sans prendre
- * les clics : l'explosion de matière noire sous « Vortex » ou « Pulsar », et le Big Bang sous
- * « Aurore », « Supernova » ou « Cristal ». Le classique garde ses animations à lui.
+ * Les animations plein écran des skins, par-dessus toute la fenêtre et sans prendre les clics : l'explosion de matière
+ * noire sous « Vortex » ou « Pulsar », et le Big Bang sous « Aurore », « Supernova » ou « Cristal ». Le classique garde
+ * ses animations à lui.
  *
- * <p>Elle n'est pas rangée par sa fenêtre : à chaque image, elle prend la taille de la fenêtre et
- * tout s'y dessine en proportion, du plus petit écran au plus grand.
+ * <p>Elle n'est pas rangée par sa fenêtre : à chaque image, elle prend la taille de la fenêtre et tout s'y dessine en
+ * proportion, du plus petit écran au plus grand.
  *
  * <ul>
- *   <li>Vortex : l'écran s'assombrit de violet ; huit bras de spirale tournent de plus en plus vite,
- *       aspirent des débris et s'ouvrent jusqu'aux coins, puis tout est avalé au centre.</li>
- *   <li>Pulsar : deux grands faisceaux balaient tout l'écran en tournant, des anneaux battent du
- *       centre jusqu'aux bords.</li>
- *   <li>Aurore : la nuit tombe, des rideaux de lumière verte, bleue et violette montent sur toute la
- *       hauteur et ondulent, puis se dissipent.</li>
- *   <li>Supernova : une étoile enfle au centre, éclate en un éclair qui blanchit l'écran, et sa
- *       coquille de débris part jusqu'aux bords.</li>
- *   <li>Cristal : l'écran se fêle à partir du centre, puis vole en éclats qui partent en tournant.</li>
- * </ul>
- * Les dix animations de la version 0.191 (pluie, neige, sablier, feu d'artifice ; encre de Chine, vitrail,
+ * <li>Vortex : l'écran s'assombrit de violet ; huit bras de spirale tournent de plus en plus vite, aspirent des débris
+ * et s'ouvrent jusqu'aux coins, puis tout est avalé au centre.</li>
+ * <li>Pulsar : deux grands faisceaux balaient tout l'écran en tournant, des anneaux battent du centre jusqu'aux
+ * bords.</li>
+ * <li>Aurore : la nuit tombe, des rideaux de lumière verte, bleue et violette montent sur toute la hauteur et ondulent,
+ * puis se dissipent.</li>
+ * <li>Supernova : une étoile enfle au centre, éclate en un éclair qui blanchit l'écran, et sa coquille de débris part
+ * jusqu'aux bords.</li>
+ * <li>Cristal : l'écran se fêle à partir du centre, puis vole en éclats qui partent en tournant.</li>
+ * </ul> Les dix animations de la version 0.191 (pluie, neige, sablier, feu d'artifice ; encre de Chine, vitrail,
  * abysses, papier plié, carte ancienne, néon de ville) sont dessinées par {@link BurstSkinArt}.
  */
 public final class BurstView extends Canvas {
-
     private Skin skin;
     private double age;
     private double length;
@@ -53,14 +46,10 @@ public final class BurstView extends Canvas {
     }
 
     /** Vrai pendant une animation. */
-    public boolean isPlaying() {
-        return skin != null;
-    }
+    public boolean isPlaying() { return skin != null; }
 
     /** Le skin qui joue, ou {@code null} : pour les vérifications. */
-    public Skin playing() {
-        return skin;
-    }
+    public Skin playing() { return skin; }
 
     /** Avance l'animation et la redessine, à la taille de la fenêtre. */
     public void frame(double dt, double width, double height) {
@@ -88,9 +77,7 @@ public final class BurstView extends Canvas {
             case BANG_AURORA -> aurora(g, width, height, t);
             case BANG_SUPERNOVA -> supernova(g, width, height, cx, cy, far, t);
             case BANG_CRYSTAL -> crystal(g, width, height, cx, cy, far, t);
-            default -> {
-                if (BurstSkinArt.draws(skin)) BurstSkinArt.draw(skin, g, width, height, cx, cy, far, t, age);
-            }
+            default -> { if (BurstSkinArt.draws(skin)) BurstSkinArt.draw(skin, g, width, height, cx, cy, far, t, age); }
         }
         g.setGlobalAlpha(1);
     }
