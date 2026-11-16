@@ -185,6 +185,10 @@ public abstract class GameAppTabs extends GameAppWindow {
      */
     void playExplosion(boolean real) {
         if (exploding) return;
+        // Le son part avec l'onde, pas une seconde plus tard quand le tableau explose au plus fort de l'éclair. Une
+        // vraie explosion est comptée : son annonce, qui arrive ensuite, ne la prend pas pour celle d'un automatisme.
+        soundWithAnimation(Sound.Cue.EXPLOSION);
+        if (real) playerExplosions++;
         if (real && !settings.effect(Settings.Effect.FLASH)) {
             // Sans l'éclair : pas d'onde ni d'éclair, l'explosion a lieu tout de suite.
             game.explode();
@@ -331,10 +335,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         tabTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + tabColor(selectedTab) + ";");
     }
 
-    /**
-     * Vrai dans la partie secondaire : l'univers est formé, et les anciens onglets sont
-     * cachés (sauf si l'outil d'essai les a fait revenir).
-     */
     /** L'onglet Particules réapparaît : il grandit, dépasse un peu, revient ; puis on y va. */
     void popParticlesTab(double dt) {
         particlesTabPop += Math.min(Math.max(0, dt), 0.1);
@@ -352,7 +352,8 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
     }
 
-    boolean universePhase() { return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) && !universePage.showsOldTabs(); }
+    /** Vrai dans la partie secondaire : l'univers est formé, et les anciens onglets sont cachés. */
+    boolean universePhase() { return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE); }
 
     /**
      * Les fenêtres d'explication : chaque onglet qui s'ouvre, puis les nouveautés du
@@ -426,8 +427,23 @@ public abstract class GameAppTabs extends GameAppWindow {
         List<String> shown = Notifier.summarize(visible.stream().filter(item -> settings.notice(item.kind())).map(Notifier.News::text).toList());
         // Le son vient de ce qui s'est passé, pas de sa notification : coupée dans les réglages ou fondue dans le résumé,
         // elle sonne quand même ; seuls les réglages des sons décident. Ce que la partie secondaire cache ne sonne pas.
+        // Le Big Bang sonne au moment où il a lieu, avec son animation (l'onglet Big Bang et l'éclat de son skin, plus bas).
+        if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) soundWithAnimation(Sound.Cue.BIG_BANG);
+        // L'explosion et le Big Bang sonnent avec l'animation de l'action du joueur, jamais par leur annonce : une
+        // explosion faite par un automatisme reste muette.
         Sound.Cue heard = Sound.strongest(visible.stream().map(Notifier.News::text).toList());
-        if (heard != null && settings.sound()) sound.play(heard, settings.volume());
+        // Ce qu'amène un automatisme en marche (paliers de vitesse, automatismes offerts, éléments synthétisés) est une
+        // action des automatismes : muet sauf si « Sons des automatismes » est activé.
+        Sound.Cue toPlay = Sound.strongest(visible.stream()
+                .filter(item -> settings.automationSounds() || !Notifier.isAutomatic(item))
+                .map(Notifier.News::text)
+                .filter(text -> { Sound.Cue cue = Sound.cueOf(text); return cue != null && !PLAYER_SOUNDS.contains(cue); }).toList());
+        if (toPlay != null && settings.sound()) sound.play(toPlay, settings.volume());
+        // Une explosion annoncée sans animation du joueur : celle d'un automatisme, qui sonne si le réglage le veut.
+        if (visible.stream().anyMatch(item -> Sound.cueOf(item.text()) == Sound.Cue.EXPLOSION)) {
+            if (playerExplosions > 0) playerExplosions--;
+            else if (settings.automationSounds()) soundWithAnimation(Sound.Cue.EXPLOSION);
+        }
         // Un Big Bang ou un univers formé fait monter la musique.
         if (heard == Sound.Cue.BIG_BANG || heard == Sound.Cue.UNIVERSE) music.accent();
         if (settings.notifications()) {
@@ -478,7 +494,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (tab != selectedTab && selectedTab != Tab.SETTINGS) gameTab = selectedTab;
         selectedTab = tab;
         // Le profil de test : la barre d'outils ouvre le groupe de l'onglet affiché.
-        if (debugBar != null) debugBar.followTab(tab.name());
+        if (testPanel != null) testPanel.followTab(tab.name());
         if (tab != Tab.DARK_MATTER) darkMatterPage.release();
         if (tab != Tab.SETTINGS) settingsPage.release();
         particlesPage.setVisible(tab == Tab.PARTICLES);
@@ -693,9 +709,11 @@ public abstract class GameAppTabs extends GameAppWindow {
     /** Affiche les générateurs existants et fait avancer les animations de l'onglet visible. */
     void animate(double dt) {
         // Moins de générateurs dans le jeu qu'à l'écran : une fusion automatique vient d'avoir lieu.
-        // On joue la même animation que pour une fusion manuelle, puis les nouveaux générateurs naissent.
+        // On joue la même animation que pour une fusion manuelle, sans son sauf si « Sons des automatismes » est activé,
+        // puis les nouveaux générateurs naissent.
         if (Math.min(game.generatorCount(), MAX_VISIBLE_GENERATORS) < generators.views().size()
                 && !generators.isFusing()) {
+            if (settings.automationSounds()) soundWithAnimation(Sound.Cue.ATOM);
             generators.fuse(() -> { });
         }
         // Au-delà d'un certain nombre, les générateurs tournent sans être dessinés : ils deviendraient illisibles.
@@ -730,8 +748,11 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Chaque générateur a sa propre vitesse : les éléments du tableau périodique en accélèrent certains.
         List<ParticleView> views = generators.views();
         for (int i = 0; i < views.size(); i++) {
-            double speed = Math.min(game.speed(i).toDouble() * timeFactor(), 1e9);
-            views.get(i).frame(dt, game.state().formation(i), speed);
+            // La vitesse plafonnée règle les poussières ; son ordre de grandeur, sans plafond, donne le palier.
+            idle.core.math.BigNum speed = game.speed(i);
+            double factor = timeFactor();
+            views.get(i).frame(dt, game.state().formation(i), Math.min(speed.toDouble() * factor, 1e9),
+                    speed.isZero() ? Double.NEGATIVE_INFINITY : speed.log10() + Math.log10(factor));
         }
     }
 
@@ -751,5 +772,5 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /** Accélération du temps : toujours 1 en jeu normal, réglable dans le profil de test. */
-    double timeFactor() { return debugBar == null ? 1 : debugBar.timeFactor(); }
+    double timeFactor() { return testPanel == null ? 1 : testPanel.timeFactor(); }
 }

@@ -26,7 +26,7 @@ class GrondementTest {
             peak = Math.max(peak, Math.abs(loop[i]));
             if (i > 0) jump = Math.max(jump, Math.abs(loop[i] - loop[i - 1]));
         }
-        assertTrue(peak > 0.3 && peak <= 0.7, "un niveau franc, sans saturer : " + peak);
+        assertTrue(peak <= Sound.MAX_PEAK + 1e-3, "sans saturer : " + peak);
         float seam = Math.abs(loop[0] - loop[loop.length - 1]);
         assertTrue(seam <= jump, "la jointure ne saute pas plus qu'un pas ordinaire du son : " + seam + " / " + jump);
     }

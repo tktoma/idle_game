@@ -219,6 +219,9 @@ final class SoundBanks {
             // Les bruitages, aux notes du Classique, dans la voix de la banque.
             case PARTICLE -> render(0.06, t -> 0.6 * voice.tone(2349.3, t, 0.06));
             case ATOM -> render(0.14, t -> sequence(t, 0.05, 0.14, voice, 600, 900));
+            case NEW_ATOM -> render(0.3, t -> sequence(t, 0.05, 0.3, voice, 880, 1318.5));
+            case PROBE -> render(0.9, t -> sequence(t, 0.12, 0.9, voice, 392, 523.25, 783.99, 1046.5));
+            case MIRROR -> render(0.6, t -> voice.tone(523.25, t, 0.6));
             case COLLISION -> render(0.25, t -> voice.tone(1200, t, 0.25) + 0.5 * voice.tone(1797, t, 0.25));
             case HADRON -> render(0.35, t -> sequence(t, 0.03, 0.35, voice, 783.99, 987.77, 1174.66));
             case VOID -> render(0.6, t -> voice.tone(220, t, 0.6) + 0.5 * voice.tone(110, t, 0.6));

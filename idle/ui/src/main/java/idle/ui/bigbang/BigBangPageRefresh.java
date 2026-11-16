@@ -74,7 +74,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         bodiesTab.setManaged(bodies);
         int sky = game.bodiesFormed();
         bodiesTab.setText((sky > 0 ? "Astres (" + sky + ")" : "Astres") + Readiness.dot(Readiness.Kind.SKY, ready.bodies()));
-        if (selected == 5 && !bodies) select(0);
+        if (selected == BODIES && !bodies) select(0);
         // La galaxie n'a son onglet qu'à la première étoile.
         boolean galaxy = game.isGalaxyUnlocked();
         galaxyTab.setVisible(galaxy);

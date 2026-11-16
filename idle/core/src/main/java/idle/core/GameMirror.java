@@ -226,6 +226,18 @@ public abstract class GameMirror extends GameGrid {
         mirrorAutoTimer = 0;
     }
 
+    /**
+     * Le joueur entre dans le miroir : un motif qui attend sa reproduction, pas encore commencée, se rallume depuis sa
+     * première case (son piano se rejoue). Faux si rien n'a changé : un motif déjà en train de s'allumer, commencé, ou en
+     * pause.
+     */
+    public boolean showMirrorPattern() {
+        if (!isMirrorOpen() || mirrorPhase != MirrorPhase.INPUT || mirrorPosition > 0 || mirrorPattern.isEmpty()) return false;
+        mirrorPhase = MirrorPhase.SHOW;
+        mirrorTimer = 0;
+        return true;
+    }
+
     /** Outil d'essai : un motif choisi, prêt à reproduire. */
     public void testSetMirrorPattern(List<MirrorCell> pattern) {
         mirrorPattern.clear();

@@ -486,6 +486,13 @@ public final class DimensionWindow extends BorderPane {
         gridSize.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         HBox gridAim = new HBox(8);
         gridAim.setAlignment(Pos.CENTER);
+        // Un clic hors de la boîte des chiffres (x, y, z) quitte le champ en cours : les touches reviennent au jeu.
+        addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+            if (!(gridX.isFocused() || gridY.isFocused() || gridZ.isFocused())) return;
+            if (event.getTarget() instanceof Node target && inside(target, gridAim)) return;
+            for (TextField field : new TextField[] {gridX, gridY, gridZ}) field.deselect();
+            requestFocus();
+        });
         String[] axes = {"x", "y", "z"};
         TextField[] fields = {gridX, gridY, gridZ};
         for (int axis = 0; axis < 3; axis++) {
@@ -565,10 +572,16 @@ public final class DimensionWindow extends BorderPane {
         mixPane = new VBox(8, mixShards, mixThreshold, mixInfo, mixHint, mixDetail, mixRow);
         mixPane.setAlignment(Pos.CENTER);
         mixPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane, mixPane));
+        setBottom(bottom = new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane, mixPane));
         restyle();
         setVisible(false);
     }
+
+    /** Le bas de la fenêtre : les commandes de chaque dimension, puis la bande du profil de test s'il y en a une. */
+    private VBox bottom;
+
+    /** La bande du profil de test, tout en bas de la fenêtre : elle suit la dimension ouverte. */
+    public void setTestBar(Node bar) { bottom.getChildren().add(bar); }
 
     /** Les réglages de la boucle : où se lisent les touches des cercles et le métronome, et ce qui joue son tic. */
     public void setLoopSettings(LoopSettings settings) {
@@ -860,7 +873,7 @@ public final class DimensionWindow extends BorderPane {
                 : "Cliquez un cercle, ou sa touche (" + loopKeysText() + "), quand son point passe dans une zone : au centre "
                         + "« excellent », puis « bien », au bord « mauvais ». Après chaque clic, le cercle attend "
                         + seconds(Game.LOOP_COOLDOWN) + " s." + lastText);
-        metronomeButton.setText(loopSettings.metronome() ? "Métronome : activé (un tic à chaque centre de zone du premier cercle)"
+        metronomeButton.setText(loopSettings.metronome() ? "Métronome : activé (un tic à chaque huitième de tour du premier cercle)"
                 : "Métronome : coupé");
         StringBuilder levels = new StringBuilder().append(Detail.shown());
         for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values()) levels.append('/').append(game.loopLevel(upgrade));
@@ -1026,6 +1039,12 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Le nombre d'un champ de coordonnée, ou −1 s'il n'en est pas un. */
+    /** Vrai si {@code node} est {@code box} ou dedans. */
+    static boolean inside(Node node, Node box) {
+        for (Node at = node; at != null; at = at.getParent()) if (at == box) return true;
+        return false;
+    }
+
     private static int parsed(TextField field) {
         try {
             return Integer.parseInt(field.getText().trim());
@@ -1582,6 +1601,8 @@ public final class DimensionWindow extends BorderPane {
     public void open(Dimension dimension) {
         leaveMix();
         view.show(dimension);
+        // Le miroir rejoue son motif à l'entrée, s'il attend encore sa reproduction : on l'entend avant de le refaire.
+        if (dimension == Dimension.MIRROR) game.showMirrorPattern();
         view.setFreeCamera(freeCamera.getAsBoolean());
         title.setText("Dimension " + dimension.number() + " : " + dimension.label());
         held.clear();

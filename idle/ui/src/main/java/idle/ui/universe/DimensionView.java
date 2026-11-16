@@ -54,8 +54,8 @@ import javafx.scene.text.*;
  * chacun, un point tourne et des zones attendent, chacune en trois parts (le bord « mauvais », puis « bien », le centre
  * « excellent »). Un clic sur un cercle (ou sa touche, que la fenêtre transmet) le joue : le mot de ce qu'il a valu
  * monte du point, et un anneau autour du point se remplit tant que le cercle attend. Les clics du rythme automatique
- * font monter leurs nœuds du centre. Le métronome, s'il est branché ({@link #setOnBeat}), bat à chaque passage du point
- * du premier cercle sur le centre d'une zone. Depuis la version 0.154, le rythme automatique joue clic par clic, fenêtre
+ * font monter leurs nœuds du centre. Le métronome, s'il est branché ({@link #setOnBeat}), bat à chaque huitième de tour du
+ * point du premier cercle ({@link LoopBeat}). Depuis la version 0.154, le rythme automatique joue clic par clic, fenêtre
  * ouverte : chacun de ses clics éclaire son cercle et fait monter son mot du point, comme un clic du joueur.
  *
  * <p>La brane a la sienne depuis la version 0.154 : la membrane, un carré tendu, quadrillé. On l'appuie en un point, on
@@ -1621,8 +1621,10 @@ public final class DimensionView extends Canvas {
     private final List<LoopMark> loopMarks = new ArrayList<>();
     /** Les clics qui ont rapporté, que la vue a déjà montrés : ce que la partie compte de plus vient du rythme automatique. */
     private long lastLoopHits = -1;
-    /** Où était le point du premier cercle à l'image d'avant : pour entendre ses passages sur le centre d'une zone. */
+    /** Où était le point du premier cercle à l'image d'avant : pour entendre ses passages sur un battement. */
     private double lastBeatPhase = Double.NaN;
+    /** Où tombent les battements du métronome : la place de la première zone quand la fenêtre s'est ouverte. */
+    private double beatOffset;
     /** Le métronome : ce qu'il joue à chaque battement ; {@code null} quand il est coupé. */
     private Runnable onBeat;
     /** Ce qui suit un geste du joueur dans le mini-jeu : son son, avec le numéro de la dimension. */
@@ -1755,7 +1757,7 @@ public final class DimensionView extends Canvas {
 
     /**
      * La boucle avance d'une image : les mots montent, les éclats des cercles s'éteignent, et le métronome bat si le
-     * point du premier cercle a passé le centre d'une zone depuis l'image d'avant. Les clics du rythme automatique
+     * point du premier cercle a passé un huitième de tour depuis l'image d'avant. Les clics du rythme automatique
      * (version 0.154 : joués un par un) se montrent comme ceux du joueur : le cercle dont l'attente vient de remonter
      * s'éclaire, et le mot monte de son point. Ceux qu'il compte sans les jouer (un grand pas) montent du centre.
      */
@@ -1788,21 +1790,12 @@ public final class DimensionView extends Canvas {
         }
         lastLoopHits = hits;
         double phase = game.loopPhase(0);
-        if (!Double.isNaN(lastBeatPhase) && onBeat != null) {
-            double move = phase - lastBeatPhase;
-            if (move < 0) move += 1;
-            // Plus d'un demi-tour depuis l'image d'avant (la fenêtre était fermée) : rien à rattraper.
-            if (move > 0 && move < 0.5) {
-                for (double center : game.loopZones(0)) {
-                    double ahead = center - lastBeatPhase;
-                    ahead -= Math.floor(ahead);
-                    if (ahead > 0 && ahead <= move) {
-                        beats++;
-                        onBeat.run();
-                        break;
-                    }
-                }
-            }
+        if (Double.isNaN(lastBeatPhase)) {
+            List<Double> zones = game.loopZones(0);
+            beatOffset = zones.isEmpty() ? 0 : zones.get(0);
+        } else if (onBeat != null && LoopBeat.crossed(lastBeatPhase, phase, beatOffset)) {
+            beats++;
+            onBeat.run();
         }
         lastBeatPhase = phase;
     }
@@ -2018,6 +2011,11 @@ public final class DimensionView extends Canvas {
     /** Vrai pendant qu'on tient la membrane. */
     public boolean braneHeld() { return braneHeld; }
 
+    /** La force de la dernière tirée relâchée, de 0 à 1 : le son de la membrane qui part en dépend. */
+    public double lastBranePull() { return lastBranePull; }
+
+    private double lastBranePull;
+
     /** La force de la tirée en cours, de 0 à 1 : la longueur du glissé, à fond à {@link #BRANE_FULL_PULL}. */
     public double branePull() {
         if (!braneHeld) return 0;
@@ -2047,6 +2045,7 @@ public final class DimensionView extends Canvas {
     public boolean releaseBrane() {
         if (!braneHeld) return false;
         double pull = branePull();
+        lastBranePull = pull;
         braneHeld = false;
         return dimension == Dimension.BRANE && game.pullBrane(braneFromX, braneFromY, pull);
     }

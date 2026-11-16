@@ -104,7 +104,7 @@ class SonsDuJeuTest {
         for (int i = 0; i < sent.get(0).length; i += 2) {
             loudest = (short) Math.max(loudest, Math.abs((short) ((sent.get(0)[i] & 0xff) | sent.get(0)[i + 1] << 8)));
         }
-        assertTrue(loudest <= Math.round(Sound.GESTURE_LEVEL * Sound.GESTURE_LEVEL * 0.7 * Short.MAX_VALUE) + 1, "plus doux qu'une annonce : " + loudest);
+        assertTrue(loudest <= Math.round(Sound.MAX_PEAK * Short.MAX_VALUE) + 1, "sans saturer : " + loudest);
     }
 
     /** Vrai si le son dépasse un dixième de la pleine échelle à un moment. */

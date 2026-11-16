@@ -157,7 +157,7 @@ public abstract class GameMix extends GameMirror {
     private double mixDepth, mixTargetDepth, mixDirX, mixDirY, mixPot, mixHoldTime, mixRingPhase, mixRingZone = 0.5;
     private double mixZoneTimer, mixTreasureX = -1, mixTreasureY = -1, mixLastGain, mixAutoClickTimer;
     private boolean mixHolding, mixUseDirection;
-    private long mixNextId = 1, mixLastCollected, mixPairStreak, mixTreasures, mixReleases;
+    private long mixNextId = 1, mixLastCollected, mixPairStreak, mixTreasures, mixReleases, mixPickups;
     private MixRhythm mixLastRhythm = MixRhythm.NONE;
 
     /** Vrai dès que la dixième dimension est ouverte : au dixième univers. */
@@ -326,6 +326,12 @@ public abstract class GameMix extends GameMirror {
     public long mixPairStreak() { return mixPairStreak; }
 
     public long mixReleases() { return mixReleases; }
+
+    /**
+     * Les éclats ramassés depuis le lancement, par le point ou par une onde : l'interface y entend chaque ramassage,
+     * même quand ce qu'il rapporte va dans la charge ou est trop petit pour bouger le total des fragments.
+     */
+    public long mixPickups() { return mixPickups; }
 
     public double mixLastGain() { return mixLastGain; }
 
@@ -498,6 +504,7 @@ public abstract class GameMix extends GameMirror {
      * sinon tout de suite aux fragments ; ce que ramasse une onde ({@code direct}) y va toujours tout de suite.
      */
     private void collect(MixShard shard, double factor, boolean direct) {
+        mixPickups++;
         double value = mixValue() * MIX_SHARD_VALUE * factor;
         if (isMixing(3)) value *= 1 + shard.depth();
         if (isMixing(7)) for (MixZone zone : mixZones) if (zone.contains(shard.x(), shard.y())) value *= 2;

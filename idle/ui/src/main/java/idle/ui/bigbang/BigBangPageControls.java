@@ -79,12 +79,12 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         // Une recherche en cours d'écriture ne garde pas le clavier d'une sous-page à l'autre.
         if (moleculeFilter != null) moleculeFilter.release();
         moleculesScroll.setVisible(index == 0);
-        expansionPane.setVisible(index == 1);
+        expansionPane.setVisible(index == EXPANSION);
         upgradesScroll.setVisible(index == 2);
         statesScroll.setVisible(index == 3);
         assembliesScroll.setVisible(index == 4);
-        bodiesPane.setVisible(index == 5);
-        bodiesScroll.setVisible(index == 5);
+        bodiesPane.setVisible(index == BODIES);
+        bodiesScroll.setVisible(index == BODIES);
         galaxyPane.setVisible(index == 6);
         milestonesScroll.setVisible(index == 7);
         probesScroll.setVisible(index == 8);
@@ -92,7 +92,7 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         systemsTab.setStyle(SubTabs.style(index == 9, GameApp.BIG_BANG_COLOR));
         probesTab.setStyle(SubTabs.style(index == 8, GameApp.BIG_BANG_COLOR));
         moleculesTab.setStyle(SubTabs.style(index == 0, GameApp.BIG_BANG_COLOR));
-        expansionTab.setStyle(SubTabs.style(index == 1, GameApp.BIG_BANG_COLOR));
+        expansionTab.setStyle(SubTabs.style(index == EXPANSION, GameApp.BIG_BANG_COLOR));
         upgradesTab.setStyle(SubTabs.style(index == 2, GameApp.BIG_BANG_COLOR));
         statesTab.setStyle(SubTabs.style(index == 3, GameApp.BIG_BANG_COLOR));
         assembliesTab.setStyle(SubTabs.style(index == 4, GameApp.BIG_BANG_COLOR));
@@ -393,8 +393,8 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     public void frame(double elapsed) {
         // La palette des molécules : les vues la lisent à chaque image.
         MoleculeArt.setPalette(game.chosenSkin(SkinVisual.MOLECULE_PALETTE));
-        if (selected == 1) spaceView.frame(elapsed);
-        if (selected == 5) bodiesPane.frame(elapsed);
+        if (selected == EXPANSION) spaceView.frame(elapsed);
+        if (selected == BODIES) bodiesPane.frame(elapsed);
         if (selected == 7) bangChallenges.frame(elapsed);
         if (selected == 9) systemsPane.frame(elapsed);
         if (selected == 6) galaxyPane.frame(elapsed);

@@ -60,6 +60,10 @@ final class Sound {
         TOGGLE,
         /** Une particule créée, un atome (une fusion), une collision, des hadrons, une paire du vide. */
         PARTICLE, ATOM, COLLISION, HADRON, VOID,
+        /** Version 0.230 : un atome créé, vu sur le grand atome de l'onglet Atomes. */
+        NEW_ATOM,
+        /** Version 0.240 : une sonde lancée ; une note de piano du miroir (son motif, puis les cases reproduites). */
+        PROBE, MIRROR,
         /** Version 0.213 : un palier de la graine, un arrosage. */
         SEED, WATER,
         /** Version 0.213 : un clic sur un bouton, un changement d'onglet. */
@@ -74,8 +78,10 @@ final class Sound {
         double gap() {
             return switch (this) {
                 case BEAT -> BEAT_GAP;
-                case PARTICLE -> 0.25;
-                case ATOM, COLLISION, HADRON, WATER -> 0.3;
+                // Les particules de générateurs différents se superposent ; seules celles du même instant n'en font qu'une.
+                case PARTICLE -> PARTICLE_GAP;
+                case ATOM, NEW_ATOM, COLLISION, HADRON, WATER, PROBE -> 0.3;
+                case MIRROR -> 0.03;
                 case VOID -> 0.4;
                 case SEED -> 0.5;
                 case CLICK, TAB -> 0.04;
@@ -91,7 +97,9 @@ final class Sound {
                 case EXPLOSION -> SoundKind.EXPLOSION;
                 case PURCHASE, TOGGLE -> SoundKind.UPGRADES;
                 case PARTICLE -> SoundKind.PARTICLES;
-                case ATOM -> SoundKind.ATOMS;
+                case ATOM, NEW_ATOM -> SoundKind.ATOMS;
+                case PROBE -> SoundKind.PROBES;
+                case MIRROR -> SoundKind.DIMENSIONS;
                 case COLLISION -> SoundKind.COLLIDER;
                 case HADRON -> SoundKind.HADRONS;
                 case VOID -> SoundKind.VOID;
@@ -113,6 +121,48 @@ final class Sound {
     private boolean allowed(Cue cue) { return cue.kind() == null || allowed.test(cue.kind()); }
 
     static final double SAME_CUE_GAP = 0.8;
+
+    /**
+     * Le volume perçu de chaque son (la plus forte moyenne quadratique sur 50 ms, en dB sous la pleine échelle) : les sons
+     * rares, les grands moments, tous au même niveau ; les sons répétitifs, tous au même niveau, plus bas, pour ne pas
+     * lasser. Chaque son y est mis une fois, à sa fabrication, banques des skins et enregistrements compris.
+     */
+    static final double RARE_DB = -11, REPEATED_DB = -20;
+    /** La collision du collisionneur, un peu au-dessus des autres sons répétitifs (demandé à l'écoute). */
+    static final double COLLISION_DB = REPEATED_DB + 4;
+    /** Les sons qui reviennent souvent : bruitages, sons d'interface, la fusion (et, à part, les gestes, les points et le grondement). */
+    static final Set<Cue> REPEATED = EnumSet.of(Cue.PARTICLE, Cue.ATOM, Cue.NEW_ATOM, Cue.MIRROR, Cue.COLLISION, Cue.HADRON, Cue.VOID, Cue.WATER,
+            Cue.CLICK, Cue.TAB, Cue.PURCHASE, Cue.TOGGLE);
+    /** Aucun son ne dépasse cette crête, même mis à son niveau. */
+    static final double MAX_PEAK = 0.98;
+
+    /** Le niveau visé pour ce son. */
+    static double targetDb(Cue cue) { return cue == Cue.COLLISION ? COLLISION_DB : REPEATED.contains(cue) ? REPEATED_DB : RARE_DB; }
+
+    /** Le volume perçu, en amplitude (de 0 à 1) : la plus forte moyenne quadratique sur 50 ms, tous canaux mêlés. */
+    static double loudness(short[] samples, int channels) {
+        int window = (int) (0.05 * RATE) * channels;
+        double best = 0;
+        for (int start = 0; start < Math.max(1, samples.length - window + 1); start += Math.max(1, window / 4)) {
+            double sum = 0;
+            int end = Math.min(samples.length, start + window);
+            for (int i = start; i < end; i++) sum += (double) samples[i] * samples[i];
+            if (end > start) best = Math.max(best, Math.sqrt(sum / (end - start)) / 32768.0);
+        }
+        return best;
+    }
+
+    /** Ce son mis au niveau perçu {@code targetDb}, sans dépasser {@link #MAX_PEAK} ; un son vide reste vide. */
+    static short[] leveled(short[] samples, int channels, double targetDb) {
+        double loudness = loudness(samples, channels);
+        if (samples.length == 0 || loudness <= 0) return samples;
+        int peak = 0;
+        for (short sample : samples) peak = Math.max(peak, Math.abs(sample));
+        double gain = Math.min(Math.pow(10, targetDb / 20) / loudness, MAX_PEAK * Short.MAX_VALUE / peak);
+        short[] out = new short[samples.length];
+        for (int i = 0; i < out.length; i++) out[i] = (short) Math.round(samples[i] * gain);
+        return out;
+    }
     static final double ANY_CUE_GAP = 0.12;
     /** Deux tics du métronome ne se suivent pas à moins de ce temps, en secondes : deux zones collées n'en font qu'un. */
     static final double BEAT_GAP = 0.05;
@@ -121,8 +171,10 @@ final class Sound {
      * ce temps : assez court pour suivre des clics rapides, assez long pour qu'un clic tenu ne fasse pas un bourdon.
      */
     static final double INTERFACE_GAP = 0.07;
-    /** Les gestes dans les dimensions sonnent moins fort que les annonces : ils reviennent à chaque clic. */
-    static final double GESTURE_LEVEL = 0.6;
+    /** Deux particules à moins de ce temps l'une de l'autre partent au même instant : un seul son. Au-delà, elles se superposent. */
+    static final double PARTICLE_GAP = 0.05;
+    /** Au plus ce nombre de particules qui sonnent en même temps : la sortie audio n'est pas noyée sous les générateurs rapides. */
+    static final int MAX_PARTICLE_VOICES = 6;
 
     private static final float RATE = 44_100f;
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
@@ -136,7 +188,43 @@ final class Sound {
      * ({@link #synthesize(Cue)}) qui monte par-dessus, mêlés comme à l'écoute. La stéréo est gardée : ramenée en mono,
      * l'explosion perd l'essentiel de son ampleur. Vide si la ressource manque : le Big Bang reste alors synthétisé.
      */
-    static final short[] BIG_BANG_STEREO = bigBangStereo();
+    static final short[] BIG_BANG_STEREO = leveled(bigBangStereo(), 2, RARE_DB);
+    /**
+     * L'explosion du tableau par défaut : un enregistrement ({@code explosion.wav}, stéréo, 3,6 s), mis au niveau de
+     * l'explosion synthétisée d'avant. Les banques de sons des skins gardent la leur.
+     */
+    static final short[] EXPLOSION_STEREO = leveled(stereo("explosion.wav"), 2, RARE_DB);
+    /**
+     * La fusion des générateurs par défaut : un enregistrement ({@code fusion.wav}, 2,1 s), tel quel. Ses deux canaux
+     * sont presque opposés : large au casque, il s'efface sur un haut-parleur unique (choisi ainsi à l'écoute).
+     */
+    static final short[] FUSION_STEREO = leveled(stereo("fusion.wav"), 2, REPEATED_DB);
+    /** Un atome créé, sur l'onglet Atomes : un enregistrement ({@code atome.wav}, 1,45 s, sans son silence de fin). */
+    static final short[] NEW_ATOM_STEREO = leveled(stereo("atome.wav"), 2, REPEATED_DB);
+    /**
+     * Une collision réussie du collisionneur (un croisement raté ne sonne pas) : un enregistrement ({@code collision.wav},
+     * 1,5 s), sa montée presque inaudible coupée pour que le choc tombe tout de suite, sa queue inaudible coupée en fondu.
+     */
+    /**
+     * Le piano du miroir : seize notes de la gamme pentatonique de do, de do4 à do7, tirées du Salamander Grand Piano V3
+     * (Alexander Holm, licence CC BY 3.0), chacune mise au niveau des sons répétitifs ; vide si la ressource manque.
+     */
+    static final short[][] PIANO = piano();
+    /** Le nombre de notes du piano, et la durée de chacune dans la ressource {@code piano.wav}. */
+    static final int PIANO_NOTES = 16;
+    static final double PIANO_NOTE_SECONDS = 1.2;
+    /** Une faute dans le miroir : les deux notes graves ensemble, plus bas. */
+    static final short[] PIANO_WRONG = pianoWrong();
+    static final short[] COLLISION_STEREO = leveled(stereo("collision.wav"), 2, COLLISION_DB);
+    /**
+     * Le son d'une particule récupérée, un par palier de vitesse ({@link idle.ui.particles.SpeedStages}) : l'enregistrement
+     * {@code particule.wav} (un fa, 0,56 s), lu plus vite (plus aigu) ou plus lentement (plus grave) selon le palier.
+     * Vide si la ressource manque : le son synthétisé reste alors.
+     */
+    static final short[][] PARTICLE_STAGES = particleStages();
+    /** La crête du son de particule : celle des autres bruitages. */
+    static final double PARTICLE_PEAK = 0.3;
+
     /** Le gain de l'explosion enregistrée dans le mélange, et celui de l'accord : ceux retenus à l'écoute. */
     static final double RECORDED_GAIN = 1.7483, CHORD_GAIN = 0.7;
     /** La crête du mélange : il est mis à ce niveau une fois mêlé. */
@@ -198,14 +286,25 @@ final class Sound {
         if (now - lastAny < ANY_CUE_GAP * 1e9) return false;
         Long last = lastPlayed.get(cue);
         if (last != null && now - last < SAME_CUE_GAP * 1e9) return false;
-        boolean stereo = cue == Cue.BIG_BANG && BIG_BANG_STEREO.length > 0 && SoundBanks.classicBigBang(bank, bangSkin);
-        short[] sound = stereo ? BIG_BANG_STEREO : samples.computeIfAbsent(cue, this::synthesizeSkinned);
+        short[] recorded = recorded(cue);
+        boolean stereo = recorded != null;
+        short[] sound = stereo ? recorded : samples.computeIfAbsent(cue, this::leveledSkinned);
         // Le silence partiel : un son vide ne part pas et ne compte pas dans le rythme.
         if (sound.length == 0) return false;
         lastAny = now;
         lastPlayed.put(cue, now);
         send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), stereo));
         return true;
+    }
+
+    /** L'enregistrement stéréo de ce son avec les skins choisis, ou {@code null} : le son synthétisé (ou celui des skins). */
+    private short[] recorded(Cue cue) {
+        if (cue == Cue.BIG_BANG && BIG_BANG_STEREO.length > 0 && SoundBanks.classicBigBang(bank, bangSkin)) return BIG_BANG_STEREO;
+        if (cue == Cue.EXPLOSION && EXPLOSION_STEREO.length > 0 && bank == null) return EXPLOSION_STEREO;
+        if (cue == Cue.ATOM && FUSION_STEREO.length > 0 && bank == null) return FUSION_STEREO;
+        if (cue == Cue.NEW_ATOM && NEW_ATOM_STEREO.length > 0 && bank == null) return NEW_ATOM_STEREO;
+        if (cue == Cue.COLLISION && COLLISION_STEREO.length > 0 && bank == null) return COLLISION_STEREO;
+        return null;
     }
 
     /**
@@ -218,6 +317,12 @@ final class Sound {
         this.bangSkin = bang;
         this.metronomeSkin = metronome;
         samples.clear();
+    }
+
+    /** Un son des skins choisis, mis à son niveau ; le tic du métronome garde le sien (il a son propre réglage). */
+    private short[] leveledSkinned(Cue cue) {
+        short[] sound = synthesizeSkinned(cue);
+        return cue == Cue.BEAT ? sound : leveled(sound, 1, targetDb(cue));
     }
 
     /** Un son dans les skins choisis : {@link SoundBanks} les connaît, le Classique reste {@link #synthesize(Cue)}. */
@@ -234,14 +339,49 @@ final class Sound {
      * les bruitages. Hors du rythme des annonces ; le même ne revient pas avant son écart ({@link Cue#gap()}). Vrai s'il est parti.
      */
     boolean click(Cue cue, int volume) {
+        return sound(cue, volume, null);
+    }
+
+    /**
+     * Une particule récupérée sur un générateur de ce palier de vitesse : l'enregistrement, plus grave à chaque palier. Une
+     * banque de sons choisie garde son propre son de particule. Même rythme et même réglage que le son des particules.
+     */
+    boolean particle(int stage, int volume) {
+        long now = System.nanoTime();
+        while (!particleEnds.isEmpty() && particleEnds.peekFirst() <= now) particleEnds.pollFirst();
+        if (particleEnds.size() >= MAX_PARTICLE_VOICES) return false;
+        boolean recorded = bank == null && PARTICLE_STAGES.length > 0;
+        short[] sound = recorded ? PARTICLE_STAGES[Math.max(0, Math.min(PARTICLE_STAGES.length - 1, stage))] : null;
+        if (!sound(Cue.PARTICLE, volume, sound)) return false;
+        int length = sound != null ? sound.length : samples.getOrDefault(Cue.PARTICLE, new short[0]).length;
+        particleEnds.addLast(now + (long) (length / (double) RATE * 1e9));
+        return true;
+    }
+
+    /** La fin de chaque particule qui sonne encore, dans l'ordre où elles sont parties (les plus anciennes finissent d'abord, à peu près). */
+    private final ArrayDeque<Long> particleEnds = new ArrayDeque<>();
+
+    /**
+     * Une note du piano du miroir ({@code note} de 0 à {@value #PIANO_NOTES} − 1, du grave à l'aigu), ou la faute
+     * ({@code note} négatif). Le piano reste le même dans toutes les banques de sons ; le silence partiel le coupe.
+     */
+    boolean piano(int note, int volume) {
+        if (bank == Skin.SOUND_SILENCE) return false;
+        short[] sound = note < 0 ? PIANO_WRONG : PIANO.length == 0 ? null : PIANO[Math.min(PIANO.length - 1, note)];
+        return sound(Cue.MIRROR, volume, sound != null && sound.length == 0 ? null : sound);
+    }
+
+    /** Un son d'interface, l'enregistrement {@code recorded} s'il est donné, sinon celui des skins. */
+    private boolean sound(Cue cue, int volume, short[] recorded) {
         if (broken || volume <= 0 || !cue.isInterface() || !allowed(cue)) return false;
         long now = System.nanoTime();
         Long last = lastPlayed.get(cue);
         if (last != null && now - last < cue.gap() * 1e9) return false;
-        short[] sound = samples.computeIfAbsent(cue, this::synthesizeSkinned);
+        short[] stereo = recorded == null ? recorded(cue) : null;
+        short[] sound = recorded != null ? recorded : stereo != null ? stereo : samples.computeIfAbsent(cue, this::leveledSkinned);
         if (sound.length == 0) return false;
         lastPlayed.put(cue, now);
-        send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), false));
+        send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), stereo != null));
         return true;
     }
 
@@ -251,17 +391,21 @@ final class Sound {
 
     /**
      * Le geste du joueur dans le mini-jeu de la dimension {@code dimension} : un tir dans le volume, un
-     * clic sur la surface, un sondage de la grille… Plus doux que les annonces, hors de leur rythme ; le silence partiel le
+     * clic sur la surface, un sondage de la grille… Au niveau des sons répétitifs, hors de leur rythme ; le silence partiel le
      * coupe, comme tout ce qui n'est pas le Big Bang. Vrai s'il est parti.
      */
-    boolean gesture(int dimension, int volume) {
+    boolean gesture(int dimension, int volume) { return gesture(dimension, volume, 1); }
+
+    /** Le geste joué plus aigu ({@code pitch} > 1) ou plus grave : la brane relâchée sonne selon la force du tirage. */
+    boolean gesture(int dimension, int volume, double pitch) {
         if (broken || volume <= 0 || dimension < 1 || dimension > 10 || bank == Skin.SOUND_SILENCE) return false;
         if (!allowed.test(SoundKind.DIMENSIONS)) return false;
         long now = System.nanoTime();
         if (lastGesture[dimension] != 0 && now - lastGesture[dimension] < INTERFACE_GAP * 1e9) return false;
-        if (gestures[dimension] == null) gestures[dimension] = synthesizeGesture(dimension);
+        if (gestures[dimension] == null) gestures[dimension] = leveled(synthesizeGesture(dimension), 1, REPEATED_DB);
         lastGesture[dimension] = now;
-        send(new Pcm(pcm(gestures[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0), false));
+        short[] sound = pitch == 1 || !(pitch > 0) ? gestures[dimension] : resampled(gestures[dimension], pitch);
+        send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), false));
         return true;
     }
 
@@ -280,9 +424,9 @@ final class Sound {
         if (!allowed.test(SoundKind.DIMENSIONS)) return false;
         long now = System.nanoTime();
         if (lastGain[dimension] != 0 && now - lastGain[dimension] < GAIN_GAP * 1e9) return false;
-        if (gains[dimension] == null) gains[dimension] = synthesizeGain(dimension);
+        if (gains[dimension] == null) gains[dimension] = leveled(synthesizeGain(dimension), 1, REPEATED_DB);
         lastGain[dimension] = now;
-        send(new Pcm(pcm(gains[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0), false));
+        send(new Pcm(pcm(gains[dimension], Math.min(100, volume) / 100.0), false));
         return true;
     }
 
@@ -377,31 +521,118 @@ final class Sound {
 
     /** L'explosion enregistrée et l'accord du Big Bang, mêlés en stéréo ; vide si la ressource manque ou se lit mal. */
     private static short[] bigBangStereo() {
-        try (java.io.InputStream raw = Sound.class.getResourceAsStream("big-bang.wav")) {
+        short[] recorded = stereo("big-bang.wav");
+        if (recorded.length == 0) return recorded;
+        short[] chord = synthesize(Cue.BIG_BANG);
+        double[] mix = new double[Math.max(recorded.length, chord.length * 2)];
+        for (int i = 0; i < recorded.length; i++) mix[i] = RECORDED_GAIN * recorded[i] / 32768.0;
+        for (int i = 0; i < chord.length; i++) {
+            mix[2 * i] += CHORD_GAIN * chord[i] / 32768.0;
+            mix[2 * i + 1] += CHORD_GAIN * chord[i] / 32768.0;
+        }
+        double peak = 0;
+        for (double value : mix) peak = Math.max(peak, Math.abs(value));
+        short[] out = new short[mix.length];
+        for (int i = 0; i < mix.length; i++) out[i] = (short) Math.round(mix[i] / peak * BIG_BANG_PEAK * Short.MAX_VALUE);
+        return out;
+    }
+
+    /**
+     * Un enregistrement stéréo des ressources du jeu (16 bits, 44,1 kHz), en échantillons gauche, droite, gauche… ; vide
+     * s'il manque ou se lit mal : le son synthétisé reste alors.
+     */
+    static short[] stereo(String resource) {
+        try (java.io.InputStream raw = Sound.class.getResourceAsStream(resource)) {
             if (raw == null) return new short[0];
             try (AudioInputStream in = AudioSystem.getAudioInputStream(new java.io.BufferedInputStream(raw))) {
                 AudioFormat format = in.getFormat();
                 if (format.getChannels() != 2 || format.getSampleSizeInBits() != 16 || format.getSampleRate() != RATE) return new short[0];
                 byte[] bytes = in.readAllBytes();
-                short[] chord = synthesize(Cue.BIG_BANG);
-                int frames = Math.max(bytes.length / 4, chord.length);
-                double[] mix = new double[frames * 2];
-                for (int i = 0; i < bytes.length / 2; i++) {
-                    mix[i] = RECORDED_GAIN * (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8)) / 32768.0;
-                }
-                for (int i = 0; i < chord.length; i++) {
-                    mix[2 * i] += CHORD_GAIN * chord[i] / 32768.0;
-                    mix[2 * i + 1] += CHORD_GAIN * chord[i] / 32768.0;
-                }
-                double peak = 0;
-                for (double value : mix) peak = Math.max(peak, Math.abs(value));
-                short[] out = new short[mix.length];
-                for (int i = 0; i < mix.length; i++) out[i] = (short) Math.round(mix[i] / peak * BIG_BANG_PEAK * Short.MAX_VALUE);
+                short[] out = new short[bytes.length / 2];
+                for (int i = 0; i < out.length; i++) out[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8));
                 return out;
             }
         } catch (Exception unreadable) {
             return new short[0];
         }
+    }
+
+    /** Les notes du piano, découpées dans {@code piano.wav} ; aucune si la ressource manque ou se lit mal. */
+    private static short[][] piano() {
+        try (java.io.InputStream raw = Sound.class.getResourceAsStream("piano.wav")) {
+            if (raw == null) return new short[0][];
+            try (AudioInputStream in = AudioSystem.getAudioInputStream(new java.io.BufferedInputStream(raw))) {
+                AudioFormat format = in.getFormat();
+                if (format.getChannels() != 1 || format.getSampleSizeInBits() != 16 || format.getSampleRate() != RATE) return new short[0][];
+                byte[] bytes = in.readAllBytes();
+                int each = (int) Math.round(PIANO_NOTE_SECONDS * RATE);
+                if (bytes.length / 2 < each * PIANO_NOTES) return new short[0][];
+                short[][] notes = new short[PIANO_NOTES][];
+                for (int note = 0; note < PIANO_NOTES; note++) {
+                    short[] out = new short[each];
+                    for (int i = 0; i < each; i++) {
+                        int at = 2 * (note * each + i);
+                        out[i] = (short) ((bytes[at] & 0xff) | (bytes[at + 1] << 8));
+                    }
+                    notes[note] = leveled(out, 1, REPEATED_DB);
+                }
+                return notes;
+            }
+        } catch (Exception unreadable) {
+            return new short[0][];
+        }
+    }
+
+    private static short[] pianoWrong() {
+        if (PIANO.length < 2) return new short[0];
+        short[] out = new short[PIANO[0].length];
+        for (int i = 0; i < out.length; i++) out[i] = (short) Math.round(0.45 * (PIANO[0][i] + PIANO[1][i]));
+        return out;
+    }
+
+    /** L'enregistrement de la particule à la hauteur de chaque palier ; vide si la ressource manque ou se lit mal. */
+    private static short[][] particleStages() {
+        try (java.io.InputStream raw = Sound.class.getResourceAsStream("particule.wav")) {
+            if (raw == null) return new short[0][];
+            try (AudioInputStream in = AudioSystem.getAudioInputStream(new java.io.BufferedInputStream(raw))) {
+                AudioFormat format = in.getFormat();
+                if (format.getChannels() != 1 || format.getSampleSizeInBits() != 16 || format.getSampleRate() != RATE) return new short[0][];
+                byte[] bytes = in.readAllBytes();
+                double[] source = new double[bytes.length / 2];
+                double peak = 0;
+                for (int i = 0; i < source.length; i++) {
+                    source[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8));
+                    peak = Math.max(peak, Math.abs(source[i]));
+                }
+                short[][] stages = new short[idle.ui.particles.SpeedStages.COUNT][];
+                for (int stage = 0; stage < stages.length; stage++) {
+                    // Lu à ce rythme : un pas de plus d'un échantillon monte le son, un pas de moins le descend.
+                    double step = idle.ui.particles.SpeedStages.pitch(stage);
+                    short[] out = new short[(int) ((source.length - 1) / step)];
+                    for (int i = 0; i < out.length; i++) {
+                        double at = i * step;
+                        int low = (int) at;
+                        double value = source[low] + (source[low + 1] - source[low]) * (at - low);
+                        out[i] = (short) Math.round(value / peak * PARTICLE_PEAK * Short.MAX_VALUE);
+                    }
+                    stages[stage] = leveled(out, 1, REPEATED_DB);
+                }
+                return stages;
+            }
+        } catch (Exception unreadable) {
+            return new short[0][];
+        }
+    }
+
+    /** Le son lu {@code pitch} fois plus vite : plus aigu et plus court (interpolé entre deux échantillons). */
+    static short[] resampled(short[] sound, double pitch) {
+        short[] out = new short[Math.max(0, (int) ((sound.length - 1) / pitch))];
+        for (int i = 0; i < out.length; i++) {
+            double at = i * pitch;
+            int low = (int) at;
+            out[i] = (short) Math.round(sound[low] + (sound[low + 1] - sound[low]) * (at - low));
+        }
+        return out;
     }
 
     /** Des octets stéréo ramenés en mono : la moyenne des deux canaux. */
@@ -473,7 +704,13 @@ final class Sound {
             case PARTICLE -> render(0.05, t -> envelope(t, 0.001, 0.05) * Math.exp(-t * 60) * 0.3 * sine(2349.3, t));
             // Une fusion : deux particules qui se rejoignent, une hauteur qui monte.
             case ATOM -> render(0.14, t -> envelope(t, 0.002, 0.14) * 0.4 * sine(1, 600 * t + 300 * t * t / 0.28));
-            // Une collision : un choc bref et un tintement de métal.
+            // Un atome créé (si l'enregistrement manque) : deux notes claires, une quinte qui monte.
+            case NEW_ATOM -> render(0.3, t -> notes(t, 0.05, 0.3, 880, 1318.5));
+            // Une sonde lancée : un souffle qui monte et s'éloigne, sur un grondement de moteur.
+            case PROBE -> render(1.1, t -> envelope(t, 0.05, 1.1) * (0.25 * noise(t) * (0.3 + t) + 0.3 * sine(1, 80 * t + 400 * t * t)));
+            // Une note du miroir (si le piano manque) : une note claire.
+            case MIRROR -> render(0.6, t -> envelope(t, 0.003, 0.6) * Math.exp(-t * 5) * 0.4 * sine(523.25, t));
+            // Une collision (si l'enregistrement manque) : un choc bref et un tintement de métal.
             case COLLISION -> render(0.25, t -> envelope(t, 0.001, 0.25) * (0.2 * noise(t) * Math.exp(-t * 60)
                     + 0.3 * sine(1200, t) * Math.exp(-t * 12) + 0.15 * sine(1797, t) * Math.exp(-t * 16)));
             // Des hadrons : trois quarks liés, trois notes presque ensemble.

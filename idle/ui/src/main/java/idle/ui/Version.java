@@ -21,6 +21,130 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.241", "Le mélange sonne de nouveau, le chrono tourne", List.of(
+                    "Le mélange sonne à chaque éclat ramassé, par le point ou par l'onde de la brane. Aux étapes avancées, il "
+                            + "se taisait : ce qu'un éclat rapporte va dans la charge, ou est trop petit pour bouger le total des "
+                            + "fragments, sur lequel se réglait le son.",
+                    "Le métronome de la boucle bat à chaque huitième de tour (un quart avant).",
+                    "Le chrono fait entendre un tic-tac tant qu'il accélère le jeu, plus pressé avec l'accélération (×3 au "
+                            + "plus) ; il se coupe avec sa catégorie, « Le chrono qui tourne ».")),
+            new Note("0.240", "Des sons pour chaque dimension", List.of(
+                    "Le métronome de la boucle bat de nouveau : un tic à chaque quart de tour du premier cercle. Il battait au "
+                            + "centre des zones, mais une zone touchée part ailleurs, et le point n'en passait presque plus aucun.",
+                    "La graine ne sonne que sous l'arrosoir qu'on tient : la goutte à chaque arrosage, le palier s'il arrive "
+                            + "pendant qu'on arrose. Le tuyau, les gains et les outils d'essai arrosent en silence.",
+                    "La brane : tant qu'on tire, une corde se tend, plus aiguë et plus forte avec la tirée ; relâchée, la "
+                            + "membrane part d'autant plus fort et aigu que la tirée était forte.",
+                    "La durée : pendant l'appui, une note tenue monte jusqu'au plus long appui possible.",
+                    "Une sonde lancée a son son (catégorie « Sondes lancées »).",
+                    "Le miroir joue au piano (Salamander Grand Piano V3, Alexander Holm, CC BY 3.0, voir l'aide, « Crédits ») : "
+                            + "chaque case a sa note, la même que son reflet ; le motif se joue en s'allumant, se rejoue à l'entrée "
+                            + "de la dimension s'il attend, puis chaque case reproduite rejoue sa note ; une faute, deux notes graves.",
+                    "La grille : un clic hors de la boîte des chiffres (x, y, z) quitte le champ en cours.",
+                    "Panneau de test : le piano du miroir, la corde de la brane et l'appui de la durée s'écoutent aussi.")),
+            new Note("0.239", "Le panneau de test", List.of(
+                    "Profil de test (runTest) : la barre du haut laisse place à un panneau à droite, qui s'ouvre et se ferme "
+                            + "par sa poignée ou par F9. En haut, la vitesse du jeu (de figé à ×1 000, avec ×0,25 et ×0,5), "
+                            + "une recherche dans tous les outils, le bot de la partie et le résumé ; dessous, une section par "
+                            + "onglet du jeu (celle de l'onglet affiché passe en tête, ouverte), puis le temps et l'avance rapide "
+                            + "(+10 s à +24 h, sans bloquer la fenêtre, annulable), les bots, les dimensions, les sons, les "
+                            + "animations et les paliers.",
+                    "Nouveaux outils : chaque son du jeu, chaque palier du son des particules, les gestes et les points de "
+                            + "chaque dimension, chaque fond sonore à faire jouer partout ; les animations de la fusion et du "
+                            + "nouvel atome ; les hadrons ; la vitesse des faisceaux ; l'arbre vide, les automatismes coupés ; "
+                            + "les remises à zéro de chaque palier, secondaires compris (graine, vide, bulles de l'arbre, défi "
+                            + "final, chaque dimension, toutes les dimensions, la partie secondaire, une nouvelle partie).",
+                    "Chaque fenêtre de dimension a sa bande de test, en bas : sa ressource et son seuil, ses améliorations, "
+                            + "sa remise à zéro, son bot (de la ligne à la durée) et ce qu'elle a en propre (les étapes du "
+                            + "mélange, le rond de croissance, la météo).")),
+            new Note("0.238", "Le fond de l'expansion", List.of(
+                    "Le fond de la 0.237 change de place : il tourne sur le sous-onglet « Expansion de la matière » du Big "
+                            + "Bang, plus sur Astres. Sa catégorie devient « L'expansion de la matière (son de fond) ».")),
+            new Note("0.237", "Le fond du ciel", List.of(
+                    "Sur le sous-onglet Astres du Big Bang, ton enregistrement tourne en boucle (4,1 s de sa partie tenue, "
+                            + "la fin fondue dans le début), en stéréo, au niveau des sons répétitifs. Il entre et sort en "
+                            + "fondu, et se coupe avec sa propre catégorie : « Le ciel (son de fond) ».")),
+            new Note("0.236", "Les particules à l'heure", List.of(
+                    "Le son d'une particule tombe avec l'onde qui atteint le noyau : sa montée du début (0,04 s, plus "
+                            + "longue aux paliers graves) est coupée.",
+                    "Les particules de générateurs différents se superposent : seules celles du même instant (à moins de "
+                            + "0,05 s) n'en font qu'une. Au plus six sonnent en même temps.")),
+            new Note("0.235", "La collision plus franche", List.of(
+                    "Le fond du collisionneur ne joue plus que sur son sous-onglet Énergie, celui des faisceaux.",
+                    "Le son d'une collision est un peu plus fort (4 dB au-dessus des autres sons répétitifs), et son choc "
+                            + "tombe tout de suite : la montée presque inaudible du début (0,11 s) est coupée.")),
+            new Note("0.234", "Le fond du collisionneur", List.of(
+                    "Sur l'onglet du collisionneur, ton enregistrement tourne en boucle (1,5 s, sa fin fondue dans son début) "
+                            + "tant que les faisceaux tournent, lu à leur vitesse : ×1 au départ, ×2 avec les cinq niveaux de "
+                            + "« Faisceaux rapides », en glissant. Il se coupe avec la catégorie du collisionneur.",
+                    "Un croisement capté au milieu sonne maintenant, même avant l'amélioration « Collisions » : il ne "
+                            + "donnait pas de collision, donc pas de son.")),
+            new Note("0.233", "Le son des collisions", List.of(
+                    "Une collision réussie du collisionneur (un croisement qui donne un quark, ou capté au milieu) joue ton "
+                            + "enregistrement, en stéréo, au niveau des sons répétitifs ; un croisement raté reste muet. "
+                            + "Seulement sur l'onglet du collisionneur, comme avant ; les banques de sons des skins gardent le leur.")),
+            new Note("0.232", "Le quark top et les sondes sonnent de nouveau", List.of(
+                    "La 0.231 est annulée : les outils d'essai restent retirés de l'onglet Univers, comme en 0.229.",
+                    "La 0.226 est annulée : un quark top du collisionneur et des sondes qui reviennent sonnent de nouveau, "
+                            + "comme avant, quel que soit « Sons des automatismes ». Le son qui revenait sans cesse venait des "
+                            + "achats automatiques, coupés depuis la 0.228.")),
+            new Note("0.231", "Les outils d'essai reviennent", List.of(
+                    "Le retrait de la 0.229 est annulé : le cadre des outils d'essai revient sous les bulles de l'onglet "
+                            + "Univers, avec « Montrer les anciens onglets », qui permet de retrouver le collisionneur et les "
+                            + "autres onglets dans la partie secondaire.")),
+            new Note("0.230", "Le son de l'atome créé", List.of(
+                    "Sur l'onglet Atomes, quand un atome est créé (le grand atome grossit), ton enregistrement sonne : en "
+                            + "stéréo, au niveau des sons répétitifs, rangé avec « Fusions (atomes) » dans les réglages. Il "
+                            + "sonne aussi pour une fusion automatique, comme les particules, mais seulement sur le grand atome. "
+                            + "Les banques de sons des skins ont le leur.")),
+            new Note("0.229", "Plus d'outils d'essai dans l'onglet Univers", List.of(
+                    "Le cadre « Outils d'essai, sans logique » sous les bulles des univers est retiré (+1 / −1 univers, +10 "
+                            + "graines, +10 énergie du vide, revoir la naissance, montrer les anciens onglets, tout remettre à "
+                            + "zéro). Dans la partie secondaire, les anciens onglets restent cachés ; ils reviennent quand on "
+                            + "lance l'univers suivant.")),
+            new Note("0.228", "Les achats automatiques se taisent", List.of(
+                    "Ce qu'amène un automatisme en marche ne sonne plus, sauf si « Sons des automatismes » est activé : un "
+                            + "palier de vitesse atteint par l'achat automatique de la vitesse, un automatisme offert par la "
+                            + "matière noire, un élément ou un ensemble de la synthèse automatique. Ils revenaient à chaque partie. "
+                            + "Les notifications restent ; atteints à la main (automatisme coupé ou en pause), ils sonnent.")),
+            new Note("0.227", "Des sons au même niveau", List.of(
+                    "Les sons rares (Big Bang, univers formé, explosion du tableau, défis, succès, skins, comètes, éléments, "
+                            + "jalons, paliers…) sonnent tous aussi fort ; les sons qui reviennent sans cesse (particules, fusion, "
+                            + "collisions, hadrons, vide, arrosage, clics, onglets, achats, interrupteurs, gestes et points des "
+                            + "dimensions, grondement de la matière noire) sonnent tous aussi fort entre eux, nettement plus bas.",
+                    "Le Big Bang et l'explosion du tableau sont un peu moins forts qu'avant, la fusion bien moins forte ; les "
+                            + "clics et les achats un peu plus audibles. Dans toutes les banques de sons. La musique et le "
+                            + "métronome gardent leurs réglages.")),
+            new Note("0.226", "Moins de sons qui reviennent sans cesse", List.of(
+                    "Un quark top du collisionneur et des sondes qui reviennent ne sonnent plus, sauf si « Sons des automatismes » "
+                            + "est activé : en fin de partie, ils faisaient retentir « Autres annonces » toutes les 45 secondes environ. "
+                            + "Les comètes, qui se saisissent à la main, sonnent toujours.")),
+            new Note("0.225", "Les sons des automatismes, au choix", List.of(
+                    "Réglages, « Sons et musique » : « Sons des automatismes », coupé au départ. Coupé, une fusion automatique "
+                            + "garde son animation sans son, et une explosion automatique reste muette ; activé, elles sonnent comme "
+                            + "celles du joueur.")),
+            new Note("0.224", "Les automatismes agissent en silence", List.of(
+                    "Ce que font les automatismes ne lance plus de son : une fusion automatique garde son animation dans "
+                            + "l'onglet des particules, mais sans son ; une explosion automatique (automatisme de matière noire) reste "
+                            + "muette. La fusion, l'explosion et le Big Bang ne sonnent que quand le joueur les fait.")),
+            new Note("0.223", "Les sons partent avec leurs animations", List.of(
+                    "La fusion des générateurs a un nouveau son, enregistré, qui part quand les générateurs commencent à se "
+                            + "regrouper (au bouton comme en fusion automatique).",
+                    "L'explosion du tableau sonne au départ de l'onde, et non plus une seconde plus tard quand le tableau explose "
+                            + "au plus fort de l'éclair ; le Big Bang, au moment même où il a lieu. Une explosion automatique, sans "
+                            + "animation, sonne toujours.")),
+            new Note("0.222", "Une vraie explosion pour le tableau", List.of(
+                    "L'explosion du tableau périodique a un nouveau son : une explosion enregistrée, en stéréo, au niveau de "
+                            + "l'ancienne. Les banques de sons des skins gardent la leur, et le silence partiel la coupe toujours.")),
+            new Note("0.221", "Les paliers de vitesse des particules", List.of(
+                    "Chaque générateur montre son palier de vitesse, quatorze en tout : de la vitesse de base à 10 par seconde, "
+                            + "puis 100, 10⁴, 10⁸… (la vitesse élevée au carré à chaque palier) jusqu'à 10⁴⁰⁹⁶, la vitesse de la fin "
+                            + "du premier univers. Le noyau glisse du presque blanc au noir et garde un rond par palier franchi ; le "
+                            + "trait des poussières s'épaissit, et l'allure (spirale, anneaux, rayons, arcs) repart de zéro à chaque palier.",
+                    "À chaque particule, une onde part du bord et se resserre sur le noyau ; quand elle l'atteint, un nouveau son "
+                            + "joue, une note plus grave à chaque palier (gamme pentatonique de fa). Les banques de sons des skins "
+                            + "gardent le leur.",
+                    "L'animation suit maintenant la vraie vitesse, sans le plafond d'un milliard par seconde d'avant.")),
             new Note("0.220", "Les sons ne dépendent plus des notifications", List.of(
                     "Les sons des grands moments (Big Bang, explosion, univers formé, succès, défis…) partent de ce qui s'est passé, "
                             + "plus de sa notification : une catégorie de notifications coupée, ou une annonce fondue dans « … et N autres "

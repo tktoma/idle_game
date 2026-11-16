@@ -33,13 +33,16 @@ import idle.ui.pages.SettingsPage;
 import idle.ui.pages.SkinsPage;
 import idle.ui.pages.StatsPage;
 import idle.ui.particles.GeneratorPane;
+import idle.ui.particles.ParticleView;
 import idle.ui.probes.LootPane;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.geometry.*;
@@ -89,6 +92,118 @@ public abstract class GameAppBase extends Application {
     abstract void announce(double dt);
     abstract void open(Tab tab);
     abstract void selectTab(Tab tab);
+    abstract void celebrateNewAtom();
+
+    /** Ce que font, pour le panneau de test, les outils qui touchent à l'affichage et au son. */
+    private TestTools.Hooks testHooks() {
+        return new TestTools.Hooks() {
+            @Override
+            public void explosion() { playExplosion(false); }
+
+            @Override
+            public boolean bigBang() {
+                idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+                if (bang != null) burst.play(bang, 3.5);
+                return bang != null;
+            }
+
+            @Override
+            public boolean birth() {
+                if (game.universes() <= 0) return false;
+                dimensionWindow.close();
+                selectTab(Tab.UNIVERSE);
+                universePage.playBirth();
+                return true;
+            }
+
+            @Override
+            public boolean launch() {
+                if (game.universes() <= 0) return false;
+                dimensionWindow.close();
+                selectTab(Tab.UNIVERSE);
+                universePage.launchView().play(null);
+                return true;
+            }
+
+            @Override
+            public boolean curtain() {
+                idle.core.universe.Skin chosen = game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION);
+                if (chosen != null) GameAppBase.this.curtain.play(chosen);
+                return chosen != null;
+            }
+
+            @Override
+            public boolean finale() {
+                if (!game.isDimensionsUnlocked()) return false;
+                dimensionWindow.close();
+                selectTab(Tab.UNIVERSE);
+                universePage.playFinale();
+                return true;
+            }
+
+            @Override
+            public void fusion() {
+                selectTab(Tab.PARTICLES);
+                soundWithAnimation(Sound.Cue.ATOM);
+                generators.fuse(() -> { });
+            }
+
+            @Override
+            public void newAtom() {
+                selectTab(Tab.ATOMS);
+                celebrateNewAtom();
+                if (settings.sound()) sound.click(Sound.Cue.NEW_ATOM, settings.volume());
+            }
+
+            @Override
+            public void sound(Sound.Cue cue) {
+                if (cue == Sound.Cue.BEAT) sound.beat(Math.max(1, settings.volume()));
+                else sound.preview(cue, Math.max(1, settings.volume()));
+            }
+
+            @Override
+            public void particle(int stage) { sound.particle(stage, Math.max(1, settings.volume())); }
+
+            @Override
+            public void gesture(int dimension) { sound.gesture(dimension, Math.max(1, settings.volume())); }
+
+            @Override
+            public void gain(int dimension) { sound.gain(dimension, Math.max(1, settings.volume())); }
+
+            @Override
+            public void piano(int note) { sound.piano(note, Math.max(1, settings.volume())); }
+
+            @Override
+            public boolean toggleHum(TestTools.TestHum hum) {
+                if (!forcedHums.remove(hum)) forcedHums.add(hum);
+                return forcedHums.contains(hum);
+            }
+
+            @Override
+            public void unlockCosmetics() {
+                for (Cosmetic cosmetic : Cosmetic.values()) settings.unlock(cosmetic);
+                settingsPage.refresh();
+            }
+
+            @Override
+            public void lockCosmetics() {
+                settings.lockCosmetics();
+                applyAppearance();
+                settingsPage.refresh();
+            }
+
+            @Override
+            public void toggleCosmetic(Cosmetic cosmetic) {
+                if (settings.hasCosmetic(cosmetic)) settings.lock(cosmetic);
+                else settings.unlock(cosmetic);
+                applyAppearance();
+                settingsPage.refresh();
+            }
+
+            @Override
+            public void newGame() { resetGame(); }
+        };
+    }
     abstract void playExplosion(boolean real);
     abstract void animate(double dt);
     abstract int framesPerSecond();
@@ -309,8 +424,28 @@ public abstract class GameAppBase extends Application {
     final Sound sound = new Sound();
     /** La musique de fond, qui suit la partie. */
     final Music music = new Music();
+    /**
+     * Les sons qui partent au début de l'animation d'une action du joueur : la fusion, l'explosion du tableau, le Big
+     * Bang. Leur annonce ne les joue jamais ; ce que font les automatismes (fusion ou explosion automatique) ne sonne que
+     * si le réglage « Sons des automatismes » est activé.
+     */
+    static final Set<Sound.Cue> PLAYER_SOUNDS = EnumSet.of(Sound.Cue.ATOM, Sound.Cue.EXPLOSION, Sound.Cue.BIG_BANG);
+
+    /** Les explosions du joueur dont l'annonce n'est pas encore arrivée : les autres viennent d'un automatisme. */
+    int playerExplosions;
+
+    /** Joue ce son au début de l'animation d'une action du joueur. */
+    void soundWithAnimation(Sound.Cue cue) {
+        if (settings.sound()) sound.play(cue, settings.volume());
+    }
+
     /** Le grondement de la matière noire qui grossit, de plus en plus vite avec son élan. */
-    final DarkMatterHum darkMatterHum = new DarkMatterHum();
+    final Hum darkMatterHum = new Hum(Hum.DARK_MATTER, "matière noire");
+    final Hum colliderHum = new Hum(Hum.COLLIDER, "collisionneur");
+    final Hum expansionHum = new Hum(Hum.EXPANSION, "expansion");
+    final Hum braneHum = new Hum(Hum.BRANE, "brane");
+    final Hum durationHum = new Hum(Hum.DURATION, "durée");
+    final Hum chronoHum = new Hum(Hum.CHRONO, "chrono");
     /** Les bruitages relevés image par image. */
     final SoundEvents soundEvents = new SoundEvents();
     /** La marque d'un bouton d'onglet : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
@@ -345,7 +480,11 @@ public abstract class GameAppBase extends Application {
     /** L'univers à la dernière image : 1 formé, 0 pas encore, −1 inconnu (au chargement, sans naissance à jouer). */
     int hadUniverse = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
-    DebugBar debugBar;
+    /** Le panneau du profil de test et la bande des dimensions ; {@code null} hors du profil de test. */
+    TestPanel testPanel;
+    DimensionTestBar dimensionTestBar;
+    /** Les fonds sonores que le panneau de test fait jouer partout, pour les écouter. */
+    final java.util.EnumSet<TestTools.TestHum> forcedHums = java.util.EnumSet.noneOf(TestTools.TestHum.class);
     /** Guette les conditions des thèmes et des notations à débloquer. */
     private final Cosmetics cosmetics = new Cosmetics(game, settings);
     // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
@@ -392,13 +531,22 @@ public abstract class GameAppBase extends Application {
         // Les catégories de sons coupées dans les réglages ne sonnent pas.
         sound.setAllowed(settings::soundKind);
         // Un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
+        // Une particule récupérée (l'onde atteint le noyau) : le son de son palier de vitesse.
+        ParticleView.setOnCollected(speedStage -> { if (settings.sound()) sound.particle(speedStage, settings.volume()); });
         Card.setOnActed(state -> {
             if (!settings.sound()) return;
             boolean toggle = state == Card.State.ON || state == Card.State.OFF;
             sound.click(toggle ? Sound.Cue.TOGGLE : Sound.Cue.PURCHASE, settings.volume());
         });
         dimensionWindow.setOnGesture(dimension -> {
-            if (settings.sound()) sound.gesture(dimension, settings.volume());
+            if (!settings.sound()) return;
+            // Le miroir sonne par son piano (les cases reproduites), pas par un geste.
+            if (dimension == 9) return;
+            // La membrane relâchée : plus la tirée était forte, plus elle part fort et aigu.
+            if (dimension == 6) {
+                double pull = dimensionWindow.view().lastBranePull();
+                sound.gesture(6, (int) Math.round(settings.volume() * (0.35 + 0.65 * pull)), 0.8 + 0.5 * pull);
+            } else sound.gesture(dimension, settings.volume());
         });
         // La boucle : les touches de ses cercles et son métronome se rangent dans les réglages.
         dimensionWindow.setLoopSettings(new DimensionWindow.LoopSettings() {
@@ -520,7 +668,7 @@ public abstract class GameAppBase extends Application {
         tabBar.setStyle("-fx-padding: 6 8 0 8;");
         selectTab(Tab.PARTICLES);
 
-        // En haut : la barre d'onglets, et au-dessus la barre du profil de test si le jeu est lancé avec --test.
+        // En haut : la barre d'onglets ; à droite, le panneau du profil de test si le jeu est lancé avec --test.
         // Au-dessus des onglets : le bouton d'explosion, quand tous les éléments sont découverts.
         explosionButton.setMaxWidth(Double.MAX_VALUE);
         explosionButton.setWrapText(true);
@@ -574,7 +722,6 @@ public abstract class GameAppBase extends Application {
         // Les hadrons : les gluons ; les paliers et la liaison.
         dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
-        universePage.setOnOldTabs(shown -> refresh());
         universePage.setOnFinale(finalePane::open);
         // Rouvrir les paliers : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
@@ -591,77 +738,18 @@ public abstract class GameAppBase extends Application {
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());
         testProfile = arguments.contains("--test");
         if (testProfile) {
-            debugBar = new DebugBar(game);
-            debugBar.setOnPlayFinale(() -> {
-                dimensionWindow.close();
-                selectTab(Tab.UNIVERSE);
-                universePage.playFinale();
-            });
-            debugBar.setAnimations(new DebugBar.AnimationTools() {
-                @Override
-                public void explosion() { playExplosion(false); }
-
-                @Override
-                public boolean bigBang() {
-                    idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
-                    if (bang != null) burst.play(bang, 3.5);
-                    return bang != null;
-                }
-
-                @Override
-                public boolean birth() {
-                    if (game.universes() <= 0) return false;
-                    dimensionWindow.close();
-                    selectTab(Tab.UNIVERSE);
-                    universePage.playBirth();
-                    return true;
-                }
-
-                @Override
-                public boolean launch() {
-                    if (game.universes() <= 0) return false;
-                    dimensionWindow.close();
-                    selectTab(Tab.UNIVERSE);
-                    universePage.launchView().play(null);
-                    return true;
-                }
-
-                @Override
-                public boolean curtain() {
-                    idle.core.universe.Skin chosen = game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION);
-                    if (chosen != null) GameAppBase.this.curtain.play(chosen);
-                    return chosen != null;
-                }
-            });
-            debugBar.setCosmetics(new DebugBar.CosmeticTools() {
-                @Override
-                public void unlockAll() {
-                    for (Cosmetic cosmetic : Cosmetic.values()) settings.unlock(cosmetic);
-                    settingsPage.refresh();
-                }
-
-                @Override
-                public void lockAll() {
-                    settings.lockCosmetics();
-                    applyAppearance();
-                    settingsPage.refresh();
-                }
-
-                @Override
-                public void toggle(Cosmetic cosmetic) {
-                    if (settings.hasCosmetic(cosmetic)) settings.lock(cosmetic);
-                    else settings.unlock(cosmetic);
-                    applyAppearance();
-                    settingsPage.refresh();
-                }
-            });
-            top.getChildren().add(0, debugBar);
+            testPanel = new TestPanel(game, testHooks());
+            // La bande de chaque dimension, en bas de sa fenêtre : elle suit la dimension ouverte.
+            dimensionTestBar = new DimensionTestBar(game, testPanel.actions(), testPanel.bots(),
+                    () -> dimensionWindow.isOpen() ? dimensionWindow.dimension().number() : 0, testPanel::note, testPanel::refresh);
+            dimensionWindow.setTestBar(dimensionTestBar);
+            root.setRight(testPanel);
         }
 
         root.setTop(top);
         root.setCenter(pages);
         // La fenêtre ne se laisse plus pousser par une page plus haute qu'elle. Avant, le contenu, centré,
-        // dépassait en haut comme en bas : dans une petite fenêtre, le haut de la barre du profil de test sortait de l'écran.
+        // dépassait en haut comme en bas : dans une petite fenêtre, le haut sortait de l'écran.
         root.setMinSize(0, 0);
         StackPane.setAlignment(root, Pos.TOP_LEFT);
         // Une page plus haute que la place qui reste dépasse en bas, coupée, au lieu de passer sur les onglets.
@@ -717,9 +805,9 @@ public abstract class GameAppBase extends Application {
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
                 if (!settings.paused()) {
                     // Pendant l'avance rapide, la Timeline pilote déjà le temps du jeu.
-                    if (debugBar == null || !debugBar.isFastForwarding()) {
+                    if (testPanel == null || !testPanel.bots().isFastForwarding()) {
                         game.tick(dt * timeFactor());
-                        if (debugBar != null) debugBar.frame(dt * timeFactor());
+                        if (testPanel != null) testPanel.bots().frame(dt * timeFactor());
                     }
                     pace.observe(game);
                     animate(dt);
@@ -738,12 +826,32 @@ public abstract class GameAppBase extends Application {
                 // Le grondement de la matière noire : sur son onglet, tant qu'elle grossit (en pause, elle ne grossit pas).
                 boolean darkGrowing = selectedTab == Tab.DARK_MATTER && !settings.paused() && !dimensionWindow.isOpen()
                         && darkMatterPage.isGrowing();
-                darkMatterHum.update(darkGrowing, game.darkMatterMomentum(), settings.sound() && settings.soundKind(SoundKind.DARK_MATTER),
-                        settings.volume());
+                darkMatterHum.update(darkGrowing || forcedHums.contains(TestTools.TestHum.DARK_MATTER), Hum.darkMatterRate(game.darkMatterMomentum()),
+                        settings.sound() && settings.soundKind(SoundKind.DARK_MATTER), settings.volume());
+                // Le fond du collisionneur : sur son sous-onglet Énergie, où tournent les faisceaux, à leur vitesse.
+                boolean beams = selectedTab == Tab.COLLIDER && colliderPage.selected() == ColliderPane.ENERGY && !settings.paused() && !dimensionWindow.isOpen() && game.isColliderUnlocked();
+                colliderHum.update(beams || forcedHums.contains(TestTools.TestHum.COLLIDER), Hum.colliderRate(game.colliderPeriod()),
+                        settings.sound() && settings.soundKind(SoundKind.COLLIDER), settings.volume());
+                // Le fond de l'expansion de la matière : sur son sous-onglet du Big Bang, où l'espace grandit.
+                boolean expanding = selectedTab == Tab.BIG_BANG && bigBangPage.selected() == BigBangPage.EXPANSION && !settings.paused()
+                        && !dimensionWindow.isOpen();
+                expansionHum.update(expanding || forcedHums.contains(TestTools.TestHum.EXPANSION), 1, settings.sound() && settings.soundKind(SoundKind.EXPANSION), settings.volume());
+                // La corde de la brane, tant qu'on la tire : plus tendue, plus aiguë et plus forte ; l'appui de la durée,
+                // qui monte à mesure qu'on approche du plus long appui possible.
+                boolean dimensionSounds = settings.sound() && settings.soundKind(SoundKind.DIMENSIONS) && (!settings.paused() || !forcedHums.isEmpty());
+                double pull = dimensionWindow.view().braneHeld() ? dimensionWindow.view().branePull() : 0;
+                braneHum.update(openDimension == 6 && dimensionWindow.view().braneHeld() || forcedHums.contains(TestTools.TestHum.BRANE), 0.8 + 1.4 * pull, dimensionSounds,
+                        settings.volume(), 0.3 + 0.7 * pull);
+                double held = game.durationMaxSeconds() > 0 ? Math.min(1, game.durationHeldSeconds() / game.durationMaxSeconds()) : 0;
+                durationHum.update(openDimension == 4 && game.isDurationHeld() || forcedHums.contains(TestTools.TestHum.DURATION), 1 + 2 * held, dimensionSounds, settings.volume());
+                // Le chrono, où qu'on soit, tant qu'il accélère le jeu.
+                chronoHum.update(game.isChronoRunning() && !settings.paused() || forcedHums.contains(TestTools.TestHum.CHRONO),
+                        Hum.chronoRate(game.chronoSpeed()), settings.sound() && settings.soundKind(SoundKind.CHRONO), settings.volume());
                 // Les bruitages de ce qui vient de se passer, là où on le voit.
                 for (SoundEvents.Heard heard : soundEvents.frame(game, selectedTab.name(), openDimension)) {
                     if (!settings.sound()) continue;
                     if (heard.cue() == null) sound.gain(heard.dimension(), settings.volume());
+                    else if (heard.cue() == Sound.Cue.MIRROR) sound.piano(heard.note(), settings.volume());
                     else sound.click(heard.cue(), settings.volume());
                 }
                 // L'écran de fin attend que la naissance de l'univers soit jouée.

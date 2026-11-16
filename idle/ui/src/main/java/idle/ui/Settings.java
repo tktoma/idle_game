@@ -198,8 +198,8 @@ public final class Settings {
     public enum Effect {
         FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion"),
         AMBIENT("Fond animé", "la poussière qui dérive derrière les générateurs"),
-        PARTICLE_SPEED("Allure des générateurs", "anneaux, traînées, couronne et arcs quand la production monte"),
-        PARTICLE_CREATION("Création de particules", "l'onde et les poussières à chaque particule créée"),
+        PARTICLE_SPEED("Allure des générateurs", "les paliers de vitesse : couleur du noyau, anneaux, traînées, couronne et arcs"),
+        PARTICLE_CREATION("Création de particules", "les poussières, et l'onde qui se resserre sur le noyau à chaque particule"),
         ATOM_PULSE("Onglet qui bat", "l'onglet des atomes qui bat à chaque atome créé"),
         ATOM_MODEL("Atome qui tourne", "l'atome de l'onglet Atomes, ses orbites et ses orbes qui tournent"),
         TAB_ICONS("Icônes animées", "les petites icônes des onglets qui bougent"),
@@ -347,6 +347,7 @@ public final class Settings {
     private static final String VOLUME = "volume";
     /** La musique de fond : son interrupteur et son volume, à part des sons. */
     private static final String MUSIC = "music";
+    private static final String AUTOMATION_SOUNDS = "automationSounds";
     private static final String MUSIC_VOLUME = "musicVolume";
     /** Les catégories de sons coupées. */
     private static final String SOUNDS_OFF = "soundsOff";
@@ -413,6 +414,8 @@ public final class Settings {
     private final EnumSet<Cosmetic> cosmetics = EnumSet.noneOf(Cosmetic.class);
     private int volume = DEFAULT_VOLUME;
     private boolean music = true;
+    /** Faux par défaut : ce que font les automatismes (fusion, explosion) ne sonne pas. */
+    private boolean automationSounds = false;
     private int musicVolume = DEFAULT_MUSIC_VOLUME;
     private FrameRate frameRate = FrameRate.HIGH;
     private boolean saveEnergy = true;
@@ -455,6 +458,7 @@ public final class Settings {
                 settings.tabOrder = store.get(TAB_ORDER, "");
                 settings.volume = Math.max(0, Math.min(100, store.getInt(VOLUME, DEFAULT_VOLUME)));
                 settings.music = store.getBoolean(MUSIC, true);
+                settings.automationSounds = store.getBoolean(AUTOMATION_SOUNDS, false);
                 settings.musicVolume = Math.max(0, Math.min(100, store.getInt(MUSIC_VOLUME, DEFAULT_MUSIC_VOLUME)));
                 settings.saveEnergy = store.getBoolean(SAVE_ENERGY, true);
             } catch (RuntimeException unreadable) {
@@ -588,7 +592,7 @@ public final class Settings {
         }
     }
 
-    /** Vrai si le métronome de la boucle bat : un tic à chaque passage du point du premier cercle sur le centre d'une zone. */
+    /** Vrai si le métronome de la boucle bat : un tic à chaque huitième de tour du point du premier cercle. */
     public boolean loopMetronome() { return loopMetronome; }
 
     public void setLoopMetronome(boolean on) {
@@ -916,6 +920,14 @@ public final class Settings {
 
     /** Vrai si la musique de fond joue. */
     public boolean music() { return music; }
+
+    /** Vrai si ce que font les automatismes (une fusion, une explosion automatiques) sonne ; coupé par défaut. */
+    public boolean automationSounds() { return automationSounds; }
+
+    public void setAutomationSounds(boolean on) {
+        automationSounds = on;
+        save(AUTOMATION_SOUNDS, String.valueOf(on));
+    }
 
     public void setMusic(boolean music) {
         this.music = music;

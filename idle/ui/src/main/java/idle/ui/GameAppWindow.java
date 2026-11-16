@@ -180,6 +180,7 @@ public abstract class GameAppWindow extends GameAppBase {
         universePage.forgetFinale();
         transitionPane.close();
         exploding = false;
+        playerExplosions = 0;
         explosionArmed = 0;
         blast.setVisible(false);
         lastTotalAtoms = -1;
@@ -188,7 +189,6 @@ public abstract class GameAppWindow extends GameAppBase {
         particlesTabPop = -1;
         particlesTab.setScaleX(1);
         particlesTab.setScaleY(1);
-        universePage.forgetOldTabs();
         dimensionWindow.close();
         generators.setCount(0);
         darkMatterPage.reset();
@@ -261,7 +261,7 @@ public abstract class GameAppWindow extends GameAppBase {
      * Le joueur a confirmé qu'il recommence de zéro : le jeu efface tout, et la fenêtre revient à l'écran de démarrage.
      */
     void resetGame() {
-        if (debugBar != null) debugBar.cancelFastForward();
+        if (testPanel != null) testPanel.bots().cancel();
         // Version 0.199 : « Recommencer » efface les skins avec le reste ; le bouton de la partie neuve garde pourtant
         // celui que le joueur avait choisi, souvenir de l'interface seule, non sauvegardé.
         startSkinMemory = game.chosenSkin(idle.core.universe.SkinVisual.START_BUTTON);
@@ -279,7 +279,6 @@ public abstract class GameAppWindow extends GameAppBase {
         forgetOldPages();
         profilePage.forget();
         hadUniverse = 0;
-        universePage.forgetOldTabs();
         dimensionWindow.close();
         controls.setVisible(false);
         showStartButton();
@@ -293,6 +292,7 @@ public abstract class GameAppWindow extends GameAppBase {
      */
     void forgetOldPages() {
         exploding = false;
+        playerExplosions = 0;
         explosionArmed = 0;
         blast.setVisible(false);
         lastTotalAtoms = -1;
@@ -357,6 +357,8 @@ public abstract class GameAppWindow extends GameAppBase {
             refresh();
             return;
         }
+        // La fusion du joueur sonne quand les générateurs commencent à se regrouper ; une fusion automatique, non.
+        soundWithAnimation(Sound.Cue.ATOM);
         generators.fuse(() -> {
             game.fuse(); // un seul générateur renaît à l'image suivante, là où les autres ont fusionné
             refresh();   // fait apparaître les onglets si c'est le premier atome
@@ -400,6 +402,11 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     boolean keyPressed(KeyCode code) {
+        // Le panneau du profil de test s'ouvre et se ferme partout, même une dimension ouverte.
+        if (testPanel != null && code == KeyCode.F9) {
+            testPanel.toggle();
+            return true;
+        }
         // Le plan : Z Q S D et les flèches déplacent son point, avant tout raccourci.
         if (dimensionWindow.key(code, true)) return true;
         if (settingsPage.isCapturing()) {

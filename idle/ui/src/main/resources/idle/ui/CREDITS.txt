@@ -1,0 +1,9 @@
+Sons tiers utilisés par le jeu
+
+piano.wav (le piano du miroir) : seize notes tirées du Salamander Grand Piano V3, d'Alexander Holm,
+https://archive.org/details/SalamanderGrandPianoV3, sous licence Creative Commons Attribution 3.0
+(https://creativecommons.org/licenses/by/3.0/). Notes prises au paquet npm @audio-samples/piano-mp3-velocity8
+(MIT, Jan Forst), rééchantillonnées au plus d'un ton et demi, coupées à 1,2 s avec un fondu, ramenées en mono.
+
+Les autres sons enregistrés (atome, big-bang, collision, collisionneur, expansion, explosion, fusion,
+matiere-noire, particule) sont ceux du joueur ; les autres sont synthétisés par le jeu.

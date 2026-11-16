@@ -36,8 +36,9 @@ import javafx.scene.input.KeyCode;
  * DarkMatterPage}). Au bout de son arbre, le Big Bang efface tout de nouveau et fait apparaître l'onglet « Big Bang »
  * ({@link BigBangPage}).
  *
- * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en plus une {@link DebugBar}
- * pour accélérer le temps et s'ajouter des ressources.
+ * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en plus le panneau de test
+ * ({@link TestPanel}, à droite, {@value TestPanel#KEY_NAME}) et une bande en bas de chaque fenêtre de dimension
+ * ({@link DimensionTestBar}) : la vitesse du jeu, l'avance rapide, les bots, les sons, les animations, les paliers.
  *
  * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum » (réglage sous le compteur), au
  * clic ou au clavier : voir {@link #onKey(KeyCode)}. Chacune est une {@link Card} : son niveau, sa touche, ce qu'elle
@@ -147,7 +148,10 @@ public final class GameApp extends GameAppTabs {
         generators.setDustSkin(game.chosenSkin(SkinVisual.AMBIENT_DUST));
         generators.setFusionSkin(game.chosenSkin(SkinVisual.GENERATOR_FUSION));
         refreshWindowSkins();
-        if (debugBar != null) debugBar.refresh();
+        if (testPanel != null) {
+            testPanel.refresh();
+            dimensionTestBar.refresh();
+        }
 
         // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.
         if (selectedTab == Tab.PARTICLES) {
@@ -199,7 +203,11 @@ public final class GameApp extends GameAppTabs {
 
         // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
         double totalAtoms = game.state().totalAtoms().toDouble();
-        if (lastTotalAtoms >= 0 && totalAtoms > lastTotalAtoms) celebrateNewAtom();
+        if (lastTotalAtoms >= 0 && totalAtoms > lastTotalAtoms) {
+            celebrateNewAtom();
+            // Le son de l'atome créé, là où on le voit : le grand atome de l'onglet Atomes.
+            if (selectedTab == Tab.ATOMS && atomsPage.selected() == 0 && settings.sound()) sound.click(Sound.Cue.NEW_ATOM, settings.volume());
+        }
         lastTotalAtoms = totalAtoms;
 
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.

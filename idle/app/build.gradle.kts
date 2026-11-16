@@ -15,9 +15,9 @@ repositories {
     mavenCentral()
 }
 
-// Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (groupe « Bots »). Depuis la
+// Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (section « Bots »). Depuis la
 // version 0.126, ils ne sont ajoutés qu'au lancement de « runTest » : ni « run » ni la distribution (installDist,
-// distZip) ne les emportent, comme le promet bots/README.md. Sans eux, le groupe « Bots » le dit et ne fait rien.
+// distZip) ne les emportent, comme le promet bots/README.md. Sans eux, la section « Bots » le dit et ne fait rien.
 val testProfileBots: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true

@@ -33,11 +33,11 @@ class ParticleSkinsTest {
             view.setWidth(size);
             view.setHeight(size);
             // La naissance, puis des particules une par une : l'avancement repart de zéro, une onde part.
-            for (int k = 0; k < 40; k++) view.frame(0.05, (k % 10) / 10.0, 0.5);
+            for (int k = 0; k < 40; k++) view.frame(0.05, (k % 10) / 10.0, 0.5, Math.log10(0.5));
             // Très vite : la vitesse s'installe, les arcs d'énergie jaillissent, le noyau bat.
-            for (int k = 0; k < 60; k++) view.frame(0.05, 1, 5000);
+            for (int k = 0; k < 60; k++) view.frame(0.05, 1, 5000, 600);
             // Au point mort : plus rien n'arrive, tout s'éteint.
-            for (int k = 0; k < 10; k++) view.frame(0.05, 0.3, 0);
+            for (int k = 0; k < 10; k++) view.frame(0.05, 0.3, 0, Double.NEGATIVE_INFINITY);
         }
     }
 

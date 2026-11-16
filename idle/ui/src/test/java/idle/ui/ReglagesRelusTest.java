@@ -59,4 +59,13 @@ class ReglagesRelusTest {
         assertNull(Avatar.of(""));
         assertNull(Avatar.of("un_avatar_d_une_autre_version"));
     }
+
+    @Test
+    void lesSonsDesAutomatismesSontCoupesAuDepartEtSeRelisent() {
+        NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();
+        Settings settings = Settings.load(store);
+        assertEquals(false, settings.automationSounds(), "coupés au départ : les automatismes agissent en silence");
+        settings.setAutomationSounds(true);
+        assertEquals(true, Settings.load(store).automationSounds(), "le choix se relit");
+    }
 }

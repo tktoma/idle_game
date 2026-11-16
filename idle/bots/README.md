@@ -1108,9 +1108,9 @@ ligne avance seule, même en son absence ; elle ne dépend presque que du temps.
 dimension entre 12 et 18 minutes pour le joueur appliqué.
 
 **Dans le profil de test (version 0.140)**, le même joueur appliqué (`DimensionBots.Player`, qui décide avant chaque
-pas du jeu) joue la partie en cours : groupe « Bots dimension », à côté de « Dimensions ». On choisit la dimension, puis
-« En direct » (il joue à chaque image : ouvrir la fenêtre de la dimension pour le voir), « +1 min » ou « +5 min avec le
-bot », ou « Jusqu'au rond vert (30 min au plus) », en avance rapide annulable. Les mesures passent par le même
+pas du jeu) joue la partie en cours. Depuis la 0.239, ses outils sont dans la bande de test en bas de la fenêtre de la
+dimension : « Bot en direct » (il joue à chaque image), « +1 min » ou « +5 min avec le bot », ou « Jusqu'au rond vert
+(30 min au plus) », en avance rapide annulable. Les mesures passent par le même
 joueur, et donnent exactement les mêmes temps et les mêmes achats qu'avant.
 
 ## Les bots partis de zéro : succès et défis (0.86)
@@ -1139,7 +1139,7 @@ Les durées jusqu'à l'univers ne changent pas : 6 h 42 pour `DEPENDANCES` et 6 
 
 ## Les bots dans le jeu (0.84)
 
-Le profil de test (`./gradlew :app:runTest`) a un groupe « Bots ». Il fait jouer le bot V2 (`AdvancedLab`) sur la partie en cours, avec la politique choisie dans une liste (`DEPENDANCES` d'abord) :
+Le profil de test (`./gradlew :app:runTest`) a une section « Bots » (depuis la 0.239, dans le panneau de test à droite, touche F9). Il fait jouer le bot V2 (`AdvancedLab`) sur la partie en cours, avec la politique choisie dans une liste (`DEPENDANCES` d'abord) :
 - **en direct** : une décision toutes les 20 s de jeu, vitesse du temps comprise ;
 - **en avance rapide** : 10 min, 1 h, 6 h, ou jusqu'au prochain Big Bang (12 h au plus) ;
 - **une décision** à la fois.

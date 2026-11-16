@@ -10,12 +10,13 @@ import javafx.scene.paint.*;
 
 /**
  * Animation d'un générateur : des poussières convergent vers le centre, le noyau grossit, et quand il est complet une
- * particule est créée (onde + remise à zéro).
+ * particule est créée : une onde part du bord et se resserre sur le noyau ; quand elle l'atteint, la particule est
+ * récupérée et son son part ({@link #setOnCollected}).
  *
- * <p>Depuis la version 0.061, l'allure suit la vitesse du générateur ({@link #intensity(double)}) : lent, des
- * poussières bleues et un noyau calme ; plus vite, les poussières laissent des traînées et tournent en spirale, des
- * anneaux d'accrétion apparaissent et tournent, le noyau bat plus vite et se couronne de rayons ; très vite, la couleur
- * passe du bleu au violet puis à l'or, et des arcs d'énergie jaillissent du noyau.
+ * <p>L'allure suit le palier de vitesse du générateur ({@link SpeedStages}, quatorze du clair au noir). Dans un palier,
+ * elle monte avec la vitesse : les poussières tournent en spirale, des anneaux d'accrétion apparaissent, le noyau bat
+ * plus vite et se couronne de rayons, des arcs d'énergie jaillissent. À chaque nouveau palier, elle repart de zéro ; la
+ * couleur glisse vers celle du palier, le trait des poussières et des ondes s'épaissit, et le noyau gagne un rond.
  *
  * <p>À sa création, le générateur joue une animation de naissance : un cercle se resserre sur le centre pendant qu'une
  * salve de poussières s'y précipite, puis un éclat marque l'allumage.
@@ -56,8 +57,23 @@ public final class ParticleView extends Canvas {
     private double sinceLastRing = 1;
     private double time = 0;
     private double age = 0; // temps écoulé depuis la naissance du générateur
-    /** La vitesse du générateur ramenée de 0 à 1, adoucie d'une image à l'autre. */
+    /**
+     * L'avancée dans le palier de vitesse ({@link SpeedStages#within}), adoucie d'une image à l'autre : elle repart de
+     * zéro à chaque palier, et l'allure (spirale, anneaux, rayons, éclairs) avec elle.
+     */
     private double intensity = 0;
+    /** Le palier de vitesse ({@link SpeedStages}), et celui qu'on voit pendant le glissement vers le nouveau. */
+    private int stage = 0;
+    private double shownStage = 0;
+    /** La taille de chaque rond du noyau, de 0 à 1 : un rond par palier passé, le nouveau grandit, celui qu'on quitte fond. */
+    private final double[] ringSize = new double[SpeedStages.COUNT];
+    /** Le temps que met la couleur à glisser d'un palier à l'autre, et un rond à grandir, en secondes. */
+    static final double STAGE_GLIDE = 0.27, RING_GROWTH = 0.25;
+    /** Ce qu'il faut faire quand une onde atteint le noyau (une particule récupérée), avec le palier : le son. */
+    private static java.util.function.IntConsumer onCollected = stage -> { };
+
+    /** Ce qui se passe quand une particule est récupérée, sur tous les générateurs : le jeu y joue le son du palier. */
+    public static void setOnCollected(java.util.function.IntConsumer action) { onCollected = action; }
     /** Faux si le joueur a coupé l'allure des générateurs : ils gardent alors leur allure calme, quelle que soit la vitesse. */
     private static boolean speedLook = true;
 
@@ -94,6 +110,7 @@ public final class ParticleView extends Canvas {
     /** La taille réelle est fixée ensuite par {@link GeneratorPane}, selon la place disponible. */
     ParticleView() {
         super(REFERENCE_SIZE, REFERENCE_SIZE);
+        ringSize[0] = 1;
         // Salve de naissance : des poussières parties du bord, qui arrivent toutes avant la fin.
         for (int i = 0; i < BIRTH_DUST; i++) {
             Dust d = newDust();
@@ -108,18 +125,28 @@ public final class ParticleView extends Canvas {
      *
      * @param elapsed  temps écoulé depuis la dernière image, en secondes
      * @param progress avancement de la particule en cours, de 0 à 1
-     * @param rate     particules créées par seconde sur ce générateur
+     * @param rate     particules créées par seconde sur ce générateur (plafonné : il règle le nombre de poussières)
+     * @param speedLog l'ordre de grandeur de cette vitesse, sans plafond : il donne le palier
      */
-    public void frame(double elapsed, double progress, double rate) {
+    public void frame(double elapsed, double progress, double rate, double speedLog) {
         double dt = Math.min(elapsed, 0.1); // après une pause (fenêtre déplacée…), on évite une rafale
         time += dt;
         sinceLastRing += dt;
         boolean fast = rate > FAST_RATE;
         // La vitesse s'installe en une demi-seconde : pas de saut quand un palier l'accélère d'un coup.
         // Un effet coupé l'est tout de suite : rien ne finit de s'éteindre.
-        if (speedLook) intensity += (intensity(rate) - intensity) * Math.min(1, dt * 2);
+        int nowStage = speedLook ? SpeedStages.stage(speedLog) : 0;
+        if (nowStage != stage) {
+            // Un nouveau palier : l'allure repart de zéro.
+            stage = nowStage;
+            intensity = 0;
+            arcs.clear();
+        }
+        if (speedLook) intensity += (SpeedStages.within(speedLog) - intensity) * Math.min(1, dt * 2);
         else intensity = 0;
         if (!speedLook) arcs.clear();
+        shownStage += (stage - shownStage) * Math.min(1, dt / STAGE_GLIDE);
+        for (int k = 0; k < ringSize.length; k++) ringSize[k] += ((k <= stage ? 1 : 0) - ringSize[k]) * Math.min(1, dt / RING_GROWTH);
         if (!creationLook) {
             dust.clear();
             rings.clear();
@@ -147,7 +174,8 @@ public final class ParticleView extends Canvas {
         if (creationLook) spawnDust(dt, rate);
         dust.removeIf(d -> (d.age += dt) >= d.flight);
         rings.replaceAll(ringAge -> ringAge + dt);
-        rings.removeIf(ringAge -> ringAge >= RING_SECONDS);
+        // Une onde arrive au noyau : la particule est récupérée, son son part (le rythme des sons évite le bourdon).
+        if (rings.removeIf(ringAge -> ringAge >= RING_SECONDS)) onCollected.accept(stage);
 
         draw(fast ? 1 : progress, fast);
     }
@@ -165,8 +193,25 @@ public final class ParticleView extends Canvas {
         return HEAT[low].interpolate(HEAT[low + 1], at - low);
     }
 
-    /** La vitesse lissée, de 0 à 1 : pour les vérifications. */
+    /** L'avancée lissée dans le palier, de 0 à 1 : pour les vérifications. */
     public double intensity() { return intensity; }
+
+    /** Le palier de vitesse : pour les vérifications. */
+    public int stage() { return stage; }
+
+    /** La couleur du palier vu, glissée entre deux paliers ; {@code rim} donne le liseré plutôt que le noyau. */
+    private Color stageColor(boolean rim) {
+        int low = (int) Math.floor(shownStage);
+        int high = Math.min(SpeedStages.COUNT - 1, low + 1);
+        Color a = Color.web(rim ? SpeedStages.rim(low) : SpeedStages.color(low));
+        Color b = Color.web(rim ? SpeedStages.rim(high) : SpeedStages.color(high));
+        return a.interpolate(b, shownStage - low);
+    }
+
+    /** La lumière du palier : sa couleur, puis son liseré quand le noyau devient sombre (à partir du neuvième palier). */
+    private Color glow() {
+        return stageColor(false).interpolate(stageColor(true), Math.max(0, Math.min(1, shownStage - 8)));
+    }
 
     private void spawnDust(double dt, double rate) {
         // Très vite, moins de poussières, mais chacune avec sa traînée : la vue reste lisible.
@@ -204,7 +249,7 @@ public final class ParticleView extends Canvas {
         g.setGlobalAlpha(1);
         g.clearRect(0, 0, getWidth(), getHeight());
 
-        Color color = heat(intensity);
+        Color color = glow();
         if (skin == Skin.FUSION_FLASH) color = Color.web("#fff36b").interpolate(Color.WHITE, 0.4 * intensity);
         else if (skin == Skin.FUSION_PRISM) color = Color.hsb((time * 40) % 360, 0.55, 1);
         else if (skin == Skin.FUSION_LONE) color = Color.gray(0.82);
@@ -248,12 +293,13 @@ public final class ParticleView extends Canvas {
             double angle = d.angle + d.swirl * t;
             double x = cx + radius * Math.cos(angle), y = cy + radius * Math.sin(angle);
             double alpha = Math.min(1, t * 4) * fadeIn;         // apparition en fondu
-            if (intensity > 0.25) {
-                double back = Math.max(0, t - 0.04 - 0.08 * intensity);
+            // Le trait : dès le deuxième palier, ou vite dans le premier ; il s'épaissit à chaque palier.
+            if (intensity > 0.25 || shownStage > 0.5) {
+                double back = Math.max(0, t - 0.04 - 0.08 * Math.max(intensity, 0.4));
                 double radiusBack = maxRadius * d.distance * (1 - back * back);
                 double angleBack = d.angle + d.swirl * back;
-                g.setGlobalAlpha(alpha * 0.3);
-                g.setLineWidth(d.size * Math.max(scale, 0.8) * 0.6);
+                g.setGlobalAlpha(alpha * 0.35);
+                g.setLineWidth(d.size * Math.max(scale, 0.8) * trailWidth());
                 g.strokeLine(cx + radiusBack * Math.cos(angleBack), cy + radiusBack * Math.sin(angleBack), x, y);
             }
             g.setGlobalAlpha(alpha);
@@ -269,13 +315,15 @@ public final class ParticleView extends Canvas {
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
 
-        // Ondes émises à l'allumage, puis à chaque particule créée, dans la couleur de la vitesse.
-        g.setStroke(CORE.interpolate(color, 0.5));
-        g.setLineWidth(2 * Math.max(scale, 0.75));
+        // Une onde à chaque particule créée : partie du bord, elle se resserre sur le noyau, dans la couleur du palier.
+        // Quand elle l'atteint, la particule est récupérée (son son part, voir frame).
+        double target = coreRadius(progress, fast, scale, birth) * 1.2;
+        g.setStroke(color);
+        g.setLineWidth(2 * Math.max(scale, 0.75) * trailWidth());
         for (double ringAge : rings) {
             double t = ringAge / RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(1 - t);
+            double radius = target + (maxRadius * 0.95 - target) * (1 - t) * (1 - t);
+            g.setGlobalAlpha((0.25 + 0.6 * t) * fadeIn);
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
 
@@ -326,10 +374,34 @@ public final class ParticleView extends Canvas {
         circle(g, cx, cy, coreRadius * 2.6);
         g.setGlobalAlpha(0.18);
         circle(g, cx, cy, coreRadius * 1.7);
-        g.setFill(CORE);
-        g.setGlobalAlpha(1);
-        circle(g, cx, cy, coreRadius);
+        drawCore(g, cx, cy, coreRadius * (1 + 0.09 * shownStage), scale);
     }
+
+    /**
+     * Le noyau en ronds : un par palier passé, du plus clair dehors au palier en cours au centre, chacun cerné de son
+     * liseré. Le rond d'un nouveau palier grandit, celui d'un palier quitté fond.
+     */
+    private void drawCore(GraphicsContext g, double cx, double cy, double outer, double scale) {
+        double filled = 0;
+        for (double size : ringSize) filled += size;
+        if (outer <= 0 || filled <= 0) return;
+        double before = 0;
+        g.setLineWidth(Math.max(0.8, scale));
+        for (int k = 0; k < ringSize.length; k++) {
+            if (ringSize[k] < 0.01) continue;
+            double radius = outer * (1 - before / filled * 0.72) * Math.min(1, 0.3 + 0.7 * ringSize[k]);
+            g.setGlobalAlpha(Math.min(1, ringSize[k] * 1.5));
+            g.setFill(Color.web(SpeedStages.color(k)));
+            circle(g, cx, cy, radius);
+            g.setStroke(Color.web(SpeedStages.rim(k), 0.85));
+            g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
+            before += ringSize[k];
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** L'épaisseur du trait des poussières et des ondes : elle grandit à chaque palier. */
+    private double trailWidth() { return 0.6 * (1 + 0.45 * shownStage); }
 
     /** La fusion sous un skin : mêmes mouvements que le classique, autres formes. */
     private void drawSkin(GraphicsContext g, double cx, double cy, double maxRadius, double scale, double birth, double fadeIn,

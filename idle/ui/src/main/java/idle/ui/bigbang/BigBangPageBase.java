@@ -53,7 +53,7 @@ public abstract class BigBangPageBase extends VBox {
             spaceView.showGalaxy(true);
             spaceView.showCosmos(game.cosmosFormed() >= 2 ? Cosmos.values()[game.cosmosFormed() - 1] : null);
             spaceView.fit();
-            select(1);
+            select(EXPANSION);
             refresh();
         });
         setAlignment(Pos.TOP_CENTER);
@@ -63,11 +63,11 @@ public abstract class BigBangPageBase extends VBox {
         Labels.centered(sinceLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
         moleculesTab.setOnAction(event -> select(0));
-        expansionTab.setOnAction(event -> select(1));
+        expansionTab.setOnAction(event -> select(EXPANSION));
         upgradesTab.setOnAction(event -> select(2));
         statesTab.setOnAction(event -> select(3));
         assembliesTab.setOnAction(event -> select(4));
-        bodiesTab.setOnAction(event -> select(5));
+        bodiesTab.setOnAction(event -> select(BODIES));
         galaxyTab.setOnAction(event -> select(6));
         milestonesTab.setOnAction(event -> select(7));
         probesTab.setOnAction(event -> {
@@ -380,6 +380,10 @@ public abstract class BigBangPageBase extends VBox {
     final ProbesPane probesPane;
     final ScrollPane probesScroll;
     final GalaxyPane galaxyPane;
+    /** Le sous-onglet « Expansion de la matière » : l'espace créé, qui grandit. */
+    public static final int EXPANSION = 1;
+    /** Le sous-onglet « Astres » : le ciel et les corps qu'on y forme. */
+    public static final int BODIES = 5;
     int selected = 0;
 
     // Sous-page « Molécules »

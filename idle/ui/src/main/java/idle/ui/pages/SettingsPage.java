@@ -220,6 +220,7 @@ public final class SettingsPage extends VBox {
     private final Label volumeLabel = new Label();
     /** La musique de fond : son interrupteur et son volume, sur leur ligne. */
     private final Button musicButton = new Button();
+    private final Button automationSoundsButton = new Button();
     private final Button musicQuieterButton = new Button("−");
     private final Button musicLouderButton = new Button("+");
     private final Label musicVolumeLabel = new Label();
@@ -447,11 +448,17 @@ public final class SettingsPage extends VBox {
                 "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, univers formé, palier "
                         + "du défi final, skin débloqué, défi, matière noire, comète, jalon. Un achat, un interrupteur et chaque "
                         + "geste dans le mini-jeu d'une dimension ont aussi le leur, plus discret, comme les "
-                        + "bruitages de ce qui se passe sous vos yeux : une particule créée, une fusion, une collision, des hadrons, "
-                        + "le vide, la graine, un point gagné dans une dimension, un clic, un changement d'onglet. Chaque sorte de "
-                        + "son se garde ou se coupe à part, en bas de ce bloc. Tous sont fabriqués par le jeu, "
-                        + "sans fichier. Un même son d'annonce ne revient pas avant une seconde, même quand les automatismes "
-                        + "enchaînent tout. Changer le volume fait entendre un essai. Le métronome de la boucle, qui se branche "
+                        + "bruitages de ce qui se passe sous vos yeux : une particule récupérée (plus grave à chaque palier de "
+                        + "vitesse), une fusion, un atome créé (sur le grand atome de l'onglet Atomes), une collision réussie, des hadrons, le vide, une sonde lancée, la graine "
+                        + "(sous l'arrosoir qu'on tient seulement), un point gagné dans une dimension, la membrane de la brane (sa "
+                        + "corde se tend avec la tirée, puis part d'autant plus fort), l'appui de la durée (une note qui monte "
+                        + "jusqu'au plus long appui), le piano du miroir, chaque éclat ramassé du mélange, le tic-tac du chrono tant qu'il "
+                        + "accélère le jeu, un clic, un changement d'onglet. Des fonds en boucle accompagnent certaines vues : le grondement de la matière noire "
+                        + "qui grossit et le collisionneur (sur Énergie) accélèrent avec elles ; l'expansion de la matière a le sien. Chaque sorte de son se garde ou se coupe à part, en bas de ce bloc. La "
+                        + "fusion, l'explosion et le Big Bang partent avec leur animation ; ce que le jeu fait seul (une fusion "
+                        + "ou une explosion automatiques, un palier de vitesse atteint par l'achat automatique, un automatisme offert, un élément "
+                        + "de la synthèse automatique) reste muet, sauf si « Sons des automatismes » est activé. Un même son "
+                        + "d'annonce ne revient pas avant une seconde. Changer le volume fait entendre un essai. Le métronome de la boucle, qui se branche "
                         + "dans sa fenêtre, suit ce réglage et ce volume. La musique, composée par le jeu pendant qu'on joue, suit "
                         + "la partie : chaque étape d'un univers a la sienne (l'aube, l'élan, les Big Bangs, les astres, l'amas, la "
                         + "formation), un défi la resserre, une dimension ouverte a son arpège, et chaque univers change de tonalité. "
@@ -485,6 +492,13 @@ public final class SettingsPage extends VBox {
         HBox musicRow = new HBox(8, musicButton, musicQuieterButton, musicVolumeLabel, musicLouderButton);
         musicRow.setAlignment(Pos.CENTER);
         target.getChildren().add(musicRow);
+        automationSoundsButton.setOnAction(event -> {
+            settings.setAutomationSounds(!settings.automationSounds());
+            refresh();
+        });
+        HBox automationRow = new HBox(8, automationSoundsButton);
+        automationRow.setAlignment(Pos.CENTER);
+        target.getChildren().add(automationRow);
         // note() pose le libellé sur la page : l'y ajouter une seconde fois fait planter JavaFX au lancement.
         note(new Label("Les sons à garder, un par un :"));
         soundKindRow.setAlignment(Pos.CENTER);
@@ -1093,6 +1107,7 @@ public final class SettingsPage extends VBox {
         quieterButton.setDisable(!settings.sound() || settings.volume() <= 0);
         louderButton.setDisable(!settings.sound() || settings.volume() >= 100);
         toggle(musicButton, settings.music(), "Musique : activée", "Musique : coupée");
+        toggle(automationSoundsButton, settings.automationSounds(), "Sons des automatismes : activés", "Sons des automatismes : coupés");
         musicVolumeLabel.setText("Musique : " + settings.musicVolume() + " %");
         musicQuieterButton.setDisable(!settings.music() || settings.musicVolume() <= 0);
         musicLouderButton.setDisable(!settings.music() || settings.musicVolume() >= 100);

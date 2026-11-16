@@ -19,7 +19,7 @@ import javafx.scene.layout.*;
 /**
  * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé . Trois sous-onglets :
  * <ul>
- * <li>« Univers » : les univers en bulles, les graines d'univers et les outils d'essai (les quatre améliorations de la
+ * <li>« Univers » : les univers en bulles et les graines d'univers (les quatre améliorations de la
  * version 0.081, Brane, Bulk, Paysage et Omnivers, sans prix ni effet, sont parties à la version 0.213) ;</li>
  * <li>« Graine d'univers » : la ressource principale, en grand, et son visuel ;</li>
  * <li>« Dimensions », dès le premier univers : dix points autour d'un onzième, une dimension de plus par univers ;
@@ -55,13 +55,6 @@ public final class UniversePage extends VBox {
     // Sous-onglet « Univers »
     private final UniverseView view = new UniverseView();
     private final Label resources = new Label();
-    private final Button addUniverse = tool("+1 univers");
-    private final Button removeUniverse = tool("−1 univers");
-    private final Button addSeeds = tool("+10 graines d'univers");
-    private final Button addVoid = tool("+10 énergie du vide");
-    private final Button replay = tool("Revoir la naissance");
-    private final Button oldTabs = tool("Montrer les anciens onglets");
-    private final Button reset = tool("Tout remettre à zéro");
     /** Rouvrir les paliers : jouer la partie qui formera l'univers suivant. */
     private final Button next = new Button();
     private final Label nextLine = new Label();
@@ -106,8 +99,6 @@ public final class UniversePage extends VBox {
     private final VBox seedPane;
 
     private final StackPane pages;
-    private boolean showOldTabs;
-    private Consumer<Boolean> onOldTabs = shown -> { };
     private IntConsumer onOpenDimension = number -> { };
 
     public UniversePage(Game game) {
@@ -119,48 +110,11 @@ public final class UniversePage extends VBox {
         SubTabs.wire(true, this::select, this::refresh, mainTab, dimensionsTab, seedTab);
         subTabs.setAlignment(Pos.CENTER);
 
-        // « Univers » : les bulles, les ressources, les améliorations, les outils.
+        // « Univers » : les bulles, les ressources, le lancement de l'univers suivant.
         resources.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         CanvasPane holder = CanvasPane.filling(view);
         holder.setMinHeight(220);
         VBox.setVgrow(holder, Priority.ALWAYS);
-        Label toolsTitle = new Label("Outils d'essai, sans logique : pour voir l'onglet avant que la suite existe");
-        toolsTitle.setStyle("-fx-font-size: 11px; -fx-text-fill: #b8a06a;");
-        FlowPane tools = new FlowPane(8, 6, addUniverse, removeUniverse, addSeeds, addVoid, replay, oldTabs, reset);
-        tools.setAlignment(Pos.CENTER);
-        VBox toolsBox = new VBox(6, toolsTitle, tools);
-        toolsBox.setAlignment(Pos.CENTER);
-        toolsBox.setStyle("-fx-padding: 8 10; -fx-border-color: #4a4026; -fx-border-style: dashed; -fx-border-radius: 6;");
-        addUniverse.setOnAction(event -> {
-            if (game.testAddUniverse()) {
-                view.setUniverses(game.universes());
-                view.playBirth();
-            }
-            refresh();
-        });
-        removeUniverse.setOnAction(event -> {
-            game.testRemoveUniverse();
-            refresh();
-        });
-        addSeeds.setOnAction(event -> {
-            game.testAddUniverseSeeds(BigNum.of(10));
-            refresh();
-        });
-        addVoid.setOnAction(event -> {
-            game.testAddVoidEnergy(BigNum.of(10));
-            refresh();
-        });
-        replay.setOnAction(event -> view.playBirth());
-        oldTabs.setOnAction(event -> {
-            showOldTabs = !showOldTabs;
-            onOldTabs.accept(showOldTabs);
-            refresh();
-        });
-        reset.setOnAction(event -> {
-            game.testResetUniverses();
-            if (selected != MAIN) select(MAIN);
-            refresh();
-        });
         next.setFocusTraversable(false);
         // Comme le bouton du tout début de la partie, il respire, et il faut cliquer pour lancer
         // l'univers. Le clic joue le lancement ; à son éclat, l'univers part et l'onglet Particules revient.
@@ -182,7 +136,7 @@ public final class UniversePage extends VBox {
         nextLine.setMaxWidth(640);
         VBox nextBox = new VBox(4, nextLine);
         nextBox.setAlignment(Pos.CENTER);
-        mainPane = new VBox(8, resources, nextBox, holder, toolsBox);
+        mainPane = new VBox(8, resources, nextBox, holder);
         mainPane.setAlignment(Pos.TOP_CENTER);
 
         // « Dimensions » : la carte, et une ligne.
@@ -251,6 +205,7 @@ public final class UniversePage extends VBox {
         select(MAIN);
     }
 
+    /** Un petit bouton doré : « Revoir la fin ». */
     private static Button tool(String text) {
         Button button = new Button(text);
         button.setFocusTraversable(false);
@@ -260,11 +215,6 @@ public final class UniversePage extends VBox {
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
     public HBox subTabs() { return subTabs; }
-
-    /** Ce que fait l'outil « Montrer les anciens onglets » : vrai pour les montrer. */
-    public void setOnOldTabs(Consumer<Boolean> action) {
-        onOldTabs = action == null ? shown -> { } : action;
-    }
 
     /** Ce que fait l'application quand la partie de l'univers suivant commence : montrer les anciens onglets. */
     public void setOnNextUniverse(Runnable action) {
@@ -276,14 +226,8 @@ public final class UniversePage extends VBox {
         onOpenDimension = action == null ? number -> { } : action;
     }
 
-    /** Vrai si l'outil d'essai a fait revenir les anciens onglets. */
-    public boolean showsOldTabs() { return showOldTabs; }
-
     /** La ligne du cumul du vide, dans le sous-onglet Graine : pour les vérifications. */
     public Label voidCumulLabel() { return voidCumul; }
-
-    /** L'outil d'essai repasse à « cacher » : une nouvelle partie, un chargement. */
-    public void forgetOldTabs() { showOldTabs = false; }
 
     public void select(int index) {
         if (index == DIMENSIONS && !game.isDimensionsUnlocked()) index = MAIN;
@@ -319,7 +263,6 @@ public final class UniversePage extends VBox {
                 + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
                 // Le bonus permanent des univers formés.
                 + (universes > 0 ? "   |   matière noire et sa croissance " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())) : ""));
-        removeUniverse.setDisable(universes <= 1);
         boolean replaying = game.isReplaying();
         // Le deuxième univers attend la brindille de la graine ; il s'ouvre alors tout seul.
         boolean nextOpen = game.canOpenNextUniverse();
@@ -332,7 +275,6 @@ public final class UniversePage extends VBox {
                 : "La graine a atteint son palier " + game.nextUniverseStage() + ", " + Game.SEED_STAGE_NAMES.get(game.nextUniverseStage() - 1)
                         + " : cliquez « Lancer l'univers " + (universes + 1) + " ». " + "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant, et remet tout à zéro."
                         + (game.isSkinsUnlocked() ? "" : " Dès la cinquième fusion de cette partie, l'onglet Skins s'ouvre."));
-        oldTabs.setText(showOldTabs ? "Cacher les anciens onglets" : "Montrer les anciens onglets");
         int open = game.dimensionsUnlocked();
         dimensions.setUnlocked(open);
         dimensions.setMarked(1, game.isLineThresholdReached());
@@ -614,9 +556,4 @@ public final class UniversePage extends VBox {
 
     /** La carte des dimensions : pour les vérifications. */
     public DimensionsView dimensionsView() { return dimensions; }
-
-    /** Les outils d'essai, par leur texte : pour les vérifications. */
-    Button tool(int index) {
-        return new Button[] {addUniverse, removeUniverse, addSeeds, addVoid, replay, oldTabs, reset}[index];
-    }
 }

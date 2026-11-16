@@ -30,7 +30,7 @@ final class DarkMatterHum {
     static final int BLOCK = 1_024;
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
 
-    /** La boucle, en échantillons de -1 à 1 ; vide si la ressource manque (le jeu continue sans ce son). */
+    /** La boucle, en échantillons de -1 à 1, au niveau des sons répétitifs ; vide si la ressource manque (le jeu continue sans ce son). */
     static final float[] LOOP = load();
 
     private volatile boolean wanted;
@@ -126,10 +126,11 @@ final class DarkMatterHum {
             if (raw == null) return new float[0];
             try (AudioInputStream in = AudioSystem.getAudioInputStream(new java.io.BufferedInputStream(raw))) {
                 byte[] bytes = in.readAllBytes();
-                float[] samples = new float[bytes.length / 2];
-                for (int i = 0; i < samples.length; i++) {
-                    samples[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8)) / 32768f;
-                }
+                short[] read = new short[bytes.length / 2];
+                for (int i = 0; i < read.length; i++) read[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8));
+                short[] leveled = Sound.leveled(read, 1, Sound.REPEATED_DB);   // au niveau des sons répétitifs
+                float[] samples = new float[leveled.length];
+                for (int i = 0; i < samples.length; i++) samples[i] = leveled[i] / 32768f;
                 return samples;
             }
         } catch (Exception unreadable) {

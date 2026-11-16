@@ -12,10 +12,13 @@ public enum SoundKind {
     UPGRADES("Achats et interrupteurs"),
     CLICKS("Clics sur les boutons"),
     TABS("Changements d'onglet"),
-    COLLIDER("Collisions du collisionneur"),
+    COLLIDER("Le collisionneur (collisions et son de fond)"),
     HADRONS("Hadrons créés"),
     VOID("Le vide"),
     SEED("La graine"),
+    EXPANSION("L'expansion de la matière (son de fond)"),
+    PROBES("Sondes lancées"),
+    CHRONO("Le chrono qui tourne"),
     NEWS("Autres annonces (succès, défis, skins, éléments…)");
 
     private final String label;

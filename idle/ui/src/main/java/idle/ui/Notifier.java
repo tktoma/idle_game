@@ -358,23 +358,25 @@ final class Notifier {
             add(news, Notice.AUTOMATION, "Élément unique ★ : la synthèse automatique est débloquée");
         }
 
-        // Les éléments nouveaux : un seul se nomme, plusieurs se comptent.
+        // Les éléments nouveaux : un seul se nomme, plusieurs se comptent. La synthèse automatique en marche les amène seule.
+        boolean synthesizing = running("auto_synthesis");
         List<Element> fresh = new ArrayList<>();
         for (int number : game.state().elements().keySet()) {
             if (!elements.contains(number)) fresh.add(PeriodicTable.element(number));
         }
         if (fresh.size() == 1) {
             Element element = fresh.get(0);
-            add(news, Notice.ELEMENTS, "Nouvel élément : " + element.name() + " (" + element.symbol() + ")  —  " + ElementText.describe(element.effect()));
+            add(news, Notice.ELEMENTS, "Nouvel élément : " + element.name() + " (" + element.symbol() + ")  —  " + ElementText.describe(element.effect()),
+                    synthesizing);
         } else if (fresh.size() > 1 && game.state().explosions() == explosions) {
-            add(news, Notice.ELEMENTS, fresh.size() + " nouveaux éléments");
+            add(news, Notice.ELEMENTS, fresh.size() + " nouveaux éléments", synthesizing);
         }
         for (ElementSet set : game.elementSets()) {
             double before = setStrengths.getOrDefault(set.id(), 0.0);
             double now = game.setStrength(set);
             if (now > before && game.state().explosions() == explosions) {
                 add(news, Notice.ELEMENTS, (now >= 1 ? "Ensemble complet : " : "Ensemble à moitié réuni : ") + set.name()
-                        + "  —  " + ElementText.describe(set.effect()) + (now >= 1 ? "" : " (" + ElementText.percent(now) + " du bonus)"));
+                        + "  —  " + ElementText.describe(set.effect()) + (now >= 1 ? "" : " (" + ElementText.percent(now) + " du bonus)"), synthesizing);
             }
         }
 
@@ -383,14 +385,14 @@ final class Notifier {
             for (Automation automation : game.automations()) {
                 if (game.ownsAutomation(automation.id()) && !automations.contains(automation.id())
                         && game.state().explosions() == explosions) {
-                    add(news, Notice.AUTOMATION, "Automatisme offert : " + automation.name());
+                    add(news, Notice.AUTOMATION, "Automatisme offert : " + automation.name(), true);
                 }
             }
         }
 
         int milestones = game.speedMilestones();
         if (milestones > speedMilestones && milestones <= ANNOUNCED_SPEED_MILESTONES) {
-            add(news, Notice.MILESTONES, "Palier de vitesse n° " + milestones + " : particules multipliées");
+            add(news, Notice.MILESTONES, "Palier de vitesse n° " + milestones + " : particules multipliées", running("auto_speed"));
         }
         int reached = game.landmarksReached();
         if (reached > landmarks) {
@@ -412,10 +414,27 @@ final class Notifier {
         return news;
     }
 
-    /** Une nouvelle : sa catégorie, qui se coupe dans les réglages, et sa phrase. */
-    record News(Notice kind, String text) { }
+    /**
+     * Une nouvelle : sa catégorie, qui se coupe dans les réglages, sa phrase, et si elle vient d'un automatisme (son son
+     * est alors celui des automatismes, coupé au départ).
+     */
+    record News(Notice kind, String text, boolean automatic) {
+        News(Notice kind, String text) { this(kind, text, false); }
+    }
+
+    /**
+     * Vrai pour ce qu'amène un automatisme en marche (un palier de vitesse atteint par l'achat automatique de la vitesse,
+     * un automatisme offert par la matière noire, un élément de la synthèse automatique), qui revient à chaque partie. Son
+     * son est celui des automatismes, coupé au départ (l'explosion automatique l'est aussi, voir {@code GameAppTabs.announce}).
+     */
+    static boolean isAutomatic(News item) { return item.automatic(); }
 
     private static void add(List<News> news, Notice kind, String text) { news.add(new News(kind, text)); }
+
+    private static void add(List<News> news, Notice kind, String text, boolean automatic) { news.add(new News(kind, text, automatic)); }
+
+    /** Vrai si cet automatisme de l'onglet Automatisation est en marche : ce qui suit vient alors de lui. */
+    private boolean running(String automationId) { return !game.isAutomationPaused() && game.isAutomationEnabled(automationId); }
 
     /**
      * Les phrases à afficher, au plus {@link #MAX_PER_POLL} : au-delà, les dernières se résument (« … et 3 autres

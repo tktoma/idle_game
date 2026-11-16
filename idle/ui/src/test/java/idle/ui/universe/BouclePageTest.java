@@ -214,7 +214,7 @@ class BouclePageTest {
     }
 
     @Test
-    void leMetronomeBatAuCentreDesZonesDuPremierCercle() {
+    void leMetronomeBatAChaqueQuartDeTourDuPremierCercle() {
         FxTestSupport.fx(() -> {
             Game game = fifth();
             Counted settings = new Counted();
@@ -232,10 +232,13 @@ class BouclePageTest {
             game.setLoopPhase(0, 0.55);
             window.frame(0.016, true);
             run(game, window, 1.2);
-            assertEquals(1, settings.beats, "un tic au passage du centre");
-            assertEquals(1, view.beats());
-            run(game, window, 1);
-            assertEquals(1, settings.beats, "un seul");
+            assertTrue(settings.beats >= 1, "un tic au huitième de tour suivant");
+            assertEquals(settings.beats, view.beats());
+            // Même si le rythme automatique ou le joueur déplacent les zones, le métronome garde son pas.
+            int before = settings.beats;
+            game.setLoopZone(0, 0, 0.1);
+            run(game, window, 3);
+            assertTrue(settings.beats > before, "il bat toujours");
             return null;
         });
     }

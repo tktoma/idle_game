@@ -340,4 +340,27 @@ class GrillePageTest {
             return null;
         });
     }
+
+    /** Un clic hors de la boîte des chiffres quitte le champ x, y ou z ; un clic dans la boîte le garde. */
+    @Test
+    void unClicHorsDeLaBoiteDesChiffresQuitteLeChamp() {
+        FxTestSupport.fx(() -> {
+            Game game = eighth();
+            DimensionWindow window = window(game);
+            TextField x = window.gridFields()[0];
+            x.requestFocus();
+            assertTrue(x.isFocused());
+            javafx.event.Event.fireEvent(window.gridFields()[1], press());
+            assertTrue(x.isFocused() || window.gridFields()[1].isFocused(), "dans la boîte : on reste dans les chiffres");
+            x.requestFocus();
+            javafx.event.Event.fireEvent(window.view(), press());
+            assertTrue(!x.isFocused(), "dehors : le champ est quitté");
+            return null;
+        });
+    }
+
+    private static javafx.scene.input.MouseEvent press() {
+        return new javafx.scene.input.MouseEvent(javafx.scene.input.MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, javafx.scene.input.MouseButton.PRIMARY,
+                1, false, false, false, false, true, false, false, false, false, false, null);
+    }
 }

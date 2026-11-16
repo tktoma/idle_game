@@ -111,7 +111,10 @@ final class HelpPane extends Overlay {
         sections.add(new Section("Particules", "Un générateur crée des particules. Elles paient trois améliorations : la "
                 + "vitesse de création, le couplage (chaque générateur renforce les autres) et un générateur de plus. "
                 + "Réunis, les " + generators + " générateurs fusionnent en atomes : il n'en reste qu'un, et les "
-                + "particules repartent de zéro."
+                + "particules repartent de zéro. Chaque générateur montre son palier de vitesse : quatorze, de la vitesse de "
+                + "base à 10 par seconde, puis 100, 10⁴, 10⁸… (la vitesse élevée au carré) jusqu'à 10⁴⁰⁹⁶, la vitesse de la fin "
+                + "du premier univers. Le noyau passe du presque blanc au noir et garde un rond par palier franchi ; le trait "
+                + "s'épaissit, l'allure repart de zéro, et le son de chaque particule récupérée descend d'une note."
                 // Le fond des particules et la fusion des générateurs : des skins, par les particules créées et les fusions.
                 + (game.isSkinsUnlocked() ? " Le fond de poussières derrière les générateurs a ses skins, choisis dans l'onglet Skins, un "
                         + "par palier de particules créées (neige à un million, puis pluie, pollen, lucioles, bulles, poussière d'or, cendres, "
@@ -404,8 +407,8 @@ final class HelpPane extends Overlay {
                         + "attend " + ElementText.number(Game.LOOP_COOLDOWN) + " seconde : cliquer sans arrêt ne rapporte "
                         + "rien. Ses améliorations : rapidité du point, nombre de zones (jusqu'à " + Game.MAX_ZONES + "), "
                         + "gain par zone, précision, taille des zones, et des cercles de plus, jusqu'à " + Game.MAX_RINGS
-                        + ", chacun sur sa touche. Un métronome, à brancher dans la fenêtre, fait un tic à chaque passage du "
-                        + "point du premier cercle sur le centre d'une zone. Avec la boucle, un rond de croissance pousse de "
+                        + ", chacun sur sa touche. Un métronome, à brancher dans la fenêtre, fait un tic à chaque huitième de "
+                        + "tour du point du premier cercle. Avec la boucle, un rond de croissance pousse de "
                         + "temps en temps près de la graine : cueilli d'un clic avant qu'il s'en aille, il accélère "
                         + "l'arrosage de " + Math.round(game.bloomGain() * 100) + " % pendant "
                         + ElementText.number(game.bloomSeconds()) + " secondes." : "")
@@ -453,7 +456,8 @@ final class HelpPane extends Overlay {
                 // Le miroir, et les saisons qui viennent avec lui.
                 + (game.isMirrorOpen() ? " Dans le miroir, un motif s'allume case après case sur la moitié gauche du "
                         + "plateau, puis s'éteint : il faut le refaire de mémoire, en miroir, sur la moitié droite, dans le même "
-                        + "ordre. Réussi, il donne des reflets, d'autant plus qu'il est long, et le suivant a une case de plus ; "
+                        + "ordre. Chaque case a sa note de piano, la même que son reflet : le motif se joue en s'allumant (et "
+                        + "se rejoue à l'entrée de la dimension s'il attend), puis le refaire rejoue sa mélodie. Réussi, il donne des reflets, d'autant plus qu'il est long, et le suivant a une case de plus ; "
                         + "manqué, il donne un peu, et le suivant a une case de moins. Ses améliorations : gain, multiplicateur "
                         + "de longueur, temps de mémorisation, seconde chance (des erreurs permises) et plateau plus grand. "
                         + "Avec le miroir, les saisons passent sur la graine, deux minutes chacune : une fois l'amélioration "
@@ -592,7 +596,7 @@ final class HelpPane extends Overlay {
                 + "une part du temps d'absence est rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
                 + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
-                + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets, le grondement de la matière noire qui grossit, de plus en plus vite et aigu avec son élan…), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
+                + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets, le grondement de la matière noire qui grossit, de plus en plus vite et aigu avec son élan…), de faire sonner ou non ce que font les automatismes (coupé au départ), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
                 + "pendant un défi, a son arpège dans chaque dimension et change de tonalité à chaque univers), de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
                 + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."
                 // Le chrome de la fenêtre : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
@@ -625,6 +629,8 @@ final class HelpPane extends Overlay {
                 + "est libre), et quatorze notations, dont neuf à débloquer ; la notation Battements de cœur écrit les durées en battements, "
                 + "un par seconde."));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
+        sections.add(new Section("Crédits", "Le piano du miroir vient du Salamander Grand Piano V3, d'Alexander Holm, sous "
+                + "licence Creative Commons Attribution 3.0 (creativecommons.org/licenses/by/3.0)."));
         return sections;
     }
 

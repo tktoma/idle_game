@@ -192,4 +192,23 @@ class MiroirTest {
         assertTrue(game.startNextUniverse());
         assertEquals(1, game.mirrorLevel(MirrorUpgrade.GAIN));
     }
+
+    /** Entrer dans le miroir rallume un motif pas encore commencé ; un motif commencé ou en pause ne bouge pas. */
+    @Test
+    void entrerDansLeMiroirRallumeLeMotifPasEncoreCommence() {
+        Game game = nine();
+        game.testSetMirrorPattern(THREE);
+        assertEquals(MirrorPhase.INPUT, game.mirrorPhase());
+        assertTrue(game.showMirrorPattern());
+        assertEquals(MirrorPhase.SHOW, game.mirrorPhase());
+        assertEquals(0, game.mirrorShown(), "depuis sa première case");
+        assertEquals(THREE, game.mirrorPattern(), "le même motif");
+        assertFalse(game.showMirrorPattern(), "déjà en train de s'allumer");
+        game.testSetMirrorPattern(THREE);
+        MirrorCell first = game.mirrored(THREE.get(0));
+        game.clickMirror(first.column(), first.row());
+        assertEquals(1, game.mirrorPosition());
+        assertFalse(game.showMirrorPattern(), "commencé : il attend la suite");
+        assertFalse(GameTestSupport.universe(8).showMirrorPattern(), "fermé : rien");
+    }
 }

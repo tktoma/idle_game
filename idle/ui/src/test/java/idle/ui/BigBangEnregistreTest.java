@@ -25,15 +25,13 @@ class BigBangEnregistreTest {
         assertEquals(0, mix.length % 2, "gauche et droite par paires");
         double seconds = mix.length / 2 / 44_100.0;
         assertTrue(seconds > 2.4 && seconds < 2.7, "l'explosion entière, l'accord compris : " + seconds);
-        int peak = 0;
         double same = 0, left = 0, right = 0;
         for (int i = 0; i < mix.length; i += 2) {
-            peak = Math.max(peak, Math.max(Math.abs(mix[i]), Math.abs(mix[i + 1])));
             same += (double) mix[i] * mix[i + 1];
             left += (double) mix[i] * mix[i];
             right += (double) mix[i + 1] * mix[i + 1];
         }
-        assertEquals(Math.round(Sound.BIG_BANG_PEAK * Short.MAX_VALUE), peak, 2, "la crête retenue à l'écoute, sans écrêter");
+        NiveauxTest.auNiveau(mix, 2, Sound.RARE_DB, "le Big Bang");
         double correlation = same / Math.sqrt(left * right);
         assertTrue(correlation < 0.9, "deux canaux bien différents : la stéréo est gardée (" + correlation + ")");
     }
@@ -60,7 +58,7 @@ class BigBangEnregistreTest {
         assertTrue(wood.play(Cue.BIG_BANG, 100));
         Sound other = new Sound();
         other.sink = sent::add;
-        assertTrue(other.play(Cue.EXPLOSION, 100));
+        assertTrue(other.play(Cue.COMET, 100));
         for (Sound each : List.of(sound, wood, other)) {
             each.player.shutdown();
             assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
@@ -68,7 +66,7 @@ class BigBangEnregistreTest {
         assertEquals(3, sent.size());
         Sound.Pcm bang = sent.stream().filter(Sound.Pcm::stereo).findFirst().orElseThrow();
         assertEquals(Sound.BIG_BANG_STEREO.length * 2, bang.bytes().length, "le mélange entier, au volume plein");
-        assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "seul le Big Bang par défaut est en stéréo");
+        assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "le Big Bang par défaut en stéréo, les autres sons en mono");
     }
 
     @Test
