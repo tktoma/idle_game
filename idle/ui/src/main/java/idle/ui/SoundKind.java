@@ -4,6 +4,7 @@ package idle.ui;
 public enum SoundKind {
     PARTICLES("Particules créées"),
     ATOMS("Fusions (atomes)"),
+    DARK_MATTER("Matière noire qui grossit"),
     EXPLOSION("Explosions du tableau"),
     BIG_BANG("Big Bangs"),
     UNIVERSE("Univers formés et défi final"),

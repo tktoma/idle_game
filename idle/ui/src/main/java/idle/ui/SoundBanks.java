@@ -26,6 +26,19 @@ final class SoundBanks {
         double tone(double frequency, double t, double length);
     }
 
+    /**
+     * Vrai si, avec ces skins, le Big Bang est celui par défaut : aucun son de Big Bang choisi, et une banque qui n'a pas le
+     * sien (le Classique, le silence partiel). C'est alors l'explosion enregistrée, en stéréo ({@link Sound#BIG_BANG_STEREO}).
+     */
+    static boolean classicBigBang(Skin bank, Skin bang) {
+        if (bang != null) return false;
+        if (bank == null) return true;
+        return switch (bank) {
+            case SOUND_WOOD, SOUND_GLASS, SOUND_BITS, SOUND_ORCHESTRA, SOUND_NATURE -> false;
+            default -> true;
+        };
+    }
+
     /** Un son dans les skins choisis ({@code null} = Classique) ; vide pour un son que le silence partiel coupe. */
     static short[] synthesize(Cue cue, Skin bank, Skin bang, Skin metronome) {
         if (cue == Cue.BIG_BANG && bang != null) return bigBang(bang);

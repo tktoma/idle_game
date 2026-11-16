@@ -21,6 +21,28 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.220", "Les sons ne dépendent plus des notifications", List.of(
+                    "Les sons des grands moments (Big Bang, explosion, univers formé, succès, défis…) partent de ce qui s'est passé, "
+                            + "plus de sa notification : une catégorie de notifications coupée, ou une annonce fondue dans « … et N autres "
+                            + "nouvelles », ne coupe plus son son. Seuls les réglages des sons décident. Ce que le deuxième univers cache "
+                            + "des anciens onglets ne s'affiche toujours pas et ne sonne pas.")),
+            new Note("0.219", "Le Big Bang se fait entendre", List.of(
+                    "Correctif : quand un Big Bang arrivait avec plus de quatre annonces (records battus, défi réussi, skins…), "
+                            + "il finissait dans « … et N autres nouvelles » et ne sonnait pas. Le son se choisit maintenant sur toutes "
+                            + "les annonces.",
+                    "Si la sortie audio refuse la stéréo, le Big Bang part en mono au lieu de couper tous les sons.")),
+            new Note("0.218", "Un Big Bang qui explose", List.of(
+                    "Le Big Bang a un nouveau son : une vraie explosion enregistrée, en stéréo, avec l'accord du Big Bang qui monte "
+                            + "par-dessus. Les banques de sons et les sons de Big Bang choisis dans les skins gardent les leurs.")),
+            new Note("0.217", "Noyaux sombres en haut de l'arbre", List.of(
+                    "Arbre de la matière noire : ★ Noyaux sombres, la case qui compte le plus, se pose seule tout en haut, sous "
+                            + "la racine, avant que l'arbre ne se divise en branches. La colonne de la matière noire commence "
+                            + "ensuite par Rouages sombres.")),
+            new Note("0.216", "La matière noire gronde", List.of(
+                    "Sur l'onglet de la matière noire, tant qu'elle grossit (appui tenu, verrouillé ou automatique), un grondement "
+                            + "tourne en boucle. Il va de plus en plus vite, et monte, avec l'élan de la croissance : trois fois plus vite "
+                            + "à l'élan qu'elle a à la fin du premier univers, et pas plus ensuite. Il se tait en pause et au Big Bang.",
+                    "Réglages : « Matière noire qui grossit » est une catégorie de sons à part, qui se garde ou se coupe d'un clic.")),
             new Note("0.215", "Un code plus court et mieux rangé", List.of(
                     "Rien ne change en jeu : les parties se jouent à l'identique, au même rythme. Le code du jeu a perdu "
                             + "environ 8 000 lignes sur 149 000 (méthodes inutilisées retirées, commentaires sans l'historique "

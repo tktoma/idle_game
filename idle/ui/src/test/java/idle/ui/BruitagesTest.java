@@ -96,7 +96,7 @@ class BruitagesTest {
         }
         List<byte[]> sent = new ArrayList<>();
         Sound sound = new Sound();
-        sound.sink = sent::add;
+        sound.sink = pcm -> sent.add(pcm.bytes());
         sound.setAllowed(kind -> kind != SoundKind.NEWS && kind != SoundKind.DIMENSIONS && kind != SoundKind.CLICKS);
         assertFalse(sound.play(Cue.VICTORY, 100), "une annonce coupée");
         assertFalse(sound.gain(3, 100), "un point gagné coupé");

@@ -55,7 +55,7 @@ class SonsDuJeuTest {
     void lesSonsDInterfaceNeRetardentPasLesAnnonces() throws InterruptedException {
         List<byte[]> sent = new ArrayList<>();
         Sound sound = new Sound();
-        sound.sink = sent::add;
+        sound.sink = pcm -> sent.add(pcm.bytes());
         assertTrue(sound.play(Cue.ACHIEVEMENT, 100));
         assertTrue(sound.click(Cue.PURCHASE, 100), "un achat juste après une annonce sonne");
         assertFalse(sound.play(Cue.SKIN, 100), "une seconde annonce collée attend toujours la première, pas l'achat");
@@ -86,7 +86,7 @@ class SonsDuJeuTest {
     void lesGestesSuiventLeRythmeEtLeSilencePartiel() throws InterruptedException {
         List<byte[]> sent = new ArrayList<>();
         Sound sound = new Sound();
-        sound.sink = sent::add;
+        sound.sink = pcm -> sent.add(pcm.bytes());
         assertFalse(sound.gesture(0, 100), "pas de dimension zéro");
         assertFalse(sound.gesture(11, 100), "ni onze");
         assertFalse(sound.gesture(7, 0), "au volume nul, rien");

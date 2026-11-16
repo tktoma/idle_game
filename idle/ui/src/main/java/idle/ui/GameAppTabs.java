@@ -419,15 +419,17 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Le journal garde tout, que les notifications soient affichées ou non, catégorie coupée comprise.
         for (Notifier.News item : news) EventLog.of(game).add(game, item.text());
         // Dans la partie secondaire, ce qui se passe dans les anciens onglets, cachés, n'est plus annoncé : seuls les
-        // succès et les titres du profil le sont encore. Une catégorie coupée dans les réglages ne s'affiche pas et ne sonne pas.
+        // succès et les titres du profil le sont encore. Une catégorie coupée dans les réglages ne s'affiche pas.
         boolean phase = universePhase();
-        List<String> shown = Notifier.summarize(news.stream()
-                .filter(item -> (!phase || item.kind() == Notice.ACHIEVEMENTS || item.kind() == Notice.TITLES) && settings.notice(item.kind()))
-                .map(Notifier.News::text).toList());
-        sound.announce(shown, settings.sound(), settings.volume());
-        // Un Big Bang ou un univers formé fait monter la musique, même si l'annonce est coupée.
-        Sound.Cue strongest = Sound.strongest(news.stream().map(Notifier.News::text).toList());
-        if (strongest == Sound.Cue.BIG_BANG || strongest == Sound.Cue.UNIVERSE) music.accent();
+        List<Notifier.News> visible = news.stream()
+                .filter(item -> !phase || item.kind() == Notice.ACHIEVEMENTS || item.kind() == Notice.TITLES).toList();
+        List<String> shown = Notifier.summarize(visible.stream().filter(item -> settings.notice(item.kind())).map(Notifier.News::text).toList());
+        // Le son vient de ce qui s'est passé, pas de sa notification : coupée dans les réglages ou fondue dans le résumé,
+        // elle sonne quand même ; seuls les réglages des sons décident. Ce que la partie secondaire cache ne sonne pas.
+        Sound.Cue heard = Sound.strongest(visible.stream().map(Notifier.News::text).toList());
+        if (heard != null && settings.sound()) sound.play(heard, settings.volume());
+        // Un Big Bang ou un univers formé fait monter la musique.
+        if (heard == Sound.Cue.BIG_BANG || heard == Sound.Cue.UNIVERSE) music.accent();
         if (settings.notifications()) {
             for (String text : shown) toasts.show(text, noticeColor(text));
         } else if (toasts.count() > 0) {

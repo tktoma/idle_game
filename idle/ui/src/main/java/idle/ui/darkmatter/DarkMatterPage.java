@@ -65,6 +65,8 @@ public final class DarkMatterPage extends VBox {
     private final VBox pointPane = new VBox(8);
     /** Vrai tant que le clic est maintenu sur le point. */
     private boolean pressed = false;
+    /** Vrai si la matière noire grossissait à la dernière image (l'appui tenu, verrouillé ou automatique). */
+    private boolean growing;
 
     // Sous-page « Arbre »
     private final DarkMatterTreePane tree;
@@ -248,6 +250,7 @@ public final class DarkMatterPage extends VBox {
      * @param timeFactor accélération du temps (1 en jeu normal)
      */
     public void frame(double elapsed, double timeFactor) {
+        growing = false;
         if (selected == 1) tree.frame(elapsed);
         if (selected == 2) challenges.frame(elapsed);
         if (selected != 0) return;
@@ -256,8 +259,12 @@ public final class DarkMatterPage extends VBox {
         // Avec l'appui automatique, le jeu tient déjà le clic en entier : le tenir soi-même n'ajoute rien.
         boolean held = game.isAutoHolding();
         if (pressed && !held) game.growDarkMatter(elapsed * timeFactor * (locked ? 1 - Game.HOLD_LOCK_SHARE : 1));
+        growing = (pressed || locked || held) && game.darkMatterMomentum() > 0;
         view.frame(elapsed, game.state().darkMatterSize(), pressed || locked || held, game.darkMatterMomentum());
     }
+
+    /** Vrai si, à la dernière image, la matière noire grossissait sous les yeux du joueur : son grondement joue. */
+    public boolean isGrowing() { return growing; }
 
     /** L'onglet n'est plus affiché : un clic resté « maintenu » ne doit pas reprendre au retour. */
     public void release() {

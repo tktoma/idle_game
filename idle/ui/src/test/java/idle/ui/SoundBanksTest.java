@@ -67,13 +67,13 @@ class SoundBanksTest {
     void lesSonsRelusSuiventLeChoixEtLeSilenceNePartPas() throws InterruptedException {
         List<byte[]> sent = new ArrayList<>();
         Sound silent = new Sound();
-        silent.sink = sent::add;
+        silent.sink = pcm -> sent.add(pcm.bytes());
         silent.setSkins(Skin.SOUND_SILENCE, null, null);
         assertFalse(silent.play(Cue.ACHIEVEMENT, 100), "le silence partiel ne joue pas les annonces");
         assertFalse(silent.beat(100), "ni le métronome");
         assertTrue(silent.play(Cue.BIG_BANG, 100), "mais le Big Bang");
         Sound skinned = new Sound();
-        skinned.sink = sent::add;
+        skinned.sink = pcm -> sent.add(pcm.bytes());
         skinned.setSkins(Skin.SOUND_BITS, Skin.BANG_SOUND_WIND, Skin.METRONOME_METAL);
         assertTrue(skinned.beat(100));
         assertTrue(skinned.play(Cue.BIG_BANG, 100));

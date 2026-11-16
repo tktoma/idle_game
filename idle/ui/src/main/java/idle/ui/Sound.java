@@ -126,6 +126,21 @@ final class Sound {
 
     private static final float RATE = 44_100f;
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
+    private static final AudioFormat STEREO = new AudioFormat(RATE, 16, 2, true, false);
+
+    /** Un son prêt à partir : ses octets 16 bits petit-boutistes, en mono ou en stéréo (gauche, droite, gauche…). */
+    record Pcm(byte[] bytes, boolean stereo) {}
+
+    /**
+     * Le Big Bang par défaut : l'explosion enregistrée ({@code big-bang.wav}, stéréo) et l'accord synthétisé du Big Bang
+     * ({@link #synthesize(Cue)}) qui monte par-dessus, mêlés comme à l'écoute. La stéréo est gardée : ramenée en mono,
+     * l'explosion perd l'essentiel de son ampleur. Vide si la ressource manque : le Big Bang reste alors synthétisé.
+     */
+    static final short[] BIG_BANG_STEREO = bigBangStereo();
+    /** Le gain de l'explosion enregistrée dans le mélange, et celui de l'accord : ceux retenus à l'écoute. */
+    static final double RECORDED_GAIN = 1.7483, CHORD_GAIN = 0.7;
+    /** La crête du mélange : il est mis à ce niveau une fois mêlé. */
+    static final double BIG_BANG_PEAK = 0.98;
 
     private final Map<Cue, short[]> samples = new EnumMap<>(Cue.class);
     /** Les skins des sons choisis : la banque, le son du Big Bang, le tic du métronome ; {@code null} = Classique. */
@@ -136,7 +151,7 @@ final class Sound {
     /** Le fil des sons, créé au premier son ; visible des essais pour attendre sa fin. */
     ExecutorService player;
     /** Où partent les échantillons : la sortie audio, ou un relevé pour les essais. */
-    Consumer<byte[]> sink = this::output;
+    Consumer<Pcm> sink = this::output;
 
     /** Le son d'une annonce, ou {@code null} si elle n'en a pas. */
     static Cue cueOf(String text) {
@@ -175,16 +190,6 @@ final class Sound {
         return best;
     }
 
-    /**
-     * Joue le son le plus important de ces annonces, au volume réglé (0 à 100), si les sons sont
-     * actifs et que le rythme le permet. Ne bloque jamais : la lecture se fait sur un fil à part.
-     */
-    void announce(List<String> news, boolean enabled, int volume) {
-        if (!enabled || volume <= 0 || broken || news.isEmpty()) return;
-        Cue cue = strongest(news);
-        if (cue != null) play(cue, volume);
-    }
-
     /** Joue un son, si le rythme le permet. Vrai s'il est parti. */
     boolean play(Cue cue, int volume) {
         if (broken || volume <= 0 || !allowed(cue)) return false;
@@ -193,12 +198,13 @@ final class Sound {
         if (now - lastAny < ANY_CUE_GAP * 1e9) return false;
         Long last = lastPlayed.get(cue);
         if (last != null && now - last < SAME_CUE_GAP * 1e9) return false;
-        short[] sound = samples.computeIfAbsent(cue, this::synthesizeSkinned);
+        boolean stereo = cue == Cue.BIG_BANG && BIG_BANG_STEREO.length > 0 && SoundBanks.classicBigBang(bank, bangSkin);
+        short[] sound = stereo ? BIG_BANG_STEREO : samples.computeIfAbsent(cue, this::synthesizeSkinned);
         // Le silence partiel : un son vide ne part pas et ne compte pas dans le rythme.
         if (sound.length == 0) return false;
         lastAny = now;
         lastPlayed.put(cue, now);
-        send(pcm(sound, Math.min(100, volume) / 100.0));
+        send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), stereo));
         return true;
     }
 
@@ -235,7 +241,7 @@ final class Sound {
         short[] sound = samples.computeIfAbsent(cue, this::synthesizeSkinned);
         if (sound.length == 0) return false;
         lastPlayed.put(cue, now);
-        send(pcm(sound, Math.min(100, volume) / 100.0));
+        send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), false));
         return true;
     }
 
@@ -255,7 +261,7 @@ final class Sound {
         if (lastGesture[dimension] != 0 && now - lastGesture[dimension] < INTERFACE_GAP * 1e9) return false;
         if (gestures[dimension] == null) gestures[dimension] = synthesizeGesture(dimension);
         lastGesture[dimension] = now;
-        send(pcm(gestures[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0));
+        send(new Pcm(pcm(gestures[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0), false));
         return true;
     }
 
@@ -276,7 +282,7 @@ final class Sound {
         if (lastGain[dimension] != 0 && now - lastGain[dimension] < GAIN_GAP * 1e9) return false;
         if (gains[dimension] == null) gains[dimension] = synthesizeGain(dimension);
         lastGain[dimension] = now;
-        send(pcm(gains[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0));
+        send(new Pcm(pcm(gains[dimension], GESTURE_LEVEL * Math.min(100, volume) / 100.0), false));
         return true;
     }
 
@@ -290,7 +296,7 @@ final class Sound {
     }
 
     /** Envoie des échantillons à la sortie, sur le fil des sons : la lecture ne bloque jamais le jeu. */
-    private void send(byte[] pcm) {
+    private void send(Pcm pcm) {
         if (player == null) {
             player = Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "sons");
@@ -347,16 +353,68 @@ final class Sound {
     /** Vrai tant que la sortie audio n'a pas échoué. */
     boolean available() { return !broken; }
 
-    private void output(byte[] pcm) {
+    private void output(Pcm pcm) {
         try {
             Clip clip = AudioSystem.getClip();
             clip.addLineListener(event -> { if (event.getType() == LineEvent.Type.STOP) clip.close(); });
-            clip.open(FORMAT, pcm, 0, pcm.length);
+            if (pcm.stereo()) {
+                try {
+                    clip.open(STEREO, pcm.bytes(), 0, pcm.bytes().length);
+                } catch (Exception | LinkageError noStereo) {
+                    // Une sortie qui refuse la stéréo : le son part en mono plutôt que de couper tous les sons.
+                    byte[] mono = mono(pcm.bytes());
+                    clip.open(FORMAT, mono, 0, mono.length);
+                }
+            } else {
+                clip.open(FORMAT, pcm.bytes(), 0, pcm.bytes().length);
+            }
             clip.start();
         } catch (Exception | LinkageError noAudio) {
             // Pas de carte son, sortie occupée, système sans audio : le jeu continue en silence.
             broken = true;
         }
+    }
+
+    /** L'explosion enregistrée et l'accord du Big Bang, mêlés en stéréo ; vide si la ressource manque ou se lit mal. */
+    private static short[] bigBangStereo() {
+        try (java.io.InputStream raw = Sound.class.getResourceAsStream("big-bang.wav")) {
+            if (raw == null) return new short[0];
+            try (AudioInputStream in = AudioSystem.getAudioInputStream(new java.io.BufferedInputStream(raw))) {
+                AudioFormat format = in.getFormat();
+                if (format.getChannels() != 2 || format.getSampleSizeInBits() != 16 || format.getSampleRate() != RATE) return new short[0];
+                byte[] bytes = in.readAllBytes();
+                short[] chord = synthesize(Cue.BIG_BANG);
+                int frames = Math.max(bytes.length / 4, chord.length);
+                double[] mix = new double[frames * 2];
+                for (int i = 0; i < bytes.length / 2; i++) {
+                    mix[i] = RECORDED_GAIN * (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8)) / 32768.0;
+                }
+                for (int i = 0; i < chord.length; i++) {
+                    mix[2 * i] += CHORD_GAIN * chord[i] / 32768.0;
+                    mix[2 * i + 1] += CHORD_GAIN * chord[i] / 32768.0;
+                }
+                double peak = 0;
+                for (double value : mix) peak = Math.max(peak, Math.abs(value));
+                short[] out = new short[mix.length];
+                for (int i = 0; i < mix.length; i++) out[i] = (short) Math.round(mix[i] / peak * BIG_BANG_PEAK * Short.MAX_VALUE);
+                return out;
+            }
+        } catch (Exception unreadable) {
+            return new short[0];
+        }
+    }
+
+    /** Des octets stéréo ramenés en mono : la moyenne des deux canaux. */
+    static byte[] mono(byte[] stereo) {
+        byte[] out = new byte[stereo.length / 2];
+        for (int i = 0; i < out.length / 2; i++) {
+            int left = (short) ((stereo[4 * i] & 0xff) | (stereo[4 * i + 1] << 8));
+            int right = (short) ((stereo[4 * i + 2] & 0xff) | (stereo[4 * i + 3] << 8));
+            int value = (left + right) / 2;
+            out[2 * i] = (byte) value;
+            out[2 * i + 1] = (byte) (value >> 8);
+        }
+        return out;
     }
 
     /** Les échantillons, mis au volume voulu, en octets 16 bits petit-boutistes. */

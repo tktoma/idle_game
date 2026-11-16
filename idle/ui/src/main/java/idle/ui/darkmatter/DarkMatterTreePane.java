@@ -27,9 +27,12 @@ import javafx.scene.text.TextAlignment;
  * <li><b>taille</b> : les cases s'enchaînent aussi, mais se débloquent en atteignant une taille, sans rien dépenser
  * ;</li>
  * <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas les unes des autres : au
- * lieu de s'enchaîner, elles partent toutes d'un même tronc. Depuis la version 0.209, cette colonne vient en tête, et
- * Noyaux sombres, sa première case, doit être prise avant les autres.</li>
- * </ul> Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle fait en quelques mots
+ * lieu de s'enchaîner, elles partent toutes d'un même tronc. Cette colonne vient en tête.</li>
+ * </ul>
+ * Noyaux sombres, la case qui compte le plus, se pose seule sous la racine, avant que l'arbre ne se divise : c'est le
+ * premier achat en matière noire de chaque univers, à prendre avant les autres.
+ *
+ * <p>Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle fait en quelques mots
  * et son prix ; l'explication complète, avec la valeur actuelle, vient en mode détails ({@link Detail}), et les cases
  * grandissent alors toutes ensemble. Un trait s'allume quand la case qu'il mène est accessible.
  *
@@ -152,6 +155,8 @@ public final class DarkMatterTreePane extends Pane {
     private final Map<DarkUpgrade.Branch, Boolean> fans = new EnumMap<>(DarkUpgrade.Branch.class);
     private final List<DarkUpgrade.Branch> branches = new ArrayList<>();
     private final List<Cell> cells = new ArrayList<>();
+    /** La case qui compte le plus (Noyaux sombres), posée sous la racine avant les branches ; {@code null} sans elle. */
+    private Cell key;
     private final List<LinkCell> links = new ArrayList<>();
     /** Le titre de la planche des liaisons, et celui de chacun de ses rangs. */
     private final Label linksTitle = new Label();
@@ -200,6 +205,13 @@ public final class DarkMatterTreePane extends Pane {
             }
             DarkUpgrade.Branch branch = upgrade.branch();
             if (!branches.contains(branch)) branches.add(branch);
+            // La case qui compte le plus se pose seule, sous la racine : elle ne prend pas de rangée dans sa colonne.
+            if (upgrade.id().equals(Game.KEY_DARK_UPGRADE)) {
+                key = new Cell(upgrade, -1, -1);
+                byId.put(upgrade.id(), key);
+                cells.add(key);
+                continue;
+            }
             // Les deux voies d'une bifurcation partagent une rangée, côte à côte.
             Cell first = upgrade.isFork() ? forks.get(upgrade.fork()) : null;
             Cell cell = first != null ? new Cell(upgrade, first.row, 1)
@@ -214,8 +226,8 @@ public final class DarkMatterTreePane extends Pane {
             if (upgrade.isFork()) forkCells.computeIfAbsent(upgrade.fork(), key -> new ArrayList<>()).add(cell);
         }
         rowCounts.putAll(filled);
-        // La colonne de la matière noire passe en tête, à gauche (en haut dans une fenêtre étroite) :
-        // Noyaux sombres, sa première case, est le premier achat en matière noire de chaque univers.
+        // La colonne de la matière noire passe en tête, à gauche (en haut dans une fenêtre étroite) : ses achats viennent
+        // juste après Noyaux sombres, posée sous la racine.
         if (branches.remove(DarkUpgrade.Branch.DARK_MATTER)) branches.add(0, DarkUpgrade.Branch.DARK_MATTER);
         // Le rang d'une bifurcation : la première de sa branche, ou la deuxième. Une liaison prend le rang de ses voies.
         Map<String, Integer> forkLevel = new HashMap<>();
@@ -265,7 +277,7 @@ public final class DarkMatterTreePane extends Pane {
         for (Cell cell : cells) {
             cell.link.setStrokeWidth(2);
             cell.elbow.setStrokeWidth(2);
-            cell.elbow.setVisible(fans.get(cell.upgrade.branch()) || (cell.side >= 0 && forksWithChild.contains(cell.upgrade.fork())));
+            cell.elbow.setVisible(cell != key && (fans.get(cell.upgrade.branch()) || (cell.side >= 0 && forksWithChild.contains(cell.upgrade.fork()))));
             getChildren().add(cell.link);
             getChildren().add(cell.elbow);
         }
@@ -715,6 +727,14 @@ public final class DarkMatterTreePane extends Pane {
         Map<DarkUpgrade.Branch, Double> headerYs = new EnumMap<>(DarkUpgrade.Branch.class);
         Map<DarkUpgrade.Branch, Double> centers = new EnumMap<>(DarkUpgrade.Branch.class);
         double y = TOP + ROOT_HEIGHT;
+        // La case qui compte le plus : au milieu, sous la racine, avant que l'arbre ne se divise. Un trait l'y relie.
+        if (key != null) {
+            double keyTop = y + ROW_GAP;
+            put(key, Math.floor((width - cardWidth) / 2), keyTop, cardWidth);
+            place(key.link, width / 2, y, width / 2, keyTop);
+            y = keyTop + cardHeight;
+        }
+        double trunkTop = y;
         double lastBusY = y;
         for (int floor = 0; floor < buses.size(); floor++) {
             Line bus = buses.get(floor);
@@ -741,9 +761,10 @@ public final class DarkMatterTreePane extends Pane {
             y = headerY + HEADER_HEIGHT + slots * pitch;
         }
         // Le tronc passe entre les colonnes du milieu, de la racine au dernier étage.
-        place(trunk, width / 2, TOP + ROOT_HEIGHT, width / 2, lastBusY);
+        place(trunk, width / 2, trunkTop, width / 2, lastBusY);
 
         for (Cell cell : cells) {
+            if (cell == key) continue;
             DarkUpgrade.Branch branch = cell.upgrade.branch();
             double centerX = centers.get(branch);
             double headerBottom = headerYs.get(branch) + HEADER_HEIGHT;

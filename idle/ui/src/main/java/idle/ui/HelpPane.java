@@ -172,11 +172,11 @@ final class HelpPane extends Overlay {
                     + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
                     + "matières noires : seuls les prix rythment l'arbre. "
                     // La case qui compte le plus.
-                    + "Dans la colonne payée en matière noire, « Noyaux sombres » (carte dorée) est la case qui compte le plus : "
+                    + "Tout en haut de l'arbre, seule sous la racine, « Noyaux sombres » (carte dorée, payée en matière noire) est la case qui compte le plus : "
                     + "les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau ; sans elle, "
                     + "l'univers suivant dure trois fois plus longtemps. "
                     // En tête, et premier achat en matière noire.
-                    + "Sa colonne vient en tête de l'arbre, et elle passe avant le reste : tant qu'elle n'a pas de niveau, "
+                    + "Elle passe avant le reste : tant qu'elle n'a pas de niveau, "
                     + "les autres achats en matière noire, accords compris, l'attendent. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste"
                     + (game.universes() > 0 ? " ; leur tableau pèse " + ElementText.number(game.challengeUniverseFactor())
@@ -272,8 +272,8 @@ final class HelpPane extends Overlay {
                         + "formé et de ses phases, à la même échelle, puis le temps de chaque dimension (ouverte, jouée, seuil, palier final), "
                         + "les paliers de la graine et le défi final" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
-                + "sous-onglet « Notifications et signes », coupent les annonces par catégorie, cachent les morceaux de "
-                + "l'objectif un par un et les pastilles ● des onglets par sorte."));
+                + "sous-onglet « Notifications et signes », coupent les annonces par catégorie (leur son reste : il se règle "
+                + "avec les sons), cachent les morceaux de l'objectif un par un et les pastilles ● des onglets par sorte."));
         // Le profil : là dès le premier générateur.
         if (game.isStarted()) sections.add(new Section("Profil", "L'onglet Profil dit qui joue : un nom, à écrire dans le "
                 + "champ du haut (Entrée le valide), un avatar à choisir dans la galerie, ou une image à vous (PNG, JPG, GIF, BMP), "
@@ -592,7 +592,7 @@ final class HelpPane extends Overlay {
                 + "une part du temps d'absence est rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
                 + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
-                + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets…), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
+                + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets, le grondement de la matière noire qui grossit, de plus en plus vite et aigu avec son élan…), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
                 + "pendant un défi, a son arpège dans chaque dimension et change de tonalité à chaque univers), de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
                 + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."
                 // Le chrome de la fenêtre : trois visuels, fond, onglets et cartes, chacun avec ses conditions.

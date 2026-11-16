@@ -309,6 +309,8 @@ public abstract class GameAppBase extends Application {
     final Sound sound = new Sound();
     /** La musique de fond, qui suit la partie. */
     final Music music = new Music();
+    /** Le grondement de la matière noire qui grossit, de plus en plus vite avec son élan. */
+    final DarkMatterHum darkMatterHum = new DarkMatterHum();
     /** Les bruitages relevés image par image. */
     final SoundEvents soundEvents = new SoundEvents();
     /** La marque d'un bouton d'onglet : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
@@ -733,6 +735,11 @@ public abstract class GameAppBase extends Application {
                 // La musique suit le moment de la partie, et la fenêtre d'une dimension ouverte.
                 int openDimension = dimensionWindow.isOpen() ? dimensionWindow.dimension().number() : 0;
                 music.update(Music.moodOf(game, openDimension), settings.music(), settings.musicVolume());
+                // Le grondement de la matière noire : sur son onglet, tant qu'elle grossit (en pause, elle ne grossit pas).
+                boolean darkGrowing = selectedTab == Tab.DARK_MATTER && !settings.paused() && !dimensionWindow.isOpen()
+                        && darkMatterPage.isGrowing();
+                darkMatterHum.update(darkGrowing, game.darkMatterMomentum(), settings.sound() && settings.soundKind(SoundKind.DARK_MATTER),
+                        settings.volume());
                 // Les bruitages de ce qui vient de se passer, là où on le voit.
                 for (SoundEvents.Heard heard : soundEvents.frame(game, selectedTab.name(), openDimension)) {
                     if (!settings.sound()) continue;

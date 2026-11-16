@@ -11,8 +11,8 @@ import java.util.*;
  *
  * <p>Ce qui revient sans cesse (les particules, les fusions, les collisions, les hadrons, le vide, les arrosages, les
  * points des dimensions) ne sonne que là où on le voit : sur son onglet, ou dans la fenêtre de sa dimension ouverte, qui
- * couvre les onglets. Un palier de la graine, rare, sonne partout. Les explosions, Big Bangs et univers formés passent par
- * les annonces ({@link Notifier}). Le rythme (un même son pas trop souvent) est celui de {@link Sound}.
+ * couvre les onglets. Un palier de la graine, rare, sonne partout. Les explosions, Big Bangs et univers formés sont relevés
+ * par {@link Notifier} : ils sonnent même si leur notification est coupée ou fondue dans le résumé. Le rythme (un même son pas trop souvent) est celui de {@link Sound}.
  *
  * <p>La première image ne fait que relever les compteurs : une partie chargée ne sonne pas tout ce qu'elle a déjà fait.
  */
