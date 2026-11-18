@@ -484,8 +484,9 @@ final class HelpPane extends Overlay {
                         + "le mélange). Sur la carte des dimensions, chaque point se remplit de vert vers son palier, en "
                         + "puissances de dix, et devient tout vert une fois le palier atteint ; le seuil y devient un anneau "
                         + "vert autour du point. Les dix paliers atteints, la partie est finie : les traits de la carte "
-                        + "deviennent verts dans une aura dorée, le point du milieu grandit, et l'écran de fin s'ouvre. Le jeu "
-                        + "continue derrière, et « Revoir la fin » la rejoue." : "")));
+                        + "deviennent verts dans une aura dorée, le point du milieu grandit jusqu'à tout couvrir de "
+                        + "jaune, puis l'écran de fin s'ouvre : « Recommencer de zéro » efface toute la partie (un second clic le "
+                        + "confirme), « Continuer la sauvegarde » la garde et le jeu continue. « Revoir la fin » la rejoue." : "")));
         // L'automatisation des dimensions (version 0.150 ; version 0.182 : par les paliers de la graine et les univers).
         if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "Les paliers de "
                 + "la graine et les univers ouvrent le sous-onglet « Dimensions » de l'onglet Automatisation, une dimension à la "
@@ -501,7 +502,8 @@ final class HelpPane extends Overlay {
                 + " du mélange) : il faut d'abord la jouer à la main, de dix minutes à une demi-heure. Viennent d'abord ceux qui "
                 + "achètent chacun une amélioration dès qu'elle est payable, en gardant de quoi payer l'automatisme suivant ; puis, "
                 + "les plus chers, ceux qui jouent la dimension à votre place, en cinq paliers : une action toutes les 5 s, puis "
-                + "2 s, 1 s et 0,5 s, et le dernier sans attente. Le plus rapide acheté joue ; aucune bulle ni la matière noire "
+                + "2 s, 1 s et 0,5 s, et le dernier sans attente, tous sur une même carte : un clic achète le palier suivant s'il est "
+                + "payable, sinon met en pause ou relance, et le bouton « Couper » sous la carte les met en pause à tout moment. Le plus rapide acheté joue ; aucune bulle ni la matière noire "
                 + "ne change leur cadence. La visée automatique fait filer le point du plan vers l'éclat le plus proche tant "
                 + "que vous ne tenez aucune touche, et reprend sa direction à chaque action ; la plongée automatique plonge seule "
                 + "dans le volume et y cueille une boule par action ; l'appui automatique tient le bouton de la durée jusqu'au "
@@ -612,19 +614,11 @@ final class HelpPane extends Overlay {
                         + "Ticket de caisse, Parchemin déroulé, à 20, 50, 100, 200 et 500 notifications reçues depuis l'ouverture du jeu), "
                         + "les panneaux comme celui-ci (Page de livre à cinq heures de jeu, Écran de cinéma à dix, Tableau d'affichage à "
                         + "vingt), le guide de transition entre univers et son rideau (Fondu au blanc, Page tournée, Diaphragme, Trou noir, un "
-                        + "par univers formé), l'écran de fin (Générique qui défile à la partie finie, Certificat encadré et Photo souvenir à "
-                        + "dix et onze univers), le bouton de démarrage d'une partie neuve (Interrupteur à la partie finie, Graine qu'on "
+                        + "par univers formé), le bouton de démarrage d'une partie neuve (Interrupteur à la partie finie, Graine qu'on "
                         + "plante, Allumette et Détonateur à neuf, dix et onze univers) et le curseur (Main de verre, Étoile filante et sa "
                         + "traînée, Arrosoir, Loupe, Baguette : un succès d'un onglet différent chacun ; le curseur choisi se montre sur "
                         + "tous les onglets, sauf au-dessus d'un bouton, où la main du système reste)." : "")
-                // Les sons (skins), les thèmes et les notations nouveaux (réglages).
-                + (game.isSkinsUnlocked() ? " Les sons aussi ont leurs skins, tous synthétisés : la banque de sons change le timbre de tous "
-                        + "(Bois à une heure de jeu, Verre à deux, 8 bits à cinq, Orchestre à dix, Nature à vingt ; Silence partiel, libre, ne "
-                        + "laisse sonner que les Big Bangs), le son du Big Bang a le sien (Carillon géant, Souffle de vent, Orgue à 5, 10 et 20 "
-                        + "Big Bangs) et le tic du métronome de la boucle le sien (Bois au seuil de la boucle, Métal, Goutte d'eau et "
-                        + "Battement de cœur à six, sept et huit univers) ; un son choisi dans l'onglet Skins se fait entendre tout de suite, "
-                        + "et choisir un tic allume le métronome de la boucle, éteint au départ (il ne bat que dans la boucle, "
-                        + "la dimension 5)." : "")
+                // Les thèmes et les notations nouveaux (réglages) ; les sons n'ont plus de skins depuis la 0.251.
                 + " Les réglages comptent dix-neuf thèmes, dont douze à débloquer par une énigme (le thème Daltonien, d'accessibilité, "
                 + "est libre), et quatorze notations, dont neuf à débloquer ; la notation Battements de cœur écrit les durées en battements, "
                 + "un par seconde."));

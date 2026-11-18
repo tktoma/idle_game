@@ -8,25 +8,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javafx.animation.TranslateTransition;
 import javafx.scene.*;
 import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.util.Duration;
 
 /**
  * Les skins des panneaux par-dessus la fenêtre, à côté d'{@link Overlay} pour le garder lisible : ceux des
- * panneaux (aide, absence, fin), de l'écran de fin et du guide de transition. Un skin remplace le voile et le fond de la
+ * panneaux (aide, absence, fin) et du guide de transition (les skins de l'écran de fin sont retirés depuis la 0.267). Un skin remplace le voile et le fond de la
  * carte ; sur un fond clair, chaque étiquette garde sa teinte mais passe à l'encre (sombre), et revient à son style
  * d'origine au retour du classique.
  * <ul>
  * <li>« Page de livre » : couverture de cuir, page crème avec l'ombre de la reliure à gauche, lettres serif ;</li>
  * <li>« Écran de cinéma » : rideau rouge plissé en voile, écran blanc cadré de noir, lettres noires ;</li>
  * <li>« Tableau d'affichage » : cadre de bois, liège, feuille punaisée au milieu ;</li>
- * <li>« Générique qui défile » : tout noir, lettres à machine claires, la carte monte depuis le bas ;</li>
- * <li>« Certificat encadré » : vélin, double filet d'or, lettres serif ;</li>
- * <li>« Photo souvenir » : cadre blanc de polaroïd, large en bas, un peu de travers ;</li>
  * <li>« Fondu au blanc », « Page tournée », « Diaphragme », « Trou noir » : la carte du guide de transition, blanche,
  * en papier, ronde et noire, noire cerclée de violet.</li>
  * </ul>
@@ -41,9 +35,9 @@ final class PanelSkinStyles {
     private PanelSkinStyles() {
     }
 
-    /** Vrai pour les skins habillés ici : ceux des panneaux, de l'écran de fin et de la transition. */
+    /** Vrai pour les skins habillés ici : ceux des panneaux et de la transition. */
     static boolean handles(Skin skin) {
-        return skin != null && (skin.visual() == SkinVisual.PANEL || skin.visual() == SkinVisual.ENDING || skin.visual() == SkinVisual.TRANSITION);
+        return skin != null && (skin.visual() == SkinVisual.PANEL || skin.visual() == SkinVisual.TRANSITION);
     }
 
     /** Le style du voile sous ce skin. */
@@ -52,10 +46,6 @@ final class PanelSkinStyles {
             case PANEL_BOOK -> "-fx-background-color: #1a120bd0;";
             case PANEL_CINEMA -> CURTAIN;
             case PANEL_BOARD -> "-fx-background-color: #0e0a06cc;";
-            case ENDING_CREDITS -> "-fx-background-color: #000000f2;";
-            case ENDING_CERTIFICATE -> "-fx-background-color: #1a1508cc;";
-            // La photo se pose sur une table sombre et chaude (elle gardait le voile classique).
-            case ENDING_PHOTO -> "-fx-background-color: #17120ed8;";
             case TRANSITION_WHITE -> "-fx-background-color: #e8ecf2b8;";
             case TRANSITION_PAGE -> "-fx-background-color: #2a2318cc;";
             case TRANSITION_IRIS, TRANSITION_HOLE -> "-fx-background-color: #000000d8;";
@@ -77,12 +67,6 @@ final class PanelSkinStyles {
             case PANEL_BOARD -> "-fx-background-color: #5a3a1e, linear-gradient(from 0px 0px to 7px 5px, repeat, #b5824f 0%, #a8733f 50%,"
                     + " #b98a55 100%), #fbf6e4; -fx-background-insets: 0, 6, 22; -fx-background-radius: 2, 0, 0;"
                     + " -fx-border-color: #e8d8a0; -fx-border-width: 1; -fx-border-insets: 22;" + padding(pad, 20, 20, 20);
-            case ENDING_CREDITS -> "-fx-background-color: #000000; -fx-background-radius: 0;" + padding(pad, 10, 10, 10);
-            case ENDING_CERTIFICATE -> "-fx-background-color: #b8860b, #fdf6dc; -fx-background-insets: 0, 4; -fx-background-radius: 0;"
-                    + " -fx-border-color: #b8860b, #b8860b; -fx-border-width: 1, 3; -fx-border-insets: 12, 5; -fx-border-radius: 0;"
-                    + padding(pad, 12, 16, 12);
-            case ENDING_PHOTO -> "-fx-background-color: #fafafa; -fx-background-radius: 2; -fx-border-color: #d0d0d0; -fx-border-radius: 2;"
-                    + padding(pad, 18, 18, 54);
             case TRANSITION_WHITE -> "-fx-background-color: #f8fbff; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-width: 2;"
                     + " -fx-border-color: #c8a2ff;" + padding(pad, 0, 0, 0);
             case TRANSITION_PAGE -> "-fx-background-color: #c9b690, #f6efdc; -fx-background-insets: 0, 0 0 4 4; -fx-background-radius: 0;"
@@ -112,34 +96,18 @@ final class PanelSkinStyles {
         return switch (skin) {
             case PANEL_BOOK, TRANSITION_PAGE -> Color.hsb(hue, Math.min(1, sat * 1.4 + 0.25), 0.26);
             case PANEL_CINEMA -> Color.hsb(hue, sat * 0.5, 0.12);
-            case PANEL_BOARD, ENDING_PHOTO -> Color.hsb(hue, sat * 0.8, 0.2);
-            case ENDING_CERTIFICATE -> Color.hsb(hue, Math.min(1, sat * 0.9 + 0.2), 0.24);
+            case PANEL_BOARD -> Color.hsb(hue, sat * 0.8, 0.2);
             case TRANSITION_WHITE -> Color.hsb(hue, Math.min(1, sat + 0.3), 0.3);
-            case ENDING_CREDITS -> Color.hsb(hue, sat * 0.3, 0.95);
             default -> null;
         };
     }
 
-    /** La police ajoutée au style des étiquettes : serif sur le papier, à machine sur le générique. */
+    /** La police ajoutée au style des étiquettes : serif sur le papier. */
     private static String family(Skin skin) {
         return switch (skin) {
-            case PANEL_BOOK, ENDING_CERTIFICATE, TRANSITION_PAGE -> " -fx-font-family: 'Serif';";
-            case ENDING_CREDITS -> " -fx-font-family: 'Monospaced';";
+            case PANEL_BOOK, TRANSITION_PAGE -> " -fx-font-family: 'Serif';";
             default -> "";
         };
-    }
-
-    /** L'inclinaison de la carte, en degrés : la photo souvenir est posée de travers. */
-    static double rotation(Skin skin) { return skin == Skin.ENDING_PHOTO ? -2.5 : 0; }
-
-    /** Joue l'entrée de la carte : le générique monte depuis le bas ; les autres restent en place. */
-    static void enter(VBox card, Skin skin) {
-        card.setTranslateY(0);
-        if (skin != Skin.ENDING_CREDITS) return;
-        card.setTranslateY(260);
-        TranslateTransition rise = new TranslateTransition(Duration.seconds(2.5), card);
-        rise.setToY(0);
-        rise.play();
     }
 
     /**

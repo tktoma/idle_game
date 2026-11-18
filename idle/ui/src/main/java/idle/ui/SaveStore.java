@@ -86,11 +86,13 @@ public final class SaveStore {
         for (String argument : arguments) {
             if (argument.startsWith("--dossier=")) folder = Path.of(argument.substring("--dossier=".length()));
         }
-        return new SaveStore(!arguments.contains("--sans-sauvegarde"), folder, arguments.contains("--test") ? "essai" : "partie");
+        // Le profil test UI ne lit ni n'écrit aucune sauvegarde : sa partie est préparée à chaque lancement (0.248).
+        boolean enabled = !arguments.contains("--sans-sauvegarde") && !arguments.contains("--test-ui");
+        return new SaveStore(enabled, folder, arguments.contains("--test") ? "essai" : "partie");
     }
 
     /** Le dossier des données de l'utilisateur : {@code %APPDATA%\Idle} sous Windows, {@code ~/.idle} ailleurs. */
-    private static Path defaultFolder() {
+    static Path defaultFolder() {
         try {
             String appData = System.getenv("APPDATA");
             if (appData != null && !appData.isBlank()) return Path.of(appData, "Idle");

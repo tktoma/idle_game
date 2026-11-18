@@ -6,13 +6,16 @@ import javafx.scene.paint.*;
 
 /**
  * Les animations plein écran des skins, par-dessus toute la fenêtre et sans prendre les clics : l'explosion de matière
- * noire sous « Vortex » ou « Pulsar », et le Big Bang sous « Aurore », « Supernova » ou « Cristal ». Le classique garde
- * ses animations à lui.
+ * noire sous « Vortex » ou « Pulsar », et le Big Bang, classique ou sous « Aurore », « Supernova » ou « Cristal ».
+ * L'explosion classique garde son onde à elle.
  *
  * <p>Elle n'est pas rangée par sa fenêtre : à chaque image, elle prend la taille de la fenêtre et tout s'y dessine en
  * proportion, du plus petit écran au plus grand.
  *
  * <ul>
+ * <li>Le Big Bang classique (version 0.246) : la nuit tombe, la matière des quatre ressources tombe vers un point
+ * qui s'allume et tremble ; l'éclair blanchit l'écran, l'onde de choc et la matière partent jusqu'aux bords, la
+ * boule de feu refroidit du blanc au violet, puis les étoiles et les premières galaxies s'allument.</li>
  * <li>Vortex : l'écran s'assombrit de violet ; huit bras de spirale tournent de plus en plus vite, aspirent des débris
  * et s'ouvrent jusqu'aux coins, puis tout est avalé au centre.</li>
  * <li>Pulsar : deux grands faisceaux balaient tout l'écran en tournant, des anneaux battent du centre jusqu'aux
@@ -22,11 +25,13 @@ import javafx.scene.paint.*;
  * <li>Supernova : une étoile enfle au centre, éclate en un éclair qui blanchit l'écran, et sa coquille de débris part
  * jusqu'aux bords.</li>
  * <li>Cristal : l'écran se fêle à partir du centre, puis vole en éclats qui partent en tournant.</li>
- * </ul> Les dix animations de la version 0.191 (pluie, neige, sablier, feu d'artifice ; encre de Chine, vitrail,
- * abysses, papier plié, carte ancienne, néon de ville) sont dessinées par {@link BurstSkinArt}.
+ * </ul> Les six animations du Big Bang de la version 0.191 (encre de Chine, vitrail, abysses, papier plié, carte
+ * ancienne, néon de ville) sont dessinées par {@link BurstSkinArt}.
  */
 public final class BurstView extends Canvas {
     private Skin skin;
+    /** Vrai pendant le Big Bang classique, qui n'a pas de skin. */
+    private boolean classicBang;
     private double age;
     private double length;
 
@@ -40,20 +45,30 @@ public final class BurstView extends Canvas {
     /** Joue l'animation de ce skin pendant {@code seconds} secondes. */
     public void play(Skin chosen, double seconds) {
         skin = chosen;
+        classicBang = false;
         age = 0;
         length = seconds;
         setVisible(true);
     }
 
+    /** Joue le Big Bang classique, sans skin, pendant {@code seconds} secondes. */
+    public void playBigBang(double seconds) {
+        play(null, seconds);
+        classicBang = true;
+    }
+
     /** Vrai pendant une animation. */
-    public boolean isPlaying() { return skin != null; }
+    public boolean isPlaying() { return skin != null || classicBang; }
+
+    /** Vrai pendant le Big Bang classique : pour les vérifications. */
+    public boolean playingBigBang() { return classicBang; }
 
     /** Le skin qui joue, ou {@code null} : pour les vérifications. */
     public Skin playing() { return skin; }
 
     /** Avance l'animation et la redessine, à la taille de la fenêtre. */
     public void frame(double dt, double width, double height) {
-        if (skin == null) return;
+        if (!isPlaying()) return;
         age += Math.min(dt, 0.1);
         // Avant la première mise en page, la fenêtre n'a pas encore de taille : une taille d'attente.
         if (!(width > 0)) width = 1040;
@@ -66,11 +81,17 @@ public final class BurstView extends Canvas {
         g.clearRect(0, 0, width, height);
         if (age >= length) {
             skin = null;
+            classicBang = false;
             setVisible(false);
             return;
         }
         double t = age / length;
         double cx = width / 2, cy = height / 2, far = Math.hypot(cx, cy);
+        if (classicBang) {
+            bigBang(g, width, height, cx, cy, far, t);
+            g.setGlobalAlpha(1);
+            return;
+        }
         switch (skin) {
             case DARK_VORTEX -> vortex(g, width, height, cx, cy, far, t);
             case DARK_PULSAR -> pulsar(g, width, height, cx, cy, far, t);
@@ -143,6 +164,110 @@ public final class BurstView extends Canvas {
         g.setStroke(Color.web("#f3e8ff"));
         g.setLineWidth(Math.max(1.5, far * 0.006));
         g.strokeOval(cx - core, cy - core, core * 2, core * 2);
+    }
+
+    /** La matière des quatre ressources : particules, atomes, matière noire, et le blanc chaud du Big Bang. */
+    private static final Color[] MATTER = {Color.web("#9fd0ff"), Color.web("#ffd27f"), Color.web("#c9a6ff"), Color.web("#fff1c9")};
+    /** La boule de feu qui refroidit : blanc chaud, or, rouge, violet, nuit. */
+    private static final Color[] FIRE = {Color.web("#fff1c9"), Color.web("#ffc46b"), Color.web("#ff6a3c"), Color.web("#9a3cff"), Color.web("#2a1050")};
+    /** La part de l'animation avant l'éclair : l'effondrement. */
+    private static final double BANG = 0.3;
+
+    private static double frac(double x) { return x - Math.floor(x); }
+
+    /** L'angle, la distance et la taille du k-ième grain : trois suites qui ne s'alignent pas en spirale. */
+    private static double angleOf(int k) { return 2 * Math.PI * frac(k * 0.754877666); }
+
+    private static double distanceOf(int k) { return frac(k * 0.569840291); }
+
+    private static double sizeOf(int k) { return frac(Math.sin(k * 12.9898) * 43758.5453); }
+
+    /** La couleur de la boule de feu à ce point de son refroidissement (0 brûlante, 1 éteinte). */
+    static Color fire(double u) {
+        double s = Math.max(0, Math.min(0.999, u)) * (FIRE.length - 1);
+        int i = (int) s;
+        return FIRE[i].interpolate(FIRE[i + 1], s - i);
+    }
+
+    private void bigBang(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
+        double small = Math.min(w, h);
+        double fade = t > 0.82 ? (1 - t) / 0.18 : 1;
+        veil(g, w, h, Color.web("#04030a"), 0.93 * Math.min(1, t / 0.12) * fade);
+        if (t < BANG) {
+            // L'effondrement : la matière tombe en tournant vers un point qui s'allume et tremble.
+            double p = t / BANG, fall = p * p;
+            g.setLineWidth(Math.max(1, small * 0.003));
+            for (int k = 0; k < 180; k++) {
+                double a = angleOf(k) + fall * 1.5, start = far * (0.5 + 0.7 * distanceOf(k));
+                double r = start * (1 - fall) + small * 0.01, tail = r + far * 0.05 * (0.3 + fall * 2);
+                g.setStroke(MATTER[k % MATTER.length]);
+                g.setGlobalAlpha(0.85 * Math.min(1, p * 4));
+                g.strokeLine(cx + r * Math.cos(a), cy + r * Math.sin(a), cx + tail * Math.cos(a + 0.06), cy + tail * Math.sin(a + 0.06));
+            }
+            double shake = small * 0.004 * p * Math.sin(age * 60), core = small * (0.008 + 0.03 * fall);
+            glow(g, cx + shake, cy, core * 6, MATTER[3], 0.5 + 0.4 * p);
+            g.setGlobalAlpha(1);
+            g.setFill(Color.WHITE);
+            g.fillOval(cx + shake - core, cy - core, 2 * core, 2 * core);
+            return;
+        }
+        double u = (t - BANG) / (1 - BANG), e = 1 - Math.pow(1 - u, 2.6);
+        // L'éclair, puis la boule de feu qui grandit et refroidit.
+        veil(g, w, h, MATTER[3], Math.max(0, 1 - u * 5));
+        glow(g, cx, cy, far * (0.2 + 1.1 * e), fire(u * 1.1), 0.85 * Math.pow(1 - u, 1.2) * fade);
+        // L'onde de choc.
+        double ring = far * 1.25 * e;
+        g.setStroke(MATTER[3]);
+        g.setLineWidth(Math.max(1.5, small * 0.014 * (1 - u)));
+        g.setGlobalAlpha(0.8 * (1 - u));
+        g.strokeOval(cx - ring, cy - ring, 2 * ring, 2 * ring);
+        // La matière projetée : des traînées qui partent du centre, de plus en plus lentes.
+        for (int k = 0; k < 260; k++) {
+            double a = angleOf(k), speed = 0.25 + 0.95 * distanceOf(k), r = far * 1.15 * speed * e;
+            double back = Math.max(0, r - far * 0.08 * speed * (1 - u));
+            g.setStroke(MATTER[k % MATTER.length]);
+            g.setLineWidth(Math.max(1, small * (0.002 + 0.003 * sizeOf(k))));
+            g.setGlobalAlpha(0.9 * (1 - 0.5 * u) * fade);
+            g.strokeLine(cx + back * Math.cos(a), cy + back * Math.sin(a), cx + r * Math.cos(a), cy + r * Math.sin(a));
+        }
+        // Les étoiles qui s'allument.
+        if (u > 0.35) {
+            double on = Math.min(1, (u - 0.35) / 0.3) * fade;
+            g.setFill(Color.WHITE);
+            for (int k = 0; k < 150; k++) {
+                double x = w * frac(k * 0.754877666), y = h * frac(k * 0.569840291), size = k % 11 == 0 ? 2.4 : 1.4;
+                g.setGlobalAlpha(on * (0.25 + 0.6 * Math.abs(Math.sin(age * 3 + k))));
+                g.fillOval(x - size / 2, y - size / 2, size, size);
+            }
+        }
+        // Les premières galaxies : de petites spirales qui se forment et tournent.
+        if (u > 0.3) {
+            double grow = Math.min(1, (u - 0.3) / 0.35);
+            int steps = 25;
+            double[] xs = new double[steps], ys = new double[steps];
+            for (int k = 0; k < 12; k++) {
+                int spot = k * 7 + 3;
+                double a = angleOf(spot), r = far * (0.12 + 0.5 * distanceOf(spot)) * e;
+                double x = cx + r * Math.cos(a), y = cy + r * Math.sin(a), size = small * (0.025 + 0.025 * sizeOf(k)) * grow;
+                double turn = age * (1.2 + 0.3 * (k % 3)) * (k % 2 == 1 ? 1 : -1);
+                Color color = MATTER[k % MATTER.length];
+                glow(g, x, y, size * 1.6, color, 0.55 * fade);
+                g.setStroke(color);
+                g.setLineWidth(Math.max(1, size * 0.12));
+                g.setGlobalAlpha(0.8 * fade);
+                for (int arm = 0; arm < 2; arm++) {
+                    for (int s = 0; s < steps; s++) {
+                        double v = s / (double) (steps - 1), b = turn + arm * Math.PI + v * 3.6;
+                        xs[s] = x + size * v * Math.cos(b);
+                        ys[s] = y + size * v * Math.sin(b) * 0.55;
+                    }
+                    g.strokePolyline(xs, ys, steps);
+                }
+                g.setGlobalAlpha(fade);
+                g.setFill(Color.WHITE);
+                g.fillOval(x - size * 0.12, y - size * 0.12, size * 0.24, size * 0.24);
+            }
+        }
     }
 
     private void pulsar(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {

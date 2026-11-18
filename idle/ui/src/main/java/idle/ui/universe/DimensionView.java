@@ -2465,9 +2465,15 @@ public final class DimensionView extends Canvas {
         if (!game.isClickerOpen() || !overClicker(x, y)) return false;
         double[] at = clickerAt(x, y);
         int stack = game.clickerStackAt(at[0], at[1]);
+        lastClickerStack = stack;
         clickerMark(x, y, game.clickClicker(at[0], at[1]), stack, false);
         return true;
     }
+
+    /** Les zones ×2 superposées sous le dernier clic du joueur sur le clicker (0 hors des zones) : son son en dépend. */
+    public int lastClickerStack() { return lastClickerStack; }
+
+    private int lastClickerStack;
 
     private void clickerMark(double x, double y, double gain, int stack, boolean auto) {
         ClickerMark mark = new ClickerMark();

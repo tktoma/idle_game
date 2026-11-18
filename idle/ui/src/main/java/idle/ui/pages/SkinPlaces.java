@@ -95,12 +95,8 @@ final class SkinPlaces {
             case TOAST -> "Les notifications qui passent en bas à droite de la fenêtre.";
             case PANEL -> "Les panneaux qui recouvrent la fenêtre : l'aide (touche H), le retour d'une absence, la fin.";
             case TRANSITION -> "L'effet plein écran du passage à l'univers suivant.";
-            case ENDING -> "L'écran de fin de la partie.";
             case START_BUTTON -> "Le bouton qui lance une partie neuve, au milieu de l'onglet Particules.";
             case CURSOR -> "Le curseur de la souris, sur tous les onglets ; au-dessus d'un bouton, la main du système reste.";
-            case SOUND_BANK -> "Le timbre de tous les sons du jeu ; il se fait entendre dès qu'on le choisit (sons allumés dans les réglages).";
-            case BIG_BANG_SOUND -> "Le son d'un Big Bang ; il se fait entendre dès qu'on le choisit.";
-            case METRONOME -> "Le tic du métronome de la boucle (dimension 5) ; le choisir le fait entendre et allume le métronome, éteint au départ.";
         };
     }
 }

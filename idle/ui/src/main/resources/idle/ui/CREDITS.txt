@@ -7,3 +7,25 @@ https://archive.org/details/SalamanderGrandPianoV3, sous licence Creative Common
 
 Les autres sons enregistrés (atome, big-bang, collision, collisionneur, expansion, explosion, fusion,
 matiere-noire, particule) sont ceux du joueur ; les autres sont synthétisés par le jeu.
+brane-corde.wav et brane-claquement.wav (la brane) sont synthétisés pour le jeu, choisis à l'écoute en 0.242.
+graine-arrosoir.wav, graine-tuyau.wav, graine-orage.wav, graine-rond.wav et graine-saisons.wav
+(la graine) sont synthétisés pour le jeu, choisis à l'écoute en 0.243.
+graine-nuit.wav (le beau temps sur la graine, 0.254) vient du fichier du joueur
+« AMBTrop_Loop_Ambience_Jungle_Night_Humid_Birds_Bug_Chirps_01_ESM_SNLS » (Epic Stock Media, d'après son nom),
+ramené à 44,1 kHz en 16 bits, raccourci à 20 s et refermé en boucle par un fondu.
+sonde.wav (le lancement d'une sonde) est synthétisé pour le jeu, choisi à l'écoute en 0.244.
+graine-palier.wav (un palier de la graine, 0.255, remplacé en 0.257) est le son du joueur, son silence de début coupé.
+clic.wav (le clic des boutons et du clicker, 0.258) : « click_003 » de Kenney (www.kenney.nl), généré avec GameSynth
+de Tsugi, sous licence Creative Commons Zéro (domaine public), ramené en WAV.
+chrono.wav (le tic-tac du chrono, 0.260) vient du fichier du joueur « CLOCKTick_Crooked_Antique_Clock_344_Audio_Antique_Clocks »
+(344 Audio, d'après son nom), ramené en mono 44,1 kHz 16 bits, une boucle de six tics coupée dans le silence.
+achat.wav (le son d'un achat, 0.263) est le fichier du joueur « click2 », ramené en mono 44,1 kHz 16 bits, son silence de début coupé
+et sa fin fondue.
+palier-vitesse.wav (un palier de vitesse des particules, 0.264) est le fichier du joueur, ramené en mono 44,1 kHz 16 bits.
+univers.wav (un univers formé, 0.265) est le fichier du joueur, ramené en 16 bits, son silence de début coupé.
+fin.wav (la fin de la partie, 0.267) est le fichier du joueur, ramené en 16 bits, son silence de début coupé.
+defi-palier.wav (un palier du défi final, 0.271) est le fichier du joueur, ramené en mono 44,1 kHz 16 bits, sa fin fondue.
+defi-reussi.wav (un défi réussi, 0.271) est le fichier « confirmation_004 » du joueur (sans doute du pack Interface Sounds de Kenney, CC0), ramené en 44,1 kHz 16 bits, son silence de début coupé et sa fin fondue.
+defi-ouvert.wav (un défi qui s'ouvre ou commence, 0.271) est le fichier « drop_003 » du joueur (sans doute du pack Interface Sounds de Kenney, CC0), ramené en mono 44,1 kHz 16 bits, sa fin fondue.
+vide-paires.wav (le fond des paires du vide, 0.272) est le fichier du joueur, ramené en mono 44,1 kHz 16 bits, joué en boucle.
+nouvel-element.wav (un nouvel élément, 0.273) est « Unlock Stinger » (sunovia-unlock-stinger-289722, Pixabay, licence Pixabay : libre d'usage, sans attribution exigée), fourni par le joueur, ramené en 44,1 kHz 16 bits, son silence de début et de fin coupé.

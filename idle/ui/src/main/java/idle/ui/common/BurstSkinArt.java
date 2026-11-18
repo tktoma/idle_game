@@ -8,11 +8,9 @@ import javafx.scene.text.*;
 
 /**
  * Les animations plein écran des skins de la version 0.191, dessinées à côté de {@link BurstView} pour
- * la garder lisible : l'explosion de matière noire sous ses deux animations (version 0.203 : la pluie et le feu d'artifice retirés), et le Big Bang
- * sous ses six nouveaux skins, chacun dans ses couleurs.
+ * la garder lisible : le Big Bang sous ses six nouveaux skins, chacun dans ses couleurs (les animations de matière
+ * noire d'ici sont retirées : la pluie et le feu d'artifice en 0.203, la neige et le sablier en 0.248).
  * <ul>
- * <li>Neige : des flocons qui tourbillonnent de partout vers le centre, un blanc total, puis tout se dissipe.</li>
- * <li>Sablier : un grand sablier en filigrane dont le sable coule en entier, puis qui se retourne.</li>
  * <li>Encre de Chine : une goutte d'encre tombe sur le papier et s'étale en lavis, éclaboussures autour.</li>
  * <li>Vitrail : des verres colorés s'allument l'un après l'autre autour du centre, cernés de plomb, en rosace.</li>
  * <li>Abysses : la nuit bleue, du plancton qui monte en s'allumant, une méduse qui pulse et grandit.</li>
@@ -36,7 +34,7 @@ final class BurstSkinArt {
     /** Vrai pour les animations dessinées ici : celles de la version 0.191. */
     static boolean draws(Skin skin) {
         return switch (skin) {
-            case DARK_SNOW, DARK_HOURGLASS, BANG_INK, BANG_STAINED, BANG_ABYSS, BANG_ORIGAMI, BANG_MAP, BANG_NEON -> true;
+            case BANG_INK, BANG_STAINED, BANG_ABYSS, BANG_ORIGAMI, BANG_MAP, BANG_NEON -> true;
             default -> false;
         };
     }
@@ -49,8 +47,6 @@ final class BurstSkinArt {
      */
     static void draw(Skin skin, GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
         switch (skin) {
-            case DARK_SNOW -> snow(g, w, h, cx, cy, far, t, age);
-            case DARK_HOURGLASS -> hourglass(g, w, h, cx, cy, t);
             case BANG_INK -> ink(g, w, h, cx, cy, far, t);
             case BANG_STAINED -> stained(g, w, h, cx, cy, far, t);
             case BANG_ABYSS -> abyss(g, w, h, cx, cy, t, age);
@@ -65,78 +61,6 @@ final class BurstSkinArt {
     private static double fraction(double seed) {
         double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
         return value - Math.floor(value);
-    }
-
-    private static void snow(GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
-        double on = BurstView.envelope(t, 0.15, 0.8);
-        BurstView.veil(g, w, h, Color.web("#0a1424"), 0.6 * on);
-        g.setStroke(Color.web("#f4f8ff"));
-        for (int i = 0; i < 260; i++) {
-            // Chaque flocon part du bord et tourbillonne vers le centre, de plus en plus vite.
-            double phase = (fraction(i * 4.7) + t * 1.6) % 1;
-            double a = fraction(i * 1.3) * 2 * Math.PI + phase * 5 + age * 0.4;
-            double r = far * 1.1 * (1 - phase) + far * 0.1 * Math.sin(age * 3 + i);
-            double x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-            double size = (2 + 4 * fraction(i * 6.1)) * (1 + far * 0.0015);
-            double spin = age * (1 + fraction(i)) + i;
-            g.setLineWidth(1.2);
-            g.setGlobalAlpha(on * (0.4 + 0.6 * fraction(i * 7.7)) * Math.sin(Math.PI * phase));
-            for (int k = 0; k < 3; k++) {
-                double b = spin + Math.PI * k / 3;
-                g.strokeLine(x - size * Math.cos(b), y - size * Math.sin(b), x + size * Math.cos(b), y + size * Math.sin(b));
-            }
-        }
-        // Le blanc total au cœur de la tempête, qui se dissipe.
-        double white = t < 0.6 ? Math.max(0, (t - 0.35) / 0.25) : Math.max(0, 1 - (t - 0.6) / 0.4);
-        BurstView.glow(g, cx, cy, far * (0.3 + 0.9 * t), Color.WHITE, white);
-        BurstView.veil(g, w, h, Color.WHITE, 0.8 * white * white);
-    }
-
-    private static void hourglass(GraphicsContext g, double w, double h, double cx, double cy, double t) {
-        double on = BurstView.envelope(t, 0.1, 0.85);
-        BurstView.veil(g, w, h, Color.web("#1a1208"), 0.75 * on);
-        double tall = h * 0.42, wide = Math.min(w, h) * 0.25;
-        // Il se retourne à la fin : tout le dessin pivote.
-        double flip = t > 0.7 ? Math.PI * Math.min(1, (t - 0.7) / 0.3) : 0;
-        g.save();
-        g.translate(cx, cy);
-        g.rotate(Math.toDegrees(flip));
-        g.translate(-cx, -cy);
-        g.setStroke(Color.web("#e8c87a"));
-        g.setLineWidth(Math.max(2, h * 0.004));
-        g.setGlobalAlpha(0.6 * on);
-        g.strokePolyline(new double[] {cx - wide, cx - wide * 0.08, cx - wide, cx + wide, cx + wide * 0.08, cx + wide, cx - wide},
-                new double[] {cy - tall, cy, cy + tall, cy + tall, cy, cy - tall, cy - tall}, 7);
-        g.setLineWidth(Math.max(5, h * 0.012));
-        g.strokeLine(cx - wide * 1.15, cy - tall, cx + wide * 1.15, cy - tall);
-        g.strokeLine(cx - wide * 1.15, cy + tall, cx + wide * 1.15, cy + tall);
-        // Le sable du haut qui baisse, celui du bas qui monte, et le filet qui coule entre eux.
-        double poured = Math.min(1, t / 0.7);
-        g.setFill(Color.web("#e8c87a"));
-        g.setGlobalAlpha(0.8 * on);
-        double topLevel = tall * (1 - poured);
-        if (topLevel > 1) {
-            double half = wide * (0.08 + 0.92 * topLevel / tall);
-            g.fillPolygon(new double[] {cx - half, cx + half, cx + wide * 0.08, cx - wide * 0.08},
-                    new double[] {cy - topLevel, cy - topLevel, cy, cy}, 4);
-        }
-        double bottom = tall * poured;
-        if (bottom > 1) {
-            double half = wide * (0.08 + 0.92 * bottom / tall);
-            g.fillPolygon(new double[] {cx - wide * 0.3, cx + wide * 0.3, cx + half, cx - half},
-                    new double[] {cy + tall - bottom, cy + tall - bottom, cy + tall, cy + tall}, 4);
-        }
-        if (poured < 1) {
-            g.setGlobalAlpha(0.9 * on);
-            g.fillRect(cx - wide * 0.03, cy, wide * 0.06, tall - bottom);
-            for (int i = 0; i < 40; i++) {
-                double y = cy + ((fraction(i) + t * 6) % 1) * (tall - bottom);
-                double x = cx + (fraction(i * 3.1) - 0.5) * wide * 0.1 * (y - cy) / tall;
-                g.fillOval(x - 1.5, y - 1.5, 3, 3);
-            }
-        }
-        g.restore();
-        BurstView.glow(g, cx, cy, wide * 0.6, Color.web("#ffd27f"), 0.5 * on);
     }
 
     private static void ink(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {

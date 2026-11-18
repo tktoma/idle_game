@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,33 +36,19 @@ class BigBangEnregistreTest {
     }
 
     @Test
-    void leBigBangParDefautSeuleQuandAucunSkinNaLeSien() {
-        assertTrue(SoundBanks.classicBigBang(null, null), "le Classique");
-        assertTrue(SoundBanks.classicBigBang(Skin.SOUND_SILENCE, null), "le silence partiel garde le Big Bang par défaut");
-        for (Skin bank : List.of(Skin.SOUND_WOOD, Skin.SOUND_GLASS, Skin.SOUND_BITS, Skin.SOUND_ORCHESTRA, Skin.SOUND_NATURE)) {
-            assertFalse(SoundBanks.classicBigBang(bank, null), bank + " a son Big Bang");
-        }
-        assertFalse(SoundBanks.classicBigBang(null, Skin.BANG_SOUND_WIND), "un son de Big Bang choisi passe devant");
-    }
-
-    @Test
     void leBigBangPartEnStereoEtLesAutresSonsEnMono() throws InterruptedException {
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound sound = new Sound();
         sound.sink = sent::add;
         assertTrue(sound.play(Cue.BIG_BANG, 100));
-        Sound wood = new Sound();
-        wood.sink = sent::add;
-        wood.setSkins(Skin.SOUND_WOOD, null, null);
-        assertTrue(wood.play(Cue.BIG_BANG, 100));
         Sound other = new Sound();
         other.sink = sent::add;
         assertTrue(other.play(Cue.COMET, 100));
-        for (Sound each : List.of(sound, wood, other)) {
+        for (Sound each : List.of(sound, other)) {
             each.player.shutdown();
             assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
         }
-        assertEquals(3, sent.size());
+        assertEquals(2, sent.size());
         Sound.Pcm bang = sent.stream().filter(Sound.Pcm::stereo).findFirst().orElseThrow();
         assertEquals(Sound.BIG_BANG_STEREO.length * 2, bang.bytes().length, "le mélange entier, au volume plein");
         assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "le Big Bang par défaut en stéréo, les autres sons en mono");

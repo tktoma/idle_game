@@ -341,26 +341,23 @@ class GrillePageTest {
         });
     }
 
-    /** Un clic hors de la boîte des chiffres quitte le champ x, y ou z ; un clic dans la boîte le garde. */
+    /**
+     * Un clic hors de la boîte des chiffres quitte le champ x, y ou z ; un clic dans la boîte le garde. Version 0.247 :
+     * la règle vaut pour tout champ de la fenêtre (la recherche du panneau de test aussi), qui ne garde plus les touches
+     * de la boucle.
+     */
     @Test
     void unClicHorsDeLaBoiteDesChiffresQuitteLeChamp() {
         FxTestSupport.fx(() -> {
             Game game = eighth();
             DimensionWindow window = window(game);
-            TextField x = window.gridFields()[0];
-            x.requestFocus();
-            assertTrue(x.isFocused());
-            javafx.event.Event.fireEvent(window.gridFields()[1], press());
-            assertTrue(x.isFocused() || window.gridFields()[1].isFocused(), "dans la boîte : on reste dans les chiffres");
-            x.requestFocus();
-            javafx.event.Event.fireEvent(window.view(), press());
-            assertTrue(!x.isFocused(), "dehors : le champ est quitté");
+            TextField x = window.gridFields()[0], y = window.gridFields()[1];
+            assertFalse(idle.ui.GameAppBase.releasesTyping(x, y), "dans la boîte : on reste dans les chiffres");
+            assertFalse(idle.ui.GameAppBase.releasesTyping(x, x));
+            assertTrue(idle.ui.GameAppBase.releasesTyping(x, window.view()), "dehors : le champ est quitté");
+            assertTrue(idle.ui.GameAppBase.releasesTyping(x, null));
+            assertFalse(idle.ui.GameAppBase.releasesTyping(window.view(), x), "personne n'écrivait : rien à rendre");
             return null;
         });
-    }
-
-    private static javafx.scene.input.MouseEvent press() {
-        return new javafx.scene.input.MouseEvent(javafx.scene.input.MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, javafx.scene.input.MouseButton.PRIMARY,
-                1, false, false, false, false, true, false, false, false, false, false, null);
     }
 }

@@ -70,44 +70,18 @@ public final class GameApp extends GameAppTabs {
     /**
      * Les skins de la fenêtre autour du jeu. Les notifications prennent leur skin à l'affichage et le jeu
      * apprend combien ont été affichées ; les panneaux (aide, absence) suivent le visuel des panneaux, l'écran de fin et
-     * la fin de partie celui de l'écran de fin s'il est choisi, sinon celui des panneaux ; le guide de transition le sien ;
+     * la fin de partie aussi (leurs skins à eux sont retirés depuis la 0.267) ; le guide de transition le sien ;
      * le curseur se pose sur toute la fenêtre, l'arrosoir et la loupe seulement sur leur onglet.
      */
-    /** Les skins de son vus à l'image d'avant : un changement, sur la page des skins, se fait entendre. */
-    private boolean soundSkinsSeen;
-    private Skin bankSeen, bangSoundSeen, tickSeen;
-
     private void refreshWindowSkins() {
         toasts.setSkin(game.chosenSkin(SkinVisual.TOAST));
         game.noteNotificationsShown(toasts.shown());
         Skin panel = game.chosenSkin(SkinVisual.PANEL);
-        Skin ending = game.chosenSkin(SkinVisual.ENDING);
         helpPane.setSkin(panel);
         absencePane.setSkin(panel);
-        endPane.setSkin(ending != null ? ending : panel);
-        finalePane.setSkin(ending != null ? ending : panel);
+        endPane.setSkin(panel);
+        finalePane.setSkin(panel);
         transitionPane.setSkin(game.chosenSkin(SkinVisual.TRANSITION));
-        // Les sons prennent la banque, le son du Big Bang et le tic du métronome choisis.
-        Skin bank = game.chosenSkin(SkinVisual.SOUND_BANK);
-        Skin bangSound = game.chosenSkin(SkinVisual.BIG_BANG_SOUND);
-        Skin tick = game.chosenSkin(SkinVisual.METRONOME);
-        sound.setSkins(bank, bangSound, tick);
-        // Un skin de son choisi sur la page des skins se fait entendre tout de suite. Avant, rien ne se
-        // passait : le tic du métronome ne s'entend que dans la boucle, métronome allumé (il est éteint au départ), et l'on
-        // croyait le skin sans effet. Choisir un tic allume donc aussi le métronome de la boucle.
-        if (soundSkinsSeen && selectedTab == Tab.SKINS) {
-            Sound.Cue heard = tick != tickSeen ? Sound.Cue.BEAT : bangSound != bangSoundSeen ? Sound.Cue.BIG_BANG
-                    : bank != bankSeen ? Sound.Cue.ACHIEVEMENT : null;
-            if (tick != tickSeen && tick != null && !settings.loopMetronome()) {
-                settings.setLoopMetronome(true);
-                toasts.show("Métronome de la boucle activé : il bat dans la dimension 5, la boucle.", SETTINGS_COLOR);
-            }
-            if (heard != null && settings.sound()) sound.preview(heard, settings.volume());
-        }
-        soundSkinsSeen = true;
-        bankSeen = bank;
-        bangSoundSeen = bangSound;
-        tickSeen = tick;
         Skin cursor = CursorSkinArt.shownOn(game.chosenSkin(SkinVisual.CURSOR), selectedTab);
         if (cursor != cursorSkin) {
             cursorSkin = cursor;
@@ -214,11 +188,13 @@ public final class GameApp extends GameAppTabs {
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
         // La partie secondaire : une fois l'univers formé, tous les anciens onglets disparaissent,
         // particules et collisionneur compris ; restent l'univers et les pages pour s'y retrouver.
-        boolean phase = universePhase();
+        // Le profil test UI (0.248) : tous les onglets ouverts, et la vue reste où le panneau l'a mise.
+        boolean everything = uiTestPanel != null;
+        boolean phase = universePhase() && !everything;
         particlesTab.setVisible(!phase);
         particlesTab.setManaged(!phase);
-        boolean hasAtoms = game.state().totalAtoms().sign() > 0 && !phase;
-        boolean darkMatter = game.isDarkMatterUnlocked() && !phase;
+        boolean hasAtoms = game.state().totalAtoms().sign() > 0 && !phase || everything;
+        boolean darkMatter = game.isDarkMatterUnlocked() && !phase || everything;
         atomsTab.setVisible(hasAtoms);
         atomsTab.setManaged(hasAtoms);
         readiness.frame();
@@ -227,7 +203,7 @@ public final class GameApp extends GameAppTabs {
 
         // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire. Dans la
         // partie secondaire, il ne revient qu'avec l'automatisation des dimensions, seule montrée alors.
-        boolean automation = phase ? game.isDimensionAutomationUnlocked() : AutomationPage.hasContent(game);
+        boolean automation = phase ? game.isDimensionAutomationUnlocked() : AutomationPage.hasContent(game) || everything;
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
         automationTab.setText((narrow ? "Auto." : "Automatisation") + (game.isAutomationPaused() && AutomationPage.anyToPause(game) ? " (coupée)" : ""));
@@ -242,7 +218,7 @@ public final class GameApp extends GameAppTabs {
         darkMatterPage.refresh(selectedTab == Tab.DARK_MATTER);
 
         // L'onglet du collisionneur s'ouvre à la première explosion et ne se referme plus.
-        boolean collider = game.isColliderUnlocked() && !phase;
+        boolean collider = game.isColliderUnlocked() && !phase || everything;
         colliderTab.setVisible(collider);
         colliderTab.setManaged(collider);
         colliderTab.setText((narrow ? "Collis." : "Collisionneur") + Readiness.dot(Readiness.Kind.COLLIDER, ColliderPage.ready(game)));
@@ -250,14 +226,14 @@ public final class GameApp extends GameAppTabs {
 
         // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
         // comme une explosion mène à l'onglet « Matière noire ».
+        if (everything) bigBang = true;
         bigBangTab.setVisible(bigBang && !phase);
         bigBangTab.setManaged(bigBang && !phase);
         bigBangTab.setText((narrow ? "Big Bang" : "Big Bang (" + game.bigBangs() + ")") + Readiness.dot(readiness.bigBang()));
-        if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) {
+        if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs && !everything) {
             selectTab(Tab.BIG_BANG);
-            // Le skin du Big Bang : son animation plein écran.
-            Skin bang = game.chosenSkin(SkinVisual.BIG_BANG);
-            if (bang != null && settings.effect(Settings.Effect.FLASH)) burst.play(bang, 3.5);
+            // L'animation plein écran du Big Bang : celle de son skin, ou la classique (version 0.246).
+            if (settings.effect(Settings.Effect.FLASH)) playBigBang();
         }
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
@@ -269,7 +245,7 @@ public final class GameApp extends GameAppTabs {
 
         // La fuite : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
         // le temps de son arrivée.
-        if (game.isLeakChallengeShown() && darkMatter && game.state().addSeenPopup("reveal:challenge_leak")) {
+        if (game.isLeakChallengeShown() && darkMatter && !everything && game.state().addSeenPopup("reveal:challenge_leak")) {
             selectTab(Tab.DARK_MATTER);
             darkMatterPage.playLeakReveal();
         }
@@ -282,9 +258,9 @@ public final class GameApp extends GameAppTabs {
         // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
         boolean universe = game.hasCosmos(Cosmos.UNIVERSE);
         // Pendant la partie de l'univers suivant, l'onglet reste : les univers déjà formés sont là.
-        universeTab.setVisible(game.universes() > 0);
-        universeTab.setManaged(game.universes() > 0);
-        if (universe && hadUniverse == 0) {
+        universeTab.setVisible(game.universes() > 0 || everything);
+        universeTab.setManaged(game.universes() > 0 || everything);
+        if (universe && hadUniverse == 0 && !everything) {
             // Former l'univers a tout remis à zéro : les anciens onglets, cachés, repartent de rien.
             forgetOldPages();
             selectTab(Tab.UNIVERSE);
@@ -294,7 +270,7 @@ public final class GameApp extends GameAppTabs {
 
         // Le vide : le deuxième acte de la partie secondaire. Depuis la 0.129, il se propose dans le
         // collisionneur au premier Big Bang du troisième univers, et son onglet s'ouvre une fois qu'il est acheté.
-        boolean vacuum = game.isVoidUnlocked() && !phase;
+        boolean vacuum = game.isVoidUnlocked() && !phase || everything;
         voidTab.setVisible(vacuum);
         voidTab.setManaged(vacuum);
         voidTab.setText("Le vide" + Readiness.dot(Readiness.Kind.VOID, VoidPage.ready(game)));
@@ -302,7 +278,7 @@ public final class GameApp extends GameAppTabs {
 
         // Les hadrons : ils se proposent dans le collisionneur avec la bulle de l'arbuste, au milieu, et
         // leur onglet s'ouvre une fois payé, ou dès le début de l'univers avec la bulle du jeune arbre, à gauche.
-        boolean hadrons = game.isHadronsUnlocked() && !phase;
+        boolean hadrons = game.isHadronsUnlocked() && !phase || everything;
         hadronsTab.setVisible(hadrons);
         hadronsTab.setManaged(hadrons);
         hadronsTab.setText("Hadrons" + Readiness.dot(Readiness.Kind.HADRONS, HadronsPage.ready(game)));
@@ -310,31 +286,31 @@ public final class GameApp extends GameAppTabs {
 
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
         // n'existe que si le jeu en a.
-        boolean achievements = !game.achievements().isEmpty();
+        boolean achievements = !game.achievements().isEmpty() || everything;
         achievementsTab.setVisible(achievements);
         achievementsTab.setManaged(achievements);
         if (selectedTab == Tab.ACHIEVEMENTS) achievementsPage.refresh();
         if (selectedTab == Tab.STATS) statsPage.refresh();
         // Le profil : dès le premier générateur ; sa pastille dit qu'un titre attend d'être vu.
-        boolean profile = game.isStarted();
+        boolean profile = game.isStarted() || everything;
         profileTab.setVisible(profile);
         profileTab.setManaged(profile);
         profileTab.setText("Profil" + Readiness.dot(selectedTab != Tab.PROFILE && profilePage.hasNews()));
         if (selectedTab == Tab.PROFILE) profilePage.refresh();
         settingsTab.setText(!settings.paused() ? "Réglages" : narrow ? "En pause" : "Réglages (pause)");
         // Les skins : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
-        boolean skins = game.isSkinsUnlocked();
+        boolean skins = game.isSkinsUnlocked() || everything;
         skinsTab.setVisible(skins);
         skinsTab.setManaged(skins);
         skinsTab.setText(narrow ? "Skins" : "Skins (" + game.skinsUnlocked() + ")");
         if (selectedTab == Tab.SKINS) skinsPage.refresh();
 
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
-        if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
+        if (((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
                 || (selectedTab == Tab.UNIVERSE && game.universes() == 0) || (selectedTab == Tab.PARTICLES && phase)
                 || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)
-                || (selectedTab == Tab.HADRONS && !hadrons) || (selectedTab == Tab.PROFILE && !profile)) {
+                || (selectedTab == Tab.HADRONS && !hadrons) || (selectedTab == Tab.PROFILE && !profile)) && !everything) {
             selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();

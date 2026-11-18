@@ -63,6 +63,8 @@ public abstract class GameMirror extends GameGrid {
     public static final int MIRROR_HALF = 2, MIRROR_ROWS = 4;
     /** Chaque case reste allumée 0,8 s, +0,15 s par niveau de mémorisation. */
     public static final double MIRROR_SHOW = 0.8, MIRROR_SHOW_STEP = 0.15;
+    /** Version 0.247 : le temps le plus court par case, la barre de vitesse du motif tout à droite. */
+    public static final double MIRROR_SHOW_FASTEST = 0.3;
     /** La pause qui montre le résultat avant le motif suivant. */
     public static final double MIRROR_PAUSE = 1;
     /** Le multiplicateur de longueur : ×1,1 par case au-delà de trois, +0,05 par niveau. */
@@ -83,6 +85,8 @@ public abstract class GameMirror extends GameGrid {
     private int mirrorLength = MIRROR_START, mirrorPosition, mirrorMistakes, mirrorBest;
     private long mirrorSuccesses, mirrorFails;
     private MirrorAnswer mirrorLastResult = MirrorAnswer.IGNORED;
+    /** La vitesse du motif choisie par le joueur : 0 le temps entier de la mémorisation, 1 le plus rapide. Un réglage, pas la partie. */
+    private double mirrorPace;
 
     /** Vrai dès que la neuvième dimension est ouverte : au neuvième univers. */
     public boolean isMirrorOpen() { return dimensionsUnlocked() >= 9; }
@@ -111,8 +115,23 @@ public abstract class GameMirror extends GameGrid {
 
     public int mirrorRows() { return MIRROR_ROWS + mirrorGrowth(); }
 
-    /** Le temps où chaque case du motif reste allumée. */
-    public double mirrorShowSeconds() { return MIRROR_SHOW + MIRROR_SHOW_STEP * mirrorLevel(MirrorUpgrade.MEMORY); }
+    /** Le temps de mémorisation que donne l'amélioration « Mémoire » : le plus long par case, la barre de vitesse tout à gauche. */
+    public double mirrorMemorySeconds() { return MIRROR_SHOW + MIRROR_SHOW_STEP * mirrorLevel(MirrorUpgrade.MEMORY); }
+
+    /**
+     * Le temps où chaque case du motif reste allumée : celui de la mémorisation, raccourci par la vitesse du motif choisie
+     * jusqu'à {@value #MIRROR_SHOW_FASTEST} s.
+     */
+    public double mirrorShowSeconds() {
+        double longest = mirrorMemorySeconds();
+        return longest - (longest - Math.min(longest, MIRROR_SHOW_FASTEST)) * mirrorPace;
+    }
+
+    /** La vitesse du motif choisie : 0 le temps entier de la mémorisation, 1 le plus rapide. */
+    public double mirrorPace() { return mirrorPace; }
+
+    /** Choisit la vitesse du motif, bornée de 0 à 1 (une valeur illisible garde le temps entier). */
+    public void setMirrorPace(double pace) { mirrorPace = Double.isFinite(pace) ? Math.max(0, Math.min(1, pace)) : 0; }
 
     /** Les erreurs permises par motif. */
     public int mirrorAllowedMistakes() { return mirrorLevel(MirrorUpgrade.MISTAKES); }

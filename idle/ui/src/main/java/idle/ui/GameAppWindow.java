@@ -39,6 +39,8 @@ public abstract class GameAppWindow extends GameAppBase {
     void closing() {
         if (closed) return;
         closed = true;
+        // Le profil test UI : la combinaison en cours de mesure part au fichier des images par seconde.
+        if (uiTestPanel != null) uiTestPanel.close();
         save();
         settings.setLastTab(selectedTab.name());
         if (stage == null) return;
@@ -206,6 +208,13 @@ public abstract class GameAppWindow extends GameAppBase {
             showStartButton();
         }
         refresh();
+    }
+
+    /** Retire le bouton de démarrage s'il est affiché (le profil test UI le montre puis le reprend, version 0.248). */
+    void hideStartButton() {
+        if (startButton == null) return;
+        center.getChildren().remove(startButton);
+        startButton = null;
     }
 
     /**

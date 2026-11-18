@@ -13,12 +13,13 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Six skins retirés du jeu (l'œuf, la pluie et le feu d'artifice de la matière noire ; le ballon noué, la
- * planète-fruit et l'œuf des bulles des univers). Une sauvegarde d'avant, qui les nomme encore parmi les skins débloqués ou
+ * Huit skins retirés du jeu (l'œuf, la pluie et le feu d'artifice de la matière noire ; le ballon noué, la
+ * planète-fruit et l'œuf des bulles des univers ; en 0.248, la neige et le sablier de la matière noire ; en 0.267, les trois skins de l'écran de fin). Une sauvegarde d'avant, qui les nomme encore parmi les skins débloqués ou
  * choisis, se relit sans eux et sans erreur ; les bulles qui restent viennent aux univers 1, 2 et 3.
  */
 class SkinsRetiresTest {
-    private static final List<String> RETIRES = List.of("dark_egg", "dark_rain", "dark_fireworks", "bubble_balloon", "bubble_fruit", "bubble_egg");
+    private static final List<String> RETIRES = List.of("dark_egg", "dark_rain", "dark_fireworks", "bubble_balloon", "bubble_fruit", "bubble_egg",
+            "dark_snow", "dark_hourglass", "ending_credits", "ending_certificate", "ending_photo");
 
     @Test
     void lesSixSkinsNExistentPlus() {
@@ -30,7 +31,7 @@ class SkinsRetiresTest {
             if (skin.visual() == SkinVisual.DARK_ANIMATION) animations++;
         }
         assertEquals(7, balls, "huit boules moins l'œuf");
-        assertEquals(4, animations, "six animations moins la pluie et le feu d'artifice");
+        assertEquals(2, animations, "six animations moins la pluie, le feu d'artifice, la neige et le sablier : Vortex et Pulsar");
     }
 
     @Test
@@ -49,6 +50,8 @@ class SkinsRetiresTest {
         List<String> chosen = new ArrayList<>(data.list("chosenSkins"));
         chosen.add(SkinVisual.DARK_BALL.name() + ">dark_egg");
         chosen.add(SkinVisual.UNIVERSE_BUBBLE.name() + ">bubble_fruit");
+        chosen.add(SkinVisual.DARK_ANIMATION.name() + ">dark_snow");
+        chosen.add("ENDING>ending_photo");
         data.putList("chosenSkins", chosen);
 
         GameState relu = new GameState();
@@ -58,6 +61,8 @@ class SkinsRetiresTest {
         assertTrue(relu.unlockedSkins().contains(Skin.BUBBLE_SOAP.id()));
         assertFalse(relu.chosenSkins().containsKey(SkinVisual.DARK_BALL.name()), "un skin retiré n'est plus choisi : le Classique revient");
         assertFalse(relu.chosenSkins().containsKey(SkinVisual.UNIVERSE_BUBBLE.name()));
+        assertFalse(relu.chosenSkins().containsKey(SkinVisual.DARK_ANIMATION.name()), "la neige choisie (0.248) : le Classique revient");
+        assertFalse(relu.chosenSkins().containsKey("ENDING"), "la photo souvenir choisie (0.267) : le visuel n'existe plus, le choix part");
         assertEquals(Skin.TREE_PINE.id(), relu.chosenSkins().get(SkinVisual.TREE.name()), "les autres choix restent");
     }
 

@@ -213,6 +213,11 @@ public final class DimensionWindow extends BorderPane {
     private final Label mirrorDetail = new Label();
     private final Map<Game.MirrorUpgrade, Button> mirrorButtons = new EnumMap<>(Game.MirrorUpgrade.class);
     private final VBox mirrorPane;
+    /** La barre de vitesse du motif du miroir, et le temps par case qu'elle donne. */
+    private final Slider mirrorPace = new Slider();
+    private final Label mirrorPaceText = new Label();
+    /** Ce que devient la vitesse du motif choisie : les réglages la gardent. */
+    private java.util.function.DoubleConsumer onMirrorPace = pace -> { };
     /**
      * Le mélange : au-dessus de l'arène, l'étape, sa barre de progression et le bouton qui mêle la
      * dimension suivante ; dessous, ses fragments, son seuil, ses compteurs (malus, multiplicateurs, charge, cadence),
@@ -486,13 +491,6 @@ public final class DimensionWindow extends BorderPane {
         gridSize.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         HBox gridAim = new HBox(8);
         gridAim.setAlignment(Pos.CENTER);
-        // Un clic hors de la boîte des chiffres (x, y, z) quitte le champ en cours : les touches reviennent au jeu.
-        addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
-            if (!(gridX.isFocused() || gridY.isFocused() || gridZ.isFocused())) return;
-            if (event.getTarget() instanceof Node target && inside(target, gridAim)) return;
-            for (TextField field : new TextField[] {gridX, gridY, gridZ}) field.deselect();
-            requestFocus();
-        });
         String[] axes = {"x", "y", "z"};
         TextField[] fields = {gridX, gridY, gridZ};
         for (int axis = 0; axis < 3; axis++) {
@@ -552,7 +550,21 @@ public final class DimensionWindow extends BorderPane {
             mirrorButtons.put(upgrade, button);
             mirrorRow.getChildren().add(button);
         }
-        mirrorPane = new VBox(10, mirrorShards, mirrorThreshold, mirrorBoard, mirrorCounts, mirrorHint, mirrorDetail, mirrorRow);
+        // Version 0.247 : la vitesse du motif, de la mémorisation entière (à gauche) au plus rapide (à droite).
+        mirrorPace.setMin(0);
+        mirrorPace.setMax(1);
+        mirrorPace.setPrefWidth(260);
+        mirrorPace.setFocusTraversable(false);
+        mirrorPace.valueProperty().addListener((observable, before, pace) -> {
+            game.setMirrorPace(pace.doubleValue());
+            onMirrorPace.accept(game.mirrorPace());
+            mirrorPaceText.setText(mirrorPaceText());
+        });
+        mirrorPaceText.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        mirrorPaceText.setMinWidth(230);
+        HBox mirrorPaceRow = new HBox(10, mirrorPaceText, mirrorPace);
+        mirrorPaceRow.setAlignment(Pos.CENTER);
+        mirrorPane = new VBox(10, mirrorShards, mirrorThreshold, mirrorBoard, mirrorCounts, mirrorHint, mirrorPaceRow, mirrorDetail, mirrorRow);
         mirrorPane.setAlignment(Pos.CENTER);
         mirrorPane.setPadding(new Insets(10, 0, 0, 0));
         mixThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
@@ -1039,12 +1051,6 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /** Le nombre d'un champ de coordonnée, ou −1 s'il n'en est pas un. */
-    /** Vrai si {@code node} est {@code box} ou dedans. */
-    static boolean inside(Node node, Node box) {
-        for (Node at = node; at != null; at = at.getParent()) if (at == box) return true;
-        return false;
-    }
-
     private static int parsed(TextField field) {
         try {
             return Integer.parseInt(field.getText().trim());
@@ -1116,7 +1122,22 @@ public final class DimensionWindow extends BorderPane {
      * compteurs (longueur, record, réussis, manqués, erreurs), ce qu'il faut faire
      * selon la phase ou ce que fait le miroir automatique, le dernier résultat, le détail, et ses améliorations.
      */
+    /** Le temps par case que donne la barre de vitesse du motif. */
+    private String mirrorPaceText() {
+        return "Vitesse du motif : " + seconds(game.mirrorShowSeconds()) + " s par case";
+    }
+
+    /** La barre de vitesse du motif du miroir : sa valeur de départ, et qui garder au courant quand le joueur la bouge. */
+    public void setMirrorPace(double pace, java.util.function.DoubleConsumer whenChosen) {
+        onMirrorPace = whenChosen == null ? chosen -> { } : whenChosen;
+        game.setMirrorPace(pace);
+        mirrorPace.setValue(game.mirrorPace());
+        mirrorPaceText.setText(mirrorPaceText());
+    }
+
     private void refreshMirror() {
+        // La mémorisation achetée allonge le temps par case : le texte de la barre suit.
+        if (changed(mirrorPaceText, mirrorPaceText())) mirrorPaceText.setText(mirrorPaceText());
         mirrorShards.setText("Reflets du miroir : " + shardText(game.state().mirrorShards()));
         threshold(mirrorThreshold, game.isDimensionThresholdReached(9), game.state().mirrorShardsEarned(), Game.MIRROR_THRESHOLD,
                 "reflets gagnés", 9);
@@ -1335,8 +1356,8 @@ public final class DimensionWindow extends BorderPane {
             }
             case LENGTH -> "Multiplicateur de longueur : " + Format.multiplier(game.mirrorLengthFactor()) + " → "
                     + Format.multiplier(game.mirrorLengthFactor() + Game.MIRROR_LENGTH_STEP) + " par case au-delà de " + Game.MIRROR_START;
-            case MEMORY -> "Temps de mémorisation : " + ElementText.number(game.mirrorShowSeconds()) + " s → "
-                    + ElementText.number(game.mirrorShowSeconds() + Game.MIRROR_SHOW_STEP) + " s par case";
+            case MEMORY -> "Temps de mémorisation : " + ElementText.number(game.mirrorMemorySeconds()) + " s → "
+                    + ElementText.number(game.mirrorMemorySeconds() + Game.MIRROR_SHOW_STEP) + " s par case";
             case MISTAKES -> "Seconde chance : " + level + (level > 1 ? " erreurs permises" : " erreur permise") + " → " + (level + 1);
             case BOARD -> "Plateau plus vaste : " + game.mirrorMaxGrowth() + " agrandissements permis → " + (game.mirrorMaxGrowth() + 1)
                     + ", jusqu'à " + (2 * (Game.MIRROR_HALF + game.mirrorMaxGrowth() + 1)) + " × "

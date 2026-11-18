@@ -230,7 +230,6 @@ public final class DarkMatterView extends Canvas {
         if (motion) whirl += dt * (animation == Skin.DARK_PULSAR ? 1.2 + 3 * fall : 0.5 + 3.5 * fall + (growing ? 1 : 0));
         if (animation == Skin.DARK_VORTEX) vortex(g, cx, cy, small, growing);
         else if (animation == Skin.DARK_PULSAR) pulsar(g, cx, cy, w, h, growing);
-        else if (animation != null) DarkSkinArt.animate(animation, g, this, cx, cy, w, h, growing);
         // La matière qui tombe : des grains en spirale, plus nombreux et plus rapides avec la croissance.
         if (fall > 0.02 && animation == null) {
             int grains = (int) (14 + 46 * fall);

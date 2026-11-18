@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -20,9 +19,9 @@ class SonsDuJeuTest {
     void chaqueGrandMomentASonSon() {
         Map<String, Cue> expected = Map.ofEntries(
                 Map.entry("Univers formé : les défis pèsent maintenant ×2 plus qu'au premier univers (×2 par univers formé).", Cue.UNIVERSE),
-                Map.entry("Les dix paliers sont atteints : la partie est finie. Merci d'avoir joué !", Cue.UNIVERSE),
+                Map.entry("Les dix paliers sont atteints : la partie est finie. Merci d'avoir joué !", Cue.GAME_END),
                 Map.entry("Défi final : Le clicker atteint son palier (3 / 10).", Cue.FINALE),
-                Map.entry("Skin débloqué : « Bois » (banque de sons). +2 %", Cue.SKIN),
+                Map.entry("Skin débloqué : « Ciel de papier » (fond). +2 %", Cue.SKIN),
                 Map.entry("Nouveau défi : Rouille", Cue.CHALLENGE),
                 Map.entry("Défi « Rouille » commencé : les améliorations en particules ne servent à rien", Cue.CHALLENGE),
                 Map.entry("« Noyaux sombres » à portée dans l'arbre : l'amélioration de matière noire qui compte le plus", Cue.DARK),
@@ -58,21 +57,23 @@ class SonsDuJeuTest {
         sound.sink = pcm -> sent.add(pcm.bytes());
         assertTrue(sound.play(Cue.ACHIEVEMENT, 100));
         assertTrue(sound.click(Cue.PURCHASE, 100), "un achat juste après une annonce sonne");
-        assertFalse(sound.play(Cue.SKIN, 100), "une seconde annonce collée attend toujours la première, pas l'achat");
+        // Version 0.247 : aucun délai entre deux sons, même pareils.
+        assertTrue(sound.play(Cue.SKIN, 100), "une seconde annonce collée sonne aussi");
+        assertTrue(sound.play(Cue.SKIN, 100), "et la même encore");
         assertTrue(sound.click(Cue.TOGGLE, 100), "un interrupteur aussi");
-        assertFalse(sound.click(Cue.PURCHASE, 100), "deux achats collés n'en font qu'un");
+        assertTrue(sound.click(Cue.PURCHASE, 100), "deux achats collés sonnent tous les deux");
         assertFalse(sound.click(Cue.VICTORY, 100), "une annonce ne passe pas par les sons d'interface");
-        Thread.sleep((long) (Sound.INTERFACE_GAP * 1000) + 20);
-        assertTrue(sound.play(Cue.PURCHASE, 100), "un achat joué comme un son passe par le rythme de l'interface");
+        assertTrue(sound.play(Cue.PURCHASE, 100), "un achat joué comme une annonce sonne en son d'interface");
         sound.player.shutdown();
         assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
-        assertTrue(sent.size() >= 4);
+        assertEquals(7, sent.size());
     }
 
     @Test
     void chaqueDimensionASonGeste() {
         List<short[]> gestures = new ArrayList<>();
         for (int dimension = 1; dimension <= 10; dimension++) {
+            if (dimension == 7) continue; // le clicker a son tapotement, testé avec le piano du miroir
             short[] gesture = Sound.synthesizeGesture(dimension);
             assertTrue(gesture.length > 0 && gesture.length <= 0.4 * 44_100, "court : dimension " + dimension);
             assertTrue(loud(gesture), "s'entend : dimension " + dimension);
@@ -83,7 +84,7 @@ class SonsDuJeuTest {
     }
 
     @Test
-    void lesGestesSuiventLeRythmeEtLeSilencePartiel() throws InterruptedException {
+    void lesGestesSuiventLeurCategorie() throws InterruptedException {
         List<byte[]> sent = new ArrayList<>();
         Sound sound = new Sound();
         sound.sink = pcm -> sent.add(pcm.bytes());
@@ -91,15 +92,14 @@ class SonsDuJeuTest {
         assertFalse(sound.gesture(11, 100), "ni onze");
         assertFalse(sound.gesture(7, 0), "au volume nul, rien");
         assertTrue(sound.gesture(7, 100));
-        assertFalse(sound.gesture(7, 100), "deux clics collés n'en font qu'un");
-        assertTrue(sound.gesture(3, 100), "une autre dimension n'attend pas");
-        sound.setSkins(Skin.SOUND_SILENCE, null, null);
-        Thread.sleep((long) (Sound.INTERFACE_GAP * 1000) + 20);
-        assertFalse(sound.gesture(7, 100), "le silence partiel coupe les gestes");
+        assertTrue(sound.gesture(7, 100), "deux clics collés sonnent tous les deux (0.247)");
+        assertTrue(sound.gesture(3, 100), "une autre dimension non plus n'attend pas");
+        sound.setAllowed(kind -> kind != SoundKind.DIMENSIONS);
+        assertFalse(sound.gesture(7, 100), "la catégorie des dimensions coupe les gestes");
         sound.player.shutdown();
         assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
-        assertEquals(2, sent.size());
-        assertEquals(Sound.synthesizeGesture(7).length * 2, sent.get(0).length);
+        assertEquals(3, sent.size());
+        assertEquals(Sound.CLICKER_TAP.length * 2, sent.get(0).length);
         short loudest = 0;
         for (int i = 0; i < sent.get(0).length; i += 2) {
             loudest = (short) Math.max(loudest, Math.abs((short) ((sent.get(0)[i] & 0xff) | sent.get(0)[i + 1] << 8)));
@@ -111,5 +111,22 @@ class SonsDuJeuTest {
     private static boolean loud(short[] samples) {
         for (short sample : samples) if (Math.abs(sample) > Short.MAX_VALUE / 10) return true;
         return false;
+    }
+
+    /** Version 0.247 : aucun délai entre deux sons ; seul le nombre de sons en même temps est borné, pour ne pas saturer la sortie. */
+    @Test
+    void sansDelaiMaisAuPlusQuelquesSonsEnMemeTemps() throws InterruptedException {
+        List<byte[]> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = pcm -> sent.add(pcm.bytes());
+        for (int voice = 0; voice < Sound.MAX_VOICES; voice++) assertTrue(sound.gesture(3, 100), "le son " + (voice + 1) + " part tout de suite");
+        assertFalse(sound.gesture(3, 100), "au-delà, la sortie n'est pas noyée");
+        assertFalse(sound.click(Cue.PURCHASE, 100), "la borne vaut pour tous les sons");
+        // Le geste du volume dure 0,16 s : une fois fini, sa place se libère.
+        Thread.sleep(250);
+        assertTrue(sound.gesture(3, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(Sound.MAX_VOICES + 1, sent.size());
     }
 }

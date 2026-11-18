@@ -3,7 +3,6 @@ package idle.ui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -30,48 +29,46 @@ class NiveauxTest {
         assertTrue(Sound.RARE_DB - Sound.REPEATED_DB >= 6, "un écart net entre les grands moments et ce qui revient sans cesse");
         for (Cue cue : Cue.values()) {
             boolean repeated = cue == Cue.PARTICLE || cue == Cue.ATOM || cue == Cue.NEW_ATOM || cue == Cue.COLLISION || cue == Cue.HADRON || cue == Cue.VOID
-                    || cue == Cue.WATER || cue.isInterface() && cue != Cue.BEAT && cue != Cue.SEED && cue != Cue.PROBE;   // un palier de graine est rare
+                    || cue.isInterface() && cue != Cue.BEAT && cue != Cue.SEED && cue != Cue.PROBE;   // un palier de graine est rare
             assertEquals(repeated, Sound.REPEATED.contains(cue), cue.name());
         }
     }
 
     @Test
-    void chaqueSonDeChaqueBanquePartASonNiveau() throws InterruptedException {
-        List<Skin> banks = new ArrayList<>(Arrays.asList(Skin.SOUND_BANKS));
-        banks.add(null);
-        for (Skin bank : banks) {
-            for (Cue cue : Cue.values()) {
-                if (cue == Cue.BEAT) continue;
-                List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
-                Sound sound = new Sound();
-                sound.sink = sent::add;
-                sound.setSkins(bank, null, null);
-                boolean played = sound.play(cue, 100);
-                if (sound.player != null) {
-                    sound.player.shutdown();
-                    assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
-                }
-                if (!played) continue;                                         // un son que cette banque n'a pas
-                Sound.Pcm pcm = sent.get(0);
-                short[] samples = new short[pcm.bytes().length / 2];
-                for (int i = 0; i < samples.length; i++) samples[i] = (short) ((pcm.bytes()[2 * i] & 0xff) | pcm.bytes()[2 * i + 1] << 8);
-                auNiveau(samples, pcm.stereo() ? 2 : 1, Sound.targetDb(cue), cue + " (" + (bank == null ? "Classique" : bank.name()) + ")");
+    void chaqueSonPartASonNiveau() throws InterruptedException {
+        for (Cue cue : Cue.values()) {
+            if (cue == Cue.BEAT) continue;
+            List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+            Sound sound = new Sound();
+            sound.sink = sent::add;
+            boolean played = sound.play(cue, 100);
+            if (sound.player != null) {
+                sound.player.shutdown();
+                assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
             }
+            if (!played) continue;
+            Sound.Pcm pcm = sent.get(0);
+            short[] samples = new short[pcm.bytes().length / 2];
+            for (int i = 0; i < samples.length; i++) samples[i] = (short) ((pcm.bytes()[2 * i] & 0xff) | pcm.bytes()[2 * i + 1] << 8);
+            auNiveau(samples, pcm.stereo() ? 2 : 1, Sound.targetDb(cue), cue.name());
         }
     }
 
     @Test
     void lesGestesLesPointsEtLeGrondementSontAuNiveauDesRepetitifs() {
         for (int dimension = 1; dimension <= 10; dimension++) {
-            auNiveau(Sound.leveled(Sound.synthesizeGesture(dimension), 1, Sound.REPEATED_DB), 1, Sound.REPEATED_DB, "le geste " + dimension);
+            if (dimension != 7) auNiveau(Sound.leveled(Sound.synthesizeGesture(dimension), 1, Sound.REPEATED_DB), 1, Sound.REPEATED_DB, "le geste " + dimension);
             auNiveau(Sound.leveled(Sound.synthesizeGain(dimension), 1, Sound.REPEATED_DB), 1, Sound.REPEATED_DB, "les points " + dimension);
         }
-        for (Hum.Loop hum : List.of(Hum.DARK_MATTER, Hum.COLLIDER, Hum.EXPANSION, Hum.BRANE, Hum.DURATION, Hum.CHRONO)) {
+        for (Hum.Loop hum : List.of(Hum.DARK_MATTER, Hum.COLLIDER, Hum.EXPANSION, Hum.BRANE, Hum.DURATION, Hum.CHRONO, Hum.WATERING_CAN, Hum.HOSE,
+                Hum.STORM, Hum.SUN)) {
             short[] loop = new short[hum.samples().length];
             for (int i = 0; i < loop.length; i++) loop[i] = (short) Math.round(hum.samples()[i] * 32768);
             assertTrue(loop.length > 0, "la boucle se charge");
             double db = 20 * Math.log10(Sound.loudness(loop, hum.channels()));
-            assertTrue(db < Sound.REPEATED_DB + 0.3 && db > Sound.REPEATED_DB - 6, "les fonds au niveau des répétitifs : " + db);
+            // Le fond du beau temps est plus de moitié moins fort que les autres fonds (0.247, la nuit de jungle en 0.254).
+            double wanted = Sound.REPEATED_DB + (hum == Hum.SUN ? Hum.SUN_DB : 0);
+            assertTrue(db < wanted + 0.3 && db > wanted - 6, "les fonds au niveau des répétitifs : " + db);
         }
     }
 

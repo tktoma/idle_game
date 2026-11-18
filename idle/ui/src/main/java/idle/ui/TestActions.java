@@ -73,6 +73,16 @@ final class TestActions {
         }
     }
 
+    /** Exactement {@code count} générateurs (au moins un, au plus le maximum) : le profil test UI (0.248). */
+    void setGenerators(int count) {
+        if (!game.isStarted()) game.start();
+        for (Upgrade upgrade : game.upgrades()) {
+            if (!(upgrade.effect() instanceof Effect.AddGenerator)) continue;
+            state().setLevel(upgrade.id(), Math.max(0, count - 1 - game.startingGenerators()));
+            return;
+        }
+    }
+
     void regimeReady() {
         state().setRegimeLeft(0);
         state().setRegimeRest(0);
@@ -154,6 +164,12 @@ final class TestActions {
     void addDarkMatter(int count) {
         oneExplosion();
         state().setDarkMatter(state().darkMatter().add(BigNum.of(count)));
+    }
+
+    /** La taille de la matière noire à dix puissance {@code decades} : le profil test UI (0.248). */
+    void darkMatterSize(int decades) {
+        oneExplosion();
+        state().setDarkMatterSize(BigNum.of(1, decades));
     }
 
     /** Multiplie la taille de la matière noire par dix puissance {@code decades}. */
@@ -457,6 +473,23 @@ final class TestActions {
         state().setSeedSprouted(true);
         state().setSeedWaterings(Math.max(state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
     }
+
+    /** La graine à l'étape {@code stage} (1 : pas encore germée) : le profil test UI (0.248). */
+    void seedStage(int stage) {
+        if (!game.isUniverseFormed()) game.testFormUniverse();
+        int wanted = Math.max(1, Math.min(Game.SEED_STAGES, stage));
+        state().setSeedSprouted(wanted > 1);
+        state().setSeedWaterings(wanted > 1 ? Game.seedStageWaterings(wanted) : 0);
+    }
+
+    /** L'arrosoir tenu en main ({@code true}) ou reposé sur l'étagère. */
+    void holdWateringCan(boolean held) {
+        state().setWateringCan(true);
+        game.setWatering(held);
+    }
+
+    /** Plus aucun succès obtenu : le profil test UI (0.248). */
+    void clearAchievements() { state().testClearAchievements(); }
 
     void water() {
         state().setSeedSprouted(true);

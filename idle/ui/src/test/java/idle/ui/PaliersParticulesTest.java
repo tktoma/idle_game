@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import idle.ui.particles.SpeedStages;
 import java.util.ArrayList;
@@ -81,30 +80,21 @@ class PaliersParticulesTest {
     }
 
     @Test
-    void uneParticuleRecupereeSuitLeRythmeLesReglagesEtLaBanqueDeSons() throws InterruptedException {
+    void uneParticuleRecupereeSuitLesReglages() throws InterruptedException {
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound sound = new Sound();
         sound.sink = sent::add;
         assertTrue(sound.particle(13, 100), "le dernier palier");
-        assertFalse(sound.particle(0, 100), "deux particules collées n'en font qu'une");
-        Thread.sleep((long) (Cue.PARTICLE.gap() * 1000) + 30);
-        assertTrue(sound.particle(99, 100), "un palier hors gamme prend le plus proche");
+        assertTrue(sound.particle(99, 100), "un palier hors gamme prend le plus proche, sans attendre la première (0.247)");
         Sound muted = new Sound();
         muted.sink = sent::add;
         muted.setAllowed(kind -> kind != SoundKind.PARTICLES);
         assertFalse(muted.particle(3, 100), "la catégorie des particules coupée");
-        Sound wood = new Sound();
-        wood.sink = sent::add;
-        wood.setSkins(Skin.SOUND_WOOD, null, null);
-        assertTrue(wood.particle(3, 100), "une banque de sons garde son son de particule");
-        for (Sound each : List.of(sound, wood)) {
-            each.player.shutdown();
-            assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
-        }
-        assertEquals(3, sent.size());
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(2, sent.size());
         assertEquals(Sound.PARTICLE_STAGES[13].length * 2, sent.get(0).bytes().length, "l'enregistrement du dernier palier");
         assertEquals(Sound.PARTICLE_STAGES[13].length * 2, sent.get(1).bytes().length);
-        assertEquals(Sound.pcm(SoundBanks.synthesize(Cue.PARTICLE, Skin.SOUND_WOOD, null, null), 1).length, sent.get(2).bytes().length);
     }
 
     /** La clarté d'une couleur {@code #rrggbb}, de 0 à 1 : sa composante la plus forte. */
@@ -119,17 +109,14 @@ class PaliersParticulesTest {
         return count;
     }
 
-    /** Des particules qui ne partent pas au même instant se superposent ; au plus quelques-unes en même temps. */
+    /** Des particules se superposent, même au même instant (0.247) ; au plus quelques-unes en même temps. */
     @Test
     void lesParticulesSeSuperposentSansNoyerLaSortie() throws InterruptedException {
-        assertTrue(Cue.PARTICLE.gap() < 0.1, "deux générateurs décalés d'un dixième de seconde sonnent tous les deux");
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound sound = new Sound();
         sound.sink = sent::add;
-        long gap = (long) (Cue.PARTICLE.gap() * 1000) + 10;
         for (int voice = 0; voice < Sound.MAX_PARTICLE_VOICES; voice++) {
             assertTrue(sound.particle(SpeedStages.COUNT - 1, 100), "la particule " + (voice + 1) + " se superpose aux autres");
-            Thread.sleep(gap);
         }
         assertFalse(sound.particle(SpeedStages.COUNT - 1, 100), "au-delà, la sortie n'est pas noyée");
         sound.player.shutdown();

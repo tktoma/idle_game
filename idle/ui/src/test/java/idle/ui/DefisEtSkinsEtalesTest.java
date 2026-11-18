@@ -67,7 +67,7 @@ class DefisEtSkinsEtalesTest {
     }
 
     @Test
-    void laCarteDUnSkinDitLUniversQuElleAttend() {
+    void unSkinNeSeMontreQuUneFoisSonUniversAtteint() {
         FxTestSupport.fx(() -> {
             Game game = game();
             game.state().setSkinsOpen(true);
@@ -82,11 +82,11 @@ class DefisEtSkinsEtalesTest {
                 if (now == null && skin.minUniverses() <= game.universes()) now = skin;
             }
             assertTrue(later != null && now != null);
-            String waiting = page.card(later).text();
-            assertTrue(waiting.endsWith(" — dès l'univers " + (later.minUniverses() + 1) + " | Univers " + (later.minUniverses() + 1)),
-                    "le skin attend son univers : " + waiting);
+            // Version 0.249 : le skin dont l'univers n'est pas atteint reste caché ; celui dont l'univers est venu attend sa condition.
+            assertFalse(page.cardShown(later), "le skin attend son univers, caché : " + later);
+            assertTrue(page.cardShown(now), "celui dont l'univers est venu se montre : " + now);
             String locked = page.card(now).text();
-            assertTrue(locked.endsWith(" | Verrouillé") && !locked.contains("dès l'univers"), "celui dont l'univers est venu attend sa condition : " + locked);
+            assertTrue(locked.endsWith(" | Verrouillé") && !locked.contains("dès l'univers"), "il attend sa condition : " + locked);
             assertTrue(page.summaryText().contains("une trentaine par univers formé"), page.summaryText());
             return null;
         });

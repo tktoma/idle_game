@@ -27,7 +27,11 @@ class FondsSonoresTest {
         assertEquals(2, Hum.COLLIDER.channels(), "en stéréo, comme l'enregistrement");
         assertEquals(4.1, Hum.EXPANSION.frames() / Hum.EXPANSION.rate(), 0.01, "4,1 s de fond de l'expansion");
         assertEquals(2, Hum.EXPANSION.channels());
-        for (Hum.Loop each : List.of(Hum.DARK_MATTER, Hum.COLLIDER, Hum.EXPANSION, Hum.BRANE, Hum.DURATION, Hum.CHRONO)) {
+        assertEquals(1.5, Hum.BRANE.frames() / Hum.BRANE.rate(), 0.01, "1,5 s de fibres qui craquent");
+        assertEquals(0.81, Hum.VOID_PAIRS.frames() / Hum.VOID_PAIRS.rate(), 0.01, "0,81 s de fond des paires du vide (0.272)");
+        assertEquals(1, Hum.VOID_PAIRS.channels());
+        for (Hum.Loop each : List.of(Hum.DARK_MATTER, Hum.COLLIDER, Hum.EXPANSION, Hum.BRANE, Hum.DURATION, Hum.CHRONO, Hum.WATERING_CAN, Hum.HOSE,
+                Hum.STORM, Hum.SUN, Hum.VOID_PAIRS)) {
             float[] loop = each.samples();
             int channels = each.channels();
             for (int c = 0; c < channels; c++) {
@@ -137,16 +141,54 @@ class FondsSonoresTest {
         assertEquals(2, Hum.chronoRate(2), 1e-9);
         assertEquals(3, Hum.chronoRate(10), 1e-9, "au-delà de ×3, il bourdonnerait");
         assertEquals(1, Hum.chronoRate(Double.NaN), 1e-9);
-        // Un tic, puis un tac une demi-seconde après : deux coups par tour de boucle.
+        // L'horloge du joueur (0.260) : six tics en six secondes, une boucle qui commence et finit dans le silence.
         float[] loop = Hum.CHRONO.samples();
-        int loud = 0;
-        for (int i = 1; i < loop.length; i++) if (Math.abs(loop[i]) > 0.5f * peak(loop) && Math.abs(loop[i - 1]) <= 0.5f * peak(loop)) loud++;
-        assertTrue(loud >= 2, "un tic et un tac : " + loud);
+        assertEquals(6, Hum.CHRONO.frames() / Hum.CHRONO.rate(), 0.05);
+        assertEquals(1, Hum.CHRONO.channels());
+        int ticks = 0, last = -44_100;
+        for (int i = 0; i < loop.length; i++) {
+            if (Math.abs(loop[i]) > 0.3f * peak(loop) && i - last > 22_050) {
+                ticks++;
+                last = i;
+            }
+        }
+        assertEquals(6, ticks, "six tics par tour");
+        assertTrue(Math.abs(loop[0]) < 0.01f && Math.abs(loop[loop.length - 1]) < 0.01f, "le raccord tombe dans le silence");
     }
 
     private static float peak(float[] loop) {
         float peak = 0;
         for (float v : loop) peak = Math.max(peak, Math.abs(v));
         return peak;
+    }
+
+    @Test
+    void lesSonsDeLaGraineSeChargent() {
+        for (Hum.Loop each : List.of(Hum.WATERING_CAN, Hum.HOSE, Hum.STORM)) {
+            assertTrue(each.frames() / each.rate() > 2.5, "une boucle de trois secondes environ");
+            assertEquals(1, each.channels());
+        }
+        // Le beau temps : la nuit de jungle du joueur (0.254), en stéréo, une boucle de 20 s.
+        assertEquals(2, Hum.SUN.channels());
+        assertEquals(20, Hum.SUN.frames() / Hum.SUN.rate(), 0.01);
+        assertEquals(4, Sound.SEASONS.length, "un accord par saison");
+        for (short[] chord : Sound.SEASONS) NiveauxTest.auNiveau(chord, 1, Sound.REPEATED_DB, "un accord de saison");
+        assertEquals(0.9, Sound.BLOOM_SOUND.length / 44_100.0, 0.01, "la grosse bulle du rond de croissance");
+        NiveauxTest.auNiveau(Sound.BLOOM_SOUND, 1, Sound.REPEATED_DB, "le rond de croissance");
+    }
+
+    /** Version 0.255 : le palier de la graine joue l'enregistrement du joueur, en stéréo, au niveau des sons rares. */
+    @Test
+    void lePalierDeLaGraineEstEnregistre() throws InterruptedException {
+        assertEquals(2.04, Sound.SEED_STEREO.length / 2 / 44_100.0, 0.01, "le son de la 0.257");
+        NiveauxTest.auNiveau(Sound.SEED_STEREO, 2, Sound.RARE_DB, "le palier de la graine");
+        java.util.List<Sound.Pcm> sent = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        assertTrue(sound.click(Sound.Cue.SEED, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS));
+        assertTrue(sent.get(0).stereo(), "en stéréo");
+        assertEquals(Sound.SEED_STEREO.length * 2, sent.get(0).bytes().length, "l'enregistrement, pas la synthèse");
     }
 }

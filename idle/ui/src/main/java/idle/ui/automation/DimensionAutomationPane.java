@@ -30,6 +30,12 @@ import javafx.scene.layout.VBox;
  * avoir acheté avant (« Après : … ») ; à acheter, un clic l'achète ; acheté, elle sert d'interrupteur, en marche ou en
  * pause.
  *
+ * <p>Version 0.268 : les cinq paliers de celui qui joue une dimension tiennent sur une seule carte ({@link #showPlay}).
+ * Elle dit le palier acheté (« 2/5 ») et le prix du suivant : payable, un clic l'achète ; sinon, un clic met en pause
+ * ou relance tous les paliers achetés ensemble. Tous achetés, elle n'est plus qu'un interrupteur. Version 0.269 : un bouton
+ * « Couper » (ou « Relancer ») sous la carte, dès le premier palier acheté, fait la même pause à tout moment, même quand
+ * le palier suivant est payable.
+ *
  * <p>Les cartes ne se refont que si leur état a changé (acheté, en marche, payable, coupure, affichage) ; seules les
  * lignes des réserves se recopient à chaque fois.
  */
@@ -41,6 +47,8 @@ public final class DimensionAutomationPane extends VBox {
     private final Button pauseButton = new Button();
     private final Label intro = new Label();
     private final Map<DimensionAutomation, Card> cards = new EnumMap<>(DimensionAutomation.class);
+    /** Par dimension : le bouton « Couper » sous la carte des paliers de celui qui joue (version 0.269). */
+    private final Button[] playSwitches = new Button[Dimension.PLAYABLE + 1];
     /** Par dimension (1 à 10) : son titre, la ligne de ce qui la paie, ses cartes, et la boîte qui les tient. */
     private final Label[] headings = new Label[Dimension.PLAYABLE + 1];
     private final Label[] balances = new Label[Dimension.PLAYABLE + 1];
@@ -77,8 +85,34 @@ public final class DimensionAutomationPane extends VBox {
             balance.setStyle("-fx-font-size: 13px; -fx-text-fill: " + color + ";");
             TileGrid grid = new TileGrid(250, 3, 10);
             grid.setMaxWidth(MAX_WIDTH);
+            Card playCard = null;
             for (DimensionAutomation automation : DimensionAutomation.values()) {
                 if (automation.dimension() != number) continue;
+                if (automation.kind() == DimensionAutomation.Kind.PLAY) {
+                    // Une seule carte pour les cinq paliers : chacun y mène.
+                    if (playCard == null) {
+                        playCard = new Card(color);
+                        int dimension = number;
+                        Card chain = playCard;
+                        playCard.setOnAction(() -> {
+                            if (chain.state() == Card.State.READY) game.buyNextPlayTier(dimension);
+                            else game.setDimensionPlayEnabled(dimension, !game.isDimensionPlayEnabled(dimension));
+                            refresh();
+                        });
+                        Button cut = new Button();
+                        cut.setFocusTraversable(false);
+                        cut.setMaxWidth(Double.MAX_VALUE);
+                        cut.setOnAction(event -> {
+                            game.setDimensionPlayEnabled(dimension, !game.isDimensionPlayEnabled(dimension));
+                            refresh();
+                        });
+                        playSwitches[number] = cut;
+                        VBox tile = new VBox(4, playCard, cut);
+                        grid.add(tile);
+                    }
+                    cards.put(automation, playCard);
+                    continue;
+                }
                 Card card = new Card(color);
                 card.setOnAction(() -> {
                     if (game.ownsDimensionAutomation(automation)) {
@@ -124,8 +158,8 @@ public final class DimensionAutomationPane extends VBox {
             return "Il achète tant que la ressource suffit, jusqu'au plus haut niveau s'il y en a un, en gardant de quoi payer "
                     + "l'automatisme suivant de la dimension.";
         }
-        String tiers = " Cinq paliers, du plus lent au plus rapide (5 s, 2 s, 1 s, 0,5 s, sans attente) : le plus rapide acheté "
-                + "joue, et aucune bulle ni la matière noire ne change sa cadence.";
+        String tiers = " Cinq paliers sur cette carte, du plus lent au plus rapide (5 s, 2 s, 1 s, 0,5 s, sans attente), achetés "
+                + "l'un après l'autre : le plus rapide joue, et aucune bulle ni la matière noire ne change sa cadence.";
         return switch (automation.dimension()) {
             case 2 -> "Dès que vous lâchez les touches, il reprend la main, fenêtre ouverte ou non." + tiers;
             case 3 -> "Il replonge dès que le cube le rejette ; les améliorations du volume s'achètent entre deux plongées. "
@@ -182,8 +216,9 @@ public final class DimensionAutomationPane extends VBox {
         }
         if (key.toString().equals(shownKey)) return;
         shownKey = key.toString();
+        for (int number = 2; number <= Math.min(open, Dimension.PLAYABLE); number++) showPlay(number, paused);
         for (DimensionAutomation automation : DimensionAutomation.values()) {
-            if (automation.dimension() > open) continue;
+            if (automation.dimension() > open || automation.kind() == DimensionAutomation.Kind.PLAY) continue;
             Card card = cards.get(automation);
             if (game.ownsDimensionAutomation(automation)) {
                 boolean on = game.isDimensionAutomationEnabled(automation);
@@ -202,6 +237,64 @@ public final class DimensionAutomationPane extends VBox {
         }
     }
 
+    /**
+     * La carte des cinq paliers de celui qui joue cette dimension (version 0.268) : le palier acheté en coin (« 2/5 »),
+     * sa cadence et s'il est en marche, le prix du suivant. Le suivant payable, la carte est à portée et un clic
+     * l'achète ; sinon, achetée, elle sert d'interrupteur pour tous ses paliers ; rien d'acheté et rien à portée, elle
+     * attend ou dit ce qu'il faut avant.
+     */
+    private void showPlay(int dimension, boolean paused) {
+        java.util.List<DimensionAutomation> tiers = DimensionAutomation.playTiers(dimension);
+        if (tiers.isEmpty()) return;
+        Card card = cards.get(tiers.get(0));
+        DimensionAutomation owned = game.ownedPlayTier(dimension), next = game.nextPlayTier(dimension);
+        String corner = (owned == null ? 0 : tiers.indexOf(owned) + 1) + "/" + tiers.size();
+        String label = tiers.get(0).label();
+        if (owned == null) {
+            showSwitch(dimension, false, false);
+            if (game.isDimensionAutomationAvailable(next)) {
+                card.show(game.canBuyDimensionAutomation(next) ? Card.State.READY : Card.State.WAITING, corner, "", label, brief(next),
+                        detail(next) + " Un clic achète le palier suivant quand il est payable, sinon met en pause ou relance.",
+                        price(game, next), next.cadence());
+            } else {
+                card.show(Card.State.LOCKED, corner, "verrouillé", label, brief(next), detail(next), price(game, next),
+                        !game.isDimensionAutomationOpen(dimension) ? opening(dimension) : "Après : " + next.previous().title());
+            }
+            return;
+        }
+        boolean on = game.isDimensionPlayEnabled(dimension);
+        showSwitch(dimension, true, on);
+        // Le plus rapide en marche joue (une vieille sauvegarde a pu en couper un seul) ; en pause, le plus rapide acheté.
+        DimensionAutomation shown = owned;
+        for (DimensionAutomation tier : tiers) if (on && game.isDimensionAutomationEnabled(tier)) shown = tier;
+        String mark = (!on ? "en pause" : paused ? "tout coupé" : "en marche") + ", " + shown.cadence();
+        if (next == null) {
+            card.show(on ? Card.State.ON : Card.State.OFF, corner, mark, label, brief(owned),
+                    detail(owned) + " Tous les paliers sont achetés. Un clic " + (on ? "le met en pause." : "le relance."), "acheté", "");
+        } else if (game.canBuyDimensionAutomation(next)) {
+            card.show(Card.State.READY, corner, mark, label, brief(owned),
+                    detail(owned) + " Un clic achète le palier suivant, " + next.cadence() + ".", price(game, next), "→ " + next.cadence());
+        } else {
+            card.show(on ? Card.State.ON : Card.State.OFF, corner, mark, label, brief(owned),
+                    detail(owned) + " Un clic " + (on ? "le met en pause" : "le relance") + " ; le palier suivant, " + next.cadence()
+                            + ", s'achète ici dès qu'il est payable.", price(game, next), "prochain : " + next.cadence());
+        }
+    }
+
+    /** Le bouton sous la carte des paliers : montré dès le premier palier acheté, « Couper » en marche, « Relancer » en pause. */
+    private void showSwitch(int dimension, boolean shown, boolean on) {
+        Button cut = playSwitches[dimension];
+        cut.setVisible(shown);
+        cut.setManaged(shown);
+        cut.setText(on ? "Couper" : "Relancer");
+        cut.setStyle("-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + (on ? " -fx-text-fill: #ffb4a8; -fx-background-color: #2a1614; -fx-border-color: #b8584a;"
+                : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
+    }
+
+    /** Le bouton « Couper » sous la carte des paliers d'une dimension (2 à 10) : pour les vérifications. */
+    public Button playSwitch(int dimension) { return playSwitches[dimension]; }
+
     /** Ce qui ouvre les automatismes d'une dimension : le palier de la graine et les univers formés. */
     static String opening(int dimension) {
         int stage = Game.dimensionAutomationStage(dimension), universes = Game.dimensionAutomationUniverses(dimension);
@@ -216,7 +309,7 @@ public final class DimensionAutomationPane extends VBox {
         throw new IllegalArgumentException("Pas d'automatisme pour la dimension " + number);
     }
 
-    /** La carte d'un automatisme : pour les vérifications. */
+    /** La carte d'un automatisme (pour un palier de celui qui joue, la carte commune à ses cinq paliers) : pour les vérifications. */
     public Card card(DimensionAutomation automation) { return cards.get(automation); }
 
     /** Vrai si la section de cette dimension (1 à 10) se montre. */

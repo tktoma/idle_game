@@ -145,6 +145,12 @@ public abstract class GameStateResets extends GameStateCollider {
         return added;
     }
 
+    /** Outil d'essai (profil test UI, version 0.248) : plus aucun succès obtenu. */
+    public void testClearAchievements() {
+        achievements.clear();
+        achievementsVersion++;
+    }
+
     /** Numéro de version des succès : il change dès qu'un succès est ajouté ou retiré. */
     public int achievementsVersion() { return achievementsVersion; }
 

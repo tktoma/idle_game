@@ -88,6 +88,8 @@ final class TestPanel extends HBox {
         Label title = new Label("PROFIL DE TEST");
         title.setStyle("-fx-text-fill: " + ACCENT + "; -fx-font-weight: bold;");
         search.setPromptText("Chercher un outil…");
+        // Il ne prend pas le clavier tout seul à l'ouverture du jeu : seulement quand on clique dedans.
+        search.setFocusTraversable(false);
         search.setStyle("-fx-font-size: 12px;");
         search.textProperty().addListener((observable, before, text) -> layoutSections());
 

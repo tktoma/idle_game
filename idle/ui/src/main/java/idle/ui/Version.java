@@ -21,6 +21,171 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.273", "Le son du nouvel élément", List.of(
+                    "Un nouvel élément fait maintenant le son choisi par le joueur (1,5 s, en stéréo), à la place de la petite "
+                            + "cloche ; l'élément unique et l'astre mûr, qui partageaient ce son, aussi.")),
+            new Note("0.272", "Le fond des paires du vide", List.of(
+                    "Sur le sous-onglet Paires du vide, le son choisi par le joueur tourne en boucle en fond (un souffle grave, "
+                            + "toutes les 0,8 s) ; le son de chaque paire qui naît reste par-dessus.",
+                    "Les collisions du collisionneur ne sonnent plus que sur son sous-onglet Énergie, comme son fond.")),
+            new Note("0.271", "Les sons des défis", List.of(
+                    "Un palier du défi final atteint fait maintenant le son choisi par le joueur (1,7 s), au volume des sons "
+                            + "rares, à la place des deux notes synthétisées.",
+                    "Un défi réussi (de matière noire ou de Big Bang) fait le son choisi par le joueur, un court accord de "
+                            + "confirmation, à la place des trois notes ; un record battu aussi, qui partageait ce son.",
+                    "Un défi qui s'ouvre (« Nouveau défi ») ou qui commence fait le son choisi par le joueur, un court son "
+                            + "de goutte, à la place des deux notes.",
+                    "Correction : le son du palier de vitesse des particules (0.264) ne partait pas, le jeu jouait encore "
+                            + "le petit bip ; il part maintenant.")),
+            new Note("0.270", "Le son de « Revoir la fin »", List.of(
+                    "« Revoir la fin » rejoue aussi le son de la fin de la partie et l'élan de la musique, comme la première fois.")),
+            new Note("0.269", "Un bouton pour couper les paliers", List.of(
+                    "Sous la carte des paliers de celui qui joue une dimension, un bouton « Couper » met tous ses paliers en "
+                            + "pause, même quand le palier suivant est payable ; en pause, il devient « Relancer ».")),
+            new Note("0.268", "Les paliers sur une seule carte", List.of(
+                    "Dans l'automatisation des dimensions, les cinq paliers de celui qui joue une dimension (5 s, 2 s, 1 s, "
+                            + "0,5 s, sans attente) tiennent sur une seule carte : elle dit le palier acheté (« 2/5 ») et le prix du "
+                            + "suivant. Payable, un clic l'achète ; sinon, un clic met en pause ou relance tous les paliers ensemble.",
+                    "Un palier acheté pendant une pause reste en pause. Les sauvegardes gardent leurs paliers achetés.")),
+            new Note("0.267", "Une fin à choisir", List.of(
+                    "La fin de la partie a le son choisi par le joueur (9,6 s, il continue sur l'écran de fin).",
+                    "Dans l'animation de la fin, la vue toute jaune tient une seconde avant l'écran de fin (7,5 s en tout).",
+                    "L'écran de fin propose deux boutons : « Recommencer de zéro », qui efface toute la partie comme dans les "
+                            + "réglages (un second clic le confirme), et « Continuer la sauvegarde », qui la garde.",
+                    "Les skins de l'écran de fin (Générique qui défile, Certificat encadré, Photo souvenir) sont retirés : l'écran "
+                            + "de fin suit le skin des panneaux. Une sauvegarde qui en avait un choisi revient au Classique.")),
+            new Note("0.266", "La fin de la partie garde son accord", List.of(
+                    "Le son du joueur ne sert qu'à la formation d'un univers : la fin de la partie (les dix paliers atteints) "
+                            + "reprend l'accord d'avant, qui s'élargit.")),
+            new Note("0.265", "Le son de l'univers formé", List.of(
+                    "Former un univers fait maintenant le son choisi par le joueur (5 secondes, en stéréo), "
+                            + "au volume des sons rares, à la place de l'accord synthétisé.")),
+            new Note("0.264", "Le son du palier de vitesse", List.of(
+                    "Un palier de vitesse des particules fait maintenant le son choisi par le joueur, au volume des sons rares, "
+                            + "à la place du petit bip. Les annonces de collision gardent le petit bip, à part ; si les deux "
+                            + "arrivent ensemble, c'est le palier qui sonne.")),
+            new Note("0.263", "Le son de l'achat", List.of(
+                    "Un achat (une carte, une amélioration) fait maintenant le son choisi par le joueur, un clic plus rond, à la "
+                            + "place du petit bip ; au même volume que les autres sons répétés.")),
+            new Note("0.262", "Un clic, un son, partout", List.of(
+                    "Chaque clic fait le son du clic, qu'il tombe sur rien ou qu'il déclenche une action (une carte, un "
+                            + "sous-onglet, un interrupteur…), dès l'appui. Seuls les onglets et les mini-jeux des dimensions, qui "
+                            + "ont leur propre son à l'appui, ne le doublent pas ; un bouton actionné au clavier fait aussi le clic.")),
+            new Note("0.261", "Le rond au clic", List.of(
+                    "Chaque clic fait un petit rond qui s'élargit et s'efface là où il tombe, pour voir ses clics (Réglages, "
+                            + "effets : « Rond au clic », allumé d'office).",
+                    "Un clic sur rien (un fond, un texte) fait maintenant le son du clic ; les boutons, les cartes, les "
+                            + "réglettes et les vues de jeu gardent leur propre son, sans doublon.")),
+            new Note("0.260", "L'horloge du chrono", List.of(
+                    "Le chrono joue le son du joueur, une vieille horloge un peu boiteuse, à la place du tic-tac synthétisé : "
+                            + "une boucle de six tics sans coupure, toujours plus pressée quand le chrono accélère (jusqu'à ×3).")),
+            new Note("0.259", "Le clic des zones monte", List.of(
+                    "Dans les zones ×2 du clicker, le clic monte d'un demi-ton par zone superposée, jusqu'à huit zones : une "
+                            + "montée légère qui suit le multiplicateur, en plus d'une note de l'arpège par zone (jusqu'à quatre). "
+                            + "Le panneau de test (F9) joue les huit.")),
+            new Note("0.258", "Le clic du joueur", List.of(
+                    "Chaque bouton et chaque clic sur le clicker jouent le clic choisi par le joueur (Kenney, domaine public), "
+                            + "à la place des deux clics synthétisés ; les onglets gardent leur son.",
+                    "Dans une zone ×2, l'accord du clicker reprend ce clic, une note de plus par zone superposée ; le clic "
+                            + "étant très bref, les notes partent l'une après l'autre (un arpège rapide), sinon l'accord ne "
+                            + "s'entendait plus.")),
+            new Note("0.257", "Un autre son pour le palier de la graine", List.of(
+                    "Le palier de la graine joue le nouveau son du joueur, sans le passage trop fort de l'ancien : une "
+                            + "montée qui culmine puis s'éteint, au même niveau que les autres sons rares.")),
+            new Note("0.256", "Le palier de la graine se fait entendre", List.of(
+                    "Le son d'un palier de la graine joue à chaque palier passé, d'où qu'il vienne : l'arrosoir, le tuyau, ou "
+                            + "la graine qui rattrape ses arrosages quand un univers se forme. Il ne jouait que sous l'arrosoir "
+                            + "tenu, et la graine, vite à son plafond, passait ses paliers ailleurs : on ne l'entendait presque "
+                            + "jamais.")),
+            new Note("0.255", "Le palier de la graine enregistré", List.of(
+                    "Un palier de la graine (quand elle passe une étape sous l'arrosoir que tient le joueur) joue le son du "
+                            + "joueur, en stéréo, à la place des quatre notes synthétisées ; son début calé, sa fin fondue.")),
+            new Note("0.254", "La nuit de jungle à la place de la cigale", List.of(
+                    "Le beau temps sur la graine joue le son du joueur, une nuit humide de jungle (oiseaux, insectes), à la "
+                            + "place de la cigale : en stéréo, une boucle de 20 s sans coupure, toujours 8 dB sous les autres "
+                            + "fonds (moins de la moitié de leur force).")),
+            new Note("0.253", "Profil test UI : les images par seconde", List.of(
+                    "Le profil test UI mesure les images par seconde de chaque combinaison de skins, sur tous ses états : la "
+                            + "moyenne, le plus bas (la pire image, et l'état où elle tombe), le calcul du jeu par image, et à part "
+                            + "la mise en place de chaque état. Son panneau montre le moment présent, la combinaison d'avant et la "
+                            + "plus lente.",
+                    "Chaque combinaison mesurée ajoute une ligne au fichier test-ui-fps.csv, dans le dossier des données du "
+                            + "jeu (%APPDATA%\\Idle sous Windows, ~/.idle ailleurs), avec la date, la version et le plafond d'images "
+                            + "par seconde ; un tableur l'ouvre. « Copier le chemin du fichier » le donne.")),
+            new Note("0.252", "Profil test UI : tout ce qui touche l'onglet", List.of(
+                    "Le panneau du profil test UI a une option par onglet : « Avec tout ce qui touche l'onglet ». Cochée, elle "
+                            + "croise aussi, avec les visuels de l'onglet, ceux de la fenêtre qui s'y voient (fond, onglets et "
+                            + "leurs icônes, cartes des améliorations et leurs signes, info-bulles, curseur, cadre de l'avatar, "
+                            + "notifications, panneaux), le thème et la notation des nombres ; chacun a sa case.",
+                    "Les thèmes et notations essayés ne s'écrivent pas dans les réglages du joueur : le profil test UI ne "
+                            + "garde aucun réglage.")),
+            new Note("0.251", "Plus de skins de son", List.of(
+                    "Les skins de son sont retirés : les banques (Bois, Verre, 8 bits, Orchestre, Nature, Silence partiel), "
+                            + "les sons du Big Bang (Carillon géant, Souffle de vent, Orgue) et les tics du métronome (Bois, Métal, "
+                            + "Goutte d'eau, Battement de cœur). Chaque son a une seule voix ; l'onglet Skins n'a plus de "
+                            + "catégorie Sons.",
+                    "Une sauvegarde qui les avait les oublie sans erreur. Les treize skins en moins rangent les autres "
+                            + "autrement entre les univers : quelques skins pas encore débloqués peuvent venir un univers plus "
+                            + "tôt ou plus tard.")),
+            new Note("0.250", "L'onglet Skins par catégorie", List.of(
+                    "L'onglet Skins a des sous-onglets : Collection (la carte de la collection, les recherches, le record, les "
+                            + "épreuves), puis Fenêtre, Particules et atomes, Matière noire, Collisionneur et hadrons, Le vide, Big "
+                            + "Bang, Univers, Graine, Dimensions, Profil et statistiques, Sons ; chacun dit ses skins débloqués sur "
+                            + "ceux montrés.",
+                    "Un skin ne se montre qu'une fois son palier atteint : l'univers qu'il attend, et pour le skin d'une "
+                            + "dimension, cette dimension ouverte. Un skin déjà débloqué se montre toujours ; un visuel ou une "
+                            + "catégorie sans skin montré restent cachés.")),
+            new Note("0.249", "Profil test UI : tous les onglets", List.of(
+                    "Dans le profil test UI, tous les onglets sont ouverts, et la vue va d'elle-même à l'onglet et au "
+                            + "sous-onglet de chaque étape : la partie préparée a son univers formé, et le jeu cachait les anciens "
+                            + "onglets et ramenait la vue sur l'onglet Univers à chaque image.")),
+            new Note("0.248", "Profil test UI ; Neige et Sablier retirés", List.of(
+                    "Les animations de matière noire « Neige » et « Sablier » sont retirées ; restent Vortex et Pulsar. Une "
+                            + "sauvegarde qui les avait les oublie sans erreur, et celle qui en avait choisi une revient au Classique.",
+                    "Nouveau profil test UI (tâche Gradle runTestUi, ou profil-test-ui.bat / .sh) : une partie préparée (chaque "
+                            + "acte ouvert, tous les skins), sans gains ni sauvegarde. Son panneau, à droite, passe chaque "
+                            + "combinaison de skins d'un onglet par chacun de ses états (1, 2, 5, 10, 30 générateurs, la fusion, "
+                            + "chaque sous-onglet, chaque dimension…), tout croisé ou par paires, en lecture automatique à "
+                            + "l'allure choisie, et relève les erreurs (exception, vue vide, sous-onglet absent) dans un rapport à "
+                            + "copier.")),
+            new Note("0.247", "Touches de la boucle, vitesse du miroir, sons", List.of(
+                    "La boucle : ses touches (S, D, F, Espace…) jouent de nouveau les cercles. Un champ de texte (la recherche "
+                            + "du panneau de test, les chiffres de la grille) gardait le clavier ; un clic ailleurs le rend au jeu.",
+                    "Le miroir : une barre « Vitesse du motif » dans sa fenêtre, de la mémorisation entière (à gauche) à "
+                            + "0,3 s par case (à droite). Elle se garde dans les réglages.",
+                    "La cigale du beau temps est 8 dB plus douce (moins de la moitié de son amplitude). La comète (et le "
+                            + "quark top, les sondes revenues), le nouvel élément, le palier de vitesse (et l'annonce d'une "
+                            + "collision) et le tic-tac du chrono sonnent une octave plus grave.",
+                    "Les paires du vide ne sonnent que sur le sous-onglet « Paires ». Plus aucun son n'attend un délai avant "
+                            + "de revenir ; seul le nombre de sons en même temps est borné (24).")),
+            new Note("0.246", "L'animation du Big Bang", List.of(
+                    "Le Big Bang sans skin a maintenant son animation plein écran (3,5 s) : la nuit tombe et la matière des "
+                            + "quatre ressources tombe vers un point qui s'allume et tremble ; puis l'éclair, l'onde de choc et la "
+                            + "matière projetée jusqu'aux bords, une boule de feu qui refroidit du blanc au violet, et les étoiles "
+                            + "et les premières galaxies qui s'allument.",
+                    "Elle se coupe avec le réglage « Éclair de l'explosion », comme celles des skins. Le panneau de test (F9) "
+                            + "la joue avec « Big Bang (skin choisi, ou le classique) ».")),
+            new Note("0.245", "Le clic du clicker", List.of(
+                    "Choisi à l'écoute : chaque clic du joueur sur le clicker fait un tapotement doux, comme un doigt sur "
+                            + "du bois, plus grave que l'essai.",
+                    "Un clic dans une zone ×2 joue ce même tapotement en accord, une note de plus par zone superposée "
+                            + "(tierce, quinte, octave, dixième) : le cumul s'entend. Les clics automatiques restent muets.")),
+            new Note("0.244", "Le décollage des sondes", List.of(
+                    "Choisi à l'écoute : une sonde lancée décolle dans un rugissement grave qui monte, puis s'éloigne en "
+                            + "s'assourdissant (3 s, au niveau des grands moments). Les banques de sons des skins gardent le leur.")),
+            new Note("0.243", "Les sons de la graine", List.of(
+                    "Choisis à l'écoute, sur la graine qu'on voit : tant qu'on tient l'arrosoir, de grosses gouttes graves "
+                            + "qui tombent dans une flaque ; tant que le tuyau arrose, un gargouillis sourd ; pendant l'orage, "
+                            + "une pluie feutrée et un grondement très bas ; pendant le beau temps, une cigale qui chante par "
+                            + "à-coups.",
+                    "Un rond de croissance cueilli : une grosse bulle d'eau qui remonte. Une saison qui commence, sur "
+                            + "l'onglet de l'univers : un accord de bois, un par saison.",
+                    "La goutte jouée à chaque arrosage disparaît : l'eau est désormais un fond continu. Le palier de la "
+                            + "graine sonne toujours s'il vient de l'arrosoir qu'on tient.")),
+            new Note("0.242", "La corde de la brane", List.of(
+                    "Choisis à l'écoute : tant qu'on tire la brane, des fibres qui craquent, de plus en plus serrées, aiguës "
+                            + "et fortes avec la tirée ; au relâchement, la membrane qui claque (un coup sec, puis elle ondule), "
+                            + "plus aiguë et plus forte selon la tirée.")),
             new Note("0.241", "Le mélange sonne de nouveau, le chrono tourne", List.of(
                     "Le mélange sonne à chaque éclat ramassé, par le point ou par l'onde de la brane. Aux étapes avancées, il "
                             + "se taisait : ce qu'un éclat rapporte va dans la charge, ou est trop petit pour bouger le total des "

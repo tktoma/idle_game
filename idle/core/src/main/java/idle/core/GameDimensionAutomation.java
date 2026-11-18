@@ -132,6 +132,48 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         return true;
     }
 
+    /**
+     * Le palier le plus rapide acheté de celui qui joue cette dimension, en marche ou non ; {@code null} avant le premier
+     * (version 0.268 : la carte unique des paliers).
+     */
+    public DimensionAutomation ownedPlayTier(int dimension) {
+        DimensionAutomation owned = null;
+        for (DimensionAutomation tier : DimensionAutomation.playTiers(dimension)) if (ownsDimensionAutomation(tier)) owned = tier;
+        return owned;
+    }
+
+    /** Le prochain palier à acheter de celui qui joue cette dimension ; {@code null} une fois tous achetés, et pour la ligne. */
+    public DimensionAutomation nextPlayTier(int dimension) {
+        for (DimensionAutomation tier : DimensionAutomation.playTiers(dimension)) if (!ownsDimensionAutomation(tier)) return tier;
+        return null;
+    }
+
+    /** Vrai si un palier acheté de celui qui joue cette dimension est en marche. */
+    public boolean isDimensionPlayEnabled(int dimension) {
+        for (DimensionAutomation tier : DimensionAutomation.playTiers(dimension)) if (isDimensionAutomationEnabled(tier)) return true;
+        return false;
+    }
+
+    /** Met en marche ou coupe ensemble tous les paliers achetés de celui qui joue cette dimension ; faux sans aucun. */
+    public boolean setDimensionPlayEnabled(int dimension, boolean enabled) {
+        boolean any = false;
+        for (DimensionAutomation tier : DimensionAutomation.playTiers(dimension)) any |= setDimensionAutomationEnabled(tier, enabled);
+        return any;
+    }
+
+    /**
+     * Achète le prochain palier de celui qui joue cette dimension ; s'il était en pause, le nouveau palier l'est aussi
+     * (un achat ne relance rien). Vrai si c'est fait.
+     */
+    public boolean buyNextPlayTier(int dimension) {
+        DimensionAutomation next = nextPlayTier(dimension);
+        if (next == null) return false;
+        boolean paused = ownedPlayTier(dimension) != null && !isDimensionPlayEnabled(dimension);
+        if (!buyDimensionAutomation(next)) return false;
+        if (paused) setDimensionAutomationEnabled(next, false);
+        return true;
+    }
+
     /** Les automatismes achetés, toutes dimensions. */
     public int dimensionAutomationsOwned() { return state.dimensionAutomations().size(); }
 

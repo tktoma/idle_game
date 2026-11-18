@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,26 +33,20 @@ class FusionEnregistreeTest {
     }
 
     @Test
-    void laFusionPartEnStereoAuRythmeDesBruitagesEtLesBanquesGardentLaLeur() throws InterruptedException {
+    void laFusionPartEnStereoCommeLesBruitagesEtLesBanquesGardentLaLeur() throws InterruptedException {
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound classic = new Sound();
         classic.sink = sent::add;
         assertTrue(classic.play(Cue.ATOM, 100), "une fusion");
-        assertFalse(classic.play(Cue.ATOM, 100), "deux fusions collées n'en font qu'une");
-        Sound wood = new Sound();
-        wood.sink = sent::add;
-        wood.setSkins(Skin.SOUND_WOOD, null, null);
-        assertTrue(wood.play(Cue.ATOM, 100));
+        assertTrue(classic.play(Cue.ATOM, 100), "deux fusions collées sonnent toutes les deux (0.247)");
         Sound muted = new Sound();
         muted.sink = sent::add;
         muted.setAllowed(kind -> kind != SoundKind.ATOMS);
         assertFalse(muted.play(Cue.ATOM, 100), "la catégorie des fusions coupée");
-        for (Sound each : List.of(classic, wood)) {
-            each.player.shutdown();
-            assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
-        }
+        classic.player.shutdown();
+        assertTrue(classic.player.awaitTermination(5, TimeUnit.SECONDS));
         assertEquals(2, sent.size());
-        assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "l'enregistrement en stéréo, la banque Bois en mono");
+        assertEquals(2, sent.stream().filter(Sound.Pcm::stereo).count(), "l'enregistrement en stéréo, les deux fois (les banques de sons retirées en 0.251)");
         assertEquals(Sound.FUSION_STEREO.length * 2, sent.stream().filter(Sound.Pcm::stereo).findFirst().orElseThrow().bytes().length);
     }
 }

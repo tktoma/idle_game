@@ -75,6 +75,7 @@ public abstract class GameAppBase extends Application {
     abstract void catchUp();
     abstract void afterLoad();
     abstract void showStartButton();
+    abstract void hideStartButton();
     abstract void resetGame();
     abstract Card fuseCard();
     abstract void forgetOldPages();
@@ -95,17 +96,13 @@ public abstract class GameAppBase extends Application {
     abstract void celebrateNewAtom();
 
     /** Ce que font, pour le panneau de test, les outils qui touchent à l'affichage et au son. */
-    private TestTools.Hooks testHooks() {
+    TestTools.Hooks testHooks() {
         return new TestTools.Hooks() {
             @Override
             public void explosion() { playExplosion(false); }
 
             @Override
-            public boolean bigBang() {
-                idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
-                if (bang != null) burst.play(bang, 3.5);
-                return bang != null;
-            }
+            public void bigBang() { playBigBang(); }
 
             @Override
             public boolean birth() {
@@ -168,10 +165,16 @@ public abstract class GameAppBase extends Application {
             public void gesture(int dimension) { sound.gesture(dimension, Math.max(1, settings.volume())); }
 
             @Override
+            public void clicker(int stack) { sound.clicker(stack, Math.max(1, settings.volume())); }
+
+            @Override
             public void gain(int dimension) { sound.gain(dimension, Math.max(1, settings.volume())); }
 
             @Override
             public void piano(int note) { sound.piano(note, Math.max(1, settings.volume())); }
+
+            @Override
+            public void season(int season) { sound.season(season, Math.max(1, settings.volume())); }
 
             @Override
             public boolean toggleHum(TestTools.TestHum hum) {
@@ -204,7 +207,31 @@ public abstract class GameAppBase extends Application {
             public void newGame() { resetGame(); }
         };
     }
+    /**
+     * Vrai si un clic sur {@code target} doit rendre le clavier au jeu : le joueur écrivait dans un champ, et clique
+     * ailleurs que dans ce champ, sa rangée, ou un autre champ.
+     */
+    public static boolean releasesTyping(javafx.scene.Node owner, Object target) {
+        if (!(owner instanceof javafx.scene.control.TextInputControl)) return false;
+        if (!(target instanceof javafx.scene.Node node)) return true;
+        javafx.scene.Node row = owner.getParent();
+        for (javafx.scene.Node at = node; at != null; at = at.getParent()) {
+            if (at == owner || at == row || at instanceof javafx.scene.control.TextInputControl) return false;
+        }
+        return true;
+    }
+
     abstract void playExplosion(boolean real);
+
+    /** L'animation plein écran du Big Bang : celle du skin choisi, ou la classique sans skin (version 0.246). */
+    void playBigBang() {
+        idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+        if (bang != null) burst.play(bang, BIG_BANG_SECONDS);
+        else burst.playBigBang(BIG_BANG_SECONDS);
+    }
+
+    /** La durée de l'animation du Big Bang, en secondes. */
+    static final double BIG_BANG_SECONDS = 3.5;
     abstract void animate(double dt);
     abstract int framesPerSecond();
     abstract double timeFactor();
@@ -446,10 +473,17 @@ public abstract class GameAppBase extends Application {
     final Hum braneHum = new Hum(Hum.BRANE, "brane");
     final Hum durationHum = new Hum(Hum.DURATION, "durée");
     final Hum chronoHum = new Hum(Hum.CHRONO, "chrono");
+    final Hum wateringCanHum = new Hum(Hum.WATERING_CAN, "arrosoir");
+    final Hum hoseHum = new Hum(Hum.HOSE, "tuyau");
+    final Hum stormHum = new Hum(Hum.STORM, "orage");
+    final Hum sunHum = new Hum(Hum.SUN, "beau temps");
+    final Hum voidPairsHum = new Hum(Hum.VOID_PAIRS, "paires du vide");
     /** Les bruitages relevés image par image. */
     final SoundEvents soundEvents = new SoundEvents();
     /** La marque d'un bouton d'onglet : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
     static final String TAB_BUTTON = "ongletDuJeu";
+    /** Le dernier relâchement de la souris, en nanosecondes : un bouton actionné juste après l'a été à la souris (0.262). */
+    private long mouseReleasedAt = Long.MIN_VALUE / 2;
     // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
     ScaledPane scaled;
     ThemeFilter themeFilter;
@@ -466,6 +500,8 @@ public abstract class GameAppBase extends Application {
     final TransitionSkinArt curtain = new TransitionSkinArt();
     /** La traînée du curseur « Étoile filante », tout au-dessus de la fenêtre. */
     final CursorSkinArt.Trail cursorTrail = new CursorSkinArt.Trail();
+    /** Le rond d'aide au clic, au-dessus de tout (version 0.261). */
+    final ClickRings clickRings = new ClickRings();
     /** Le skin du curseur posé sur la fenêtre, ou {@code null} : {@code refresh()} le compare à celui à montrer. */
     idle.core.universe.Skin cursorSkin = null;
     /** Le skin des onglets appliqué par {@link #styleTabs}, ou {@code null} : {@code refresh()} le compare au choisi. */
@@ -483,6 +519,8 @@ public abstract class GameAppBase extends Application {
     /** Le panneau du profil de test et la bande des dimensions ; {@code null} hors du profil de test. */
     TestPanel testPanel;
     DimensionTestBar dimensionTestBar;
+    /** Le panneau du profil test UI ({@code --test-ui}, version 0.248), ou {@code null}. */
+    UiTestPanel uiTestPanel;
     /** Les fonds sonores que le panneau de test fait jouer partout, pour les écouter. */
     final java.util.EnumSet<TestTools.TestHum> forcedHums = java.util.EnumSet.noneOf(TestTools.TestHum.class);
     /** Guette les conditions des thèmes et des notations à débloquer. */
@@ -522,6 +560,7 @@ public abstract class GameAppBase extends Application {
         chrome.fit(width, height);
         curtain.fit(width, height);
         cursorTrail.fit(width, height);
+        clickRings.fit(width, height);
     }
 
     @Override
@@ -546,8 +585,13 @@ public abstract class GameAppBase extends Application {
             if (dimension == 6) {
                 double pull = dimensionWindow.view().lastBranePull();
                 sound.gesture(6, (int) Math.round(settings.volume() * (0.35 + 0.65 * pull)), 0.8 + 0.5 * pull);
+            } else if (dimension == 7) {
+                // Le clic du clicker : le tapotement, en accord dans une zone ×2 (une note de plus par zone superposée).
+                sound.clicker(dimensionWindow.view().lastClickerStack(), settings.volume());
             } else sound.gesture(dimension, settings.volume());
         });
+        // Le miroir : la vitesse de son motif se range dans les réglages.
+        dimensionWindow.setMirrorPace(settings.mirrorPace(), settings::setMirrorPace);
         // La boucle : les touches de ses cercles et son métronome se rangent dans les réglages.
         dimensionWindow.setLoopSettings(new DimensionWindow.LoopSettings() {
             @Override
@@ -566,11 +610,20 @@ public abstract class GameAppBase extends Application {
         Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
             Crash.note(error);
             error.printStackTrace();
+            // Le profil test UI relève l'erreur à l'étape montrée.
+            if (uiTestPanel != null) uiTestPanel.error(error);
         });
         // La partie sauvegardée est reprise avant que rien ne s'affiche.
         List<String> arguments = getParameters().getRaw();
         store = SaveStore.of(arguments);
         SaveStore.Loaded loaded = store.load(game);
+        // Le profil test UI part d'une partie préparée (chaque acte ouvert, tous les skins), jamais sauvegardée.
+        boolean uiTesting = arguments.contains("--test-ui");
+        if (uiTesting) {
+            UiTestPlan.prepare(game);
+            // Ses thèmes et ses notations, essayés à chaque étape, ne vont pas dans les réglages du joueur (0.252).
+            settings.forget();
+        }
 
         particlesLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;");
         productionLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #8fa3b8;");
@@ -723,6 +776,12 @@ public abstract class GameAppBase extends Application {
         dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnFinale(finalePane::open);
+        finalePane.setOnRestart(this::resetGame);
+        // Version 0.270 : « Revoir la fin » rejoue aussi son son et l'élan de la musique, comme la première fois.
+        universePage.setOnReplay(() -> {
+            soundWithAnimation(Sound.Cue.GAME_END);
+            music.accent();
+        });
         // Rouvrir les paliers : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
             // Les trois actes repartent de zéro : les pages oublient ce qu'elles montraient.
@@ -736,6 +795,8 @@ public abstract class GameAppBase extends Application {
         dock(Tab.PROFILE, profilePage, profilePage.subTabs());
         dock(Tab.STATS, statsPage, statsPage.subTabs());
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());
+        // Les skins : la collection, puis une catégorie par sous-onglet (version 0.249).
+        dock(Tab.SKINS, skinsPage, skinsPage.subTabs());
         testProfile = arguments.contains("--test");
         if (testProfile) {
             testPanel = new TestPanel(game, testHooks());
@@ -744,6 +805,13 @@ public abstract class GameAppBase extends Application {
                     () -> dimensionWindow.isOpen() ? dimensionWindow.dimension().number() : 0, testPanel::note, testPanel::refresh);
             dimensionWindow.setTestBar(dimensionTestBar);
             root.setRight(testPanel);
+        } else if (uiTesting) {
+            UiTestStage uiStage = new UiTestStage(this, testHooks());
+            // Les images par seconde de chaque combinaison, dans le dossier des données du jeu (0.253).
+            UiTestFpsFile fpsFile = new UiTestFpsFile(SaveStore.defaultFolder().resolve(UiTestFpsFile.NAME), this::framesPerSecond);
+            uiTestPanel = new UiTestPanel(uiStage::show, uiStage::check, uiStage.settingsAxes(), fpsFile);
+            uiStage.setPanel(uiTestPanel);
+            root.setRight(uiTestPanel);
         }
 
         root.setTop(top);
@@ -767,7 +835,7 @@ public abstract class GameAppBase extends Application {
         blast.setVisible(false);
         // Le fond skinné est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
         StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
-                transitionPane, absencePane, curtain, cursorTrail);
+                transitionPane, absencePane, curtain, cursorTrail, clickRings);
         window.widthProperty().addListener((observable, before, width) -> fitLayers(width.doubleValue(), window.getHeight()));
         window.heightProperty().addListener((observable, before, height) -> fitLayers(window.getWidth(), height.doubleValue()));
         curtain.setVisible(false);
@@ -800,17 +868,21 @@ public abstract class GameAppBase extends Application {
                 if (pending < 1.0 / framesPerSecond() - GameApp.FRAME_TOLERANCE) return;
                 double dt = pending;
                 pending = 0;
+                long workStart = System.nanoTime();
                 sinceSave += dt;
                 if (sinceSave >= settings.saveDelay().seconds()) save();
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
                 if (!settings.paused()) {
                     // Pendant l'avance rapide, la Timeline pilote déjà le temps du jeu.
-                    if (testPanel == null || !testPanel.bots().isFastForwarding()) {
+                    // Le profil test UI : la partie reste figée, sauf sur les états qui bougent.
+                    boolean frozen = uiTestPanel != null && !uiTestPanel.live();
+                    if ((testPanel == null || !testPanel.bots().isFastForwarding()) && !frozen) {
                         game.tick(dt * timeFactor());
                         if (testPanel != null) testPanel.bots().frame(dt * timeFactor());
                     }
                     pace.observe(game);
                     animate(dt);
+                    if (uiTestPanel != null) uiTestPanel.frame(dt);
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
                 // Ce qu'il achète compte comme un achat du joueur.
@@ -844,14 +916,33 @@ public abstract class GameAppBase extends Application {
                         settings.volume(), 0.3 + 0.7 * pull);
                 double held = game.durationMaxSeconds() > 0 ? Math.min(1, game.durationHeldSeconds() / game.durationMaxSeconds()) : 0;
                 durationHum.update(openDimension == 4 && game.isDurationHeld() || forcedHums.contains(TestTools.TestHum.DURATION), 1 + 2 * held, dimensionSounds, settings.volume());
+                // La graine, quand on la voit : l'arrosoir qu'on tient, le tuyau qui arrose, la météo.
+                boolean seedShown = selectedTab == Tab.UNIVERSE && universePage.selected() == idle.ui.universe.UniversePage.SEED
+                        && !dimensionWindow.isOpen() && !settings.paused();
+                boolean seedSounds = settings.sound() && settings.soundKind(SoundKind.SEED);
+                wateringCanHum.update(game.isWatering() && !settings.paused() || forcedHums.contains(TestTools.TestHum.WATERING_CAN), 1,
+                        seedSounds, settings.volume());
+                hoseHum.update(seedShown && game.hoseRate() > 0 && game.canTendSeed() || forcedHums.contains(TestTools.TestHum.HOSE), 1,
+                        seedSounds, settings.volume());
+                stormHum.update(seedShown && game.weather() == Game.Weather.STORM || forcedHums.contains(TestTools.TestHum.STORM), 1,
+                        seedSounds, settings.volume());
+                sunHum.update(seedShown && game.weather() == Game.Weather.SUN || forcedHums.contains(TestTools.TestHum.SUN), 1,
+                        seedSounds, settings.volume());
+                // Le fond des paires du vide (version 0.272) : sur leur sous-onglet, tant que le jeu tourne.
+                boolean pairsShown = selectedTab == Tab.VOID && voidPage.selected() == idle.ui.vacuum.VoidPage.PAIRS
+                        && !dimensionWindow.isOpen() && !settings.paused();
+                voidPairsHum.update(pairsShown || forcedHums.contains(TestTools.TestHum.VOID_PAIRS), 1,
+                        settings.sound() && settings.soundKind(SoundKind.VOID), settings.volume());
                 // Le chrono, où qu'on soit, tant qu'il accélère le jeu.
                 chronoHum.update(game.isChronoRunning() && !settings.paused() || forcedHums.contains(TestTools.TestHum.CHRONO),
                         Hum.chronoRate(game.chronoSpeed()), settings.sound() && settings.soundKind(SoundKind.CHRONO), settings.volume());
                 // Les bruitages de ce qui vient de se passer, là où on le voit.
-                for (SoundEvents.Heard heard : soundEvents.frame(game, selectedTab.name(), openDimension)) {
+                for (SoundEvents.Heard heard : soundEvents.frame(game, SoundEvents.heardTab(selectedTab.name(), voidPage.selected() == idle.ui.vacuum.VoidPage.PAIRS,
+                        colliderPage.selected() == ColliderPane.ENERGY), openDimension)) {
                     if (!settings.sound()) continue;
                     if (heard.cue() == null) sound.gain(heard.dimension(), settings.volume());
                     else if (heard.cue() == Sound.Cue.MIRROR) sound.piano(heard.note(), settings.volume());
+                    else if (heard.cue() == Sound.Cue.SEASON) sound.season(heard.note(), settings.volume());
                     else sound.click(heard.cue(), settings.volume());
                 }
                 // L'écran de fin attend que la naissance de l'univers soit jouée.
@@ -863,7 +954,8 @@ public abstract class GameAppBase extends Application {
                     dimensionWindow.close();
                     selectTab(Tab.UNIVERSE);
                 }
-                checkPopups();
+                // Le profil test UI n'ouvre pas les fenêtres d'explication : elles couvriraient ce qu'il montre.
+                if (uiTestPanel == null) checkPopups();
                 // Les thèmes et notations à débloquer : annoncés après le reste, pour ne pas être chassés par lui.
                 // Leur catégorie se coupe dans les réglages, comme les autres notifications.
                 for (Cosmetic opened : cosmetics.frame(dt, settings.paused())) {
@@ -872,7 +964,10 @@ public abstract class GameAppBase extends Application {
                 // Le rideau de la transition et la traînée du curseur suivent le temps de l'interface.
                 curtain.frame(dt);
                 cursorTrail.frame(dt);
+                clickRings.frame(dt);
                 refresh();
+                // Le profil test UI mesure chaque image : son intervalle, et le calcul du jeu pour elle (0.253).
+                if (uiTestPanel != null) uiTestPanel.measure(dt, (System.nanoTime() - workStart) / 1e9);
             }
         }.start();
 
@@ -890,9 +985,12 @@ public abstract class GameAppBase extends Application {
         }
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
         Scene scene = new Scene(scaled, Settings.WindowSize.SMALL.width(), Settings.WindowSize.SMALL.height());
-        // Un clic sur un bouton, quel qu'il soit, sauf un onglet (qui a son propre son).
+        // Un bouton actionné au clavier (Espace, Entrée) fait le clic, sauf un onglet (qui a son propre son) ; à la souris, le
+        // clic a déjà sonné en appuyant (0.262).
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, event -> mouseReleasedAt = System.nanoTime());
         scene.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
-            if (event.getTarget() instanceof Button button && !button.getProperties().containsKey(TAB_BUTTON) && settings.sound()) {
+            boolean byMouse = System.nanoTime() - mouseReleasedAt < 100_000_000L;
+            if (!byMouse && event.getTarget() instanceof Button button && !button.getProperties().containsKey(TAB_BUTTON) && settings.sound()) {
                 sound.click(Sound.Cue.CLICK, settings.volume());
             }
         });
@@ -918,7 +1016,27 @@ public abstract class GameAppBase extends Application {
         });
         // Toucher à la souris remet à zéro le temps passé sans rien faire (le thème « Sépia »).
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> cosmetics.input());
+        // Version 0.247 : un clic hors du champ où le joueur écrivait (la recherche du panneau de test, la boîte des
+        // chiffres x, y, z de la grille…) le désélectionne et rend le clavier au jeu ; sinon les touches de la boucle et
+        // les raccourcis restaient muets.
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+            if (!releasesTyping(scene.getFocusOwner(), event.getTarget())) return;
+            ((javafx.scene.control.TextInputControl) scene.getFocusOwner()).deselect();
+            windowPane.requestFocus();
+        });
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> cosmetics.input());
+        // Version 0.261 : chaque clic fait un rond là où il tombe (réglage « Rond au clic »). Version 0.262 : chaque clic fait
+        // le son du clic, qu'il tombe sur rien ou qu'il déclenche une action ; seuls les onglets et les mini-jeux des
+        // dimensions, qui ont leur propre son à l'appui, ne le doublent pas.
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+            if (settings.effect(Settings.Effect.CLICK_RING)) {
+                javafx.geometry.Point2D local = clickRings.sceneToLocal(event.getSceneX(), event.getSceneY());
+                if (local != null) clickRings.add(local.getX(), local.getY());
+            }
+            if (settings.sound() && !ClickRings.hasOwnSound(event.getPickResult().getIntersectedNode(), TAB_BUTTON)) {
+                sound.click(Sound.Cue.CLICK, settings.volume());
+            }
+        });
         // La traînée de l'étoile filante suit la souris, en coordonnées de son calque.
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> {
             if (!cursorTrail.isActive()) return;
@@ -940,6 +1058,7 @@ public abstract class GameAppBase extends Application {
         placeWindow();
         stage.setOnCloseRequest(event -> closing());
         stage.show();
+        if (uiTestPanel != null) uiTestPanel.begin();
     }
 
     /** Ce que la page des réglages demande pour la sauvegarde : chaque geste rend la phrase qui dit ce qu'il a donné. */

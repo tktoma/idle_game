@@ -80,6 +80,7 @@ class OutilsDeTestTest {
             @Override public void sound(Sound.Cue cue) { heard.add("son " + cue); }
             @Override public void particle(int stage) { heard.add("particule " + stage); }
             @Override public void gesture(int dimension) { heard.add("geste " + dimension); }
+            @Override public void clicker(int stack) { heard.add("clicker " + stack); }
             @Override public void gain(int dimension) { heard.add("points " + dimension); }
             @Override public void piano(int note) { heard.add("piano " + note); }
             @Override public boolean toggleHum(TestTools.TestHum hum) {
@@ -98,6 +99,7 @@ class OutilsDeTestTest {
         for (Sound.Cue cue : Sound.Cue.values()) assertTrue(heard.contains("son " + cue), "chaque son s'écoute : " + cue);
         assertTrue(heard.contains("particule 13") && heard.contains("geste 10") && heard.contains("points 1"));
         assertTrue(heard.contains("piano 15") && heard.contains("piano " + SoundEvents.WRONG), "le piano du miroir, et la faute");
+        assertTrue(heard.contains("clicker 1") && heard.contains("clicker 4"), "les accords du clicker, d'une à quatre zones");
         assertEquals(EnumSet.allOf(TestTools.TestHum.class), forced, "chaque fond se fait jouer partout");
         assertTrue(heard.containsAll(List.of("explosion", "fusion", "atome")));
         assertEquals(explosions, game.state().explosions(), "rejouer l'explosion n'explose pas");

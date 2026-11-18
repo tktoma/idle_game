@@ -62,6 +62,12 @@ final class EndPane extends Overlay {
 
     void close() { setVisible(false); }
 
+    /** Montre l'écran tout de suite, vu ou non : le profil test UI (version 0.248). */
+    void show() {
+        fill();
+        reveal();
+    }
+
     /** Les textes : le temps total, chaque acte, et quelques chiffres. */
     void fill() {
         GameStats stats = game.stats();

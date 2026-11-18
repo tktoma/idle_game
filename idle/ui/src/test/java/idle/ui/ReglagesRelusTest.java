@@ -43,6 +43,34 @@ class ReglagesRelusTest {
         assertSame(rate, settings.frameRate());
     }
 
+    /** Version 0.252 : le profil test UI change de thème et de notation sans rien écrire dans les réglages du joueur. */
+    @Test
+    void desReglagesOubliesNeSEcriventPlus() {
+        NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();
+        Settings settings = Settings.load(store);
+        settings.forget();
+        settings.setTheme(Settings.Theme.LIGHT);
+        settings.setNotation(Settings.Notation.values()[1]);
+        assertEquals(Settings.Theme.LIGHT, settings.theme(), "le changement vaut pour la séance");
+        Settings again = Settings.load(store);
+        assertEquals(Settings.Theme.DARK, again.theme(), "mais rien n'est écrit");
+        assertEquals(Settings.Notation.SCIENTIFIC, again.notation());
+    }
+
+    /** Version 0.247 : la vitesse du motif du miroir se garde ; une valeur illisible ou hors bornes revient au temps entier. */
+    @Test
+    void laVitesseDuMotifDuMiroirSeRelit() {
+        NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();
+        assertEquals(0, Settings.load(store).mirrorPace(), "par défaut, le temps entier de la mémorisation");
+        Settings settings = Settings.load(store);
+        settings.setMirrorPace(0.6);
+        assertEquals(0.6, Settings.load(store).mirrorPace(), 1e-12);
+        store.put("mirrorPace", "pas un nombre");
+        assertEquals(0, Settings.load(store).mirrorPace());
+        store.put("mirrorPace", "9");
+        assertEquals(1, Settings.load(store).mirrorPace(), "bornée");
+    }
+
     @Test
     void lOrdreDesOngletsEcarteLesInconnusEtLesDoublons() {
         List<Tab> order = GameAppTabs.readTabOrder("STATS, INCONNU,,PARTICLES,STATS");

@@ -77,6 +77,7 @@ public final class UniversePage extends VBox {
     private final VBox dimensionsPane;
     /** Le défi final : rejouer la fin, une fois la partie finie. */
     private final Button replayFinale = tool("Revoir la fin");
+    private Runnable onReplay = () -> { };
     /** La partie était-elle finie au dernier relevé ; {@code null} tant qu'aucun relevé n'a été fait (un chargement). */
     private Boolean finishedSeen;
 
@@ -142,7 +143,10 @@ public final class UniversePage extends VBox {
         // « Dimensions » : la carte, et une ligne.
         dimensionsLine.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         dimensions.setOnOpen(number -> onOpenDimension.accept(number));
-        replayFinale.setOnAction(event -> playFinale());
+        replayFinale.setOnAction(event -> {
+            playFinale();
+            onReplay.run();
+        });
         CanvasPane dimensionsHolder = CanvasPane.filling(dimensions);
         VBox.setVgrow(dimensionsHolder, Priority.ALWAYS);
         HBox dimensionsHead = new HBox(12, dimensionsLine, replayFinale);
@@ -386,6 +390,9 @@ public final class UniversePage extends VBox {
 
     /** Vrai tant que la fin se joue sur la carte. */
     public boolean isFinalePlaying() { return dimensions.isFinalePlaying(); }
+
+    /** Ce que fait « Revoir la fin » en plus de la rejouer (version 0.270 : le son de la fin, que l'annonce ne rejoue pas). */
+    public void setOnReplay(Runnable action) { onReplay = action == null ? () -> { } : action; }
 
     /** Ce qui suit la fin : l'écran de fin. */
     public void setOnFinale(Runnable action) { dimensions.setOnFinale(action); }

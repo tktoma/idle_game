@@ -2196,8 +2196,6 @@ public abstract class GameUniverse extends GameAtoms {
         if (explosions >= 10) unlockSkin(Skin.DARK_HOLE);
         if (explosions >= 200) unlockSkin(Skin.DARK_KNOT);
         if (explosions >= 500) unlockSkin(Skin.DARK_LANTERN);
-        if (explosions >= 50) unlockSkin(Skin.DARK_SNOW);
-        if (explosions >= 1_000) unlockSkin(Skin.DARK_HOURGLASS);
         if (state.bigBangs() >= 5) unlockSkin(Skin.BANG_INK);
         if (solarSystemsComplete() >= 3) unlockSkin(Skin.BANG_STAINED);
         if (state.hasBody("ocean_planet")) unlockSkin(Skin.BANG_ABYSS);
@@ -2293,7 +2291,6 @@ public abstract class GameUniverse extends GameAtoms {
         noteTreeAndDimensionSkins();
         noteProfileAndStatsSkins();
         noteWindowSkins();
-        noteSoundSkins();
         if (state.rebuildPending() && generatorCount() >= generatorsPerAtom()) {
             double time = state.timeSinceFusion();
             state.setRebuildPending(false);
@@ -2502,10 +2499,6 @@ public abstract class GameUniverse extends GameAtoms {
             if (formed >= i + 1) unlockSkin(Skin.TRANSITIONS[i]);
         }
         if (state.gameFinished()) {
-            unlockSkin(Skin.ENDINGS[0]);
-            for (int i = 1; i < Skin.ENDINGS.length; i++) {
-                if (formed >= Skin.FIRST_ENDING_UNIVERSE + i - 1) unlockSkin(Skin.ENDINGS[i]);
-            }
             unlockSkin(Skin.START_BUTTONS[0]);
             for (int i = 1; i < Skin.START_BUTTONS.length; i++) {
                 if (formed >= Skin.FIRST_START_UNIVERSE + i - 1) unlockSkin(Skin.START_BUTTONS[i]);
@@ -2513,25 +2506,6 @@ public abstract class GameUniverse extends GameAtoms {
         }
         for (int i = 0; i < Skin.CURSORS.length; i++) {
             if (hasAchievement(Skin.CURSOR_ACHIEVEMENTS[i])) unlockSkin(Skin.CURSORS[i]);
-        }
-    }
-
-    /**
-     * Les skins des sons. Les banques suivent les heures de jeu (le silence partiel est libre), le son du
-     * Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers formés.
-     */
-    private void noteSoundSkins() {
-        for (int i = 0; i < Skin.SOUND_BANKS.length; i++) {
-            if (state.timePlayed() >= Skin.SOUND_BANK_HOURS[i] * 3600.0) unlockSkin(Skin.SOUND_BANKS[i]);
-        }
-        for (int i = 0; i < Skin.BANG_SOUNDS.length; i++) {
-            if (state.bigBangs() >= Skin.BANG_SOUND_BANGS[i]) unlockSkin(Skin.BANG_SOUNDS[i]);
-        }
-        if (isDimensionThresholdReached(5)) {
-            unlockSkin(Skin.METRONOMES[0]);
-            for (int i = 1; i < Skin.METRONOMES.length; i++) {
-                if (universes() >= Skin.FIRST_METRONOME_UNIVERSE + i - 1) unlockSkin(Skin.METRONOMES[i]);
-            }
         }
     }
 

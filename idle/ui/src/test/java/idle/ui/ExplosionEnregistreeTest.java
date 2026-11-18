@@ -1,10 +1,8 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,26 +34,16 @@ class ExplosionEnregistreeTest {
     }
 
     @Test
-    void lExplosionParDefautPartEnStereoEtLesBanquesGardentLaLeur() throws InterruptedException {
+    void lExplosionParDefautPartEnStereo() throws InterruptedException {
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound classic = new Sound();
         classic.sink = sent::add;
         assertTrue(classic.play(Cue.EXPLOSION, 100));
-        Sound wood = new Sound();
-        wood.sink = sent::add;
-        wood.setSkins(Skin.SOUND_WOOD, null, null);
-        assertTrue(wood.play(Cue.EXPLOSION, 100));
-        Sound silent = new Sound();
-        silent.sink = sent::add;
-        silent.setSkins(Skin.SOUND_SILENCE, null, null);
-        assertFalse(silent.play(Cue.EXPLOSION, 100), "le silence partiel coupe l'explosion, comme avant");
-        for (Sound each : List.of(classic, wood)) {
-            each.player.shutdown();
-            assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
-        }
-        assertEquals(2, sent.size());
+        classic.player.shutdown();
+        assertTrue(classic.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(1, sent.size());
         Sound.Pcm recorded = sent.stream().filter(Sound.Pcm::stereo).findFirst().orElseThrow();
         assertEquals(Sound.EXPLOSION_STEREO.length * 2, recorded.bytes().length, "l'enregistrement entier, au volume plein");
-        assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "la banque Bois garde son explosion, en mono");
+
     }
 }

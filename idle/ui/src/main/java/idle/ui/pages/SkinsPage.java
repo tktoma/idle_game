@@ -12,8 +12,11 @@ import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import idle.ui.common.SubTabs;
 import javafx.geometry.*;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -22,6 +25,11 @@ import javafx.scene.layout.VBox;
  * débloqué se choisit d'un clic, un skin verrouillé dit comment l'obtenir. Chaque skin débloqué
  * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers. Ce bonus n'est plus
  * écrit sur chaque carte ; une carte en tête de page donne le nombre de skins débloqués, puis le bonus cumulé.
+ *
+ * <p>Version 0.249 : les visuels sont rangés par catégorie, un sous-onglet chacune ({@link SkinShelf}), après
+ * « Collection » (la carte de la collection, les recherches, le record et les épreuves). Un skin ne se montre qu'une
+ * fois son palier atteint (son univers, et pour une dimension, la dimension ouverte) ; un visuel sans skin montré, et
+ * une catégorie sans visuel montré, restent cachés.
  */
 public final class SkinsPage extends VBox {
     /** La couleur de l'onglet : un rose de palette. */
@@ -37,6 +45,17 @@ public final class SkinsPage extends VBox {
     private final Card prism = new Card(COLOR);
     private final Card dense = new Card(COLOR);
     private final Map<Trial, Card> trials = new EnumMap<>(Trial.class);
+    /** Les sous-onglets : « Collection », puis une catégorie chacun (version 0.249). */
+    private final FlowPane subTabs = new FlowPane();
+    private final Button collectionTab = new Button("Collection");
+    private final Map<SkinShelf.Category, Button> categoryTabs = new EnumMap<>(SkinShelf.Category.class);
+    private final VBox collectionPage = new VBox(10);
+    private final Map<SkinShelf.Category, VBox> categoryPages = new EnumMap<>(SkinShelf.Category.class);
+    /** La section de chaque visuel (son nom, où il se voit, ses cartes), et la grille de ses cartes. */
+    private final Map<SkinVisual, VBox> sections = new EnumMap<>(SkinVisual.class);
+    private final Map<SkinVisual, TileGrid> grids = new EnumMap<>(SkinVisual.class);
+    /** La catégorie affichée ; {@code null} : la collection. */
+    private SkinShelf.Category selected;
 
     public SkinsPage(Game game) {
         super(10);
@@ -50,7 +69,24 @@ public final class SkinsPage extends VBox {
         TileGrid collectionGrid = new TileGrid(320, 1, 8);
         collectionGrid.setMaxWidth(340);
         collectionGrid.add(collection);
-        getChildren().addAll(title, collectionGrid, summary);
+        collectionPage.setAlignment(Pos.TOP_CENTER);
+        collectionPage.getChildren().addAll(collectionGrid, summary);
+        subTabs.setAlignment(Pos.CENTER);
+        subTabs.getChildren().add(collectionTab);
+        collectionTab.setFocusTraversable(false);
+        collectionTab.setOnAction(event -> select(null));
+        for (SkinShelf.Category category : SkinShelf.Category.values()) {
+            Button tab = new Button(category.label());
+            tab.setFocusTraversable(false);
+            tab.setOnAction(event -> select(category));
+            categoryTabs.put(category, tab);
+            subTabs.getChildren().add(tab);
+            VBox page = new VBox(10);
+            page.setAlignment(Pos.TOP_CENTER);
+            categoryPages.put(category, page);
+        }
+        getChildren().addAll(title, subTabs, collectionPage);
+        for (VBox page : categoryPages.values()) getChildren().add(page);
         // Les recherches, le record et les épreuves qui donnent les skins.
         record.setStyle("-fx-font-size: 12px; -fx-text-fill: #cfe3ff;");
         TileGrid research = new TileGrid(260, 2, 8);
@@ -77,7 +113,7 @@ public final class SkinsPage extends VBox {
             trials.put(trial, card);
             trialGrid.add(card);
         }
-        getChildren().addAll(heading("Recherches et record"), record, research, heading("Épreuves"), trialGrid);
+        collectionPage.getChildren().addAll(heading("Recherches et record"), record, research, heading("Épreuves"), trialGrid);
         for (SkinVisual visual : SkinVisual.values()) {
             Label name = new Label(visual.label());
             name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0; -fx-text-fill: " + COLOR + ";");
@@ -106,10 +142,29 @@ public final class SkinsPage extends VBox {
             place.setWrapText(true);
             place.setMaxWidth(820);
             place.setStyle("-fx-font-size: 11px; -fx-text-fill: #8a9bb0;");
-            getChildren().addAll(name, place, grid);
+            VBox section = new VBox(4, name, place, grid);
+            section.setAlignment(Pos.TOP_CENTER);
+            section.setMaxWidth(820);
+            sections.put(visual, section);
+            grids.put(visual, grid);
         }
+        for (SkinShelf.Category category : SkinShelf.Category.values()) {
+            for (SkinVisual visual : category.visuals()) categoryPages.get(category).getChildren().add(sections.get(visual));
+        }
+        select(null);
+    }
+
+    /** Affiche une catégorie ({@code null} : la collection). */
+    public void select(SkinShelf.Category category) {
+        selected = category;
         refresh();
     }
+
+    /** La catégorie affichée ; {@code null} : la collection. */
+    public SkinShelf.Category selected() { return selected; }
+
+    /** La barre des sous-onglets : la fenêtre la range en haut ou dans la page. */
+    public FlowPane subTabs() { return subTabs; }
 
     /** Ce qu'une épreuve demande pour s'ouvrir. */
     static String requirement(Trial trial) {
@@ -140,7 +195,8 @@ public final class SkinsPage extends VBox {
                 + ElementText.percent(Skin.BONUS) + " au bonus, sans plafond (les skins libres, ouverts d'office, n'en donnent pas). "
                 // La collection s'étale sur la partie.
                 + "Les skins viennent au fil des univers, une trentaine par univers formé jusqu'au " + (Skin.LAST_SKIN_UNIVERSE + 1)
-                + "ᵉ : une carte verrouillée dit l'univers qu'elle attend, en plus de sa condition.");
+                + "ᵉ : un skin ne se montre qu'une fois son univers atteint (et sa dimension ouverte), puis attend sa condition. "
+                + "Les sous-onglets rangent les skins par partie du jeu.");
         double best = game.rebuildRecord();
         record.setText("Record de reconstruction (de la fusion à " + game.generatorsPerAtom() + " générateurs) : "
                 + (best > 0 ? Format.duration(best) : "aucun encore") + " — en " + (int) Game.REBUILD_FAST_SECONDS
@@ -181,6 +237,29 @@ public final class SkinsPage extends VBox {
             }
             entry.getValue().show(state, "", mark, trial.label(), trial.rule(), "", price, "Skin « " + trial.skin().label() + " »");
         }
+        // Les sous-onglets : une catégorie sans skin montré reste cachée ; celle qu'on regardait revient à la collection.
+        if (selected != null && !SkinShelf.shown(game, selected)) selected = null;
+        collectionTab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, selected == null, COLOR));
+        collectionPage.setVisible(selected == null);
+        collectionPage.setManaged(selected == null);
+        for (SkinShelf.Category category : SkinShelf.Category.values()) {
+            boolean open = SkinShelf.shown(game, category);
+            Button tab = categoryTabs.get(category);
+            tab.setVisible(open);
+            tab.setManaged(open);
+            int[] counts = SkinShelf.counts(game, category);
+            tab.setText(category.label() + " (" + counts[0] + "/" + counts[1] + ")");
+            tab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, category == selected, COLOR));
+            VBox page = categoryPages.get(category);
+            page.setVisible(category == selected);
+            page.setManaged(category == selected);
+        }
+        for (SkinVisual visual : SkinVisual.values()) {
+            boolean open = SkinShelf.shown(game, visual);
+            sections.get(visual).setVisible(open);
+            sections.get(visual).setManaged(open);
+        }
+        for (Map.Entry<Skin, Card> entry : cards.entrySet()) grids.get(entry.getKey().visual()).show(entry.getValue(), SkinShelf.shown(game, entry.getKey()));
         for (SkinVisual visual : SkinVisual.values()) {
             boolean chosen = game.chosenSkin(visual) == null;
             classics.get(visual).show(chosen ? Card.State.ON : Card.State.READY, "", chosen ? "choisi" : "", "Classique",
@@ -190,12 +269,10 @@ public final class SkinsPage extends VBox {
             Skin skin = entry.getKey();
             boolean has = game.hasSkin(skin);
             boolean chosen = game.chosenSkin(skin.visual()) == skin;
-            // Un skin attend aussi son univers ; la carte le dit tant qu'il n'est pas atteint.
-            boolean later = !has && game.universes() < skin.minUniverses();
+            // Un skin dont le palier n'est pas atteint reste caché (0.249) : une carte montrée attend seulement sa condition.
             entry.getValue().show(chosen ? Card.State.ON : has ? Card.State.READY : Card.State.LOCKED, "",
-                    chosen ? "choisi" : has ? "débloqué" : "", skin.label(),
-                    later ? skin.source() + " — dès l'univers " + (skin.minUniverses() + 1) : skin.source(), "",
-                    chosen ? "" : has ? "Choisir" : later ? "Univers " + (skin.minUniverses() + 1) : "Verrouillé", "");
+                    chosen ? "choisi" : has ? "débloqué" : "", skin.label(), skin.source(), "",
+                    chosen ? "" : has ? "Choisir" : "Verrouillé", "");
         }
     }
 
@@ -207,6 +284,15 @@ public final class SkinsPage extends VBox {
 
     /** La carte d'un skin : pour les vérifications. */
     public Card card(Skin skin) { return cards.get(skin); }
+
+    /** Vrai si la carte de ce skin est montrée dans sa grille : pour les vérifications. */
+    public boolean cardShown(Skin skin) { return grids.get(skin.visual()).shownTiles().contains(cards.get(skin)); }
+
+    /** Vrai si la section de ce visuel est montrée : pour les vérifications. */
+    public boolean sectionShown(SkinVisual visual) { return sections.get(visual).isVisible(); }
+
+    /** Le sous-onglet d'une catégorie : pour les vérifications. */
+    public Button categoryTab(SkinShelf.Category category) { return categoryTabs.get(category); }
 
     /** La carte « Classique » d'un visuel : pour les vérifications. */
     public Card classic(SkinVisual visual) { return classics.get(visual); }

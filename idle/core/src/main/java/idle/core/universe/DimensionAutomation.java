@@ -213,6 +213,18 @@ public enum DimensionAutomation {
         return step;
     }
 
+    /**
+     * Les paliers de celui qui joue cette dimension, du plus lent au plus rapide (version 0.268 : une seule carte les
+     * achète l'un après l'autre) ; vide pour la ligne, qui n'en a pas.
+     */
+    public static java.util.List<DimensionAutomation> playTiers(int dimension) {
+        java.util.List<DimensionAutomation> tiers = new java.util.ArrayList<>();
+        for (DimensionAutomation automation : values()) {
+            if (automation.dimension == dimension && automation.kind == Kind.PLAY) tiers.add(automation);
+        }
+        return tiers;
+    }
+
     /** Celui d'avant dans sa dimension, qu'il faut avoir acheté ; {@code null} pour le premier. */
     public DimensionAutomation previous() {
         DimensionAutomation before = null;

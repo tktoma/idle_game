@@ -196,7 +196,7 @@ public final class Settings {
      * effets les coupe tous ; sinon, chacun suit son propre réglage.
      */
     public enum Effect {
-        FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion"),
+        FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion, et l'animation du Big Bang"),
         AMBIENT("Fond animé", "la poussière qui dérive derrière les générateurs"),
         PARTICLE_SPEED("Allure des générateurs", "les paliers de vitesse : couleur du noyau, anneaux, traînées, couronne et arcs"),
         PARTICLE_CREATION("Création de particules", "les poussières, et l'onde qui se resserre sur le noyau à chaque particule"),
@@ -208,7 +208,8 @@ public final class Settings {
         COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille, la liaison des hadrons ; les faisceaux restent, ils servent à viser"),
         COLLIDER_SPARKS("Étincelles du collisionneur", "les gerbes au détecteur à chaque croisement"),
         BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent"),
-        UNIVERSE_MOTION("Animations de l'univers", "la toile de l'univers qui tourne et sa naissance");
+        UNIVERSE_MOTION("Animations de l'univers", "la toile de l'univers qui tourne et sa naissance"),
+        CLICK_RING("Rond au clic", "un rond qui s'élargit et s'efface là où l'on clique, pour voir chaque clic");
 
         private final String label;
         private final String description;
@@ -370,6 +371,7 @@ public final class Settings {
     /** Les touches des cercles de la boucle : une préférence par cercle, de 0 à 6, et le métronome. */
     private static final String LOOP_KEY_PREFIX = "loopKey.";
     private static final String LOOP_METRONOME = "loopMetronome";
+    private static final String MIRROR_PACE = "mirrorPace";
     private static final String WINDOW = "window";
     private static final String LAST_TAB = "lastTab";
     /**
@@ -379,7 +381,7 @@ public final class Settings {
     static final KeyCode DEFAULT_DETAIL_KEY = KeyCode.CONTROL;
 
     /** {@code null} si les préférences ne sont pas accessibles : les réglages ne durent alors que le temps du lancement. */
-    private final Preferences store;
+    private Preferences store;
     private Notation notation = Notation.SCIENTIFIC;
     private boolean effects = true;
     private boolean confirmExplosion = true;
@@ -431,6 +433,8 @@ public final class Settings {
     private final KeyCode[] loopKeys = new KeyCode[Game.MAX_RINGS];
     /** Le métronome de la boucle : coupé au départ. */
     private boolean loopMetronome = false;
+    /** La vitesse du motif du miroir : 0 le temps entier de la mémorisation, 1 le plus rapide. */
+    private double mirrorPace = 0;
 
     /** Réglages relus dans les préférences de l'utilisateur, ou ceux par défaut si elles sont illisibles. */
     static Settings load() {
@@ -544,6 +548,12 @@ public final class Settings {
         } catch (RuntimeException unreadable) {
             loopMetronome = false;
         }
+        try {
+            double pace = store == null ? 0 : store.getDouble(MIRROR_PACE, 0);
+            mirrorPace = Double.isFinite(pace) ? Math.max(0, Math.min(1, pace)) : 0;
+        } catch (RuntimeException unreadable) {
+            mirrorPace = 0;
+        }
     }
 
     /** La touche d'origine du cercle {@code ring} : S D F Espace J K L. */
@@ -598,6 +608,14 @@ public final class Settings {
     public void setLoopMetronome(boolean on) {
         loopMetronome = on;
         save(LOOP_METRONOME, String.valueOf(on));
+    }
+
+    /** La vitesse du motif du miroir choisie à sa barre : 0 le temps entier de la mémorisation, 1 le plus rapide. */
+    public double mirrorPace() { return mirrorPace; }
+
+    public void setMirrorPace(double pace) {
+        mirrorPace = Double.isFinite(pace) ? Math.max(0, Math.min(1, pace)) : 0;
+        save(MIRROR_PACE, String.valueOf(mirrorPace));
     }
 
     /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus (d'une autre version) sont ignorés. */
@@ -698,6 +716,12 @@ public final class Settings {
     }
 
     private Settings(Preferences store) { this.store = store; }
+
+    /**
+     * Ne garde plus rien de ce qui change ensuite : le profil test UI (version 0.252) change de thème et de notation à
+     * chaque étape, sans toucher aux réglages du joueur.
+     */
+    void forget() { store = null; }
 
     public Notation notation() { return notation; }
 

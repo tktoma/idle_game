@@ -84,12 +84,10 @@ class FenetreSkinsTest {
     void chaqueSkinDePanneauHabilleLAideLAbsenceEtLaFin() {
         FxTestSupport.fx(() -> {
             assertEquals(3, skinsOf(SkinVisual.PANEL).size());
-            assertEquals(3, skinsOf(SkinVisual.ENDING).size());
             Game game = finished();
             Preferences store = new NotificationsEtSignesTest.MemoryPreferences();
             Settings settings = Settings.load(store);
             List<Skin> skins = new ArrayList<>(skinsOf(SkinVisual.PANEL));
-            skins.addAll(skinsOf(SkinVisual.ENDING));
             for (double width : new double[] {640, 1400}) {
                 HelpPane help = new HelpPane(game, settings);
                 EndPane end = new EndPane(game);
@@ -119,7 +117,6 @@ class FenetreSkinsTest {
                     }
                     assertNotEquals(classicTitleStyle, finaleTitle.getStyle(), skin.label() + " change les étiquettes");
                     assertEquals(classicTitle, finale.titleText(), "le texte ne change pas");
-                    assertEquals(skin == Skin.ENDING_PHOTO ? -2.5 : 0, finale.card().getRotate(), skin.label());
                     // Rouvrir sous le skin : l'aide se réécrit et reste habillée.
                     help.close();
                     help.open();

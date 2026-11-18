@@ -68,7 +68,7 @@ class DarkMatterSkinsTest {
     void chaqueAnimationSeDessineSansExceptionAvecChaqueBoule() {
         FxTestSupport.fx(() -> {
             List<Skin> animations = skinsOf(SkinVisual.DARK_ANIMATION);
-            assertEquals(4, animations.size(), "version 0.203 : la pluie et le feu d'artifice retirés");
+            assertEquals(2, animations.size(), "la pluie et le feu d'artifice retirés en 0.203, la neige et le sablier en 0.248");
             for (Skin animation : animations) {
                 DarkMatterView view = new DarkMatterView(400, 300);
                 view.setAnimation(animation);
@@ -104,7 +104,7 @@ class DarkMatterSkinsTest {
     void unSkinDUnAutreVisuelOuAucunDonneLeClassique() {
         FxTestSupport.fx(() -> {
             DarkMatterView view = new DarkMatterView(400, 300);
-            view.setSkin(Skin.DARK_SNOW);
+            view.setSkin(Skin.DARK_PULSAR);
             view.setAnimation(Skin.DARK_HOLE);
             assertNull(view.skin());
             assertNull(view.animation());

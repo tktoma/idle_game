@@ -72,7 +72,12 @@ final class TestTools {
         EXPANSION("Fond de l'expansion de la matière"),
         BRANE("Corde de la brane"),
         DURATION("Appui de la durée"),
-        CHRONO("Tic-tac du chrono");
+        CHRONO("Tic-tac du chrono"),
+        WATERING_CAN("Arrosoir tenu"),
+        HOSE("Tuyau d'arrosage"),
+        STORM("Orage sur la graine"),
+        SUN("Beau temps (nuit de jungle)"),
+        VOID_PAIRS("Fond des paires du vide");
 
         final String label;
 
@@ -87,7 +92,7 @@ final class TestTools {
     interface Hooks {
         default void explosion() { }
 
-        default boolean bigBang() { return false; }
+        default void bigBang() { }
 
         default boolean birth() { return false; }
 
@@ -107,7 +112,13 @@ final class TestTools {
 
         default void gesture(int dimension) { }
 
+        /** Le clic du clicker sous {@code stack} zones ×2 superposées (0 : le tapotement seul). */
+        default void clicker(int stack) { }
+
         default void gain(int dimension) { }
+
+        /** Le passage de la saison {@code season} (0 le printemps à 3 l'hiver). */
+        default void season(int season) { }
 
         /** Une note du piano du miroir (0 à 15), ou la faute (négatif). */
         default void piano(int note) { }
@@ -324,6 +335,7 @@ final class TestTools {
         return switch (cue) {
             case BIG_BANG -> "Big Bang";
             case UNIVERSE -> "Univers formé";
+            case GAME_END -> "Fin de la partie";
             case FINALE -> "Palier du défi final";
             case EXPLOSION -> "Explosion du tableau";
             case VICTORY -> "Défi réussi, record";
@@ -335,9 +347,10 @@ final class TestTools {
             case ELEMENT -> "Nouvel élément";
             case MILESTONE -> "Jalon";
             case LEVEL -> "Palier de vitesse";
+            case COLLISION_NEWS -> "Annonce de collision";
             case PURCHASE -> "Achat";
             case TOGGLE -> "Interrupteur";
-            case PARTICLE -> "Particule (banque de sons)";
+            case PARTICLE -> "Particule (son synthétisé)";
             case ATOM -> "Fusion des générateurs";
             case COLLISION -> "Collision";
             case HADRON -> "Hadrons";
@@ -346,7 +359,8 @@ final class TestTools {
             case PROBE -> "Sonde lancée";
             case MIRROR -> "Note du miroir";
             case SEED -> "Palier de la graine";
-            case WATER -> "Arrosage";
+            case BLOOM -> "Rond de croissance cueilli";
+            case SEASON -> "Passage d'une saison";
             case CLICK -> "Clic";
             case TAB -> "Changement d'onglet";
             case BEAT -> "Tic du métronome";
@@ -365,11 +379,20 @@ final class TestTools {
             add(Section.SOUNDS, "Geste : " + name, () -> hooks.gesture(number));
             add(Section.SOUNDS, "Points : " + name, () -> hooks.gain(number));
         }
+        for (int stack = 1; stack <= Sound.CLICKER_RISE_ZONES; stack++) {
+            int each = stack;
+            add(Section.SOUNDS, "Clicker : clic sur " + stack + (stack == 1 ? " zone ×2" : " zones ×2"), () -> hooks.clicker(each));
+        }
         for (int note = 0; note < Sound.PIANO_NOTES; note++) {
             int each = note;
             add(Section.SOUNDS, "Piano du miroir, note " + (note + 1), () -> hooks.piano(each));
         }
         add(Section.SOUNDS, "Piano du miroir : une faute", () -> hooks.piano(SoundEvents.WRONG));
+        String[] seasons = {"printemps", "été", "automne", "hiver"};
+        for (int s = 0; s < 4; s++) {
+            int each = s;
+            add(Section.SOUNDS, "Saison : " + seasons[s], () -> hooks.season(each));
+        }
         for (TestHum hum : TestHum.values()) {
             add(Section.SOUNDS, hum.label + " partout (marche / arrêt)",
                     () -> note.accept(hum.label + (hooks.toggleHum(hum) ? " : joue partout." : " : seulement sur sa vue.")));
@@ -380,9 +403,7 @@ final class TestTools {
         add(Section.ANIMATIONS, "Fusion des générateurs", hooks::fusion);
         add(Section.ANIMATIONS, "Nouvel atome", hooks::newAtom);
         add(Section.ANIMATIONS, "Explosion (skin choisi)", hooks::explosion);
-        add(Section.ANIMATIONS, "Big Bang (skin choisi)", () -> {
-            if (!hooks.bigBang()) note.accept("Le Big Bang classique n'a pas d'animation : choisissez un skin du Big Bang.");
-        });
+        add(Section.ANIMATIONS, "Big Bang (skin choisi, ou le classique)", hooks::bigBang);
         add(Section.ANIMATIONS, "Naissance d'un univers", () -> { if (!hooks.birth()) note.accept("Il faut un univers formé."); });
         add(Section.ANIMATIONS, "Lancement d'un univers", () -> { if (!hooks.launch()) note.accept("Il faut un univers formé."); });
         add(Section.ANIMATIONS, "Transition (skin choisi)", () -> {

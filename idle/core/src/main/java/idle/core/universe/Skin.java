@@ -104,8 +104,6 @@ public enum Skin {
     DARK_HOLE(SkinVisual.DARK_BALL, "Trou noir", "10 explosions"),
     DARK_KNOT(SkinVisual.DARK_BALL, "Nœud", "200 explosions"),
     DARK_LANTERN(SkinVisual.DARK_BALL, "Lanterne", "500 explosions"),
-    DARK_SNOW(SkinVisual.DARK_ANIMATION, "Neige", "50 explosions"),
-    DARK_HOURGLASS(SkinVisual.DARK_ANIMATION, "Sablier", "1 000 explosions"),
     BANG_INK(SkinVisual.BIG_BANG, "Encre de Chine", "5 Big Bangs"),
     BANG_STAINED(SkinVisual.BIG_BANG, "Vitrail", "3 systèmes solaires complets"),
     BANG_ABYSS(SkinVisual.BIG_BANG, "Abysses", "La planète océan formée"),
@@ -360,7 +358,7 @@ public enum Skin {
     TIMELINE_MUSEUM(SkinVisual.TIMELINE, "Musée", "3 univers formés"),
     TIMELINE_FILM(SkinVisual.TIMELINE, "Pellicule", "5 univers formés"),
     TIMELINE_TRAIN(SkinVisual.TIMELINE, "Train", "7 univers formés"),
-    // Les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur (SKINS.md, section 8).
+    // Les notifications, les panneaux, la transition entre univers, le bouton de démarrage, le curseur (SKINS.md, section 8).
     TOAST_POSTIT(SkinVisual.TOAST, "Post-it", "20 notifications reçues depuis l'ouverture du jeu"),
     TOAST_TELEGRAM(SkinVisual.TOAST, "Télégramme", "50 notifications reçues depuis l'ouverture du jeu"),
     TOAST_COMIC(SkinVisual.TOAST, "Bulle de BD", "100 notifications reçues depuis l'ouverture du jeu"),
@@ -373,9 +371,6 @@ public enum Skin {
     TRANSITION_PAGE(SkinVisual.TRANSITION, "Page tournée", "2 univers formés"),
     TRANSITION_IRIS(SkinVisual.TRANSITION, "Diaphragme", "3 univers formés"),
     TRANSITION_HOLE(SkinVisual.TRANSITION, "Trou noir", "4 univers formés"),
-    ENDING_CREDITS(SkinVisual.ENDING, "Générique qui défile", "La partie finie"),
-    ENDING_CERTIFICATE(SkinVisual.ENDING, "Certificat encadré", "La partie finie, 10 univers formés"),
-    ENDING_PHOTO(SkinVisual.ENDING, "Photo souvenir", "La partie finie, 11 univers formés"),
     START_SWITCH(SkinVisual.START_BUTTON, "Interrupteur", "La partie finie"),
     START_SEED(SkinVisual.START_BUTTON, "Graine qu'on plante", "La partie finie, 9 univers formés"),
     START_MATCH(SkinVisual.START_BUTTON, "Allumette", "La partie finie, 10 univers formés"),
@@ -384,31 +379,7 @@ public enum Skin {
     CURSOR_SHOOTING_STAR(SkinVisual.CURSOR, "Étoile filante", "Succès « Attrapée au vol »"),
     CURSOR_WATERING_CAN(SkinVisual.CURSOR, "Arrosoir", "Succès « Jeune pousse »"),
     CURSOR_MAGNIFIER(SkinVisual.CURSOR, "Loupe", "Succès « À mi-chemin »"),
-    CURSOR_WAND(SkinVisual.CURSOR, "Baguette", "Succès « Dix explosions »"),
-    // Les sons : la banque de sons, le son du Big Bang, le métronome de la boucle (SKINS.md, section 8).
-    SOUND_WOOD(SkinVisual.SOUND_BANK, "Bois", "1 h de jeu"),
-    SOUND_GLASS(SkinVisual.SOUND_BANK, "Verre", "2 h de jeu"),
-    SOUND_BITS(SkinVisual.SOUND_BANK, "8 bits", "5 h de jeu"),
-    SOUND_ORCHESTRA(SkinVisual.SOUND_BANK, "Orchestre", "10 h de jeu"),
-    SOUND_NATURE(SkinVisual.SOUND_BANK, "Nature", "20 h de jeu"),
-    SOUND_SILENCE(SkinVisual.SOUND_BANK, "Silence partiel", "Libre : seuls les Big Bangs sonnent", true),
-    BANG_SOUND_CHIME(SkinVisual.BIG_BANG_SOUND, "Carillon géant", "5 Big Bangs"),
-    BANG_SOUND_WIND(SkinVisual.BIG_BANG_SOUND, "Souffle de vent", "10 Big Bangs"),
-    BANG_SOUND_ORGAN(SkinVisual.BIG_BANG_SOUND, "Orgue", "20 Big Bangs"),
-    METRONOME_WOOD(SkinVisual.METRONOME, "Bois", "Le seuil de la boucle atteint"),
-    METRONOME_METAL(SkinVisual.METRONOME, "Métal", "Le seuil de la boucle atteint, 6 univers formés"),
-    METRONOME_DROP(SkinVisual.METRONOME, "Goutte d'eau", "Le seuil de la boucle atteint, 7 univers formés"),
-    METRONOME_HEART(SkinVisual.METRONOME, "Battement de cœur", "Le seuil de la boucle atteint, 8 univers formés");
-
-    /** Les banques de sons à débloquer et les heures de jeu qui les ouvrent ; le silence partiel est libre. */
-    public static final Skin[] SOUND_BANKS = {SOUND_WOOD, SOUND_GLASS, SOUND_BITS, SOUND_ORCHESTRA, SOUND_NATURE};
-    public static final int[] SOUND_BANK_HOURS = {1, 2, 5, 10, 20};
-    /** Les sons du Big Bang et les Big Bangs qui les ouvrent. */
-    public static final Skin[] BANG_SOUNDS = {BANG_SOUND_CHIME, BANG_SOUND_WIND, BANG_SOUND_ORGAN};
-    public static final int[] BANG_SOUND_BANGS = {5, 10, 20};
-    /** Les tics du métronome : le seuil de la boucle, le premier dès là, les suivants à {@code FIRST_METRONOME_UNIVERSE + i - 1} univers. */
-    public static final Skin[] METRONOMES = {METRONOME_WOOD, METRONOME_METAL, METRONOME_DROP, METRONOME_HEART};
-    public static final int FIRST_METRONOME_UNIVERSE = 6;
+    CURSOR_WAND(SkinVisual.CURSOR, "Baguette", "Succès « Dix explosions »");
 
     /** Les skins des notifications et les notifications reçues depuis l'ouverture du jeu qui les débloquent (compte non sauvegardé). */
     public static final Skin[] TOASTS = {TOAST_POSTIT, TOAST_TELEGRAM, TOAST_COMIC, TOAST_RECEIPT, TOAST_SCROLL};
@@ -418,9 +389,6 @@ public enum Skin {
     public static final int[] PANEL_HOURS = {5, 10, 20};
     /** Les skins de la transition entre univers : {@code TRANSITIONS[n - 1]} à n univers formés. */
     public static final Skin[] TRANSITIONS = {TRANSITION_WHITE, TRANSITION_PAGE, TRANSITION_IRIS, TRANSITION_HOLE};
-    /** Les skins de l'écran de fin : la partie finie, le premier dès là, les suivants à {@code FIRST_ENDING_UNIVERSE + i - 1} univers. */
-    public static final Skin[] ENDINGS = {ENDING_CREDITS, ENDING_CERTIFICATE, ENDING_PHOTO};
-    public static final int FIRST_ENDING_UNIVERSE = 10;
     /** Les skins du bouton de démarrage : la partie finie, le premier dès là, les suivants à {@code FIRST_START_UNIVERSE + i - 1} univers. */
     public static final Skin[] START_BUTTONS = {START_SWITCH, START_SEED, START_MATCH, START_DETONATOR};
     public static final int FIRST_START_UNIVERSE = 9;

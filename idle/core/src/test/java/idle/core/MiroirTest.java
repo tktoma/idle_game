@@ -111,6 +111,33 @@ class MiroirTest {
         assertEquals(4, game.mirrorColumns(), "l'achat seul n'agrandit pas le plateau");
     }
 
+    /** Version 0.247 : la barre de vitesse du motif raccourcit chaque case, de la mémorisation jusqu'à 0,3 s. */
+    @Test
+    void laVitesseDuMotifSeChoisit() {
+        Game game = nine();
+        assertEquals(0, game.mirrorPace(), "par défaut, le temps entier");
+        assertEquals(game.mirrorMemorySeconds(), game.mirrorShowSeconds(), 1e-12);
+        game.setMirrorPace(1);
+        assertEquals(Game.MIRROR_SHOW_FASTEST, game.mirrorShowSeconds(), 1e-12);
+        game.setMirrorPace(0.5);
+        assertEquals((Game.MIRROR_SHOW + Game.MIRROR_SHOW_FASTEST) / 2, game.mirrorShowSeconds(), 1e-12);
+        game.setMirrorPace(7);
+        assertEquals(1, game.mirrorPace(), "bornée");
+        game.setMirrorPace(Double.NaN);
+        assertEquals(0, game.mirrorPace(), "illisible : le temps entier");
+        // Un motif de trois cases s'allume trois fois plus vite au plus rapide qu'au temps entier.
+        game.setMirrorPace(1);
+        game.testSetMirrorPattern(THREE);
+        assertTrue(game.showMirrorPattern());
+        game.tick(3 * Game.MIRROR_SHOW_FASTEST + 0.05);
+        assertEquals(MirrorPhase.INPUT, game.mirrorPhase(), "le motif a fini de s'allumer");
+        // La mémorisation achetée reste le plus long temps de la barre.
+        game.state().setMirrorShards(1e15);
+        game.buyMirror(MirrorUpgrade.MEMORY);
+        game.setMirrorPace(0);
+        assertEquals(Game.MIRROR_SHOW + Game.MIRROR_SHOW_STEP, game.mirrorShowSeconds(), 1e-12);
+    }
+
     /** Version 0.158 : le plateau s'agrandit seul, toutes les trois réussites. */
     @Test
     void lePlateauSAgranditToutesLesTroisReussites() {

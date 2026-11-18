@@ -39,7 +39,7 @@ class BurstSkinsTest {
     void chaqueAnimationDeLaMatiereNoireJoueJusquAuBout() {
         FxTestSupport.fx(() -> {
             List<Skin> skins = skinsOf(SkinVisual.DARK_ANIMATION);
-            assertEquals(4, skins.size(), "version 0.203 : la pluie et le feu d'artifice retirés");
+            assertEquals(2, skins.size(), "la pluie et le feu d'artifice retirés en 0.203, la neige et le sablier en 0.248");
             BurstView view = new BurstView();
             for (Skin skin : skins) {
                 play(view, skin, 1040, 640);
@@ -60,6 +60,37 @@ class BurstSkinsTest {
                 play(view, skin, 1040, 640);
                 play(view, skin, 360, 900);
             }
+            return null;
+        });
+    }
+
+    /** Version 0.246 : le Big Bang sans skin a son animation, qui joue jusqu'au bout et cède la place à un skin. */
+    @Test
+    void leBigBangClassiqueJoueJusquAuBout() {
+        FxTestSupport.fx(() -> {
+            BurstView view = new BurstView();
+            for (double[] size : new double[][] {{1040, 640}, {360, 900}, {0, 0}}) {
+                view.playBigBang(3.5);
+                assertTrue(view.isPlaying() && view.playingBigBang() && view.isVisible());
+                assertEquals(null, view.playing(), "pas de skin");
+                int frames = 0;
+                while (view.isPlaying() && frames++ < 200) view.frame(0.05, size[0], size[1]);
+                assertFalse(view.isPlaying() || view.playingBigBang() || view.isVisible(), "il finit de lui-même");
+            }
+            view.playBigBang(3.5);
+            view.play(Skin.BANG_AURORA, 2);
+            assertFalse(view.playingBigBang(), "un skin qui joue ensuite prend la place du classique");
+            return null;
+        });
+    }
+
+    /** La boule de feu du Big Bang classique refroidit : blanche au départ, sombre à la fin. */
+    @Test
+    void laBouleDeFeuRefroidit() {
+        FxTestSupport.fx(() -> {
+            assertTrue(BurstView.fire(0).getBrightness() > 0.95);
+            assertTrue(BurstView.fire(1).getBrightness() < 0.4);
+            assertTrue(BurstView.fire(-1).equals(BurstView.fire(0)) && BurstView.fire(2).equals(BurstView.fire(1)), "bornée");
             return null;
         });
     }

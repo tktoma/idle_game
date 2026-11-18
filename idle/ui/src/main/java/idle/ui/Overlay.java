@@ -67,7 +67,6 @@ abstract class Overlay extends StackPane {
     final void reveal() {
         dress();
         setVisible(true);
-        if (card != null) PanelSkinStyles.enter(card, skin);
     }
 
     /** La carte, pour les vérifications. */
@@ -86,7 +85,6 @@ abstract class Overlay extends StackPane {
             dressed = false;
             setStyle(classicVeil);
             card.setStyle(classicCard);
-            card.setRotate(0);
             PanelSkinStyles.inkLabels(card, null, classicLabels);
             classicLabels.clear();
             return;
@@ -96,7 +94,6 @@ abstract class Overlay extends StackPane {
         dressed = true;
         setStyle(PanelSkinStyles.veil(skin));
         card.setStyle(PanelSkinStyles.card(skin, classicCard));
-        card.setRotate(PanelSkinStyles.rotation(skin));
         PanelSkinStyles.inkLabels(card, skin, classicLabels);
     }
 }

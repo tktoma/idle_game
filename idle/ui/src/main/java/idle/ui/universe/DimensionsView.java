@@ -16,7 +16,7 @@ import javafx.scene.text.*;
  * l'avancée vers son palier (en puissances de dix), et devient entièrement vert au palier atteint ; le seuil, lui,
  * devient un anneau vert autour du point. Sous chaque nom, l'avancée (« 3.2e6 / 2.5e7 ») ; au milieu, les paliers
  * atteints (« 7 / 10 paliers »). Les dix paliers atteints, la fin se joue ({@link #playFinale()}) : les traits
- * deviennent verts en vague, avec une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue ; au bout,
+ * deviennent verts en vague, avec une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue, qui reste jaune un instant ; au bout,
  * l'écran de fin ({@link #setOnFinale}). La partie finie, les traits restent verts et dorés.
  *
  * <p>Les skins de la carte ({@link idle.core.universe.SkinVisual#DIMENSIONS_MAP}) et du remplissage du défi final
@@ -31,8 +31,13 @@ public final class DimensionsView extends Canvas {
     private static final Color CENTER = Color.web("#ffe2b0");
     private static final Color MARK = Color.web("#3ddc6a");
     private static final Color GOLD = Color.web("#ffd27f");
-    /** La fin : la vague verte des traits, puis le point du milieu qui grandit, en secondes. */
-    public static final double FINALE_WAVE_SECONDS = 4, FINALE_GROW_SECONDS = 2.5;
+    /**
+     * La fin : la vague verte des traits, puis le point du milieu qui grandit, puis (version 0.267) la vue toute jaune
+     * qui tient un instant avant l'écran de fin, en secondes.
+     */
+    public static final double FINALE_WAVE_SECONDS = 4, FINALE_GROW_SECONDS = 2.5, FINALE_HOLD_SECONDS = 1;
+    /** La fin en tout, de la vague à l'écran de fin. */
+    public static final double FINALE_SECONDS = FINALE_WAVE_SECONDS + FINALE_GROW_SECONDS + FINALE_HOLD_SECONDS;
     /** Les traits de la carte : les dix rayons du milieu, puis les dix côtés du cercle. */
     private static final int LINKS = 20;
 
@@ -215,7 +220,7 @@ public final class DimensionsView extends Canvas {
         if (moving) time += Math.min(elapsed, 0.1);
         if (finale >= 0) {
             finale += Math.min(elapsed, 0.1);
-            if (finale >= FINALE_WAVE_SECONDS + FINALE_GROW_SECONDS) {
+            if (finale >= FINALE_SECONDS) {
                 finale = -1;
                 draw();
                 onFinale.run();

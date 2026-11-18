@@ -10,6 +10,8 @@ import idle.core.molecules.Molecule;
 import idle.core.sky.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import idle.core.universe.*;
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,7 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(363, Skin.values().length, "six retirés en 0.203 ; dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+        assertEquals(345, Skin.values().length, "six retirés en 0.203, deux en 0.248, treize de son en 0.251, trois de l'écran de fin en 0.267 ; dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
                 + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194, trente-six de la 0.195, cinquante-deux de la 0.196, "
                 + "quarante-un de la 0.197, vingt-sept de la 0.198, vingt-quatre de la 0.199, treize de la 0.200");
     }
@@ -143,7 +145,6 @@ class SkinsNouveauxTest {
         assertSkin(game, Skin.FUSION_EMBER, true, "cent fusions");
         assertSkin(game, Skin.FUSION_INK, false, "pas mille");
         assertSkins(game, true, "25 explosions", Skin.DARK_MERCURY, Skin.DARK_HOLE);
-        assertSkin(game, Skin.DARK_SNOW, false, "pas cinquante");
         assertSkin(game, Skin.ATOM_CHALK, true, "cinquante atomes");
         assertSkin(game, Skin.ATOM_CLOUD, false);
         assertSkin(game, Skin.BEAM_FIREFLIES, true, "cent collisions");
@@ -167,7 +168,10 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.ATOM, Skin.ATOM_GEARS.visual());
         assertEquals(SkinVisual.TABLE, Skin.TABLE_NEON.visual());
         assertEquals(SkinVisual.DARK_BALL, Skin.DARK_LANTERN.visual());
-        assertEquals(SkinVisual.DARK_ANIMATION, Skin.DARK_HOURGLASS.visual());
+        assertEquals(SkinVisual.DARK_ANIMATION, Skin.DARK_PULSAR.visual());
+        // Version 0.248 : la neige et le sablier retirés ; une sauvegarde qui les avait les oublie sans erreur.
+        assertNull(Skin.byId("dark_snow"));
+        assertNull(Skin.byId("dark_hourglass"));
         assertEquals(SkinVisual.BIG_BANG, Skin.BANG_NEON.visual());
         assertEquals(SkinVisual.COLLIDER_BEAM, Skin.BEAM_LASER.visual());
         assertEquals(SkinVisual.COLLIDER, Skin.COLLIDER_STADIUM.visual());
@@ -897,78 +901,41 @@ class SkinsNouveauxTest {
         }
         // La transition : un skin par univers formé, du premier au quatrième ; déjà deux ici.
         for (int i = 0; i < Skin.TRANSITIONS.length; i++) assertSkin(game, Skin.TRANSITIONS[i], i < 2, Skin.TRANSITIONS[i].label() + " à 2 univers");
-        // La fin et le démarrage : rien tant que la partie n'est pas finie, même à onze univers.
+        // Le démarrage : rien tant que la partie n'est pas finie, même à onze univers.
         for (int universes = 3; universes <= 11; universes++) {
             assertTrue(game.testAddUniverse());
             game.tick(1);
             for (int i = 0; i < Skin.TRANSITIONS.length; i++) assertSkin(game, Skin.TRANSITIONS[i], universes >= i + 1, Skin.TRANSITIONS[i].label() + " à " + universes);
-            for (Skin skin : Skin.ENDINGS) assertSkin(game, skin, false, skin.label() + " sans fin de partie");
             for (Skin skin : Skin.START_BUTTONS) assertSkin(game, skin, false, skin.label() + " sans fin de partie");
         }
         game.state().setGameFinished(true);
         game.tick(1);
-        for (Skin skin : Skin.ENDINGS) assertSkin(game, skin, true, skin.label());
         for (Skin skin : Skin.START_BUTTONS) assertSkin(game, skin, true, skin.label());
         // Une partie finie à huit univers : le premier skin de chaque, pas les suivants.
         Game young = GameTestSupport.universe(8);
         young.state().setSkinsOpen(true);
         young.state().setGameFinished(true);
         young.tick(1);
-        for (int i = 0; i < Skin.ENDINGS.length; i++) assertSkin(young, Skin.ENDINGS[i], i == 0, Skin.ENDINGS[i].label() + " à 8 univers");
         for (int i = 0; i < Skin.START_BUTTONS.length; i++) assertSkin(young, Skin.START_BUTTONS[i], i == 0, Skin.START_BUTTONS[i].label() + " à 8 univers");
         assertTrue(young.testAddUniverse());
         young.tick(1);
         assertSkin(young, Skin.START_SEED, true, "la graine à neuf univers");
-        assertSkin(young, Skin.ENDING_CERTIFICATE, false, "le certificat attend dix univers");
         assertEquals(SkinVisual.TOAST, Skin.TOAST_SCROLL.visual());
         assertEquals("5 h de jeu", Skin.PANEL_BOOK.source());
     }
 
-    /** Les sons. Les banques suivent les heures de jeu, le son du Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers. */
+    /** Version 0.251 : les skins de son retirés ; une sauvegarde qui les avait les oublie sans erreur. */
     @Test
-    void lesBanquesDeSonsLeBigBangEtLeMetronomeOntLeursConditions() {
-        Game game = GameTestSupport.universe(2);
-        game.state().setSkinsOpen(true);
-        game.tick(1);
-        assertSkin(game, Skin.SOUND_SILENCE, true, "le silence partiel est libre");
-        assertTrue(Skin.SOUND_SILENCE.isFree());
-        for (int i = 0; i < Skin.SOUND_BANKS.length; i++) {
-            game.state().setTimePlayed(Skin.SOUND_BANK_HOURS[i] * 3600.0 - 1);
-            game.tick(1);
-            assertSkin(game, Skin.SOUND_BANKS[i], false, Skin.SOUND_BANKS[i].label() + " avant son heure");
-            game.state().setTimePlayed(Skin.SOUND_BANK_HOURS[i] * 3600.0);
-            game.tick(1);
-            assertSkin(game, Skin.SOUND_BANKS[i], true, Skin.SOUND_BANKS[i].label());
+    void lesSkinsDeSonNExistentPlus() {
+        for (String id : List.of("sound_wood", "sound_glass", "sound_bits", "sound_orchestra", "sound_nature", "sound_silence",
+                "bang_sound_chime", "bang_sound_wind", "bang_sound_organ", "metronome_wood", "metronome_metal", "metronome_drop",
+                "metronome_heart")) {
+            assertNull(Skin.byId(id), id);
         }
-        for (int i = 0; i < Skin.BANG_SOUNDS.length; i++) {
-            game.state().setBigBangs(Skin.BANG_SOUND_BANGS[i] - 1);
-            game.tick(1);
-            assertSkin(game, Skin.BANG_SOUNDS[i], false, Skin.BANG_SOUNDS[i].label() + " avant son Big Bang");
-            game.state().setBigBangs(Skin.BANG_SOUND_BANGS[i]);
-            game.tick(1);
-            assertSkin(game, Skin.BANG_SOUNDS[i], true, Skin.BANG_SOUNDS[i].label());
+        for (SkinVisual visual : SkinVisual.values()) {
+            assertFalse(visual.name().equals("SOUND_BANK") || visual.name().equals("BIG_BANG_SOUND") || visual.name().equals("METRONOME"),
+                    "plus de visuel de son : " + visual);
         }
-        // Le métronome : rien sans le seuil de la boucle, même à huit univers ; le seuil atteint, un skin de plus par univers à partir du sixième.
-        for (int universes = 3; universes <= 8; universes++) assertTrue(game.testAddUniverse());
-        game.tick(1);
-        for (Skin skin : Skin.METRONOMES) assertSkin(game, skin, false, skin.label() + " sans le seuil de la boucle");
-        Game loop = GameTestSupport.universe(5);
-        loop.state().setSkinsOpen(true);
-        loop.state().setLoopShardsEarned(GameUniverse.LOOP_THRESHOLD);
-        loop.tick(1);
-        assertTrue(loop.isDimensionThresholdReached(5));
-        for (int i = 0; i < Skin.METRONOMES.length; i++) assertSkin(loop, Skin.METRONOMES[i], i == 0, Skin.METRONOMES[i].label() + " à 5 univers");
-        for (int universes = 6; universes <= 8; universes++) {
-            assertTrue(loop.testAddUniverse());
-            loop.tick(1);
-            for (int i = 0; i < Skin.METRONOMES.length; i++) {
-                assertSkin(loop, Skin.METRONOMES[i], i == 0 || universes >= Skin.FIRST_METRONOME_UNIVERSE + i - 1, Skin.METRONOMES[i].label() + " à " + universes);
-            }
-        }
-        assertEquals(SkinVisual.SOUND_BANK, Skin.SOUND_WOOD.visual());
-        assertEquals(SkinVisual.BIG_BANG_SOUND, Skin.BANG_SOUND_ORGAN.visual());
-        assertEquals(SkinVisual.METRONOME, Skin.METRONOME_HEART.visual());
-        assertEquals("1 h de jeu", Skin.SOUND_WOOD.source());
     }
 
     /**

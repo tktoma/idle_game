@@ -7,15 +7,14 @@ import javafx.scene.paint.*;
 
 /**
  * Les skins de la matière noire de la version 0.191, dessinés à côté de {@link DarkMatterView} pour la
- * garder lisible : quatre boules et deux animations (version 0.203 : l'œuf, la pluie et le feu d'artifice retirés).
+ * garder lisible : quatre boules (version 0.203 : l'œuf, la pluie et le feu d'artifice retirés ; 0.248 : la neige et le
+ * sablier retirés).
  * <ul>
  * <li>« Goutte de mercure » : une sphère miroir gris argent au reflet déformé, qui tremble à chaque appui ;</li>
  * <li>« Trou noir » : un disque noir net, un anneau de lumière orange plus brillant en haut, l'espace
  * étiré autour ;</li>
  * <li>« Nœud » : une corde violette nouée en trèfle, qui se resserre à l'appui ;</li>
- * <li>« Lanterne » : du papier translucide à nervures, et dedans une flamme qui grandit avec la matière ;</li>
- * <li>« Neige » : des flocons lents qui tourbillonnent, attirés vers la boule quand elle grossit ;</li>
- * <li>« Sablier » : un sablier en filigrane dont les grains coulent par le goulot vers la boule.</li>
+ * <li>« Lanterne » : du papier translucide à nervures, et dedans une flamme qui grandit avec la matière.</li>
  * </ul>
  */
 final class DarkSkinArt {
@@ -24,9 +23,6 @@ final class DarkSkinArt {
     private static final Color PAPER = Color.web("#f6d9a0");
     private static final Color RIB = Color.web("#8a5a2a");
     private static final Color FLAME = Color.web("#ffb347");
-    private static final Color FLAKE = Color.web("#eef6ff");
-    private static final Color SAND = Color.web("#e8c87a");
-    private static final Color GLASS = Color.web("#8f7fb8");
 
     private DarkSkinArt() {
     }
@@ -35,12 +31,6 @@ final class DarkSkinArt {
     static boolean draws(Skin skin) {
         return skin == Skin.DARK_MERCURY || skin == Skin.DARK_HOLE
                 || skin == Skin.DARK_KNOT || skin == Skin.DARK_LANTERN;
-    }
-
-    /** Un nombre entre 0 et 1, toujours le même pour une même graine. */
-    private static double fraction(double seed) {
-        double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-        return value - Math.floor(value);
     }
 
     private static Color tint(Color c, double alpha) {
@@ -229,102 +219,5 @@ final class DarkSkinArt {
         g.setStroke(RIB);
         g.setLineWidth(Math.max(1, r * 0.04));
         g.strokeArc(cx - rx * 0.35 + sway * r, cy - ry * 1.45, rx * 0.7, ry * 0.75, 0, 180, ArcType.OPEN);
-    }
-
-    // ------------------------------------------------------------------
-    // Les animations
-    // ------------------------------------------------------------------
-
-    /**
-     * Dessine l'animation de ce skin, sous la boule.
-     *
-     * @param growing vrai tant que le joueur maintient le point appuyé
-     */
-    static void animate(Skin skin, GraphicsContext g, DarkMatterView view, double cx, double cy, double w, double h, boolean growing) {
-        double strength = Math.max(view.fall(), growing ? 0.6 : 0);
-        switch (skin) {
-            case DARK_SNOW -> snow(g, view, cx, cy, w, h, strength);
-            default -> hourglass(g, view, cx, cy, w, h, strength);
-        }
-        g.setGlobalAlpha(1);
-    }
-
-    /** La neige : des flocons lents qui tourbillonnent, et que la boule attire quand elle grossit. */
-    private static void snow(GraphicsContext g, DarkMatterView view, double cx, double cy, double w, double h, double strength) {
-        double time = view.time();
-        int flakes = 70;
-        g.setStroke(FLAKE);
-        for (int i = 0; i < flakes; i++) {
-            double fall = ((fraction(i * 4.7) + time * (0.03 + 0.03 * fraction(i * 2.9))) % 1);
-            double x = (fraction(i * 1.3) + 0.08 * Math.sin(time * 0.6 + i)) * w;
-            double y = fall * h;
-            // Attirés vers la boule : plus la matière grossit, plus ils s'enroulent autour d'elle.
-            double pull = strength * 0.6;
-            double a = Math.atan2(y - cy, x - cx) + time * 0.5 * pull;
-            double d = Math.hypot(x - cx, y - cy) * (1 - pull * 0.5);
-            x = cx + (x - cx) * (1 - pull) + d * Math.cos(a) * pull;
-            y = cy + (y - cy) * (1 - pull) + d * Math.sin(a) * pull;
-            double size = 1.5 + 2.5 * fraction(i * 6.1);
-            double spin = time * (0.4 + fraction(i)) + i;
-            g.setLineWidth(0.9);
-            g.setGlobalAlpha(0.35 + 0.5 * fraction(i * 7.7));
-            for (int k = 0; k < 3; k++) {
-                double b = spin + Math.PI * k / 3;
-                g.strokeLine(x - size * Math.cos(b), y - size * Math.sin(b), x + size * Math.cos(b), y + size * Math.sin(b));
-            }
-        }
-        // Un manteau de neige en bas de la vue.
-        g.setGlobalAlpha(0.25);
-        g.setFill(FLAKE);
-        g.fillRect(0, h - 5, w, 5);
-    }
-
-    /** Le sablier : en filigrane autour de la boule ; les grains du haut coulent par le goulot jusqu'à elle. */
-    private static void hourglass(GraphicsContext g, DarkMatterView view, double cx, double cy, double w, double h, double strength) {
-        double time = view.time(), ball = Math.max(view.blobRadius(), 4), growth = view.growth();
-        double tall = Math.min(w, h) * 0.46, wide = tall * 0.6;
-        double neckY = cy - ball * 1.3;
-        // Le filigrane : deux ampoules, le goulot au-dessus de la boule, et les plateaux.
-        g.setStroke(GLASS);
-        g.setLineWidth(1.2);
-        g.setGlobalAlpha(0.3);
-        g.strokePolyline(new double[] {cx - wide, cx - wide * 0.1, cx - wide * 0.1, cx - wide},
-                new double[] {cy - tall, neckY - tall * 0.05, neckY + tall * 0.05, cy + tall}, 4);
-        g.strokePolyline(new double[] {cx + wide, cx + wide * 0.1, cx + wide * 0.1, cx + wide},
-                new double[] {cy - tall, neckY - tall * 0.05, neckY + tall * 0.05, cy + tall}, 4);
-        g.setLineWidth(4);
-        g.setGlobalAlpha(0.45);
-        g.strokeLine(cx - wide * 1.1, cy - tall, cx + wide * 1.1, cy - tall);
-        g.strokeLine(cx - wide * 1.1, cy + tall, cx + wide * 1.1, cy + tall);
-        // Le sable restant en haut : il baisse à mesure que la matière grossit.
-        double level = (1 - growth) * (neckY - tall * 0.05 - (cy - tall)) * 0.8;
-        if (level > 1) {
-            double top = neckY - tall * 0.05 - level;
-            double halfTop = wide * 0.1 + (wide - wide * 0.1) * (level / (neckY - tall * 0.05 - (cy - tall)));
-            g.setGlobalAlpha(0.35);
-            g.setFill(SAND);
-            g.fillPolygon(new double[] {cx - halfTop, cx + halfTop, cx + wide * 0.1, cx - wide * 0.1},
-                    new double[] {top, top, neckY - tall * 0.05, neckY - tall * 0.05}, 4);
-        }
-        // Les grains : ils glissent vers le goulot puis tombent droit sur la boule.
-        g.setFill(SAND);
-        int grains = (int) (24 + 40 * strength);
-        for (int i = 0; i < grains; i++) {
-            double phase = (fraction(i * 2.3) + time * (0.35 + 0.5 * strength) * (0.7 + 0.6 * fraction(i))) % 1;
-            double x, y;
-            if (phase < 0.45) {
-                // Dans l'ampoule du haut, de plus en plus serrés vers le goulot.
-                double u = phase / 0.45;
-                double spread = (1 - u) * (1 - u);
-                x = cx + (fraction(i * 5.1) - 0.5) * 2 * wide * 0.7 * spread;
-                y = cy - tall * 0.8 + (neckY - (cy - tall * 0.8)) * u;
-            } else {
-                double u = (phase - 0.45) / 0.55;
-                x = cx + (fraction(i * 5.1) - 0.5) * wide * 0.12;
-                y = neckY + (cy - ball - neckY) * u * u;
-            }
-            g.setGlobalAlpha(0.5 + 0.5 * fraction(i * 8.3));
-            g.fillOval(x - 1.2, y - 1.2, 2.4, 2.4);
-        }
     }
 }

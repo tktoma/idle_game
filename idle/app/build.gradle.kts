@@ -53,9 +53,19 @@ tasks.register("runTest") {
     dependsOn("run")
 }
 
+// Profil test UI (version 0.248) : « runTestUi » lance le jeu avec l'argument --test-ui : une partie préparée, sans
+// sauvegarde ni gains, et un panneau qui passe chaque combinaison de skins d'un onglet par chacun de ses états.
+tasks.register("runTestUi") {
+    group = "application"
+    description = "Lance le jeu avec le profil test UI (combinaisons de skins, sans gains ni sauvegarde)."
+    dependsOn("run")
+}
+
 tasks.named<JavaExec>("run") {
-    if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "runTest" }) {
+    val launched = gradle.startParameter.taskNames.map { it.substringAfterLast(':') }
+    if ("runTest" in launched) {
         args("--test")
         classpath(testProfileBots)
     }
+    if ("runTestUi" in launched) args("--test-ui")
 }

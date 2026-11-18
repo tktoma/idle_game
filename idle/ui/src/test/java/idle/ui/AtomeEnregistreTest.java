@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.universe.Skin;
 import idle.ui.Sound.Cue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,28 +28,22 @@ class AtomeEnregistreTest {
     }
 
     @Test
-    void lAtomeCreePartEnStereoAuRythmeDesBruitagesEtLesBanquesGardentLeLeur() throws InterruptedException {
+    void lAtomeCreePartEnStereoCommeLesBruitagesEtLesBanquesGardentLeLeur() throws InterruptedException {
         assertEquals(SoundKind.ATOMS, Cue.NEW_ATOM.kind(), "rangé avec les fusions");
         assertTrue(Cue.NEW_ATOM.isInterface(), "un bruitage, hors du rythme des annonces");
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound classic = new Sound();
         classic.sink = sent::add;
         assertTrue(classic.click(Cue.NEW_ATOM, 100), "un atome");
-        assertFalse(classic.click(Cue.NEW_ATOM, 100), "deux atomes collés n'en font qu'un son");
-        Sound wood = new Sound();
-        wood.sink = sent::add;
-        wood.setSkins(Skin.SOUND_WOOD, null, null);
-        assertTrue(wood.click(Cue.NEW_ATOM, 100));
+        assertTrue(classic.click(Cue.NEW_ATOM, 100), "deux atomes collés sonnent tous les deux (0.247)");
         Sound muted = new Sound();
         muted.sink = sent::add;
         muted.setAllowed(kind -> kind != SoundKind.ATOMS);
         assertFalse(muted.click(Cue.NEW_ATOM, 100), "la catégorie des fusions coupée");
-        for (Sound each : List.of(classic, wood)) {
-            each.player.shutdown();
-            assertTrue(each.player.awaitTermination(5, TimeUnit.SECONDS));
-        }
+        classic.player.shutdown();
+        assertTrue(classic.player.awaitTermination(5, TimeUnit.SECONDS));
         assertEquals(2, sent.size());
-        assertEquals(1, sent.stream().filter(Sound.Pcm::stereo).count(), "l'enregistrement en stéréo, la banque Bois en mono");
+        assertEquals(2, sent.stream().filter(Sound.Pcm::stereo).count(), "l'enregistrement en stéréo, les deux fois (les banques de sons retirées en 0.251)");
         assertEquals(Sound.NEW_ATOM_STEREO.length * 2, sent.stream().filter(Sound.Pcm::stereo).findFirst().orElseThrow().bytes().length);
     }
 }

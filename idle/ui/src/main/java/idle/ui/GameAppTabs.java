@@ -200,7 +200,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         blast.setVisible(true);
         flash.setOpacity(0);
         // Le skin de l'animation : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
-        // Les quatre animations de plus (pluie, neige, sablier, feu d'artifice) jouent de même.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION);
         boolean skinned = look != null;
         flash.setStyle("-fx-background-color: " + explosionFlashColor(look) + ";");
@@ -246,8 +245,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         return switch (look) {
             case DARK_VORTEX -> "#12061f";
             case DARK_PULSAR -> "#e8fdff";
-            case DARK_SNOW -> "#f4f8ff";
-            case DARK_HOURGLASS -> "#e8c87a";
             default -> "#ffffff";
         };
     }
@@ -445,7 +442,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             else if (settings.automationSounds()) soundWithAnimation(Sound.Cue.EXPLOSION);
         }
         // Un Big Bang ou un univers formé fait monter la musique.
-        if (heard == Sound.Cue.BIG_BANG || heard == Sound.Cue.UNIVERSE) music.accent();
+        if (heard == Sound.Cue.BIG_BANG || heard == Sound.Cue.UNIVERSE || heard == Sound.Cue.GAME_END) music.accent();
         if (settings.notifications()) {
             for (String text : shown) toasts.show(text, noticeColor(text));
         } else if (toasts.count() > 0) {

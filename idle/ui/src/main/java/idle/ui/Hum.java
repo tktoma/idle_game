@@ -22,12 +22,14 @@ import javax.sound.sampled.SourceDataLine;
  * les cinq niveaux de « Faisceaux rapides ».</li>
  * <li>{@link #EXPANSION} : le fond de l'expansion de la matière (4,1 s, stéréo), sur son sous-onglet du Big Bang, à
  * vitesse fixe.</li>
- * <li>{@link #BRANE} : la corde de la brane qu'on tire, tenue tant qu'on tire : plus on tire, plus elle est tendue (plus
- * aiguë) et forte ;</li>
+ * <li>{@link #BRANE} : la corde de la brane qu'on tire, des fibres qui craquent tant qu'on tire : plus on tire, plus elles
+ * se serrent, montent et sonnent fort ;</li>
  * <li>{@link #DURATION} : l'appui de la durée, une note tenue qui monte à mesure qu'on approche du plus long appui
  * possible ;</li>
  * <li>{@link #CHRONO} : le tic-tac du chrono, tant qu'il accélère le jeu, d'autant plus pressé que l'accélération est
- * forte.</li>
+ * forte ;</li>
+ * <li>la graine, quand on la voit : {@link #WATERING_CAN} tant qu'on tient l'arrosoir, {@link #HOSE} tant que le tuyau
+ * arrose, {@link #STORM} pendant l'orage, {@link #SUN} pendant le beau temps.</li>
  * </ul>
  * Chaque boucle a sa fin fondue dans son début, et le niveau des sons répétitifs ({@link Sound#REPEATED_DB}).
  */
@@ -66,7 +68,10 @@ final class Hum {
         }
 
         /** La boucle {@code resource}, mise au niveau des sons répétitifs ; vide si elle manque (le jeu continue sans ce son). */
-        static Loop load(String resource) {
+        static Loop load(String resource) { return load(resource, Sound.REPEATED_DB); }
+
+        /** La boucle {@code resource}, mise à {@code db} décibels ; vide si elle manque. */
+        static Loop load(String resource, double db) {
             try (InputStream raw = Hum.class.getResourceAsStream(resource)) {
                 if (raw == null) return new Loop(new float[0], 1, 44_100f);
                 try (AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(raw))) {
@@ -75,7 +80,7 @@ final class Hum {
                     byte[] bytes = in.readAllBytes();
                     short[] read = new short[bytes.length / 2];
                     for (int i = 0; i < read.length; i++) read[i] = (short) ((bytes[2 * i] & 0xff) | (bytes[2 * i + 1] << 8));
-                    short[] leveled = Sound.leveled(read, channels, Sound.REPEATED_DB);
+                    short[] leveled = Sound.leveled(read, channels, db);
                     float[] samples = new float[leveled.length - leveled.length % channels];
                     for (int i = 0; i < samples.length; i++) samples[i] = leveled[i] / 32768f;
                     return new Loop(samples, channels, format.getSampleRate());
@@ -90,21 +95,34 @@ final class Hum {
     static final Loop COLLIDER = Loop.load("collisionneur.wav");
     static final Loop EXPANSION = Loop.load("expansion.wav");
     /**
-     * La corde tendue de la brane : une note grave (la, 110 Hz) aux harmoniques de corde frottée, un frottement de crin
-     * par-dessus. Une seconde exacte, cent dix périodes : la boucle se rejoint sans couture.
+     * La corde tendue de la brane : des fibres qui craquent (choisi à l'écoute en 0.242), de petits craquements secs qui se
+     * serrent et montent à mesure qu'on tire ; une boucle de 1,5 s, sa fin fondue dans son début ({@code brane-corde.wav}).
      */
-    static final Loop BRANE = Loop.synthesized(1, t -> {
-        double string = 0;
-        for (int h = 1; h <= 12; h++) string += Math.sin(2 * Math.PI * 110 * h * t) / h * (h % 2 == 0 ? 0.6 : 1);
-        double bow = 0.5 + 0.5 * Math.sin(2 * Math.PI * 6 * t);   // le crin qui accroche, six fois par seconde
-        return 0.5 * string + 0.12 * bow * Math.sin(2 * Math.PI * 1760 * t) * Math.sin(2 * Math.PI * 2310 * t);
-    });
-    /** Le tic-tac du chrono : un tic aigu, un tac plus grave une demi-seconde après, sur une seconde exacte. */
-    static final Loop CHRONO = Loop.synthesized(1, t -> {
-        double tick = t < 0.5 ? t : t - 0.5;
-        double pitch = t < 0.5 ? 2600 : 1700;
-        return Math.exp(-tick * 90) * (Math.sin(2 * Math.PI * pitch * tick) + 0.4 * Math.sin(2 * Math.PI * pitch * 2.7 * tick));
-    });
+    static final Loop BRANE = Loop.load("brane-corde.wav");
+    /** L'arrosoir tenu au-dessus de la graine : de grosses gouttes graves, rondes, qui tombent dans une flaque (0.243). */
+    static final Loop WATERING_CAN = Loop.load("graine-arrosoir.wav");
+    /** Le tuyau qui arrose seul : un gargouillis sourd, comme l'eau dans un tuyau large (0.243). */
+    static final Loop HOSE = Loop.load("graine-tuyau.wav");
+    /** L'orage sur la graine : une pluie feutrée, un grondement très bas (0.243). */
+    static final Loop STORM = Loop.load("graine-orage.wav");
+    /**
+     * Le beau temps sur la graine : une nuit humide de jungle, oiseaux et insectes (le son du joueur, 0.254, à la place
+     * de la cigale) ; une boucle de 20 s en stéréo, sa fin fondue dans son début, 8 dB sous les fonds.
+     */
+    static final Loop SUN = Loop.load("graine-nuit.wav", Sound.REPEATED_DB + Hum.SUN_DB);
+    /** Le fond du beau temps, plus de moitié moins fort que les autres fonds (−8 dB : 40 % de l'amplitude), depuis la 0.247. */
+    static final double SUN_DB = -8;
+    /**
+     * Le tic-tac du chrono (version 0.260, le son du joueur) : une vieille horloge un peu boiteuse, un tic par seconde à
+     * peu près ; une boucle de six tics (6 s, son motif), coupée dans le silence juste avant un tic ({@code chrono.wav}).
+     */
+    static final Loop CHRONO = Loop.load("chrono.wav");
+    /**
+     * Le fond des paires du vide (version 0.272, le son du joueur) : un souffle grave de 0,6 s suivi d'un silence, en boucle
+     * de 0,81 s, sur le sous-onglet Paires du vide ({@code vide-paires.wav}). Il commence et finit à zéro : la boucle ne
+     * claque pas.
+     */
+    static final Loop VOID_PAIRS = Loop.load("vide-paires.wav");
 
     /** La vitesse du tic-tac pour cette accélération du chrono : celle du jeu, de ×1 à ×3 au plus (au-delà, il bourdonnerait). */
     static double chronoRate(double speed) { return Double.isFinite(speed) ? Math.max(1, Math.min(3, speed)) : 1; }

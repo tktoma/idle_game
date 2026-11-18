@@ -107,18 +107,42 @@ class DefiFinalPageTest {
             double small = map.centerRadius();
             for (int i = 0; i < 60; i++) page.frame(0.05, true);
             assertTrue(map.centerRadius() > small * 3, "le point du milieu grandit");
+            // Version 0.267 : la vue toute jaune tient un instant (1 s) avant l'écran de fin.
+            for (int i = 0; i < 31; i++) page.frame(0.05, true);
+            assertTrue(page.isFinalePlaying(), "à 6,6 s, la vue jaune tient encore");
+            assertFalse(finale.isOpen());
             for (int i = 0; i < 60 && !finale.isOpen(); i++) page.frame(0.05, true);
             assertTrue(finale.isOpen(), "puis l'écran de fin");
+            assertEquals(7.5, DimensionsView.FINALE_SECONDS, 1e-9, "4 s de vague, 2,5 s de croissance, 1 s de jaune");
             assertEquals("Toutes les dimensions sont mêlées", finale.titleText());
             assertTrue(finale.summaryText().contains("Temps de jeu : ") && finale.summaryText().contains("10 univers formés"), finale.summaryText());
             assertTrue(finale.thanksText().startsWith("Merci"));
+            // Deux choix : recommencer de zéro (deux clics) ou continuer la sauvegarde.
+            int[] restarts = {0};
+            finale.setOnRestart(() -> restarts[0]++);
+            assertEquals("Recommencer de zéro", finale.restartButton().getText());
+            assertEquals("Continuer la sauvegarde", finale.continueButton().getText());
+            finale.restartButton().fire();
+            assertEquals(0, restarts[0], "un clic ne suffit pas");
+            assertTrue(finale.isOpen());
+            assertEquals("Cliquer encore pour tout effacer", finale.restartButton().getText());
             finale.continueButton().fire();
+            assertFalse(finale.isOpen(), "continuer ferme l'écran");
+            assertEquals(0, restarts[0], "et ne recommence rien");
+            finale.open();
+            assertEquals("Recommencer de zéro", finale.restartButton().getText(), "rouvert, il faut de nouveau deux clics");
+            finale.restartButton().fire();
+            finale.restartButton().fire();
+            assertEquals(1, restarts[0], "deux clics : on recommence de zéro");
             assertFalse(finale.isOpen());
             page.refresh();
             assertTrue(page.replayFinaleButton().isVisible());
             assertEquals(20, map.greenLinks(), "la partie finie, les traits restent verts");
+            int[] replays = {0};
+            page.setOnReplay(() -> replays[0]++);
             page.replayFinaleButton().fire();
             assertTrue(page.isFinalePlaying(), "« Revoir la fin » la rejoue");
+            assertEquals(1, replays[0], "et rejoue son son (0.270)");
             return null;
         });
     }

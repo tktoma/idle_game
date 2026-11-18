@@ -2,6 +2,8 @@ package idle.ui.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
@@ -123,15 +125,14 @@ class DimensionAutomationPageTest {
             Card ticks = dims.card(DimensionAutomation.LINE_TICKS);
             assertEquals(Card.State.LOCKED, ticks.state());
             assertTrue(ticks.text().contains("Après : Densité"), ticks.text());
-            // Ceux qui jouent, en dernier, disent leur cadence et le palier d'avant.
+            // Ceux qui jouent, en dernier : une seule carte pour leurs cinq paliers (0.268), qui dit le palier d'avant.
             Card aim = dims.card(DimensionAutomation.PLANE_AIM_5S);
-            assertTrue(aim.text().contains("Visée automatique, toutes les 5 s"), aim.text());
+            assertSame(aim, dims.card(DimensionAutomation.PLANE_AIM), "les cinq paliers sur la même carte");
+            assertTrue(aim.text().contains("Visée automatique"), aim.text());
+            assertTrue(aim.text().contains("0/5"), aim.text());
             assertTrue(aim.text().contains("Mène le point vers l'éclat le plus proche quand vous ne tenez aucune touche ; reprend sa direction toutes les 5 s"), aim.text());
             assertTrue(aim.text().contains("Après : Taille du point"), aim.text());
-            assertTrue(dims.card(DimensionAutomation.PLANE_AIM).text().contains("Après : Visée automatique, toutes les 0,5 s"),
-                    dims.card(DimensionAutomation.PLANE_AIM).text());
-            assertTrue(dims.card(DimensionAutomation.VOLUME_DIVE_05S).text().contains("Plonge seul et cueille une boule toutes les 0,5 s"));
-            assertTrue(dims.card(DimensionAutomation.DURATION_HOLD).text().contains("Tient le bouton jusqu'au centre, relâche, rappuie sans attente"));
+            assertTrue(dims.card(DimensionAutomation.VOLUME_DIVE_05S).text().contains("Plonge seul et cueille une boule toutes les 5 s"));
 
             yield.click();
             assertTrue(game.ownsDimensionAutomation(DimensionAutomation.LINE_YIELD));
@@ -155,6 +156,49 @@ class DimensionAutomationPageTest {
             page.refresh();
             assertFalse(page.ordinaryTab().isVisible(), "partie secondaire : seules les dimensions");
             assertEquals(AutomationPage.DIMENSIONS, page.selected());
+            return null;
+        });
+    }
+
+    /** Version 0.268 : la carte des paliers achète le suivant quand il est payable, sinon met tout en pause ou relance. */
+    @Test
+    void lesCinqPaliersSAchetentSurLaMemeCarte() {
+        FxTestSupport.fx(() -> {
+            Game game = game(4, true);
+            AutomationPage page = page(game);
+            page.select(AutomationPage.DIMENSIONS);
+            buyUpTo(game, DimensionAutomation.PLANE_SIZE);
+            FxTestSupport.fillDimension(game, 2, 1e30);
+            page.refresh();
+            DimensionAutomationPane dims = page.dimensionsPane();
+            Card aim = dims.card(DimensionAutomation.PLANE_AIM_5S);
+            assertEquals(Card.State.READY, aim.state());
+            assertFalse(dims.playSwitch(2).isVisible(), "rien d'acheté : pas de bouton « Couper »");
+            aim.click();
+            assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_AIM_5S));
+            // Version 0.269 : le bouton sous la carte coupe même quand le palier suivant est payable.
+            assertTrue(dims.playSwitch(2).isVisible());
+            assertEquals("Couper", dims.playSwitch(2).getText());
+            dims.playSwitch(2).fire();
+            assertFalse(game.isDimensionPlayEnabled(2));
+            assertEquals("Relancer", dims.playSwitch(2).getText());
+            assertTrue(aim.text().contains("en pause"), aim.text());
+            dims.playSwitch(2).fire();
+            assertTrue(game.isDimensionPlayEnabled(2));
+            assertEquals(Card.State.READY, aim.state(), "le palier suivant, payable : la carte reste à portée");
+            assertTrue(aim.text().contains("1/5") && aim.text().contains("en marche, toutes les 5 s") && aim.text().contains("→ toutes les 2 s"), aim.text());
+            for (int i = 0; i < 4; i++) aim.click();
+            assertEquals(DimensionAutomation.PLANE_AIM, game.ownedPlayTier(2), "cinq clics, cinq paliers");
+            assertNull(game.nextPlayTier(2));
+            assertEquals(Card.State.ON, aim.state());
+            assertTrue(aim.text().contains("5/5") && aim.text().contains("sans attente"), aim.text());
+            aim.click();
+            assertFalse(game.isDimensionPlayEnabled(2), "tout acheté : un clic met tous les paliers en pause");
+            for (DimensionAutomation tier : DimensionAutomation.playTiers(2)) assertFalse(game.isDimensionAutomationEnabled(tier));
+            assertEquals(Card.State.OFF, aim.state());
+            aim.click();
+            assertTrue(game.isDimensionPlayEnabled(2));
+            assertEquals(DimensionAutomation.PLANE_AIM, game.dimensionPlayTier(2));
             return null;
         });
     }

@@ -1,6 +1,7 @@
 package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -71,29 +72,41 @@ class BruitagesTest {
         assertTrue(events.frame(game, "COLLIDER", 0).isEmpty(), "des hadrons ne sonnent que sur leur onglet");
         game.state().setHadrons(Hadron.PROTON, 6);
         assertEquals(List.of(Cue.HADRON), cues(events.frame(game, "HADRONS", 0)));
-        // Sans l'arrosoir tenu (le tuyau, un outil, un gain), la graine se tait.
+        // Un arrosage ne sonne pas d'un coup : l'eau de l'arrosoir et du tuyau est un fond en boucle.
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(game.state().seedWaterings() + 1);
-        assertTrue(events.frame(game, "UNIVERSE", 0).isEmpty(), "le tuyau arrose en silence");
-        // L'arrosoir tenu : la goutte sur l'onglet de l'univers, le palier partout.
-        game.state().setWateringCan(true);
-        game.setWatering(true);
-        assertTrue(game.isWatering());
-        game.state().setSeedWaterings(game.state().seedWaterings() + 1);
-        assertEquals(List.of(Cue.WATER), cues(events.frame(game, "UNIVERSE", 0)), "une goutte sous l'arrosoir tenu");
+        assertTrue(events.frame(game, "UNIVERSE", 0).isEmpty(), "un arrosage : pas de coup");
+        // Un palier : il sonne partout, une fois.
         game.state().setSeedWaterings(Game.seedStageWaterings(2));
         List<Cue> stage = cues(events.frame(game, "STATS", 0));
-        assertTrue(stage.contains(Cue.SEED), "un palier de la graine, arrosoir tenu, sonne partout : " + stage);
+        assertEquals(List.of(Cue.SEED), stage, "un palier de la graine sonne partout");
+        assertTrue(events.frame(game, "STATS", 0).isEmpty(), "une fois");
     }
 
+    /**
+     * Version 0.256 : un palier sonne d'où qu'il vienne, même sans l'arrosoir tenu ; avant, il ne sonnait presque jamais
+     * (la graine au plafond passe ses paliers quand un univers se forme, pas sous l'arrosoir).
+     */
     @Test
-    void unPalierDeLaGraineSansLArrosoirTenuSeTait() {
+    void unPalierDeLaGraineSonneDOuQuIlVienne() {
         Game game = partie();
         SoundEvents events = new SoundEvents();
         events.frame(game, "UNIVERSE", 0);
+        assertFalse(game.isWatering());
+        int before = game.seedStage();
         new TestActions(game).nextSeedStage();
-        assertTrue(game.seedStage() > 0 || game.state().seedWaterings() > 0);
-        assertTrue(events.frame(game, "UNIVERSE", 0).isEmpty(), "un outil d'essai fait passer un palier en silence");
+        assertTrue(game.seedStage() > before);
+        assertEquals(List.of(Cue.SEED), cues(events.frame(game, "UNIVERSE", 0)), "l'arrosoir reposé : il sonne quand même");
+        // La graine au plafond garde ses arrosages ; le plafond qui monte (un univers formé) la fait passer, et ça sonne.
+        int capped = game.seedStage();
+        game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
+        events.frame(game, "UNIVERSE", 0);
+        if (game.seedStage() < Game.SEED_STAGES && game.seedStage() == game.seedStageCap()) {
+            int stageAtCap = game.seedStage();
+            game.testAddUniverse();
+            if (game.seedStage() > stageAtCap) assertTrue(cues(events.frame(game, "UNIVERSE", 0)).contains(Cue.SEED), "le plafond qui monte : ça sonne");
+        }
+        assertTrue(capped >= before);
     }
 
     @Test
@@ -140,13 +153,11 @@ class BruitagesTest {
             for (short[] other : gains) assertFalse(Arrays.equals(other, gain), "chaque dimension a sa note : " + dimension);
             gains.add(gain);
         }
-        for (Cue cue : List.of(Cue.PARTICLE, Cue.ATOM, Cue.COLLISION, Cue.HADRON, Cue.VOID, Cue.SEED, Cue.WATER, Cue.CLICK, Cue.TAB)) {
+        for (Cue cue : List.of(Cue.PARTICLE, Cue.ATOM, Cue.COLLISION, Cue.HADRON, Cue.VOID, Cue.SEED, Cue.BLOOM, Cue.SEASON, Cue.CLICK, Cue.TAB)) {
             short[] samples = Sound.synthesize(cue);
             assertTrue(samples.length > 0 && samples.length <= 44_100, cue + " : court");
-            assertTrue(cue.isInterface(), cue + " : hors du rythme des annonces");
-            assertTrue(cue.gap() >= Sound.Cue.CLICK.gap(), cue + " : un écart");
+            assertTrue(cue.isInterface(), cue + " : hors des fournées d'annonces");
         }
-        assertTrue(Cue.PARTICLE.gap() > Cue.CLICK.gap(), "ce qui revient sans cesse attend plus qu'un clic");
     }
 
     @Test
@@ -189,6 +200,8 @@ class BruitagesTest {
         events.frame(game, "STATS", 0);
         game.state().setProbeLaunches(game.state().probeLaunches() + 1);
         assertEquals(List.of(Cue.PROBE), cues(events.frame(game, "STATS", 0)));
+        assertEquals(3.0, Sound.PROBE_SOUND.length / 44_100.0, 0.01, "le décollage grondant, choisi à l'écoute");
+        NiveauxTest.auNiveau(Sound.PROBE_SOUND, 1, Sound.RARE_DB, "le décollage de la sonde");
         assertTrue(events.frame(game, "STATS", 0).isEmpty(), "une fois");
     }
 
@@ -247,5 +260,133 @@ class BruitagesTest {
         assertTrue(game.mixPickups() > before, "l'éclat sous le point est ramassé");
         assertEquals(1e300, game.state().mixShardsEarned(), 0, "le total ne bouge pas d'un gain minuscule");
         assertTrue(events.frame(game, "UNIVERSE", 10).contains(new SoundEvents.Heard(null, 10)), "le ramassage sonne quand même");
+    }
+
+    /** Le rond de croissance cueilli sonne ; une saison qui commence sonne sur l'onglet de l'univers, avec sa note. */
+    @Test
+    void leRondCueilliEtLesSaisonsSonnent() {
+        Game game = partie();
+        new TestActions(game).openDimension(9);
+        SoundEvents events = new SoundEvents();
+        game.testSetSeason(Game.Season.SPRING);
+        events.frame(game, "UNIVERSE", 0);
+        assertTrue(events.frame(game, "UNIVERSE", 0).isEmpty());
+        game.testSetSeason(Game.Season.AUTUMN);
+        assertEquals(List.of(new SoundEvents.Heard(Cue.SEASON, 0, Game.Season.AUTUMN.ordinal())), events.frame(game, "UNIVERSE", 0),
+                "l'automne commence");
+        game.testSetSeason(Game.Season.WINTER);
+        assertTrue(events.frame(game, "STATS", 0).isEmpty(), "ailleurs que sur l'onglet de l'univers : rien");
+        game.testShowBloom();
+        assertTrue(game.catchBloom());
+        assertEquals(List.of(Cue.BLOOM), cues(events.frame(game, "STATS", 0)), "le rond cueilli");
+    }
+
+    /** Version 0.247 : les paires du vide ne sonnent que sur le sous-onglet « Paires », pas sur les améliorations. */
+    @Test
+    void lesPairesDuVideNeSonnentQueSurPaires() {
+        assertEquals("VOID", SoundEvents.heardTab("VOID", true, false));
+        assertNotEquals("VOID", SoundEvents.heardTab("VOID", false, true), "les améliorations du vide sont muettes");
+        assertEquals("HADRONS", SoundEvents.heardTab("HADRONS", false, false), "les autres onglets ne changent pas");
+        assertEquals("COLLIDER", SoundEvents.heardTab("COLLIDER", false, true));
+    }
+
+    /** Version 0.272 : les collisions ne sonnent que sur le sous-onglet « Énergie » du collisionneur. */
+    @Test
+    void lesCollisionsNeSonnentQueSurEnergie() {
+        assertNotEquals("COLLIDER", SoundEvents.heardTab("COLLIDER", true, false), "la chaîne et les améliorations sont muettes");
+        Game game = partie();
+        SoundEvents events = new SoundEvents();
+        events.frame(game, "COLLIDER", 0);
+        game.state().setCollisionRuns(game.state().collisionRuns() + 1);
+        assertTrue(events.frame(game, SoundEvents.heardTab("COLLIDER", false, false), 0).isEmpty(), "hors d'Énergie : rien");
+        game.state().setCollisionRuns(game.state().collisionRuns() + 1);
+        assertEquals(List.of(Cue.COLLISION), cues(events.frame(game, SoundEvents.heardTab("COLLIDER", false, true), 0)), "sur Énergie : la collision");
+    }
+
+    /** Version 0.264 : le palier de vitesse prend le son du joueur ; l'annonce de collision, à part, garde le petit bip. */
+    @Test
+    void lePalierDeVitesseALeSonDuJoueur() {
+        assertEquals(Cue.LEVEL, Sound.cueOf("Palier de vitesse : générateur 3"));
+        assertEquals(Cue.COLLISION_NEWS, Sound.cueOf("Collision : 12 hadrons"));
+        assertEquals(Cue.COMET, Sound.cueOf("Collision : un quark top ! À utiliser dans 4 min"), "le quark top reste une comète");
+        assertTrue(Sound.SPEED_SOUND.length > 0, "palier-vitesse.wav se charge");
+        assertEquals(0.18, Sound.SPEED_SOUND.length / 44_100.0, 0.01, "0,18 s");
+        NiveauxTest.auNiveau(Sound.SPEED_SOUND, 1, Sound.RARE_DB, "le palier de vitesse");
+        assertEquals(Cue.LEVEL, Sound.strongest(java.util.List.of("Collision : 3 hadrons", "Palier de vitesse : générateur 1")),
+                "le palier passe devant l'annonce de collision");
+        assertNotEquals(Sound.leveledSound(Cue.COLLISION_NEWS).length, Sound.SPEED_SOUND.length, "la collision garde le bip");
+    }
+
+    /**
+     * Version 0.265 : un univers formé prend l'enregistrement du joueur, en stéréo, au niveau des rares ; la fin de la
+     * partie, à part depuis la 0.266, a le sien depuis la 0.267 (fin.wav).
+     */
+    @Test
+    void lUniversFormeALeSonDuJoueur() {
+        assertTrue(Sound.UNIVERSE_STEREO.length > 0, "univers.wav se charge");
+        assertEquals(5.22, Sound.UNIVERSE_STEREO.length / 2 / 44_100.0, 0.05, "5,2 s en stéréo");
+        NiveauxTest.auNiveau(Sound.UNIVERSE_STEREO, 2, Sound.RARE_DB, "l'univers formé");
+        assertEquals(Cue.UNIVERSE, Sound.cueOf("Univers formé : ×2"));
+        assertEquals(Cue.GAME_END, Sound.cueOf("Les dix paliers sont atteints : la partie est finie. Merci d'avoir joué !"));
+        assertEquals(2.4, Sound.leveledSound(Cue.GAME_END).length / 44_100.0, 0.01, "l'accord de 2,4 s reste en secours");
+        assertTrue(Sound.GAME_END_STEREO.length > 0, "fin.wav se charge (0.267)");
+        assertEquals(9.62, Sound.GAME_END_STEREO.length / 2 / 44_100.0, 0.05, "9,6 s en stéréo");
+        NiveauxTest.auNiveau(Sound.GAME_END_STEREO, 2, Sound.RARE_DB, "la fin de la partie");
+    }
+
+    /** Version 0.271 : un palier du défi final prend le son du joueur, en mono, au niveau des rares. */
+    @Test
+    void lePalierDuDefiFinalALeSonDuJoueur() throws InterruptedException {
+        assertTrue(Sound.FINALE_TIER_SOUND.length > 0, "defi-palier.wav se charge");
+        assertEquals(1.69, Sound.FINALE_TIER_SOUND.length / 44_100.0, 0.02, "1,7 s");
+        NiveauxTest.auNiveau(Sound.FINALE_TIER_SOUND, 1, Sound.RARE_DB, "le palier du défi final");
+        assertEquals(Cue.FINALE, Sound.cueOf("Défi final : la ligne atteint son palier"));
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        // Les annonces partent par play() : l'enregistrement mono doit en partir (le palier de vitesse ne le faisait pas
+        // avant la 0.271).
+        assertTrue(sound.play(Cue.FINALE, 100));
+        assertTrue(sound.play(Cue.LEVEL, 100));
+        assertTrue(sound.play(Cue.COLLISION_NEWS, 100));
+        assertTrue(sound.play(Cue.VICTORY, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(Sound.FINALE_TIER_SOUND.length * 2, sent.get(0).bytes().length, "le palier du défi final : le son du joueur");
+        assertFalse(sent.get(0).stereo());
+        assertEquals(Sound.SPEED_SOUND.length * 2, sent.get(1).bytes().length, "le palier de vitesse : le son du joueur");
+        assertEquals(Sound.leveledSound(Cue.COLLISION_NEWS).length * 2, sent.get(2).bytes().length, "la collision garde son bip");
+        assertEquals(Sound.VICTORY_SOUND.length * 2, sent.get(3).bytes().length, "le défi réussi : le son du joueur (0.271)");
+        assertEquals(0.485, Sound.VICTORY_SOUND.length / 44_100.0, 0.01);
+        NiveauxTest.auNiveau(Sound.VICTORY_SOUND, 1, Sound.RARE_DB, "le défi réussi");
+        assertEquals(Cue.VICTORY, Sound.cueOf("Défi réussi : Rouille"));
+        assertEquals(Cue.VICTORY, Sound.cueOf("Défi de Big Bang « Vide » réussi"));
+        assertEquals(Cue.CHALLENGE, Sound.cueOf("Nouveau défi : Rouille"));
+        assertEquals(0.188, Sound.CHALLENGE_SOUND.length / 44_100.0, 0.01, "le défi qui s'ouvre : 0,19 s");
+        NiveauxTest.auNiveau(Sound.CHALLENGE_SOUND, 1, Sound.targetDb(Cue.CHALLENGE), "le défi qui s'ouvre");
+        List<Sound.Pcm> opened = Collections.synchronizedList(new ArrayList<>());
+        Sound other = new Sound();
+        other.sink = opened::add;
+        assertTrue(other.play(Cue.CHALLENGE, 100));
+        other.player.shutdown();
+        assertTrue(other.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(Sound.CHALLENGE_SOUND.length * 2, opened.get(0).bytes().length, "c'est lui qui part");
+    }
+
+    /** Version 0.273 : un nouvel élément prend le son du joueur, en stéréo ; l'élément unique et l'astre mûr aussi. */
+    @Test
+    void leNouvelElementALeSonDuJoueur() throws InterruptedException {
+        assertTrue(Sound.ELEMENT_STEREO.length > 0, "nouvel-element.wav se charge");
+        assertEquals(1.46, Sound.ELEMENT_STEREO.length / 2 / 44_100.0, 0.02, "1,46 s en stéréo");
+        NiveauxTest.auNiveau(Sound.ELEMENT_STEREO, 2, Sound.targetDb(Cue.ELEMENT), "le nouvel élément");
+        assertEquals(Cue.ELEMENT, Sound.cueOf("Nouvel élément : Hélium"));
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        assertTrue(sound.play(Cue.ELEMENT, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertTrue(sent.get(0).stereo());
+        assertEquals(Sound.ELEMENT_STEREO.length * 2, sent.get(0).bytes().length, "c'est lui qui part");
     }
 }
