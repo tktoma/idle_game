@@ -572,6 +572,8 @@ public abstract class GameAppBase extends Application {
         // Un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
         // Une particule récupérée (l'onde atteint le noyau) : le son de son palier de vitesse.
         ParticleView.setOnCollected(speedStage -> { if (settings.sound()) sound.particle(speedStage, settings.volume()); });
+        // Version 0.278 : chaque carte de récompense d'une sonde ouverte fait le son d'achat ; « Tout ouvrir », une suite.
+        lootPane.setOnOpened(cards -> { if (settings.sound()) sound.purchases(cards, settings.volume()); });
         Card.setOnActed(state -> {
             if (!settings.sound()) return;
             boolean toggle = state == Card.State.ON || state == Card.State.OFF;
@@ -931,8 +933,10 @@ public abstract class GameAppBase extends Application {
                 // Le fond des paires du vide (version 0.272) : sur leur sous-onglet, tant que le jeu tourne.
                 boolean pairsShown = selectedTab == Tab.VOID && voidPage.selected() == idle.ui.vacuum.VoidPage.PAIRS
                         && !dimensionWindow.isOpen() && !settings.paused();
+                // Version 0.279 : plus fort à mesure que le trou noir du vide se remplit.
+                double holeFill = game.isVoidHoleOpen() ? game.voidMass() / idle.core.Game.VOID_MAX_MASS : 0;
                 voidPairsHum.update(pairsShown || forcedHums.contains(TestTools.TestHum.VOID_PAIRS), 1,
-                        settings.sound() && settings.soundKind(SoundKind.VOID), settings.volume());
+                        settings.sound() && settings.soundKind(SoundKind.VOID), settings.volume(), Hum.voidPairsLevel(holeFill));
                 // Le chrono, où qu'on soit, tant qu'il accélère le jeu.
                 chronoHum.update(game.isChronoRunning() && !settings.paused() || forcedHums.contains(TestTools.TestHum.CHRONO),
                         Hum.chronoRate(game.chronoSpeed()), settings.sound() && settings.soundKind(SoundKind.CHRONO), settings.volume());

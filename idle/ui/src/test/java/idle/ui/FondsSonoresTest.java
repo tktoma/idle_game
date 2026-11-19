@@ -30,6 +30,16 @@ class FondsSonoresTest {
         assertEquals(1.5, Hum.BRANE.frames() / Hum.BRANE.rate(), 0.01, "1,5 s de fibres qui craquent");
         assertEquals(0.81, Hum.VOID_PAIRS.frames() / Hum.VOID_PAIRS.rate(), 0.01, "0,81 s de fond des paires du vide (0.272)");
         assertEquals(1, Hum.VOID_PAIRS.channels());
+        // Version 0.276 : 5 dB au-dessus des sons répétitifs, sans saturer (vérifié plus bas avec les autres boucles).
+        assertEquals(5, Hum.VOID_PAIRS_DB, 1e-9);
+        // Version 0.279 : la boucle est faite au plus fort (+11 dB) ; la force la ramène à +5 dB, trou noir vide, et
+        // remonte à mesure qu'il se remplit.
+        assertEquals(Sound.REPEATED_DB + 11, 20 * Math.log10(loudness(Hum.VOID_PAIRS)), 0.3, "le fond des paires du vide, au plus fort");
+        assertEquals(-6, 20 * Math.log10(Hum.voidPairsLevel(0)), 1e-9, "trou noir vide : +5 dB, comme en 0.276");
+        assertEquals(0, 20 * Math.log10(Hum.voidPairsLevel(1)), 1e-9, "rempli : +11 dB");
+        assertEquals(-3, 20 * Math.log10(Hum.voidPairsLevel(0.5)), 1e-9, "à moitié : entre les deux");
+        assertEquals(Hum.voidPairsLevel(1), Hum.voidPairsLevel(7), 1e-12, "au-delà de plein, plein");
+        assertEquals(Hum.voidPairsLevel(0), Hum.voidPairsLevel(Double.NaN), 1e-12);
         for (Hum.Loop each : List.of(Hum.DARK_MATTER, Hum.COLLIDER, Hum.EXPANSION, Hum.BRANE, Hum.DURATION, Hum.CHRONO, Hum.WATERING_CAN, Hum.HOSE,
                 Hum.STORM, Hum.SUN, Hum.VOID_PAIRS)) {
             float[] loop = each.samples();
@@ -190,5 +200,18 @@ class FondsSonoresTest {
         assertTrue(sound.player.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS));
         assertTrue(sent.get(0).stereo(), "en stéréo");
         assertEquals(Sound.SEED_STEREO.length * 2, sent.get(0).bytes().length, "l'enregistrement, pas la synthèse");
+    }
+
+    /** Le volume perçu d'une boucle : la plus forte moyenne quadratique sur 50 ms, comme {@link Sound#loudness}. */
+    private static double loudness(Hum.Loop loop) {
+        float[] x = loop.samples();
+        int window = (int) (0.05 * loop.rate()) * loop.channels();
+        double best = 0;
+        for (int start = 0; start + window <= x.length; start += Math.max(1, window / 4)) {
+            double sum = 0;
+            for (int i = start; i < start + window; i++) sum += x[i] * x[i];
+            best = Math.max(best, Math.sqrt(sum / window));
+        }
+        return best;
     }
 }

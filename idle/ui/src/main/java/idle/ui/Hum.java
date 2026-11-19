@@ -122,7 +122,21 @@ final class Hum {
      * de 0,81 s, sur le sous-onglet Paires du vide ({@code vide-paires.wav}). Il commence et finit à zéro : la boucle ne
      * claque pas.
      */
-    static final Loop VOID_PAIRS = Loop.load("vide-paires.wav");
+    static final Loop VOID_PAIRS = Loop.load("vide-paires.wav", Sound.REPEATED_DB + Hum.VOID_PAIRS_DB + Hum.VOID_PAIRS_RISE_DB);
+    /** Version 0.276 : le fond des paires du vide, un peu plus fort que les sons répétitifs (+5 dB), à la demande du joueur. */
+    static final double VOID_PAIRS_DB = 5;
+    /** Version 0.279 : ce qu'il gagne encore, le trou noir du vide rempli (+6 dB, à peu près deux fois plus fort). */
+    static final double VOID_PAIRS_RISE_DB = 6;
+
+    /**
+     * La force du fond des paires du vide, de 0 à 1, selon le remplissage du trou noir du vide ({@code fill}, de 0 à 1) :
+     * à vide, {@link #VOID_PAIRS_DB} au-dessus des répétitifs, comme avant ; plein, {@link #VOID_PAIRS_RISE_DB} de plus,
+     * en décibels réguliers.
+     */
+    static double voidPairsLevel(double fill) {
+        double f = Double.isFinite(fill) ? Math.max(0, Math.min(1, fill)) : 0;
+        return Math.pow(10, (f - 1) * VOID_PAIRS_RISE_DB / 20);
+    }
 
     /** La vitesse du tic-tac pour cette accélération du chrono : celle du jeu, de ×1 à ×3 au plus (au-delà, il bourdonnerait). */
     static double chronoRate(double speed) { return Double.isFinite(speed) ? Math.max(1, Math.min(3, speed)) : 1; }

@@ -348,6 +348,7 @@ final class TestTools {
             case MILESTONE -> "Jalon";
             case LEVEL -> "Palier de vitesse";
             case COLLISION_NEWS -> "Annonce de collision";
+            case NOTICE -> "Autre annonce";
             case PURCHASE -> "Achat";
             case TOGGLE -> "Interrupteur";
             case PARTICLE -> "Particule (son synthétisé)";

@@ -59,6 +59,11 @@ final class Sound {
         LEVEL,
         /** Version 0.264 : une annonce de collision, à part du palier de vitesse : elle garde le petit bip. */
         COLLISION_NEWS,
+        /**
+         * Version 0.278 : toute autre annonce, celles qui n'ont pas de son à elles (l'enregistrement du joueur,
+         * {@code annonce.wav}) ; le moins important de tous, il ne part que si rien d'autre ne sonne.
+         */
+        NOTICE,
         /** Version 0.210 : un achat à la main, sur une carte à portée ; aucune annonce ne le joue. */
         PURCHASE,
         /** Version 0.210 : une carte qui s'allume ou s'éteint ; aucune annonce ne le joue. */
@@ -127,7 +132,12 @@ final class Sound {
     static final double MAX_PEAK = 0.98;
 
     /** Le niveau visé pour ce son. */
-    static double targetDb(Cue cue) { return cue == Cue.COLLISION ? COLLISION_DB : REPEATED.contains(cue) ? REPEATED_DB : RARE_DB; }
+    static double targetDb(Cue cue) {
+        if (cue == Cue.ELEMENT) return RARE_DB + ELEMENT_DB;
+        if (cue == Cue.ACHIEVEMENT) return RARE_DB + ACHIEVEMENT_DB;
+        if (cue == Cue.NOTICE) return RARE_DB + NOTICE_DB;
+        return cue == Cue.COLLISION ? COLLISION_DB : REPEATED.contains(cue) ? REPEATED_DB : RARE_DB;
+    }
 
     /** Le volume perçu, en amplitude (de 0 à 1) : la plus forte moyenne quadratique sur 50 ms, tous canaux mêlés. */
     static double loudness(short[] samples, int channels) {
@@ -206,7 +216,45 @@ final class Sound {
      * Pixabay, 1,46 s en stéréo), son demi-seconde de silence de début coupée ; à son niveau d'avant. Il sert aussi à
      * l'élément unique et à l'astre mûr, qui partageaient ce son. Vide si le fichier manque : la cloche synthétisée.
      */
+    /**
+     * Un jalon (version 0.277) : le son choisi par le joueur ({@code jalon.wav}, « rollover1 », 0,22 s en stéréo), au
+     * niveau des sons rares. Il sert à toutes les annonces de jalon (cosmos, ensembles, gluons, racines, titres, premier
+     * atome…). Vide si le fichier manque : les deux notes synthétisées.
+     */
+    static final short[] MILESTONE_STEREO = leveled(stereo("jalon.wav"), 2, RARE_DB);
+    /**
+     * Un skin débloqué (version 0.277) : le son choisi par le joueur ({@code skin.wav}, « switch_006 », deux déclics de
+     * 0,15 s, l'un à gauche, l'autre à droite), au niveau des sons rares. Vide si le fichier manque : les trois notes.
+     */
+    static final short[] SKIN_STEREO = leveled(stereo("skin.wav"), 2, RARE_DB);
+    /**
+     * Les hadrons créés (version 0.278) : le son choisi par le joueur ({@code hadron.wav}, une montée de 2,1 s en
+     * stéréo), au niveau des sons répétitifs ; deux au plus en même temps ({@link #MAX_HADRON_VOICES}).
+     */
+    static final short[] HADRON_STEREO = leveled(stereo("hadron.wav"), 2, REPEATED_DB);
+    /** Version 0.278 : au plus deux sons de hadrons à la fois, longs de deux secondes : ils ne prennent pas toutes les lignes. */
+    static final int MAX_HADRON_VOICES = 2;
+    /**
+     * Toute autre annonce (version 0.278) : le son choisi par le joueur ({@code annonce.wav}, « rollover6 », 0,17 s en
+     * stéréo), 6 dB sous les sons rares, comme le nouvel élément.
+     */
+    static final short[] NOTICE_STEREO = leveled(stereo("annonce.wav"), 2, targetDb(Cue.NOTICE));
+    /** Version 0.278 : la suite d'achats des récompenses d'une sonde, une toutes les 70 ms, douze au plus. */
+    static final double PURCHASE_RUN_GAP = 0.07;
+    static final int PURCHASE_RUN_MAX = 12;
+    /**
+     * Un succès (version 0.277) : le son choisi par le joueur ({@code succes.wav}, « toggle_002 », 0,14 s), au niveau des
+     * sons rares ; aussi le palier du collisionneur et l'essai du volume, qui partageaient ce son. Vide si le fichier
+     * manque : les deux notes.
+     */
+    static final short[] ACHIEVEMENT_SOUND = leveled(monoResource("succes.wav"), 1, targetDb(Cue.ACHIEVEMENT));
+    /** Version 0.279 : le succès, 6 dB sous les sons rares, à la demande du joueur. */
+    static final double ACHIEVEMENT_DB = -6;
+    /** Version 0.278 : les autres annonces, 6 dB sous les sons rares. */
+    static final double NOTICE_DB = -6;
     static final short[] ELEMENT_STEREO = leveled(stereo("nouvel-element.wav"), 2, targetDb(Cue.ELEMENT));
+    /** Le nouvel élément, moins fort que les autres sons rares : −6 dB en 0.276, −12 dB depuis la 0.279 (à peu près quatre fois moins fort à l'oreille). */
+    static final double ELEMENT_DB = -12;
     /**
      * Une collision réussie du collisionneur (un croisement raté ne sonne pas) : un enregistrement ({@code collision.wav},
      * 1,5 s), sa montée presque inaudible coupée pour que le choc tombe tout de suite, sa queue inaudible coupée en fondu.
@@ -317,6 +365,7 @@ final class Sound {
 
     /** Le son d'une annonce, ou {@code null} si elle n'en a pas. */
     static Cue cueOf(String text) {
+        if (silent(text)) return null;
         if (text.startsWith("Big Bang")) return Cue.BIG_BANG;
         if (text.startsWith("Univers formé")) return Cue.UNIVERSE;
         if (text.startsWith("Les dix paliers sont atteints")) return Cue.GAME_END;
@@ -331,7 +380,6 @@ final class Sound {
                 || text.startsWith("Palier de taille") || text.startsWith("Le tableau périodique peut exploser")) return Cue.DARK;
         if (text.startsWith("Une comète")) return Cue.COMET;
         if (text.startsWith("Nouvel élément") || text.startsWith("Élément unique")) return Cue.ELEMENT;
-        if (text.startsWith("Collision") && text.contains("quark top")) return Cue.COMET;
         if (text.startsWith("Palier du collisionneur")) return Cue.ACHIEVEMENT;
         if (text.startsWith("Astre mûr") || text.contains("astres mûrs")) return Cue.ELEMENT;
         if (text.startsWith("Sonde") || text.contains("sondes revenues")) return Cue.COMET;
@@ -343,6 +391,20 @@ final class Sound {
                 || text.startsWith("Vide")) return Cue.MILESTONE;
         return null;
     }
+
+    /**
+     * Le son d'une fournée d'annonces une fois triée (version 0.278) : {@code strongest} s'il y en a un ; sinon, si une
+     * annonce n'a pas de son à elle (et n'est pas muette, {@link #silent}), le son des autres annonces
+     * ({@link Cue#NOTICE}) ; sinon rien.
+     */
+    static Cue orNotice(Cue strongest, List<String> news) {
+        if (strongest != null) return strongest;
+        for (String text : news) if (cueOf(text) == null && !silent(text)) return Cue.NOTICE;
+        return null;
+    }
+
+    /** Les annonces muettes, voulues sans son (version 0.279 : le quark top, qui sonnait comme une comète). */
+    static boolean silent(String text) { return text.startsWith("Collision") && text.contains("quark top"); }
 
     /** Le son le plus important d'une fournée d'annonces, ou {@code null}. */
     static Cue strongest(List<String> news) {
@@ -357,6 +419,7 @@ final class Sound {
     /** Joue un son, si le rythme le permet. Vrai s'il est parti. */
     boolean play(Cue cue, int volume) {
         if (broken || volume <= 0 || !allowed(cue)) return false;
+        if (cue == Cue.HADRON) return hadron(volume);
         if (cue.isInterface()) return click(cue, volume);
         // Version 0.271 : les enregistrements mono des annonces (le palier de vitesse, le palier du défi final) partent
         // aussi d'ici ; avant, seuls les stéréo y partaient, et ces annonces gardaient leur son synthétisé.
@@ -369,7 +432,39 @@ final class Sound {
         return send(new Pcm(pcm(sound, Math.min(100, volume) / 100.0), stereo));
     }
 
-    /** L'enregistrement mono de ce son, ou {@code null} (le rond de croissance, le printemps par défaut, la sonde, le clic, l'achat, le palier de vitesse, le palier du défi final, le défi réussi, le défi qui s'ouvre). */
+    /** Des hadrons créés : leur son, deux au plus à la fois (0.278), car il dure deux secondes. Vrai s'il est parti. */
+    private boolean hadron(int volume) {
+        long now = System.nanoTime();
+        while (!hadronEnds.isEmpty() && hadronEnds.peekFirst() <= now) hadronEnds.pollFirst();
+        if (hadronEnds.size() >= MAX_HADRON_VOICES) return false;
+        if (!click(Cue.HADRON, volume)) return false;
+        double seconds = HADRON_STEREO.length > 0 ? HADRON_STEREO.length / 2.0 / RATE : 0.35;
+        hadronEnds.addLast(now + (long) (seconds * 1e9));
+        return true;
+    }
+
+    /**
+     * Les récompenses d'une sonde ouvertes d'un coup (version 0.278) : le son d'achat une fois par carte, une toutes les
+     * {@link #PURCHASE_RUN_GAP} secondes ({@link #purchaseRun}). Vrai s'il est parti.
+     */
+    boolean purchases(int cards, int volume) {
+        if (cards <= 0) return false;
+        if (cards == 1) return click(Cue.PURCHASE, volume);
+        return sound(Cue.PURCHASE, volume, purchaseRun(cards));
+    }
+
+    /** Le son d'achat {@code cards} fois de suite (douze au plus), mêlés sans saturer. */
+    static short[] purchaseRun(int cards) {
+        short[] one = PURCHASE_SOUND.length > 0 ? PURCHASE_SOUND : leveledSound(Cue.PURCHASE);
+        int count = Math.max(1, Math.min(PURCHASE_RUN_MAX, cards)), gap = (int) (PURCHASE_RUN_GAP * RATE);
+        double[] mix = new double[one.length + (count - 1) * gap];
+        for (int k = 0; k < count; k++) for (int i = 0; i < one.length; i++) mix[k * gap + i] += one[i];
+        short[] out = new short[mix.length];
+        for (int i = 0; i < out.length; i++) out[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(mix[i])));
+        return out;
+    }
+
+    /** L'enregistrement mono de ce son, ou {@code null} (le rond de croissance, le printemps par défaut, la sonde, le clic, l'achat, le palier de vitesse, le palier du défi final, le défi réussi, le défi qui s'ouvre, le succès). */
     private static short[] monoRecorded(Cue cue) {
         if (cue == Cue.BLOOM && BLOOM_SOUND.length > 0) return BLOOM_SOUND;
         if (cue == Cue.SEASON && SEASONS.length > 0) return SEASONS[0];
@@ -379,6 +474,7 @@ final class Sound {
         if (cue == Cue.LEVEL && SPEED_SOUND.length > 0) return SPEED_SOUND;
         if (cue == Cue.FINALE && FINALE_TIER_SOUND.length > 0) return FINALE_TIER_SOUND;
         if (cue == Cue.VICTORY && VICTORY_SOUND.length > 0) return VICTORY_SOUND;
+        if (cue == Cue.ACHIEVEMENT && ACHIEVEMENT_SOUND.length > 0) return ACHIEVEMENT_SOUND;
         if (cue == Cue.CHALLENGE && CHALLENGE_SOUND.length > 0) return CHALLENGE_SOUND;
         return null;
     }
@@ -394,6 +490,10 @@ final class Sound {
         if (cue == Cue.UNIVERSE && UNIVERSE_STEREO.length > 0) return UNIVERSE_STEREO;
         if (cue == Cue.GAME_END && GAME_END_STEREO.length > 0) return GAME_END_STEREO;
         if (cue == Cue.ELEMENT && ELEMENT_STEREO.length > 0) return ELEMENT_STEREO;
+        if (cue == Cue.MILESTONE && MILESTONE_STEREO.length > 0) return MILESTONE_STEREO;
+        if (cue == Cue.SKIN && SKIN_STEREO.length > 0) return SKIN_STEREO;
+        if (cue == Cue.HADRON && HADRON_STEREO.length > 0) return HADRON_STEREO;
+        if (cue == Cue.NOTICE && NOTICE_STEREO.length > 0) return NOTICE_STEREO;
         return null;
     }
 
@@ -434,6 +534,8 @@ final class Sound {
 
     /** La fin de chaque particule qui sonne encore, dans l'ordre où elles sont parties (les plus anciennes finissent d'abord, à peu près). */
     private final ArrayDeque<Long> particleEnds = new ArrayDeque<>();
+    /** La fin de chaque son de hadron qui joue encore, en nanosecondes (0.278). */
+    private final ArrayDeque<Long> hadronEnds = new ArrayDeque<>();
 
     /**
      * Une note du piano du miroir ({@code note} de 0 à {@value #PIANO_NOTES} − 1, du grave à l'aigu), ou la faute
@@ -828,6 +930,7 @@ final class Sound {
             // Un défi réussi, si defi-reussi.wav manque.
             case VICTORY -> render(0.75, t -> notes(t, 0.12, 0.75, 523.25, 659.25, 783.99));
             // Deux notes claires.
+            // Un succès, si succes.wav manque.
             case ACHIEVEMENT -> render(0.55, t -> notes(t, 0.11, 0.55, 659.25, 987.77));
             // Un scintillement, une octave sous celui d'avant la 0.247.
             case COMET -> render(0.7, t -> envelope(t, 0.01, 0.7)
@@ -837,6 +940,8 @@ final class Sound {
             // Un nouvel élément, si nouvel-element.wav manque.
             case ELEMENT -> render(0.6, t -> envelope(t, 0.004, 0.6) * (0.5 * sine(440, t) + 0.25 * sine(440 * 2.76, t) * Math.exp(-t * 5)));
             // Un petit bip doux, une octave plus grave depuis la 0.247 : l'annonce de collision, et le palier de vitesse si palier-vitesse.wav manque.
+            // Une autre annonce, si annonce.wav manque : une note douce.
+            case NOTICE -> render(0.15, t -> envelope(t, 0.003, 0.15) * 0.3 * sine(880, t));
             case LEVEL, COLLISION_NEWS -> render(0.18, t -> envelope(t, 0.005, 0.18) * 0.45 * sine(523.25, t));
             // Un accord parfait qui s'élargit, la quinte et l'octave par-dessus, sur une basse qui tient.
             // L'univers formé si univers.wav manque, la fin de la partie si fin.wav manque : leur son d'avant.
@@ -846,6 +951,7 @@ final class Sound {
             // Un palier du défi final, si defi-palier.wav manque.
             case FINALE -> render(1.0, t -> notes(t, 0.16, 1.0, 587.33, 880) + envelope(t, 0.01, 1.0) * 0.2 * sine(146.8, t));
             // Une pluie de trois notes aiguës, très vite.
+            // Un skin débloqué, si skin.wav manque.
             case SKIN -> render(0.5, t -> notes(t, 0.05, 0.5, 1567.98, 1975.53, 2349.32));
             // Deux notes graves, la seconde un demi-ton plus haut : une contrainte qui s'annonce.
             // Un défi qui s'ouvre ou commence, si defi-ouvert.wav manque.
@@ -853,6 +959,7 @@ final class Sound {
             // Un son sombre qui enfle : une quinte grave et un battement.
             case DARK -> render(0.9, t -> envelope(t, 0.2, 0.9) * (0.35 * sine(110, t) + 0.25 * sine(164.8, t) + 0.1 * sine(111.5, t)));
             // Une note claire et sa quinte, ensemble.
+            // Un jalon, si jalon.wav manque.
             case MILESTONE -> render(0.45, t -> envelope(t, 0.005, 0.45) * (0.3 * sine(784, t) + 0.2 * sine(1174.7, t)));
             // Un petit « tchip » de caisse : le prix payé.
             // L'achat : le bip d'avant la 0.263, si achat.wav manque.
@@ -873,6 +980,7 @@ final class Sound {
             case COLLISION -> render(0.25, t -> envelope(t, 0.001, 0.25) * (0.2 * noise(t) * Math.exp(-t * 60)
                     + 0.3 * sine(1200, t) * Math.exp(-t * 12) + 0.15 * sine(1797, t) * Math.exp(-t * 16)));
             // Des hadrons : trois quarks liés, trois notes presque ensemble.
+            // Les hadrons, si hadron.wav manque.
             case HADRON -> render(0.35, t -> notes(t, 0.03, 0.35, 783.99, 987.77, 1174.66));
             // Le vide : une paire née de rien, un souffle grave qui enfle et retombe.
             case VOID -> render(0.6, t -> envelope(t, 0.15, 0.6) * (0.3 * sine(220, t) + 0.15 * sine(110, t)));

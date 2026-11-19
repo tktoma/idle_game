@@ -21,6 +21,28 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.279", "Volumes et quark top", List.of(
+                    "Le son d'un succès est moins fort (−6 dB), et celui du nouvel élément encore moins (−12 dB au lieu de −6).",
+                    "Le quark top ne fait plus de son.",
+                    "Le fond des paires du vide monte avec le remplissage du trou noir du vide : comme avant à vide, jusqu'à "
+                            + "6 dB de plus (à peu près deux fois plus fort) une fois plein.")),
+            new Note("0.278", "Hadrons, sondes et autres annonces", List.of(
+                    "Les hadrons créés font le son choisi par le joueur (une montée de 2 secondes), deux au plus à la fois.",
+                    "Chaque carte de récompense d'une sonde qu'on ouvre fait le son d'achat ; « Tout ouvrir » le joue une fois "
+                            + "par carte, à la suite.",
+                    "Les annonces qui n'avaient pas de son en ont un, choisi par le joueur (un court son doux), quand rien "
+                            + "d'autre ne sonne ; il suit le réglage « Autres annonces ».")),
+            new Note("0.277", "Les sons des jalons, des skins et des succès", List.of(
+                    "Un jalon fait maintenant le son choisi par le joueur (un court son de bascule, 0,22 s), à la place des "
+                            + "deux notes ; toutes les annonces de jalon le partagent (cosmos, ensembles, paliers de gluons, "
+                            + "racines liées, nouveaux titres, premier atome…).",
+                    "Un skin débloqué fait le son choisi par le joueur (deux déclics, l'un à gauche, l'autre à droite), à la "
+                            + "place des trois notes.",
+                    "Un succès fait le son choisi par le joueur (un court déclic), à la place des deux notes ; le palier du "
+                            + "collisionneur et l'essai du volume dans les réglages, qui partageaient ce son, aussi.")),
+            new Note("0.276", "Deux volumes retouchés", List.of(
+                    "Le son du nouvel élément est moins fort (−6 dB, à peu près deux fois moins fort à l'oreille).",
+                    "Le fond des paires du vide est un peu plus fort (+5 dB).")),
             new Note("0.275", "Les skins de la fusion suivent les paliers", List.of(
                     "Sous chaque skin de la fusion des particules, les ondes partent maintenant du bord et se resserrent sur "
                             + "le noyau, comme au classique : le son d'une particule tombe quand son onde le touche (avant, elles "

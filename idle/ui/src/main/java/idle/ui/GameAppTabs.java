@@ -431,10 +431,13 @@ public abstract class GameAppTabs extends GameAppWindow {
         Sound.Cue heard = Sound.strongest(visible.stream().map(Notifier.News::text).toList());
         // Ce qu'amène un automatisme en marche (paliers de vitesse, automatismes offerts, éléments synthétisés) est une
         // action des automatismes : muet sauf si « Sons des automatismes » est activé.
-        Sound.Cue toPlay = Sound.strongest(visible.stream()
+        List<String> playable = visible.stream()
                 .filter(item -> settings.automationSounds() || !Notifier.isAutomatic(item))
-                .map(Notifier.News::text)
-                .filter(text -> { Sound.Cue cue = Sound.cueOf(text); return cue != null && !PLAYER_SOUNDS.contains(cue); }).toList());
+                .map(Notifier.News::text).toList();
+        // Version 0.278 : une annonce sans son à elle fait le son des autres annonces, si rien d'autre ne sonne.
+        Sound.Cue toPlay = Sound.orNotice(Sound.strongest(playable.stream()
+                .filter(text -> { Sound.Cue cue = Sound.cueOf(text); return cue != null && !PLAYER_SOUNDS.contains(cue); }).toList()),
+                playable);
         if (toPlay != null && settings.sound()) sound.play(toPlay, settings.volume());
         // Une explosion annoncée sans animation du joueur : celle d'un automatisme, qui sonne si le réglage le veut.
         if (visible.stream().anyMatch(item -> Sound.cueOf(item.text()) == Sound.Cue.EXPLOSION)) {

@@ -46,6 +46,8 @@ public final class LootPane extends StackPane {
     private String shownText;
     private final List<String[]> history = new ArrayList<>();
     private double pop;
+    /** Ce qui suit l'ouverture de cartes, avec leur nombre (version 0.278 : le son d'achat, une fois par carte). */
+    private java.util.function.IntConsumer onOpened = cards -> { };
 
     public LootPane(Game game, Runnable changed) {
         this.game = game;
@@ -124,15 +126,21 @@ public final class LootPane extends StackPane {
             return;
         }
         reveal(left.get(0));
+        onOpened.accept(1);
         pop = POP;
         refresh();
         changed.run();
     }
 
+    /** Ce qui suit l'ouverture de cartes, avec leur nombre : le jeu y joue le son d'achat, une fois par carte. */
+    public void setOnOpened(java.util.function.IntConsumer action) { onOpened = action == null ? cards -> { } : action; }
+
     /** Ouvre d'un coup tout ce qui reste. */
     void openAll() {
         if (!isOpen()) return;
-        for (ProbeReward reward : game.probeRewardsOf(probe)) reveal(reward);
+        List<ProbeReward> left = game.probeRewardsOf(probe);
+        for (ProbeReward reward : left) reveal(reward);
+        if (!left.isEmpty()) onOpened.accept(left.size());
         pop = POP;
         refresh();
         changed.run();

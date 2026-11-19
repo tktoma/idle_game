@@ -2,6 +2,7 @@ package idle.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -308,7 +309,9 @@ class BruitagesTest {
     void lePalierDeVitesseALeSonDuJoueur() {
         assertEquals(Cue.LEVEL, Sound.cueOf("Palier de vitesse : générateur 3"));
         assertEquals(Cue.COLLISION_NEWS, Sound.cueOf("Collision : 12 hadrons"));
-        assertEquals(Cue.COMET, Sound.cueOf("Collision : un quark top ! À utiliser dans 4 min"), "le quark top reste une comète");
+        assertNull(Sound.cueOf("Collision : un quark top ! À utiliser dans 4 min"), "le quark top est muet (0.279)");
+        assertTrue(Sound.silent("Collision : un quark top ! À utiliser dans 4 min"));
+        assertNull(Sound.orNotice(null, List.of("Collision : un quark top ! À utiliser dans 4 min")), "ni le son des autres annonces");
         assertTrue(Sound.SPEED_SOUND.length > 0, "palier-vitesse.wav se charge");
         assertEquals(0.18, Sound.SPEED_SOUND.length / 44_100.0, 0.01, "0,18 s");
         NiveauxTest.auNiveau(Sound.SPEED_SOUND, 1, Sound.RARE_DB, "le palier de vitesse");
@@ -378,7 +381,8 @@ class BruitagesTest {
     void leNouvelElementALeSonDuJoueur() throws InterruptedException {
         assertTrue(Sound.ELEMENT_STEREO.length > 0, "nouvel-element.wav se charge");
         assertEquals(1.46, Sound.ELEMENT_STEREO.length / 2 / 44_100.0, 0.02, "1,46 s en stéréo");
-        NiveauxTest.auNiveau(Sound.ELEMENT_STEREO, 2, Sound.targetDb(Cue.ELEMENT), "le nouvel élément");
+        NiveauxTest.auNiveau(Sound.ELEMENT_STEREO, 2, Sound.RARE_DB - 12, "le nouvel élément, 12 dB sous les sons rares (0.279)");
+        assertEquals(Sound.RARE_DB - 12, Sound.targetDb(Cue.ELEMENT), 1e-9);
         assertEquals(Cue.ELEMENT, Sound.cueOf("Nouvel élément : Hélium"));
         List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
         Sound sound = new Sound();
@@ -388,5 +392,79 @@ class BruitagesTest {
         assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
         assertTrue(sent.get(0).stereo());
         assertEquals(Sound.ELEMENT_STEREO.length * 2, sent.get(0).bytes().length, "c'est lui qui part");
+    }
+
+    /** Version 0.277 : un jalon prend le son du joueur, en stéréo, au niveau des rares ; toutes les annonces de jalon. */
+    @Test
+    void leJalonALeSonDuJoueur() throws InterruptedException {
+        assertTrue(Sound.MILESTONE_STEREO.length > 0, "jalon.wav se charge");
+        assertEquals(0.224, Sound.MILESTONE_STEREO.length / 2 / 44_100.0, 0.01, "0,22 s en stéréo");
+        NiveauxTest.auNiveau(Sound.MILESTONE_STEREO, 2, Sound.RARE_DB, "le jalon");
+        assertEquals(Cue.MILESTONE, Sound.cueOf("Jalon : 1e6 particules"));
+        assertEquals(Cue.MILESTONE, Sound.cueOf("Premier atome : l'hydrogène"));
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        assertTrue(sound.play(Cue.MILESTONE, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertTrue(sent.get(0).stereo());
+        assertEquals(Sound.MILESTONE_STEREO.length * 2, sent.get(0).bytes().length, "c'est lui qui part");
+    }
+
+    /** Version 0.277 : un skin débloqué et un succès prennent les sons du joueur, au niveau des rares. */
+    @Test
+    void leSkinEtLeSuccesOntLesSonsDuJoueur() throws InterruptedException {
+        assertEquals(0.147, Sound.SKIN_STEREO.length / 2 / 44_100.0, 0.01, "le skin : 0,15 s en stéréo");
+        assertEquals(0.136, Sound.ACHIEVEMENT_SOUND.length / 44_100.0, 0.01, "le succès : 0,14 s");
+        NiveauxTest.auNiveau(Sound.SKIN_STEREO, 2, Sound.RARE_DB, "le skin");
+        NiveauxTest.auNiveau(Sound.ACHIEVEMENT_SOUND, 1, Sound.RARE_DB - 6, "le succès, 6 dB sous les sons rares (0.279)");
+        assertEquals(Cue.SKIN, Sound.cueOf("Skin débloqué : Braise"));
+        assertEquals(Cue.ACHIEVEMENT, Sound.cueOf("Succès : Premier pas"));
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        assertTrue(sound.play(Cue.SKIN, 100));
+        assertTrue(sound.play(Cue.ACHIEVEMENT, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertTrue(sent.get(0).stereo());
+        assertEquals(Sound.SKIN_STEREO.length * 2, sent.get(0).bytes().length, "le skin : c'est lui qui part");
+        assertEquals(Sound.ACHIEVEMENT_SOUND.length * 2, sent.get(1).bytes().length, "le succès : c'est lui qui part");
+    }
+
+    /**
+     * Version 0.278 : les hadrons prennent le son du joueur (deux au plus à la fois) ; une annonce sans son à elle fait le
+     * son des autres annonces ; les récompenses d'une sonde ouvertes d'un coup font le son d'achat une fois par carte.
+     */
+    @Test
+    void hadronsAutresAnnoncesEtRecompensesDesSondes() throws InterruptedException {
+        assertEquals(2.106, Sound.HADRON_STEREO.length / 2 / 44_100.0, 0.02, "les hadrons : 2,1 s en stéréo");
+        NiveauxTest.auNiveau(Sound.HADRON_STEREO, 2, Sound.REPEATED_DB, "les hadrons");
+        assertEquals(0.172, Sound.NOTICE_STEREO.length / 2 / 44_100.0, 0.01, "l'autre annonce : 0,17 s en stéréo");
+        NiveauxTest.auNiveau(Sound.NOTICE_STEREO, 2, Sound.RARE_DB - 6, "l'autre annonce");
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        assertTrue(sound.play(Cue.HADRON, 100));
+        assertTrue(sound.play(Cue.HADRON, 100));
+        assertFalse(sound.play(Cue.HADRON, 100), "deux hadrons à la fois, pas trois");
+        assertTrue(sound.play(Cue.NOTICE, 100));
+        assertTrue(sound.purchases(3, 100));
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(4, sent.size());
+        assertEquals(Sound.HADRON_STEREO.length * 2, sent.get(0).bytes().length, "les hadrons : le son du joueur");
+        assertEquals(Sound.NOTICE_STEREO.length * 2, sent.get(2).bytes().length, "l'autre annonce : le son du joueur");
+        assertEquals(Sound.purchaseRun(3).length * 2, sent.get(3).bytes().length, "trois cartes : trois achats à la suite");
+        // La suite d'achats : une toutes les 70 ms, douze au plus.
+        int gap = (int) (Sound.PURCHASE_RUN_GAP * 44_100);
+        assertEquals(Sound.PURCHASE_SOUND.length + 2 * gap, Sound.purchaseRun(3).length);
+        assertEquals(Sound.purchaseRun(12).length, Sound.purchaseRun(40).length, "douze au plus");
+        // Le son des autres annonces : seulement si rien d'autre ne sonne, et s'il y a une annonce sans son.
+        assertEquals(Cue.NOTICE, Sound.orNotice(null, List.of("Une annonce sans son à elle")));
+        assertEquals(Cue.SKIN, Sound.orNotice(Cue.SKIN, List.of("Skin débloqué : Braise", "Une annonce sans son à elle")));
+        assertNull(Sound.orNotice(null, List.of()));
+        assertNull(Sound.orNotice(null, List.of("Skin débloqué : Braise")), "une annonce qui a son son ne fait pas le son des autres");
     }
 }
