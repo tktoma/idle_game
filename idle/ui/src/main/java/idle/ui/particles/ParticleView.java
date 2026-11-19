@@ -322,8 +322,8 @@ public final class ParticleView extends Canvas {
         g.setLineWidth(2 * Math.max(scale, 0.75) * trailWidth());
         for (double ringAge : rings) {
             double t = ringAge / RING_SECONDS;
-            double radius = target + (maxRadius * 0.95 - target) * (1 - t) * (1 - t);
-            g.setGlobalAlpha((0.25 + 0.6 * t) * fadeIn);
+            double radius = SpeedStages.waveRadius(t, target, maxRadius * 0.95);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * fadeIn);
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
 
@@ -452,7 +452,7 @@ public final class ParticleView extends Canvas {
                     double bx = cx + rb * Math.cos(ab), by = cy + rb * Math.sin(ab);
                     double mx = (x + bx) / 2 + (y - by) * 0.35, my = (y + by) / 2 - (x - bx) * 0.35;
                     g.setStroke(color);
-                    g.setLineWidth(d.size * unit * 0.55);
+                    g.setLineWidth(d.size * unit * 0.55 * skinWidth());
                     g.setGlobalAlpha(alpha);
                     g.strokePolyline(new double[] {bx, mx, x}, new double[] {by, my, y}, 3);
                 } else {
@@ -462,12 +462,14 @@ public final class ParticleView extends Canvas {
                 }
             }
         }
-        // Les ondes de création : en dents de scie, en hexagones, ou en pointillés.
-        g.setLineWidth(2 * unit);
+        // Les ondes de création : en dents de scie, en hexagones, ou en pointillés ; comme au classique (version 0.275),
+        // elles partent du bord et se resserrent sur le noyau, où la particule est récupérée.
+        double target = waveTarget(progress, fast, scale, birth);
+        g.setLineWidth(2 * unit * skinWidth());
         for (double ringAge : rings) {
             double t = ringAge / RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(1 - t);
+            double radius = SpeedStages.waveRadius(t, target, maxRadius * 0.95);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * fadeIn);
             g.setStroke(skin == Skin.FUSION_LONE ? Color.WHITE : color);
             if (skin == Skin.FUSION_FLASH) jagged(g, cx, cy, radius, 14, 0.18, (long) (ringAge * 1000));
             else if (skin == Skin.FUSION_PRISM) polygon(g, cx, cy, radius, 6, spin * 0.2, false);
@@ -475,6 +477,8 @@ public final class ParticleView extends Canvas {
         }
         double coreRadius = coreRadius(progress, fast, scale, birth);
         if (coreRadius <= 0) return;
+        stageRings(g, cx, cy, coreRadius, skin == Skin.FUSION_FLASH ? Color.web("#fff36b") : skin == Skin.FUSION_PRISM ? color : Color.gray(0.85),
+                scale, fadeIn);
         g.setGlobalAlpha(fadeIn);
         if (skin == Skin.FUSION_FLASH) {
             // Une étoile à quatre branches qui crépite.
@@ -536,6 +540,34 @@ public final class ParticleView extends Canvas {
         double coreRadius = 3 + 13 * Math.sqrt(progress);
         if (fast) coreRadius += (1.5 + 1.5 * intensity) * Math.sin(time * (8 + 16 * intensity));
         return coreRadius * scale * birth * birth;
+    }
+
+    /** Où se resserrent les ondes : un peu au-delà du noyau, jamais sur le point même. */
+    double waveTarget(double progress, boolean fast, double scale, double birth) {
+        return Math.max(coreRadius(progress, fast, scale, birth) * 1.2, 4 * scale);
+    }
+
+    /** L'épaisseur des traits d'un skin au palier vu ({@link SpeedStages#skinWidth}). */
+    double skinWidth() { return SpeedStages.skinWidth(shownStage); }
+
+    /** La taille du rond du palier {@code stage} autour du noyau, de 0 à 1 : il grandit au palier atteint, fond au palier quitté. */
+    double ringSize(int stage) { return ringSize[stage]; }
+
+    /**
+     * Les paliers passés sous un skin (version 0.275) : un rond fin par palier autour du noyau, dans la couleur du skin,
+     * comme les ronds du noyau classique. Le rond d'un nouveau palier grandit, celui d'un palier quitté fond.
+     */
+    void stageRings(GraphicsContext g, double cx, double cy, double core, Color color, double scale, double fadeIn) {
+        if (core <= 0) return;
+        double unit = Math.max(scale, 0.8);
+        g.setStroke(color);
+        g.setLineWidth(0.9 * unit);
+        for (int k = 1; k < ringSize.length; k++) {
+            if (ringSize[k] < 0.01) continue;
+            double radius = SpeedStages.stageRingRadius(k, core, unit) * (0.6 + 0.4 * ringSize[k]);
+            g.setGlobalAlpha(0.55 * ringSize[k] * fadeIn);
+            g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
+        }
     }
 
     /** Les poussières en route, pour les skins dessinés à côté. */

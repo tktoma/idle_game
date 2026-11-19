@@ -26,8 +26,9 @@ public final class SpeedStages {
     static final String[] RIMS = {"#ffffff", "#e6f6ff", "#cde9ff", "#b8d6ff", "#b9c3ff", "#c4b0ff", "#c09aff", "#b086f0",
             "#a275e0", "#9568d0", "#8a5cc4", "#7f52b8", "#7448ac", "#6a3fa0"};
     /**
-     * La hauteur du son à chaque palier, en demi-tons autour de l'enregistrement (un fa, 176 Hz) : la pentatonique de fa,
-     * du fa aigu au la grave, retenue à l'écoute.
+     * La hauteur du son à chaque palier, en demi-tons autour de l'enregistrement : une pentatonique, d'une octave
+     * au-dessus jusqu'à vingt demi-tons en dessous, retenue à l'écoute. L'enregistrement est depuis la 0.274 un si bémol
+     * vers 236 Hz (le « bong » du joueur) ; c'était un fa (176 Hz) avant, d'où le fa aigu au la grave d'alors.
      */
     static final int[] SEMITONES = {12, 9, 7, 4, 2, 0, -3, -5, -8, -10, -12, -15, -17, -20};
 
@@ -60,6 +61,31 @@ public final class SpeedStages {
 
     /** Le liseré du palier {@code stage}, en {@code #rrggbb}. */
     public static String rim(int stage) { return RIMS[clamp(stage)]; }
+
+    /**
+     * Le rayon de l'onde d'une particule créée, au classique comme sous chaque skin (version 0.275) : partie du bord
+     * ({@code edge}), elle se resserre sur le noyau ({@code target}) ; {@code t} va de 0 (créée) à 1 (récupérée, son son
+     * part).
+     */
+    public static double waveRadius(double t, double target, double edge) {
+        double left = 1 - Math.max(0, Math.min(1, t));
+        return target + (edge - target) * left * left;
+    }
+
+    /** L'opacité de cette onde : pâle au bord, nette en touchant le noyau. */
+    public static double waveAlpha(double t) { return 0.25 + 0.6 * Math.max(0, Math.min(1, t)); }
+
+    /**
+     * L'épaisseur des traits d'un skin au palier vu (glissé entre deux paliers) : un peu plus épais à chaque palier,
+     * près de trois fois au dernier (version 0.275 ; le classique, lui, épaissit plus).
+     */
+    public static double skinWidth(double shownStage) { return 1 + 0.15 * Math.max(0, Math.min(COUNT - 1, shownStage)); }
+
+    /**
+     * Le rayon du rond du palier {@code stage} (1 à 13) autour du noyau d'un skin (version 0.275) : un rond par palier
+     * passé, chacun un peu plus loin, quelle que soit la taille du noyau.
+     */
+    public static double stageRingRadius(int stage, double core, double unit) { return core * 1.3 + (3 + 2.4 * (clamp(stage) - 1)) * unit; }
 
     private static int clamp(int stage) { return Math.max(0, Math.min(COUNT - 1, stage)); }
 }

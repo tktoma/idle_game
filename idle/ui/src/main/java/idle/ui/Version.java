@@ -21,6 +21,16 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.275", "Les skins de la fusion suivent les paliers", List.of(
+                    "Sous chaque skin de la fusion des particules, les ondes partent maintenant du bord et se resserrent sur "
+                            + "le noyau, comme au classique : le son d'une particule tombe quand son onde le touche (avant, elles "
+                            + "s'élargissaient depuis le centre).",
+                    "Les skins montrent aussi le palier de vitesse : leurs traits s'épaississent à chaque palier, et un rond "
+                            + "fin par palier passé entoure le noyau, dans la couleur du skin (en carrés pour le Pixel).")),
+            new Note("0.274", "Le bong des particules", List.of(
+                    "Une particule récupérée fait maintenant le « bong » choisi par le joueur (une note courte, 0,12 s), à la "
+                            + "place de l'ancien fa ; comme avant, il est plus aigu aux paliers lents et plus grave aux paliers "
+                            + "rapides, où il s'allonge un peu (jusqu'à 0,4 s).")),
             new Note("0.273", "Le son du nouvel élément", List.of(
                     "Un nouvel élément fait maintenant le son choisi par le joueur (1,5 s, en stéréo), à la place de la petite "
                             + "cloche ; l'élément unique et l'astre mûr, qui partageaient ce son, aussi.")),

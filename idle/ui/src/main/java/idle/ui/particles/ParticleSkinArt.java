@@ -8,7 +8,10 @@ import javafx.scene.paint.*;
 /**
  * Les six skins de la fusion de la version 0.191, dessinés à côté de {@link ParticleView} pour le garder lisible. Mêmes
  * mouvements que le classique (poussières qui convergent, ondes à chaque particule créée, noyau qui grossit avec
- * l'avancement), autres formes :
+ * l'avancement), autres formes. Depuis la version 0.275, ils suivent aussi les paliers de vitesse ({@link SpeedStages})
+ * comme le classique : les ondes partent du bord et se resserrent sur le noyau (la particule est récupérée en le
+ * touchant, son son part), leurs traits s'épaississent à chaque palier, et un rond par palier passé entoure le noyau,
+ * dans la couleur du skin :
  * <ul>
  * <li>« Braise » : des braises orangées qui rougeoient en approchant, des étincelles qui montent, un charbon craquelé
  * qui luit par les fentes ;</li>
@@ -63,6 +66,15 @@ final class ParticleSkinArt {
             case FUSION_GLASS -> glass(g, view, cx, cy, maxRadius, scale, birth, fadeIn, core);
             default -> pixel(g, view, cx, cy, maxRadius, scale, birth, fadeIn, core);
         }
+        // Les paliers passés (version 0.275) : un rond par palier autour du noyau, dans la couleur du skin.
+        if (skin == Skin.FUSION_PIXEL) pixelStages(g, view, cx, cy, scale, fadeIn, core);
+        else view.stageRings(g, cx, cy, core, switch (skin) {
+            case FUSION_EMBER -> EMBER;
+            case FUSION_INK -> INK;
+            case FUSION_SWARM -> SWARM;
+            case FUSION_CLOCK -> BRASS;
+            default -> Color.WHITE;
+        }, scale, fadeIn);
         g.setGlobalAlpha(1);
     }
 
@@ -116,13 +128,13 @@ final class ParticleSkinArt {
             g.setGlobalAlpha((1 - life) * 0.9 * fadeIn * birth);
             ParticleView.circle(g, x, y, (1.6 - life) * unit);
         }
-        // Les ondes : un anneau de feu qui s'éteint.
-        g.setLineWidth(3 * unit);
+        // Les ondes : un anneau de feu qui se resserre sur le charbon et s'y avive.
+        g.setLineWidth(3 * unit * view.skinWidth());
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
             g.setStroke(EMBER.interpolate(EMBER_HOT, t));
-            g.setGlobalAlpha((1 - t) * 0.8);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * 0.9 * fadeIn);
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
         if (core <= 0) return;
@@ -178,13 +190,13 @@ final class ParticleSkinArt {
             g.setGlobalAlpha(alpha * 0.9);
             ParticleView.circle(g, x, y, drop);
         }
-        // Les ondes : un cerne d'encre qui s'élargit et pâlit.
+        // Les ondes : un cerne d'encre qui se resserre sur la tache et fonce.
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
             g.setStroke(INK);
-            g.setLineWidth((4 - 3 * t) * unit);
-            g.setGlobalAlpha((1 - t) * 0.5);
+            g.setLineWidth((1 + 3 * t) * unit * view.skinWidth());
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * 0.6 * fadeIn);
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
         if (core <= 0) return;
@@ -242,13 +254,13 @@ final class ParticleSkinArt {
             g.setGlobalAlpha(Math.min(1, t * 4) * fadeIn);
             ParticleView.circle(g, x, y, d.size * unit * 0.45);
         }
-        // Les ondes : un cercle de points qui s'éparpille.
-        g.setLineWidth(1.5 * unit);
+        // Les ondes : un cercle de points qui se resserre sur la ruche.
+        g.setLineWidth(1.5 * unit * view.skinWidth());
         g.setStroke(SWARM);
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(1 - t);
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * fadeIn);
             ParticleView.dashedCircle(g, cx, cy, radius, 24, t * 2);
         }
         if (core <= 0) return;
@@ -314,13 +326,13 @@ final class ParticleSkinArt {
             g.setGlobalAlpha(Math.min(1, t * 4) * fadeIn);
             ParticleView.circle(g, x, y, d.size * unit * 0.7);
         }
-        // Les ondes : le tic, un cercle fin qui part du pivot.
+        // Les ondes : le tic, un cercle fin qui part du cadran et se resserre sur le pivot.
         g.setStroke(IVORY);
-        g.setLineWidth(unit);
+        g.setLineWidth(unit * view.skinWidth());
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(1 - t);
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * fadeIn);
             g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
         }
         if (core <= 0) return;
@@ -368,13 +380,13 @@ final class ParticleSkinArt {
             g.setGlobalAlpha(alpha * 0.85);
             ParticleView.circle(g, x - r * 0.4, y - r * 0.4, r * 0.25);
         }
-        // Les ondes : des gouttelettes projetées en cercle.
+        // Les ondes : des gouttelettes en cercle, qui se resserrent sur la goutte.
         g.setStroke(Color.WHITE);
-        g.setLineWidth(1.5 * unit);
+        g.setLineWidth(1.5 * unit * view.skinWidth());
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(1 - t);
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
+            g.setGlobalAlpha(SpeedStages.waveAlpha(t) * fadeIn);
             ParticleView.dashedCircle(g, cx, cy, radius, 10, t * 0.5);
         }
         if (core <= 0) return;
@@ -421,12 +433,12 @@ final class ParticleSkinArt {
             double side = px * (d.size > 2.2 ? 2 : 1);
             g.fillRect(snap(x, px), snap(y, px), side, side);
         }
-        // Les ondes : des anneaux de carrés jaunes puis orange.
+        // Les ondes : des anneaux de carrés orange puis jaunes, qui se resserrent sur le noyau.
         for (double ringAge : view.rings()) {
             double t = ringAge / ParticleView.RING_SECONDS;
-            double radius = (16 + 60 * t) * scale;
-            g.setGlobalAlpha(t < 0.5 ? 1 : 0.5);
-            pixelRing(g, cx, cy, radius, px, PALETTE[t < 0.5 ? 5 : 6]);
+            double radius = SpeedStages.waveRadius(t, Math.max(core * 1.2, 4 * scale), maxRadius * 0.95);
+            g.setGlobalAlpha(t < 0.5 ? 0.5 : 1);
+            pixelRing(g, cx, cy, radius, px, PALETTE[t < 0.5 ? 6 : 5]);
         }
         // La naissance : un anneau rouge qui se resserre.
         if (birth < 1) {
@@ -449,6 +461,17 @@ final class ParticleSkinArt {
                 double a = arc[0] + 0.3 * Math.sin(k * 0.7 + time);
                 g.fillRect(snap(cx + r * Math.cos(a), px), snap(cy + r * Math.sin(a), px), px, px);
             }
+        }
+    }
+
+    /** Les paliers passés en pixels : un anneau de carrés bleu clair par palier, montré dès qu'il a à moitié grandi. */
+    private static void pixelStages(GraphicsContext g, ParticleView view, double cx, double cy, double scale, double fadeIn, double core) {
+        if (core <= 0) return;
+        double px = Math.max(2, Math.round(4 * scale)), unit = Math.max(scale, 0.8);
+        g.setGlobalAlpha(0.8 * fadeIn);
+        for (int k = 1; k < SpeedStages.COUNT; k++) {
+            if (view.ringSize(k) < 0.5) continue;
+            pixelRing(g, cx, cy, SpeedStages.stageRingRadius(k, core * 1.25, unit * 1.6), px, PALETTE[3]);
         }
     }
 

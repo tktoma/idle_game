@@ -29,3 +29,4 @@ defi-reussi.wav (un défi réussi, 0.271) est le fichier « confirmation_004 » 
 defi-ouvert.wav (un défi qui s'ouvre ou commence, 0.271) est le fichier « drop_003 » du joueur (sans doute du pack Interface Sounds de Kenney, CC0), ramené en mono 44,1 kHz 16 bits, sa fin fondue.
 vide-paires.wav (le fond des paires du vide, 0.272) est le fichier du joueur, ramené en mono 44,1 kHz 16 bits, joué en boucle.
 nouvel-element.wav (un nouvel élément, 0.273) est « Unlock Stinger » (sunovia-unlock-stinger-289722, Pixabay, licence Pixabay : libre d'usage, sans attribution exigée), fourni par le joueur, ramené en 44,1 kHz 16 bits, son silence de début et de fin coupé.
+particule.wav (une particule récupérée) est depuis la 0.274 le fichier « bong_001 » du joueur (sans doute du pack Interface Sounds de Kenney, CC0), en mono 44,1 kHz 16 bits, sa fin fondue ; il remplace le fa d'avant.

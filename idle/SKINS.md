@@ -21,6 +21,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Horloge — **fait en 0.191** (condition retenue : 10 000 fusions) : le noyau est un cadran, les anneaux d'accrétion des aiguilles, chaque particule créée fait avancer la trotteuse ; une heure d'affilée au régime lent.
 - Verre soufflé — **fait en 0.191** (condition retenue : le skin Prisme débloqué) : poussières en bulles irisées (teinte HSB lente), noyau en goutte de verre avec un reflet blanc ; la recherche « Fusion prismatique » et le skin Prisme déjà choisis une heure.
 - Pixel — **fait en 0.191** (condition retenue : un record de reconstruction en moins de 30 s) : tout en carrés de 4 px, couleurs à 8 valeurs, ondes carrées ; un record de reconstruction en moins de trente secondes.
+- Tous ces skins suivent les paliers de vitesse — **fait en 0.275** : comme au classique, les ondes partent du bord et se resserrent sur le noyau (le son tombe quand elles le touchent), les traits s'épaississent à chaque palier, et un rond fin par palier passé entoure le noyau, dans la couleur du skin (en carrés pour le Pixel).
 
 ### Le grand atome (`AtomModelView`, visuel ATOM : Noyau dense, Noyau stellaire)
 - Modèle de Bohr au tableau noir — **fait en 0.191** (condition retenue : 50 atomes) : fond ardoise `#1d2a24`, orbites tracées à la craie (traits irréguliers, poussière), électrons en ronds de craie blanche ; cinquante atomes.

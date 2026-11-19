@@ -67,7 +67,7 @@ class PaliersParticulesTest {
         assertEquals(SpeedStages.COUNT, stages.length, "un son par palier");
         for (int stage = 0; stage < stages.length; stage++) {
             double seconds = stages[stage].length / 44_100.0;
-            assertEquals(0.518 / SpeedStages.pitch(stage), seconds, 0.01, "plus grave, plus long : palier " + (stage + 1));
+            assertEquals(0.12 / SpeedStages.pitch(stage), seconds, 0.005, "le bong (0.274), plus grave, plus long : palier " + (stage + 1));
             // Le son tombe avec l'onde qui atteint le noyau : sa partie forte commence tout de suite, même au plus grave.
             int strong = 0;
             while (strong < stages[stage].length && Math.abs(stages[stage][strong]) < Short.MAX_VALUE / 20) strong++;
@@ -77,6 +77,31 @@ class PaliersParticulesTest {
         // Les passages par zéro par échantillon suivent la hauteur : 2^(32/12), plus de six fois plus au premier palier.
         double first = crossings(stages[0]) / (double) stages[0].length, last = crossings(stages[13]) / (double) stages[13].length;
         assertTrue(first > 3 * last, "le premier palier est bien plus aigu que le dernier : " + first / last);
+    }
+
+    /**
+     * Version 0.275 : les skins suivent le système des paliers. L'onde part du bord et se resserre sur le noyau, nette en
+     * le touchant ; les traits s'épaississent à chaque palier ; un rond par palier passé, chacun plus loin.
+     */
+    @Test
+    void lesSkinsSuiventLesPaliers() {
+        assertEquals(95, SpeedStages.waveRadius(0, 10, 95), 1e-9, "créée : au bord");
+        assertEquals(10, SpeedStages.waveRadius(1, 10, 95), 1e-9, "récupérée : sur le noyau");
+        double previous = 96;
+        for (int i = 0; i <= 10; i++) {
+            double r = SpeedStages.waveRadius(i / 10.0, 10, 95);
+            assertTrue(r < previous, "elle ne fait que se resserrer");
+            previous = r;
+        }
+        assertTrue(SpeedStages.waveAlpha(1) > SpeedStages.waveAlpha(0), "plus nette en arrivant");
+        assertEquals(1, SpeedStages.skinWidth(0), 1e-9);
+        assertEquals(1 + 0.15 * 13, SpeedStages.skinWidth(99), 1e-9, "au plus près de trois fois au dernier palier");
+        assertTrue(SpeedStages.skinWidth(5) > SpeedStages.skinWidth(4));
+        for (int k = 2; k < SpeedStages.COUNT; k++) {
+            assertTrue(SpeedStages.stageRingRadius(k, 8, 1) > SpeedStages.stageRingRadius(k - 1, 8, 1), "chaque rond plus loin : " + k);
+        }
+        assertTrue(SpeedStages.stageRingRadius(1, 8, 1) > 8 * 1.2, "le premier rond hors du noyau");
+        assertTrue(SpeedStages.stageRingRadius(13, 16, 1) < 100 * 0.8, "le dernier tient dans la vue");
     }
 
     @Test

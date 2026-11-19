@@ -289,7 +289,8 @@ final class Sound {
     static final short[] COLLISION_STEREO = leveled(stereo("collision.wav"), 2, COLLISION_DB);
     /**
      * Le son d'une particule récupérée, un par palier de vitesse ({@link idle.ui.particles.SpeedStages}) : l'enregistrement
-     * {@code particule.wav} (un fa, 0,56 s), lu plus vite (plus aigu) ou plus lentement (plus grave) selon le palier.
+     * {@code particule.wav} (depuis la 0.274 le « bong » choisi par le joueur, un si bémol de 0,12 s ; un fa de 0,52 s
+     * avant), lu plus vite (plus aigu) ou plus lentement (plus grave) selon le palier.
      * Vide si la ressource manque : le son synthétisé reste alors.
      */
     static final short[][] PARTICLE_STAGES = particleStages();
