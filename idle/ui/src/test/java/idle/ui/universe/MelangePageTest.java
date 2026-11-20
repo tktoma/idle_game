@@ -265,7 +265,7 @@ class MelangePageTest {
             game.state().setMixStageEarned(game.mixStageGoal());
             run(game, window, 0.5);
             assertEquals("automatique", window.autoBadgeText());
-            assertTrue(window.mixHintText().startsWith("Mélange automatique : il mène le point"), window.mixHintText());
+            assertTrue(window.mixHintText().startsWith("Mélange automatique : sans attente, il mène le point"), window.mixHintText());
             assertEquals(2, game.mixStage(), "il passe seul à l'étape suivante ; joué " + game.isDimensionPlayed(10) + ", palier "
                     + game.dimensionPlayTier(10) + ", gagné " + game.state().mixStageEarned() + " / " + game.mixStageGoal() + ", ouvert "
                     + game.isMixOpen());

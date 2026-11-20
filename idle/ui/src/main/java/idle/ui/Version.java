@@ -21,6 +21,19 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.285", "Plus de mémoire pour les tests de l'interface", List.of(
+                    "Les tests de l'interface ont 2 Go par JVM (1 Go ne suffisait pas sous Windows), une JVM neuve toutes les "
+                            + "10 classes, et au plus deux JVM à la fois.")),
+            new Note("0.284", "Les tests de l'interface ne manquent plus de mémoire", List.of(
+                    "Les tests de l'interface repartent d'une JVM neuve toutes les 25 classes : ce qu'ils gardaient en mémoire "
+                            + "d'un test à l'autre ne s'accumule plus (un des derniers tests manquait de mémoire en CI).")),
+            new Note("0.283", "Le dernier test de l'interface", List.of(
+                    "Le test du mélange automatique attend le texte d'aujourd'hui (« sans attente, il mène le point… »), qui dit "
+                            + "le palier depuis les paliers de cadence.",
+                    "Les tests de l'interface ont 1 Go de mémoire au lieu de 512 Mo : la CI en manquait.")),
+            new Note("0.282", "Des tests qui disent pourquoi", List.of(
+                    "Un test qui échoue écrit maintenant dans la console son nom, l'erreur, sa cause et sa pile : en CI, le "
+                            + "journal ne disait que « There were failing tests ».")),
             new Note("0.281", "Tests de l'interface, suite", List.of(
                     "Quatre tests de l'interface suivent les changements récents : les paliers de celui qui joue sont sur une "
                             + "seule carte (brane), le compte des automatismes achetés compte aussi les améliorations (clicker, "

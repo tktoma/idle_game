@@ -7,7 +7,7 @@
 
 // Le numéro de version du jeu, le même que Version.CURRENT dans l'interface (version 0.126 : avant, chaque module
 // déclarait « 1.0-SNAPSHOT »). Le test VersionTest de l'interface vérifie que les deux disent la même chose.
-version = "0.281"
+version = "0.285"
 
 val toutTester = tasks.register("toutTester") {
     group = "verification"
@@ -28,6 +28,16 @@ subprojects {
         if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "toutTester" }) {
             outputs.upToDateWhen { false }
             outputs.cacheIf { false }
+        }
+        // Version 0.282 : un test qui échoue dit pourquoi dans la console, cause et pile comprises (en CI, le journal
+        // ne montrait que « There were failing tests », sans quel test ni pourquoi). Le module des bots garde en plus
+        // sa sortie standard.
+        testLogging {
+            events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
         }
         // Le bilan de chaque module, une ligne à la fin de ses tests. Le nom du module est lu ici, à la
         // configuration : Gradle 10 refusera qu'une tâche touche à son projet pendant qu'elle s'exécute.
