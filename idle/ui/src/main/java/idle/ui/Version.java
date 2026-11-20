@@ -21,6 +21,12 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.280", "Tests de l'interface corrigés", List.of(
+                    "Quatre tests des dimensions (brane, clicker, grille, miroir) coupaient seulement le palier le plus rapide de "
+                            + "celui qui joue : les paliers plus lents jouaient encore. Ils coupent maintenant tous les paliers, "
+                            + "comme le bouton « Couper ».",
+                    "Le test de l'ordre des onglets attendait les particules juste après les statistiques ; les réglages et les "
+                            + "skins s'y rangent d'abord, comme le jeu le veut.")),
             new Note("0.279", "Volumes et quark top", List.of(
                     "Le son d'un succès est moins fort (−6 dB), et celui du nouvel élément encore moins (−12 dB au lieu de −6).",
                     "Le quark top ne fait plus de son.",

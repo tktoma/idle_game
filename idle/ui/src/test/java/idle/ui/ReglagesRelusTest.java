@@ -75,7 +75,9 @@ class ReglagesRelusTest {
     void lOrdreDesOngletsEcarteLesInconnusEtLesDoublons() {
         List<Tab> order = GameAppTabs.readTabOrder("STATS, INCONNU,,PARTICLES,STATS");
         assertEquals(Tab.STATS, order.get(0));
-        assertEquals(Tab.PARTICLES, order.get(1));
+        // Les onglets que l'ordre ne cite pas se rangent après celui qui les précède d'habitude : les réglages et les skins
+        // suivent les statistiques, avant les particules.
+        assertEquals(List.of(Tab.STATS, Tab.SETTINGS, Tab.SKINS, Tab.PARTICLES), order.subList(0, 4));
         assertEquals(Tab.values().length, order.size(), "chaque onglet une fois");
         assertEquals(List.of(Tab.values()), GameAppTabs.readTabOrder(""), "rien d'écrit : l'ordre d'origine");
     }

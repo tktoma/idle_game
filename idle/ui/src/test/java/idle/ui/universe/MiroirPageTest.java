@@ -203,7 +203,8 @@ class MiroirPageTest {
             run(game, window, 12);
             assertTrue(game.mirrorSuccesses() >= 1, "il refait des motifs");
             assertTrue(window.view().mirrorAutoFlashes() > 0, "et ses clics se voient");
-            game.setDimensionAutomationEnabled(DimensionAutomation.MIRROR_PLAY, false);
+            // Tous les paliers achetés : la pause les coupe tous, comme le bouton « Couper » (sinon les plus lents jouent).
+            game.setDimensionPlayEnabled(9, false);
             window.frame(0.016, true);
             assertTrue(window.autoBadgeText().isEmpty());
             return null;

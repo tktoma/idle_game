@@ -261,7 +261,8 @@ class GrillePageTest {
             run(game, window, 0.5);
             assertTrue(game.gridAutoProbes() >= 1, "ils essaient seuls");
             assertTrue(window.view().gridAutoFlashes() >= 1, "et leurs essais se voient");
-            game.setDimensionAutomationEnabled(DimensionAutomation.GRID_PROBE, false);
+            // Tous les paliers achetés : la pause les coupe tous, comme le bouton « Couper » (sinon les plus lents jouent).
+            game.setDimensionPlayEnabled(8, false);
             window.frame(0.016, true);
             assertTrue(window.autoBadgeText().isEmpty());
             return null;

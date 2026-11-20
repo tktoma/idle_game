@@ -164,7 +164,8 @@ class ClickerPageTest {
             run(game, window, 1);
             assertTrue(game.clickerAutoClicks() >= 5, "six clics par seconde");
             assertTrue(window.view().clickerAutoFlashes() > 0 && window.view().clickerMarksShown() > 0, "qui se voient comme des clics");
-            game.setDimensionAutomationEnabled(DimensionAutomation.CLICKER_PLAY, false);
+            // Tous les paliers achetés : la pause les coupe tous, comme le bouton « Couper » (sinon les plus lents jouent).
+            game.setDimensionPlayEnabled(7, false);
             window.frame(0.016, true);
             assertTrue(window.autoBadgeText().isEmpty());
             return null;

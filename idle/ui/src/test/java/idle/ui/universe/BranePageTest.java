@@ -204,7 +204,8 @@ class BranePageTest {
             long sent = game.braneWavesSent();
             run(game, window, 3.5);
             assertTrue(game.braneWavesSent() > sent, "elle tire seule");
-            game.setDimensionAutomationEnabled(DimensionAutomation.BRANE_PULL, false);
+            // Tous les paliers achetés : la pause les coupe tous, comme le bouton « Couper » (sinon les plus lents jouent).
+            game.setDimensionPlayEnabled(6, false);
             window.frame(0.016, true);
             assertTrue(window.autoBadgeText().isEmpty(), "en pause : plus de mention");
             return null;
