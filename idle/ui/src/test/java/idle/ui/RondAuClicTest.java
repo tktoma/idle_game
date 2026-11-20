@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -64,6 +65,9 @@ class RondAuClicTest {
             tab.getProperties().put(tabKey, true);
             Label tabText = new Label("Particules");
             tab.setGraphic(tabText);
+            // Le texte n'est enfant du bouton qu'une fois son habillage créé : dans une scène, après le style.
+            new Scene(new VBox(tab));
+            tab.applyCss();
             assertTrue(ClickRings.hasOwnSound(tab, tabKey), "un onglet a son propre son");
             assertTrue(ClickRings.hasOwnSound(tabText, tabKey));
             return null;

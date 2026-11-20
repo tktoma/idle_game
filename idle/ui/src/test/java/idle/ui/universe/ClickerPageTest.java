@@ -252,7 +252,9 @@ class ClickerPageTest {
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Clicker : seuil : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Clics du clicker : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Météo de la graine : Variable")), rows.toString());
-            assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : 1 / " + DimensionAutomation.values().length + " achetés")), rows.toString());
+            // Les améliorations achetées d'abord comptent aussi, avec le premier palier.
+            assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : " + game.dimensionAutomationsOwned()
+                    + " / " + DimensionAutomation.values().length + " achetés")), rows.toString());
             assertTrue(Version.CURRENT.compareTo("0.155") >= 0, Version.CURRENT);
             return null;
         });

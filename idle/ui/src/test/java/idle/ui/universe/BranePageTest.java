@@ -5,6 +5,7 @@ import idle.core.history.Pace;
 import idle.core.history.PurchaseHistory;
 import javafx.event.EventType;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
@@ -264,7 +265,8 @@ class BranePageTest {
             Card play = pane.card(DimensionAutomation.BRANE_PULL_5S);
             assertEquals(Card.State.READY, play.state());
             assertTrue(play.text().contains("Tire la membrane à fond sur le point qui en touche le plus"), play.text());
-            assertEquals(Card.State.LOCKED, pane.card(DimensionAutomation.BRANE_PULL_2S).state());
+            // Version 0.268 : les cinq paliers sur une seule carte ; le suivant s'y achète.
+            assertSame(play, pane.card(DimensionAutomation.BRANE_PULL_2S));
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL_5S));
             StatsPage stats = new StatsPage(game, new PurchaseHistory(), new Pace());

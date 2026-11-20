@@ -21,6 +21,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.281", "Tests de l'interface, suite", List.of(
+                    "Quatre tests de l'interface suivent les changements récents : les paliers de celui qui joue sont sur une "
+                            + "seule carte (brane), le compte des automatismes achetés compte aussi les améliorations (clicker, "
+                            + "grille), et le texte d'un onglet n'est dans son bouton qu'une fois affiché (rond au clic).",
+                    "Le test du mélange automatique dit maintenant ce qu'il voit quand il échoue, pour trouver la cause.")),
             new Note("0.280", "Tests de l'interface corrigés", List.of(
                     "Quatre tests des dimensions (brane, clicker, grille, miroir) coupaient seulement le palier le plus rapide de "
                             + "celui qui joue : les paliers plus lents jouaient encore. Ils coupent maintenant tous les paliers, "
