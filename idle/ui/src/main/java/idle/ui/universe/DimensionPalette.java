@@ -7,7 +7,7 @@ import javafx.scene.paint.Color;
  * La palette des dix dimensions ({@link SkinVisual#DIMENSION_PALETTE}) : la couleur de chaque dimension,
  * que lisent l'arène ({@link DimensionView}), sa fenêtre ({@link DimensionWindow} : éclats, améliorations, étape du
  * mélange) et la carte des dimensions sous ses skins ({@link DimensionsMapSkinArt}). Cinq palettes libres, en bloc :
- * « Pastel » (les couleurs d'origine, tirées vers le blanc), « Daltonien sûr » (la palette d'Okabe et Ito, que
+ * « Pastel » (les couleurs d'origine, tirées vers le blanc), « Adapté aux daltoniens » (la palette d'Okabe et Ito, que
  * distinguent les daltoniens, complétée de deux gris), « Monochrome » (des bleus-gris de plus en plus clairs),
  * « Arc-en-ciel saturé » (dix teintes vives à égale distance) et « Sépia » (des bruns, du foncé au clair). Sans skin,
  * l'arène garde sa palette d'origine et la fenêtre ses couleurs d'origine : rien ne change.

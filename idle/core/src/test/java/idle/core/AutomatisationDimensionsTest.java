@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
@@ -76,7 +76,7 @@ class AutomatisationDimensionsTest {
         assertTrue(DimensionAutomation.PLANE_AIM.isInstant() && !DimensionAutomation.PLANE_AIM_05S.isInstant());
         assertEquals("Visée automatique, toutes les 5 s", DimensionAutomation.PLANE_AIM_5S.title());
         assertEquals("Visée automatique, chaque seconde", DimensionAutomation.PLANE_AIM_1S.title());
-        assertEquals("Visée automatique, toutes les 0,5 s", DimensionAutomation.PLANE_AIM_05S.title());
+        assertEquals("Visée automatique, toutes les 0.5 s", DimensionAutomation.PLANE_AIM_05S.title());
         assertEquals("Visée automatique, sans attente", DimensionAutomation.PLANE_AIM.title());
         assertEquals(Double.POSITIVE_INFINITY, DimensionAutomation.PLANE_VALUE.playPeriod());
         // Les prix : avec la ressource de la dimension, en part de son seuil, plus chers à chaque automatisme.

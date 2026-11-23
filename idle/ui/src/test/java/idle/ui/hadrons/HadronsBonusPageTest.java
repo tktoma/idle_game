@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.*;
 import idle.ui.FxTestSupport;
 import idle.ui.common.Card;
@@ -44,10 +44,10 @@ class HadronsBonusPageTest {
 
     @Test
     void lesCartesMontrentLeurBonusEtCeQuIlDeviendrait() {
-        assertEquals("Atomes par fusion : ×1 → ×1,08 avec un de plus, ×1,30 avec « Lier tout »", HadronsPage.bonusText(Hadron.PROTON, 0, 15));
-        assertEquals("Atomes par fusion : ×1,7501 → ×1,7502 avec un de plus", HadronsPage.bonusText(Hadron.PROTON, 1000, 0),
+        assertEquals("Atomes par fusion : ×1 → ×1.08 avec un de plus, ×1.30 avec « Lier tout »", HadronsPage.bonusText(Hadron.PROTON, 0, 15));
+        assertEquals("Atomes par fusion : ×1.7501 → ×1.7502 avec un de plus", HadronsPage.bonusText(Hadron.PROTON, 1000, 0),
                 "assez de décimales pour que la hausse se lise");
-        assertEquals("Prix des générateurs : ÷1,25 → ÷1,26 avec un de plus", HadronsPage.bonusText(Hadron.B_MESON, 9, 1));
+        assertEquals("Prix des générateurs : ÷1.25 → ÷1.26 avec un de plus", HadronsPage.bonusText(Hadron.B_MESON, 9, 1));
         FxTestSupport.fx(() -> {
             Game game = open();
             HadronsPage page = page(game);
@@ -57,7 +57,7 @@ class HadronsBonusPageTest {
             assertFalse(page.effectNote().getText().contains("pas encore d'effet"), page.effectNote().getText());
             assertTrue(page.effectNote().getText().contains("log₁₀(1 + n)"), page.effectNote().getText());
             page.bindOneButton(Hadron.PROTON).fire();
-            assertTrue(page.bonusText(Hadron.PROTON).startsWith("Atomes par fusion : ×1,08 → ×1,12"), page.bonusText(Hadron.PROTON));
+            assertTrue(page.bonusText(Hadron.PROTON).startsWith("Atomes par fusion : ×1.08 → ×1.12"), page.bonusText(Hadron.PROTON));
             assertEquals(game.hadronBoost(Hadron.PROTON), 1 + Game.HADRON_BOOST_STEP * Math.log10(2), 1e-12);
             page.bindAllButton(Hadron.PROTON).fire();
             // L'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée.

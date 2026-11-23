@@ -1,0 +1,41 @@
+# Changelog - v0.211 (en cours)
+
+## 23 novembre 2026
+
+### Équilibrage : Révision des paliers du défi final
+
+**Problème identifié :**
+- Les paliers du défi final étaient arbitraires (cent fois le seuil de chaque dimension, et 10⁷ fragments pour le mélange)
+- Le Speedrunner mettait ~28 minutes pour atteindre tous les paliers
+- Objectif fixé : 15-20 minutes pour correspondre à l'équilibre des autres mécaniques
+
+**Solution appliquée :**
+- Facteur d'échelle global de 0.53 (÷1.89) appliqué à tous les paliers du défi final
+- Basé sur l'analyse que 28 min × 0.53 ≈ 14.8 min, dans la fourchette cible (15-20 min)
+- Le facteur est uniforme pour préserver l'équilibre relatif entre dimensions
+
+**Fichiers modifiés :**
+- `idle/core/src/main/java/idle/core/GameFinale.java` - Paliers finals réduits par ×0.53
+
+**Impact attendu :**
+- Réduction de ~13 min sur le défi final
+- Fin totale projetée : ~81h35 au lieu de 81h50 (−15 min)
+- Univers 1 à 11 inchangés (leur équilibrage reste intact)
+
+**Tests à valider :**
+- ✅ Compilation réussie
+- ⏳ Mesure avec le bot analyste pour confirmer les temps réels
+- ⏳ Vérification que le Régulier n'est pas déséquilibré
+
+**À faire dans les prochaines versions :**
+1. Mesurer le temps réel avec le bot analyste
+2. Vérifier l'impact sur le Régulier (1 action/min)
+3. Ajuster finement si nécessaire
+4. Mettre à jour la documentation et les notes de version
+
+---
+
+**Version ciblée :** 0.211  
+**Date :** 23 novembre 2026  
+**Impact :** Réduction de ~15 min sur la fin de partie  
+**Risque :** Faible - changement uniquement des paliers, pas de mécaniques

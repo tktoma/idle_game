@@ -69,7 +69,7 @@ class FenetreSkinsTest {
                     assertTrue(toast.getStyle().contains("#9fd0ff"), skin.label() + " garde le liseré de couleur");
                     if (skin == Skin.TOAST_TELEGRAM) assertTrue(toast.getText().endsWith(" STOP"), "le télégramme finit par STOP");
                     else assertEquals("Nouveau succès : Première étincelle", toast.getText(), skin.label());
-                    assertEquals(skin == Skin.TOAST_POSTIT ? -1.5 : 0, toast.getRotate(), skin.label());
+                    assertEquals(skin == Skin.TOAST_STICKY_NOTE ? -1.5 : 0, toast.getRotate(), skin.label());
                     assertEquals(2, toasts.shown(), "les messages se comptent");
                     toasts.frame(6);
                     assertEquals(0, toasts.count());
@@ -213,7 +213,7 @@ class FenetreSkinsTest {
             Button plain = new Button("Créer le premier générateur");
             plain.setStyle(classic);
             StartButtonArt.dress(plain, null);
-            StartButtonArt.dress(plain, Skin.TOAST_POSTIT);
+            StartButtonArt.dress(plain, Skin.TOAST_STICKY_NOTE);
             assertEquals(classic, plain.getStyle(), "le classique et un skin d'ailleurs ne changent rien");
             assertNull(plain.getGraphic());
             return null;
@@ -225,7 +225,7 @@ class FenetreSkinsTest {
         FxTestSupport.fx(() -> {
             assertEquals(5, skinsOf(SkinVisual.CURSOR).size());
             assertNull(CursorSkinArt.cursor(null));
-            assertNull(CursorSkinArt.cursor(Skin.TOAST_POSTIT));
+            assertNull(CursorSkinArt.cursor(Skin.TOAST_STICKY_NOTE));
             for (Skin skin : skinsOf(SkinVisual.CURSOR)) {
                 ImageCursor cursor = CursorSkinArt.cursor(skin);
                 assertNotNull(cursor, skin.label());

@@ -16,7 +16,7 @@ import javafx.scene.shape.StrokeLineCap;
  * l'onglet ramenée à huit valeurs par canal ;</li>
  * <li>« Constellation » : les points deviennent des étoiles à quatre rayons qui scintillent, reliées par des fils fins
  * ;</li>
- * <li>« Emoji » : des ronds pleins et vifs, cernés de sombre, un reflet blanc, les liens en traits épais.</li>
+ * <li>« Émoji » : des ronds pleins et vifs, cernés de sombre, un reflet blanc, les liens en traits épais.</li>
  * </ul> « Figées » ne change pas le dessin : elle arrête le temps, dans {@link TabIcon}.
  */
 public final class TabIconSkinArt {
@@ -218,7 +218,7 @@ public final class TabIconSkinArt {
             case ICONS_CHALK -> drawChalk(g, m, s, c, alpha);
             case ICONS_PIXEL -> drawPixel(g, m, s, color, alpha);
             case ICONS_CONSTELLATION -> drawConstellation(g, m, s, c, color, alpha, time);
-            case ICONS_EMOJI -> drawEmoji(g, m, s, c, color, alpha);
+            case ICONS_EMOJI -> drawEmojiIcons(g, m, s, c, color, alpha);
             default -> { }   // « Figées » et les skins d'autres visuels ne passent pas ici
         }
         g.setGlobalAlpha(1);
@@ -313,7 +313,7 @@ public final class TabIconSkinArt {
     }
 
     /** Des emoji : des ronds pleins et vifs cernés de sombre, un reflet blanc, les liens en traits épais. */
-    private static void drawEmoji(GraphicsContext g, Model m, double s, double c, Color color, double alpha) {
+    private static void drawEmojiIcons(GraphicsContext g, Model m, double s, double c, Color color, double alpha) {
         Color vivid = color.deriveColor(0, 1.8, 1.1, 1);
         g.setGlobalAlpha(alpha);
         g.setStroke(OUTLINE);

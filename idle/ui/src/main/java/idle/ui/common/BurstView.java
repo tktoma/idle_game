@@ -120,7 +120,7 @@ public final class BurstView extends Canvas {
 
     private void vortex(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
         double dark = envelope(t, 0.2, 0.85);
-        veil(g, w, h, Color.web("#0d0518"), 0.75 * dark);
+        veil(g, w, h, Webs.C_0D0518, 0.75 * dark);
         // Les bras : ils s'ouvrent jusqu'aux coins pendant les deux premiers tiers, puis se referment d'un coup.
         double open = t < 0.7 ? Math.sqrt(t / 0.7) : 1 - (t - 0.7) / 0.3 * 0.9;
         double reach = far * 1.1 * open;
@@ -135,17 +135,17 @@ public final class BurstView extends Canvas {
                 xs[k] = cx + reach * u * Math.cos(a);
                 ys[k] = cy + reach * u * Math.sin(a);
             }
-            g.setStroke(arm % 2 == 0 ? Color.web("#7a3cff") : Color.web("#d06bff"));
+            g.setStroke(arm % 2 == 0 ? Webs.C_7A3CFF : Webs.C_D06BFF);
             g.setLineWidth(Math.max(2, far * 0.06 * (1 - 0.5 * t)));
             g.setGlobalAlpha(0.35 * dark);
             g.strokePolyline(xs, ys, steps);
             g.setLineWidth(Math.max(1.5, far * 0.012));
             g.setGlobalAlpha(0.9 * dark);
-            g.setStroke(Color.web("#f3e8ff"));
+            g.setStroke(Webs.C_F3E8FF);
             g.strokePolyline(xs, ys, steps);
         }
         // Les débris aspirés : ils tournent en se rapprochant du centre.
-        g.setFill(Color.web("#efe4ff"));
+        g.setFill(Webs.C_EFE4FF);
         for (int k = 0; k < 160; k++) {
             double seed = (k * 0.618034) % 1;
             double phase = (seed + t * 2.5) % 1;
@@ -157,11 +157,11 @@ public final class BurstView extends Canvas {
         }
         // Le cœur du vortex : noir cerclé de lumière, qui grossit puis avale tout.
         double core = far * (0.05 + 0.1 * t + (t > 0.7 ? (t - 0.7) * 2 : 0));
-        glow(g, cx, cy, core * 2.2, Color.web("#b07bff"), 0.9 * dark);
+        glow(g, cx, cy, core * 2.2, Webs.C_B07BFF, 0.9 * dark);
         g.setGlobalAlpha(dark);
-        g.setFill(Color.web("#05010a"));
+        g.setFill(Webs.C_05010A);
         g.fillOval(cx - core, cy - core, core * 2, core * 2);
-        g.setStroke(Color.web("#f3e8ff"));
+        g.setStroke(Webs.C_F3E8FF);
         g.setLineWidth(Math.max(1.5, far * 0.006));
         g.strokeOval(cx - core, cy - core, core * 2, core * 2);
     }
@@ -192,7 +192,7 @@ public final class BurstView extends Canvas {
     private void bigBang(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
         double small = Math.min(w, h);
         double fade = t > 0.82 ? (1 - t) / 0.18 : 1;
-        veil(g, w, h, Color.web("#04030a"), 0.93 * Math.min(1, t / 0.12) * fade);
+        veil(g, w, h, Webs.C_04030A, 0.93 * Math.min(1, t / 0.12) * fade);
         if (t < BANG) {
             // L'effondrement : la matière tombe en tournant vers un point qui s'allume et tremble.
             double p = t / BANG, fall = p * p;
@@ -272,14 +272,14 @@ public final class BurstView extends Canvas {
 
     private void pulsar(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
         double on = envelope(t, 0.1, 0.85);
-        veil(g, w, h, Color.web("#020a12"), 0.6 * on);
+        veil(g, w, h, Webs.C_020A12, 0.6 * on);
         double turn = 12 * t;
         for (int side = 0; side < 2; side++) {
             double a = turn + side * Math.PI;
             double spread = 0.12 + 0.06 * Math.sin(age * 9);
             double[] xs = {cx, cx + far * 1.2 * Math.cos(a - spread), cx + far * 1.2 * Math.cos(a + spread)};
             double[] ys = {cy, cy + far * 1.2 * Math.sin(a - spread), cy + far * 1.2 * Math.sin(a + spread)};
-            g.setFill(Color.web("#3cf0ff"));
+            g.setFill(Webs.C_3CF0FF);
             g.setGlobalAlpha(0.35 * on);
             g.fillPolygon(xs, ys, 3);
             g.setStroke(Color.WHITE);
@@ -287,7 +287,7 @@ public final class BurstView extends Canvas {
             g.setGlobalAlpha(0.95 * on);
             g.strokeLine(cx, cy, cx + far * 1.2 * Math.cos(a), cy + far * 1.2 * Math.sin(a));
         }
-        g.setStroke(Color.web("#bff8ff"));
+        g.setStroke(Webs.C_BFF8FF);
         for (int k = 0; k < 6; k++) {
             double phase = (t * 7 + k / 6.0) % 1;
             double r = far * phase;
@@ -300,8 +300,8 @@ public final class BurstView extends Canvas {
 
     private void aurora(GraphicsContext g, double w, double h, double t) {
         double on = envelope(t, 0.2, 0.75);
-        veil(g, w, h, Color.web("#010812"), 0.8 * on);
-        Color[] tints = {Color.web("#5dffa8"), Color.web("#6fc8ff"), Color.web("#c98bff"), Color.web("#5dffa8"), Color.web("#9bffd8")};
+        veil(g, w, h, Webs.C_010812, 0.8 * on);
+        Color[] tints = {Webs.C_5DFFA8, Webs.C_6FC8FF, Webs.C_C98BFF, Webs.C_5DFFA8, Webs.C_9BFFD8};
         int steps = 120;
         double rise = h * (1 - 1.1 * Math.min(1, t * 1.6));
         for (int band = 0; band < tints.length; band++) {
@@ -328,23 +328,23 @@ public final class BurstView extends Canvas {
 
     private void supernova(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
         double small = Math.min(w, h);
-        veil(g, w, h, Color.web("#0d0306"), 0.7 * envelope(t, 0.1, 0.8));
+        veil(g, w, h, Webs.C_0D0306, 0.7 * envelope(t, 0.1, 0.8));
         // L'étoile enfle pendant le premier quart, de plus en plus vite, en tremblant.
         if (t < 0.25) {
             double u = t / 0.25;
             double r = small * (0.04 + 0.12 * u * u) * (1 + 0.05 * Math.sin(age * 40));
-            glow(g, cx, cy, r * 3, Color.web("#ff8a2a"), 0.9);
+            glow(g, cx, cy, r * 3, Webs.C_FF8A2A, 0.9);
             g.setGlobalAlpha(1);
-            g.setFill(Color.web("#fff6d8"));
+            g.setFill(Webs.C_FFF6D8);
             g.fillOval(cx - r, cy - r, r * 2, r * 2);
             return;
         }
         double u = (t - 0.25) / 0.75;
         // L'éclair : l'écran blanchit d'un coup, puis s'éteint.
-        veil(g, w, h, Color.web("#fff3d8"), Math.max(0, 0.9 - u * 3));
-        glow(g, cx, cy, far * (0.3 + 1.0 * u), Color.web("#ff8a2a"), 0.9 * (1 - u));
+        veil(g, w, h, Webs.C_FFF3D8, Math.max(0, 0.9 - u * 3));
+        glow(g, cx, cy, far * (0.3 + 1.0 * u), Webs.C_FF8A2A, 0.9 * (1 - u));
         // Les branches de l'éclat, jusqu'aux bords.
-        g.setFill(Color.web("#fff3b0"));
+        g.setFill(Webs.C_FFF3B0);
         int spikes = 16;
         for (int k = 0; k < spikes; k++) {
             double a = k * 2 * Math.PI / spikes + 0.2;
@@ -359,12 +359,12 @@ public final class BurstView extends Canvas {
         for (int k = 0; k < 220; k++) {
             double a = k * 2.39996;
             double r = shell * (0.85 + 0.2 * ((k * 0.618034) % 1));
-            g.setFill(k % 3 == 0 ? Color.web("#ff5a3c") : k % 3 == 1 ? Color.web("#ffd27f") : Color.web("#d15aff"));
+            g.setFill(k % 3 == 0 ? Webs.C_FF5A3C : k % 3 == 1 ? Webs.C_FFD27F : Webs.C_D15AFF);
             g.setGlobalAlpha(0.9 * (1 - u));
             double size = small * (0.004 + 0.008 * ((k * 0.381966) % 1));
             g.fillOval(cx + r * Math.cos(a) - size, cy + r * Math.sin(a) - size, size * 2, size * 2);
         }
-        g.setStroke(Color.web("#ff9a3c"));
+        g.setStroke(Webs.C_FF9A3C);
         g.setLineWidth(Math.max(2, small * 0.01 * (1 - u)));
         g.setGlobalAlpha(0.7 * (1 - u));
         g.strokeOval(cx - shell, cy - shell, shell * 2, shell * 2);
@@ -375,8 +375,8 @@ public final class BurstView extends Canvas {
         // D'abord l'écran se fêle : des fissures qui partent du centre et se ramifient jusqu'aux bords.
         double crack = Math.min(1, t / 0.4);
         double fade = t > 0.75 ? (1 - t) / 0.25 : 1;
-        veil(g, w, h, Color.web("#06101e"), 0.55 * fade);
-        g.setStroke(Color.web("#e8f8ff"));
+        veil(g, w, h, Webs.C_06101E, 0.55 * fade);
+        g.setStroke(Webs.C_E8F8FF);
         int cracks = 14;
         for (int k = 0; k < cracks; k++) {
             double a = 2 * Math.PI * k / cracks + 0.3 * Math.sin(k * 7.1);
@@ -400,7 +400,7 @@ public final class BurstView extends Canvas {
             }
         }
         if (t < 0.4) {
-            glow(g, cx, cy, small * 0.2 * crack, Color.web("#dff4ff"), 0.8);
+            glow(g, cx, cy, small * 0.2 * crack, Webs.C_DFF4FF, 0.8);
             return;
         }
         // Puis tout vole en éclats : des morceaux de verre de toutes tailles, qui partent en tournant.
@@ -415,7 +415,7 @@ public final class BurstView extends Canvas {
             double size = small * (0.02 + 0.05 * ((k * 0.2928932) % 1));
             double[] xs = {x + size * Math.cos(spin), x + size * 0.4 * Math.cos(spin + 2.1), x + size * 0.7 * Math.cos(spin + 3.7), x + size * 0.3 * Math.cos(spin + 5)};
             double[] ys = {y + size * Math.sin(spin), y + size * 0.4 * Math.sin(spin + 2.1), y + size * 0.7 * Math.sin(spin + 3.7), y + size * 0.3 * Math.sin(spin + 5)};
-            g.setFill(k % 3 == 0 ? Color.web("#e8f8ff") : k % 3 == 1 ? Color.web("#9fd8ff") : Color.web("#c9b8ff"));
+            g.setFill(k % 3 == 0 ? Webs.C_E8F8FF : k % 3 == 1 ? Webs.C_9FD8FF : Webs.C_C9B8FF);
             g.setGlobalAlpha(0.75 * fade);
             g.fillPolygon(xs, ys, 4);
             g.setStroke(Color.WHITE);
@@ -435,5 +435,39 @@ public final class BurstView extends Canvas {
         g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,
                 new Stop(0, colorWith(color, strength)), new Stop(1, colorWith(color, 0))));
         g.fillOval(x - size, y - size, 2 * size, 2 * size);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_010812 = Color.web("#010812");
+        static final Color C_020A12 = Color.web("#020a12");
+        static final Color C_04030A = Color.web("#04030a");
+        static final Color C_05010A = Color.web("#05010a");
+        static final Color C_06101E = Color.web("#06101e");
+        static final Color C_0D0306 = Color.web("#0d0306");
+        static final Color C_0D0518 = Color.web("#0d0518");
+        static final Color C_3CF0FF = Color.web("#3cf0ff");
+        static final Color C_5DFFA8 = Color.web("#5dffa8");
+        static final Color C_6FC8FF = Color.web("#6fc8ff");
+        static final Color C_7A3CFF = Color.web("#7a3cff");
+        static final Color C_9BFFD8 = Color.web("#9bffd8");
+        static final Color C_9FD8FF = Color.web("#9fd8ff");
+        static final Color C_B07BFF = Color.web("#b07bff");
+        static final Color C_BFF8FF = Color.web("#bff8ff");
+        static final Color C_C98BFF = Color.web("#c98bff");
+        static final Color C_C9B8FF = Color.web("#c9b8ff");
+        static final Color C_D06BFF = Color.web("#d06bff");
+        static final Color C_D15AFF = Color.web("#d15aff");
+        static final Color C_DFF4FF = Color.web("#dff4ff");
+        static final Color C_E8F8FF = Color.web("#e8f8ff");
+        static final Color C_EFE4FF = Color.web("#efe4ff");
+        static final Color C_F3E8FF = Color.web("#f3e8ff");
+        static final Color C_FF5A3C = Color.web("#ff5a3c");
+        static final Color C_FF8A2A = Color.web("#ff8a2a");
+        static final Color C_FF9A3C = Color.web("#ff9a3c");
+        static final Color C_FFD27F = Color.web("#ffd27f");
+        static final Color C_FFF3B0 = Color.web("#fff3b0");
+        static final Color C_FFF3D8 = Color.web("#fff3d8");
+        static final Color C_FFF6D8 = Color.web("#fff6d8");
     }
 }

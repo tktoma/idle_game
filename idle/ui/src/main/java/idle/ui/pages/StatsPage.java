@@ -143,7 +143,7 @@ public final class StatsPage extends StatsPageLines {
     private static String percent(double share) {
         double value = share * 100;
         return (value >= 10 || value == 0 ? String.valueOf(Math.round(value))
-                : String.format(java.util.Locale.FRANCE, "%.1f", value)) + " %";
+                : String.format(java.util.Locale.ROOT, "%.1f", value)) + " %";
     }
 
     /** Le détail des multiplicateurs : ce qui fait grandir chaque grandeur, aspect par aspect. */

@@ -438,7 +438,7 @@ public final class EnergyView extends Canvas {
     /** « 2 », « 1,4 » : des secondes, avec une décimale au besoin. */
     static String seconds(double value) {
         double rounded = Math.round(value * 10) / 10.0;
-        return rounded == Math.floor(rounded) ? String.valueOf((long) rounded) : String.valueOf(rounded).replace('.', ',');
+        return rounded == Math.floor(rounded) ? String.valueOf((long) rounded) : String.valueOf(rounded);
     }
 
     private void ellipse(GraphicsContext g, double from, double to, Color color, double width, double alpha) {

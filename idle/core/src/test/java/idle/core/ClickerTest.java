@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameClicker.ClickerUpgrade;
 import idle.core.GameClicker.Weather;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

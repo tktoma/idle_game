@@ -116,7 +116,7 @@ class OutilsDeTestTest {
         assertTrue(tool.matches("  "));
         assertFalse(tool.matches("graine"));
         assertEquals("Figé", TestTools.speedName(0));
-        assertEquals("×0,25", TestTools.speedName(0.25));
+        assertEquals("×0.25", TestTools.speedName(0.25));
         assertEquals("×1000", TestTools.speedName(1000));
     }
 

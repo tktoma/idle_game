@@ -47,13 +47,13 @@ final class SeedTree {
     private static final double[] LEAF = {0.085, 0.07, 0.07, 0.075, 0.07, 0.075, 0.08};
 
     private static final Color[][] FOLIAGE = {
-            {Color.web("#2f6b3a"), Color.web("#4f9a4f"), Color.web("#86cf72")},   // bonsaï
-            {Color.web("#2f7a3c"), Color.web("#56b259"), Color.web("#9be07e")},   // arbuste
-            {Color.web("#3c8f45"), Color.web("#6cc65f"), Color.web("#b5ef8c")},   // jeune arbre
-            {Color.web("#245e33"), Color.web("#3f8f46"), Color.web("#7cc464")},   // arbre mûr
-            {Color.web("#5a4a22"), Color.web("#8a7a32"), Color.web("#d0a84a")},   // arbre ancien, mordoré
-            {Color.web("#1d4f34"), Color.web("#2f7f4c"), Color.web("#68c27a")},   // arbre géant
-            {Color.web("#1f6f73"), Color.web("#46c7b8"), Color.web("#b8fff0")}};  // arbre-monde, lumineux
+            {Webs.C_2F6B3A, Webs.C_4F9A4F, Webs.C_86CF72},   // bonsaï
+            {Webs.C_2F7A3C, Webs.C_56B259, Webs.C_9BE07E},   // arbuste
+            {Webs.C_3C8F45, Webs.C_6CC65F, Webs.C_B5EF8C},   // jeune arbre
+            {Webs.C_245E33, Webs.C_3F8F46, Webs.C_7CC464},   // arbre mûr
+            {Webs.C_5A4A22, Webs.C_8A7A32, Webs.C_D0A84A},   // arbre ancien, mordoré
+            {Webs.C_1D4F34, Webs.C_2F7F4C, Webs.C_68C27A},   // arbre géant
+            {Webs.C_1F6F73, Webs.C_46C7B8, Webs.C_B8FFF0}};  // arbre-monde, lumineux
     private static final Color BARK_DARK = Color.web("#3e2c1c"), BARK = Color.web("#6e5236"), BARK_LIGHT = Color.web("#9c7a52");
     private static final Color SOIL = Color.web("#2a2016"), GRASS = Color.web("#4f8f45"), MOSS = Color.web("#6fae5a");
     private static final Color GLOW = Color.web("#fff6d2"), FIREFLY = Color.web("#f7f0a0"), SAP = Color.web("#9fffe0");
@@ -99,21 +99,21 @@ final class SeedTree {
      */
     enum Essence {
         CLASSIC(null, BARK_DARK, BARK, BARK_LIGHT, BARK_DARK, Bark.LINES, LeafShape.ALMOND, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
-        BIRCH(tones("#6f8f2a", "#a3c93a", "#d8ec7a"), Color.web("#cfc8b8"), Color.web("#e9e4d6"), Color.web("#f2eee4"), Color.web("#2a2420"),
+        BIRCH(tones("#6f8f2a", "#a3c93a", "#d8ec7a"), Webs.C_CFC8B8, Webs.C_E9E4D6, Webs.C_F2EEE4, Webs.C_2A2420,
                 Bark.LENTICELS, LeafShape.ROUND, 1.05, 0.7, 0.8, 0.8, 1, 1, 0.8, 1.1, 0, 0),
-        WILLOW(tones("#4b6e52", "#6f9f78", "#9fc9a0"), Color.web("#3f3a33"), Color.web("#6b6458"), Color.web("#8a8275"), Color.web("#3f3a33"),
+        WILLOW(tones("#4b6e52", "#6f9f78", "#9fc9a0"), Webs.C_3F3A33, Webs.C_6B6458, Webs.C_8A8275, Webs.C_3F3A33,
                 Bark.LINES, LeafShape.NARROW, 1, 1, 1, 1, 1, 1.5, 1, 1, 0, 0.5),
-        MAPLE(tones("#b3341c", "#e0552a", "#ffa35c"), Color.web("#3a2f2a"), Color.web("#6b5a4e"), Color.web("#8d7b6c"), Color.web("#3a2f2a"),
+        MAPLE(tones("#b3341c", "#e0552a", "#ffa35c"), Webs.C_3A2F2A, Webs.C_6B5A4E, Webs.C_8D7B6C, Webs.C_3A2F2A,
                 Bark.LINES, LeafShape.PALMATE, 1, 1, 1.1, 1, 1, 1, 1.1, 1, 0, 0),
-        CHERRY(tones("#f3a7c0", "#fbc8da", "#fff0f5"), Color.web("#2e2423"), Color.web("#4a3b3a"), Color.web("#6a5756"), Color.web("#c9b8a8"),
+        CHERRY(tones("#f3a7c0", "#fbc8da", "#fff0f5"), Webs.C_2E2423, Webs.C_4A3B3A, Webs.C_6A5756, Webs.C_C9B8A8,
                 Bark.LENTICELS, LeafShape.ROUND, 1, 1, 1.15, 1, 1, 1, 0.85, 1.2, 0, 0),
-        BAOBAB(tones("#4f5f48", "#7a8f6a","#a8b998"), Color.web("#6a5c50"), Color.web("#9a8a7a"), Color.web("#b3a494"), Color.web("#6a5c50"),
+        BAOBAB(tones("#4f5f48", "#7a8f6a","#a8b998"), Webs.C_6A5C50, Webs.C_9A8A7A, Webs.C_B3A494, Webs.C_6A5C50,
                 Bark.SMOOTH, LeafShape.ALMOND, 1, 2.5, 1.3, 1, 0.55, 1, 0.6, 0.6, 0, 0),
-        SEQUOIA(tones("#1f4a2c", "#2f6b3a", "#4f9a4f"), Color.web("#4a2518"), Color.web("#8a4a30"), Color.web("#a35a3c"), Color.web("#b06a4c"),
+        SEQUOIA(tones("#1f4a2c", "#2f6b3a", "#4f9a4f"), Webs.C_4A2518, Webs.C_8A4A30, Webs.C_A35A3C, Webs.C_B06A4C,
                 Bark.FIBROUS, LeafShape.NARROW, 1.1, 1, 1, 0.3, 1, 1, 0.9, 1, 0.4, 0),
-        PINE(tones("#2f6f5a", "#4e9a78", "#78bf96"), Color.web("#3d281c"), Color.web("#6e4b36"), Color.web("#8a6448"), Color.web("#3d281c"),
+        PINE(tones("#2f6f5a", "#4e9a78", "#78bf96"), Webs.C_3D281C, Webs.C_6E4B36, Webs.C_8A6448, Webs.C_3D281C,
                 Bark.PLATES, LeafShape.NEEDLES, 1, 1, 1.4, 1, 1, 1, 1, 1, 0.7, 0),
-        PALM(tones("#3f7a3a", "#5fae4a", "#9fd978"), Color.web("#5c4832"), Color.web("#8c7250"), Color.web("#a88a62"), Color.web("#5c4832"),
+        PALM(tones("#3f7a3a", "#5fae4a", "#9fd978"), Webs.C_5C4832, Webs.C_8C7250, Webs.C_A88A62, Webs.C_5C4832,
                 Bark.RINGS, LeafShape.NARROW, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0);
 
         final Color[] foliage;
@@ -338,7 +338,7 @@ final class SeedTree {
                 g.setGlobalAlpha(0.7);
                 g.fillOval(x - r, baseY - r * 0.6, r * 2, r * 1.2);
             }
-            g.setFill(Color.web("#5a5f66"));
+            g.setFill(Webs.C_5A5F66);
             for (int k = 0; k < 4; k++) {
                 double x = baseX + (k < 2 ? -1 : 1) * width * (0.55 + 0.25 * UniverseView.noise(k + 60)), r = height * (0.015 + 0.01 * k % 2);
                 g.setGlobalAlpha(0.85);
@@ -673,7 +673,7 @@ final class SeedTree {
         }
         // Des fleurs pour l'arbuste et le jeune arbre, des fruits pour l'arbre mûr, de l'or pour l'ancien ; le printemps
         // figé fleurit chaque bout, à tous les paliers ; l'hiver figé ne porte rien.
-        Color dot = bare ? null : stage == 6 || stage == 7 ? BLOSSOM : stage == 8 ? FRUIT : stage == 9 ? Color.web("#f0b45a") : null;
+        Color dot = bare ? null : stage == 6 || stage == 7 ? BLOSSOM : stage == 8 ? FRUIT : stage == 9 ? Webs.C_F0B45A : null;
         if (look.blossoms()) {
             for (Tip tip : shape.tips) {
                 double ox = (UniverseView.noise(tip.index() * 17 + 5) - 0.5) * radius;
@@ -865,7 +865,7 @@ final class SeedTree {
             g.setGlobalAlpha(0.25 + 0.6 * twinkle);
             g.fillOval(x - r, y - r, 2 * r, 2 * r);
         }
-        Color[] worlds = {Color.web("#8fd3ff"), Color.web("#ffcf5a"), Color.web("#c9a8ff"), Color.web("#9ff0b0"), Color.web("#ff9f8a")};
+        Color[] worlds = {Webs.C_8FD3FF, Webs.C_FFCF5A, Webs.C_C9A8FF, Webs.C_9FF0B0, Webs.C_FF9F8A};
         for (int k = 0; k < worlds.length; k++) {
             double a = time * (0.12 + 0.05 * k) + k * 1.3;
             double rx = shape.crownRadius * (1.25 + 0.22 * k), ry = rx * 0.32;
@@ -913,5 +913,64 @@ final class SeedTree {
         g.setFill(GLOW);
         g.fillRect(0, 0, w, h);
         g.setGlobalAlpha(1);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_1D4F34 = Color.web("#1d4f34");
+        static final Color C_1F6F73 = Color.web("#1f6f73");
+        static final Color C_245E33 = Color.web("#245e33");
+        static final Color C_2A2420 = Color.web("#2a2420");
+        static final Color C_2E2423 = Color.web("#2e2423");
+        static final Color C_2F6B3A = Color.web("#2f6b3a");
+        static final Color C_2F7A3C = Color.web("#2f7a3c");
+        static final Color C_2F7F4C = Color.web("#2f7f4c");
+        static final Color C_3A2F2A = Color.web("#3a2f2a");
+        static final Color C_3C8F45 = Color.web("#3c8f45");
+        static final Color C_3D281C = Color.web("#3d281c");
+        static final Color C_3F3A33 = Color.web("#3f3a33");
+        static final Color C_3F8F46 = Color.web("#3f8f46");
+        static final Color C_46C7B8 = Color.web("#46c7b8");
+        static final Color C_4A2518 = Color.web("#4a2518");
+        static final Color C_4A3B3A = Color.web("#4a3b3a");
+        static final Color C_4F9A4F = Color.web("#4f9a4f");
+        static final Color C_56B259 = Color.web("#56b259");
+        static final Color C_5A4A22 = Color.web("#5a4a22");
+        static final Color C_5A5F66 = Color.web("#5a5f66");
+        static final Color C_5C4832 = Color.web("#5c4832");
+        static final Color C_68C27A = Color.web("#68c27a");
+        static final Color C_6A5756 = Color.web("#6a5756");
+        static final Color C_6A5C50 = Color.web("#6a5c50");
+        static final Color C_6B5A4E = Color.web("#6b5a4e");
+        static final Color C_6B6458 = Color.web("#6b6458");
+        static final Color C_6CC65F = Color.web("#6cc65f");
+        static final Color C_6E4B36 = Color.web("#6e4b36");
+        static final Color C_7CC464 = Color.web("#7cc464");
+        static final Color C_86CF72 = Color.web("#86cf72");
+        static final Color C_8A4A30 = Color.web("#8a4a30");
+        static final Color C_8A6448 = Color.web("#8a6448");
+        static final Color C_8A7A32 = Color.web("#8a7a32");
+        static final Color C_8A8275 = Color.web("#8a8275");
+        static final Color C_8C7250 = Color.web("#8c7250");
+        static final Color C_8D7B6C = Color.web("#8d7b6c");
+        static final Color C_8FD3FF = Color.web("#8fd3ff");
+        static final Color C_9A8A7A = Color.web("#9a8a7a");
+        static final Color C_9BE07E = Color.web("#9be07e");
+        static final Color C_9FF0B0 = Color.web("#9ff0b0");
+        static final Color C_A35A3C = Color.web("#a35a3c");
+        static final Color C_A88A62 = Color.web("#a88a62");
+        static final Color C_B06A4C = Color.web("#b06a4c");
+        static final Color C_B3A494 = Color.web("#b3a494");
+        static final Color C_B5EF8C = Color.web("#b5ef8c");
+        static final Color C_B8FFF0 = Color.web("#b8fff0");
+        static final Color C_C9A8FF = Color.web("#c9a8ff");
+        static final Color C_C9B8A8 = Color.web("#c9b8a8");
+        static final Color C_CFC8B8 = Color.web("#cfc8b8");
+        static final Color C_D0A84A = Color.web("#d0a84a");
+        static final Color C_E9E4D6 = Color.web("#e9e4d6");
+        static final Color C_F0B45A = Color.web("#f0b45a");
+        static final Color C_F2EEE4 = Color.web("#f2eee4");
+        static final Color C_FF9F8A = Color.web("#ff9f8a");
+        static final Color C_FFCF5A = Color.web("#ffcf5a");
     }
 }

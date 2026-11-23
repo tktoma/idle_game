@@ -250,7 +250,7 @@ public final class ParticleView extends Canvas {
         g.clearRect(0, 0, getWidth(), getHeight());
 
         Color color = glow();
-        if (skin == Skin.FUSION_FLASH) color = Color.web("#fff36b").interpolate(Color.WHITE, 0.4 * intensity);
+        if (skin == Skin.FUSION_FLASH) color = Webs.C_FFF36B.interpolate(Color.WHITE, 0.4 * intensity);
         else if (skin == Skin.FUSION_PRISM) color = Color.hsb((time * 40) % 360, 0.55, 1);
         else if (skin == Skin.FUSION_LONE) color = Color.gray(0.82);
         if (skin != null) {
@@ -477,7 +477,7 @@ public final class ParticleView extends Canvas {
         }
         double coreRadius = coreRadius(progress, fast, scale, birth);
         if (coreRadius <= 0) return;
-        stageRings(g, cx, cy, coreRadius, skin == Skin.FUSION_FLASH ? Color.web("#fff36b") : skin == Skin.FUSION_PRISM ? color : Color.gray(0.85),
+        stageRings(g, cx, cy, coreRadius, skin == Skin.FUSION_FLASH ? Webs.C_FFF36B : skin == Skin.FUSION_PRISM ? color : Color.gray(0.85),
                 scale, fadeIn);
         g.setGlobalAlpha(fadeIn);
         if (skin == Skin.FUSION_FLASH) {
@@ -665,5 +665,10 @@ public final class ParticleView extends Canvas {
         double size;
         double flight;   // durée totale du trajet, en secondes
         double age;
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_FFF36B = Color.web("#fff36b");
     }
 }

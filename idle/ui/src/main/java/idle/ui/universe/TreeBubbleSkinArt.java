@@ -3,7 +3,7 @@ package idle.ui.universe;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import javafx.scene.paint.*;
-import idle.ui.universe.SeedView.BubbleState;
+import idle.ui.universe.SeedViewBase.BubbleState;
 import javafx.scene.canvas.GraphicsContext;
 
 /**

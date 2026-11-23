@@ -6,7 +6,7 @@ import idle.ui.common.Format;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.ui.FxTestSupport;
 import java.util.List;
 import javafx.scene.Scene;

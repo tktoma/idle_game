@@ -47,10 +47,10 @@ final class SkinPlaces {
             case BLOCKS -> "Onglet Big Bang, « Expansion de la matière » : les blocs des assemblages.";
             case GAS -> "Onglet Big Bang, « Expansion de la matière » : la matière vue de loin, fondue en gaz.";
             case SKY -> "Onglet Big Bang, sous-page Astres : le ciel derrière eux.";
-            case GALAXY -> "Onglet Big Bang, sous-page Univers : la galaxie, seule puis au milieu de l'amas (sans skin d'amas) ; "
+            case GALAXY -> "Onglet Big Bang, sous-page Cosmos : la galaxie, seule puis au milieu de l'amas (sans skin d'amas) ; "
                     + "une fois l'univers formé, la toile la remplace et elle n'est plus qu'un point.";
-            case GALAXY_CLUSTER -> "Onglet Big Bang, sous-page Univers : l'amas de galaxies, de sa formation à celle de l'univers.";
-            case COSMIC_WEB -> "Onglet Big Bang, sous-page Univers : la toile, une fois l'univers formé.";
+            case GALAXY_CLUSTER -> "Onglet Big Bang, sous-page Cosmos : l'amas de galaxies, de sa formation à celle de l'univers.";
+            case COSMIC_WEB -> "Onglet Big Bang, sous-page Cosmos : la toile, une fois l'univers formé.";
             case SYSTEM -> "Onglet Big Bang, sous-page Astres : les systèmes solaires.";
             case PROBE -> "Onglet Big Bang : les sondes et leur hangar.";
             case DETECTOR -> "Onglet Collisionneur : le détecteur, là où les faisceaux se croisent.";

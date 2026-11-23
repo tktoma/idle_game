@@ -1,10 +1,10 @@
 import idle.core.Game;
-import idle.core.GameUniverse.DurationUpgrade;
-import idle.core.GameUniverse.LineUpgrade;
-import idle.core.GameUniverse.PlaneUpgrade;
-import idle.core.GameUniverse.VolumeUpgrade;
-import idle.core.GameUniverse.PlaneShard;
-import idle.core.GameUniverse.VolumeBall;
+import idle.core.GameUniverseBase.DurationUpgrade;
+import idle.core.GameUniverseBase.LineUpgrade;
+import idle.core.GameUniverseBase.PlaneUpgrade;
+import idle.core.GameUniverseBase.VolumeUpgrade;
+import idle.core.GameUniverseBase.PlaneShard;
+import idle.core.GameUniverseBase.VolumeBall;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;

@@ -20,7 +20,7 @@ import javafx.scene.text.*;
  * <li>les étincelles : « Pétales » (roses, qui tombent lentement en tournant), « Confettis » (des rectangles de toutes
  * les couleurs), « Braises » (des points orange qui montent et rougissent) ;</li>
  * <li>les quarks : « Ballons » (un ballon de la couleur de la saveur, sa lettre dessus, qui monte au bout de sa
- * ficelle), « Papillons » (deux ailes qui battent, la lettre sur le corps), « Lettres de Scrabble » (un carreau de bois
+ * ficelle), « Papillons » (deux ailes qui battent, la lettre sur le corps), « Jetons de lettres » (un carreau de bois
  * clair, la lettre de la saveur et sa valeur en coin, qui tombe).</li>
  * </ul>
  */
@@ -42,7 +42,7 @@ final class DetectorSkinArt {
     private static final Color TILE_EDGE = Color.web("#b89560");
     private static final Color TILE_INK = Color.web("#2a2018");
     private static final Color[] CONFETTI = {Color.web("#ff5a5a"), Color.web("#ffd23f"), Color.web("#3fd05a"), Color.web("#4aa3ff"),
-        Color.web("#ff7ad9"), Color.web("#ffffff")};
+        Webs.C_FF7AD9, Webs.C_FFFFFF};
     private static final Font TILE_LETTER = Font.font("System", FontWeight.BOLD, 11);
     private static final Font TILE_VALUE = Font.font(6);
 
@@ -75,7 +75,7 @@ final class DetectorSkinArt {
 
     /** Vrai pour les quarks dessinés ici. */
     static boolean drawsQuarks(Skin flight) {
-        return flight == Skin.QUARK_FLIGHT_BALLOONS || flight == Skin.QUARK_FLIGHT_BUTTERFLIES || flight == Skin.QUARK_FLIGHT_SCRABBLE;
+        return flight == Skin.QUARK_FLIGHT_BALLOONS || flight == Skin.QUARK_FLIGHT_BUTTERFLIES || flight == Skin.QUARK_FLIGHT_LETTER_TILES;
     }
 
     /** Le flash de l'appareil photo encore visible : pour les vérifications. */
@@ -126,16 +126,16 @@ final class DetectorSkinArt {
     private void eye(GraphicsContext g, double x, double y, boolean catchable, boolean crossing) {
         double open = crossing || catchable ? 1 : 0.45 + 0.1 * Math.sin(view.time() * 1.3);
         double hw = 16, hh = 9 * open;
-        g.setFill(Color.web("#f4f4f8"));
+        g.setFill(Webs.C_F4F4F8);
         g.fillOval(x - hw, y - hh, hw * 2, hh * 2);
-        Color iris = catchable ? Color.web("#ffd27f") : Color.web("#4a8ad8");
+        Color iris = catchable ? Webs.C_FFD27F : Webs.C_4A8AD8;
         g.setFill(iris);
         g.fillOval(x - 6, y - Math.min(6, hh), 12, Math.min(12, hh * 2));
-        g.setFill(Color.web("#101018"));
+        g.setFill(Webs.C_101018);
         g.fillOval(x - 2.8, y - Math.min(2.8, hh), 5.6, Math.min(5.6, hh * 2));
         g.setFill(Color.WHITE);
         g.fillOval(x + 1, y - Math.min(3.5, hh), 2, Math.min(2, hh * 2));
-        g.setStroke(Color.web("#2c4866"));
+        g.setStroke(Webs.C_2C4866);
         g.setLineWidth(1.5);
         g.strokeOval(x - hw, y - hh, hw * 2, hh * 2);
     }
@@ -152,7 +152,7 @@ final class DetectorSkinArt {
         g.setFill(Color.color(AMBER.getRed(), AMBER.getGreen(), AMBER.getBlue(), 0.55 + 0.45 * glow));
         g.fillRect(x - 7, y - 8, 14, 15);
         EnergyView.glow(g, x, y, 10 + 12 * glow, AMBER, 0.5 * glow);
-        g.setFill(Color.web("#fff3b0"));
+        g.setFill(Webs.C_FFF3B0);
         double fh = 4 + 4 * glow;
         g.fillOval(x - 2, y + 3 - fh, 4, fh);
         g.setStroke(IRON);
@@ -170,9 +170,9 @@ final class DetectorSkinArt {
         g.fillArc(-11, 0, 22, 26, 0, 180, ArcType.ROUND);
         g.fillRect(-11, 13, 22, 4);
         g.fillOval(-3, -3, 6, 6);
-        g.setFill(Color.web("#5a3a14"));
+        g.setFill(Webs.C_5A3A14);
         g.fillOval(-2.5, 15, 5, 5);
-        g.setStroke(Color.web("#fff0c0"));
+        g.setStroke(Webs.C_FFF0C0);
         g.setLineWidth(1);
         g.strokeArc(-8, 3, 16, 18, 20, 70, ArcType.OPEN);
         g.restore();
@@ -180,19 +180,19 @@ final class DetectorSkinArt {
 
     /** L'appareil photo ancien : un boîtier noir à soufflet, l'objectif rond, le réflecteur du flash au-dessus. */
     private void camera(GraphicsContext g, double x, double y, boolean catchable) {
-        g.setFill(Color.web("#1c1c22"));
+        g.setFill(Webs.C_1C1C22);
         g.fillRoundRect(x - 14, y - 7, 28, 16, 3, 3);
-        g.setStroke(Color.web("#6a6a74"));
+        g.setStroke(Webs.C_6A6A74);
         g.setLineWidth(1);
         for (int k = 0; k < 4; k++) g.strokeLine(x - 6 + k * 4, y - 7, x - 6 + k * 4, y + 9);
-        g.setFill(Color.web("#8a8a94"));
+        g.setFill(Webs.C_8A8A94);
         g.fillOval(x - 6, y - 4, 12, 12);
-        g.setFill(catchable ? Color.web("#ffd27f") : Color.web("#203050"));
+        g.setFill(catchable ? Webs.C_FFD27F : Webs.C_203050);
         g.fillOval(x - 3.5, y - 1.5, 7, 7);
         // Le réflecteur : une coupe argentée au bout de sa tige, blanche pendant le flash.
-        g.setStroke(Color.web("#8a8a94"));
+        g.setStroke(Webs.C_8A8A94);
         g.strokeLine(x + 9, y - 7, x + 9, y - 13);
-        g.setFill(flashing() ? Color.WHITE : Color.web("#c8c8d0"));
+        g.setFill(flashing() ? Color.WHITE : Webs.C_C8C8D0);
         g.fillArc(x + 3, y - 20, 12, 12, 0, 180, ArcType.ROUND);
     }
 
@@ -251,7 +251,7 @@ final class DetectorSkinArt {
             xs[p] = x1 + (x2 - x1) * t + nx * arch;
             ys[p] = y1 + (y2 - y1) * t + ny * arch;
         }
-        g.setStroke(Color.web("#b8860b"));
+        g.setStroke(Webs.C_B8860B);
         g.setLineWidth(2.2);
         g.setGlobalAlpha(0.5);
         g.strokePolyline(xs, ys, points + 1);
@@ -259,7 +259,7 @@ final class DetectorSkinArt {
         g.setLineWidth(1);
         g.setGlobalAlpha(0.95);
         g.strokePolyline(xs, ys, points + 1);
-        g.setFill(Color.web("#fff8dc"));
+        g.setFill(Webs.C_FFF8DC);
         for (int k = 1; k <= 3; k++) {
             int p = (int) Math.round(points * k / 4.0);
             g.fillOval(xs[p] - 1.5, ys[p] - 1.5, 3, 3);
@@ -325,7 +325,7 @@ final class DetectorSkinArt {
         return switch (sparks) {
             case SPARKS_PETALS -> caught ? new Color[] {PETAL, PETAL_LIGHT, Color.WHITE} : new Color[] {PETAL, PETAL_LIGHT};
             case SPARKS_CONFETTI -> CONFETTI;
-            default -> caught ? new Color[] {EMBER, EMBER_HOT, Color.web("#ff4a1c")} : new Color[] {EMBER, Color.web("#ff4a1c")};
+            default -> caught ? new Color[] {EMBER, EMBER_HOT, Webs.C_FF4A1C} : new Color[] {EMBER, Webs.C_FF4A1C};
         };
     }
 
@@ -358,7 +358,7 @@ final class DetectorSkinArt {
                 g.restore();
             }
             default -> {
-                Color ember = fade > 0.6 ? EMBER_HOT : fade > 0.3 ? color : Color.web("#a02010");
+                Color ember = fade > 0.6 ? EMBER_HOT : fade > 0.3 ? color : Webs.C_A02010;
                 g.setFill(ember);
                 double size = 2 + 2.5 * fade;
                 g.fillOval(x - size / 2, y - size / 2, size, size);
@@ -379,7 +379,7 @@ final class DetectorSkinArt {
         };
     }
 
-    /** La valeur Scrabble de la lettre d'une saveur : u 1, d 2, s 1, c 3, b 3, t 1 (les valeurs françaises). */
+    /** La valeur au jeu de lettres de la lettre d'une saveur : u 1, d 2, s 1, c 3, b 3, t 1 (les valeurs françaises). */
     static int scrabbleValue(String symbol) {
         return switch (symbol.charAt(0)) {
             case 'd' -> 2;
@@ -388,13 +388,13 @@ final class DetectorSkinArt {
         };
     }
 
-    /** Un quark : sa lettre sur un ballon, un papillon ou un carreau de Scrabble, de la couleur de sa saveur. */
+    /** Un quark : sa lettre sur un ballon, un papillon ou un jeton de lettre, de la couleur de sa saveur. */
     static void quark(GraphicsContext g, Skin flight, double x, double y, double size, Color color, String symbol, String count, double time) {
         g.setTextAlign(TextAlignment.CENTER);
         switch (flight) {
             case QUARK_FLIGHT_BALLOONS -> {
                 double w = size * 0.9, h = size * 1.1;
-                g.setStroke(Color.web("#d8d8e0"));
+                g.setStroke(Webs.C_D8D8E0);
                 g.setLineWidth(0.8);
                 g.strokeLine(x, y + h / 2, x + 3 * Math.sin(time * 4), y + h / 2 + size * 0.9);
                 g.setFill(color);
@@ -402,7 +402,7 @@ final class DetectorSkinArt {
                 g.fillPolygon(new double[] {x - 2.5, x + 2.5, x}, new double[] {y + h / 2 + 3, y + h / 2 + 3, y + h / 2 - 1}, 3);
                 g.setFill(Color.color(1, 1, 1, 0.5));
                 g.fillOval(x - w * 0.3, y - h * 0.35, w * 0.22, h * 0.3);
-                g.setFill(Color.web("#060b14"));
+                g.setFill(Webs.C_060B14);
                 g.setFont(Font.font(size * 0.55));
                 g.fillText(symbol, x, y + size * 0.2);
             }
@@ -417,7 +417,7 @@ final class DetectorSkinArt {
                 g.setFill(Color.color(1, 1, 1, 0.45));
                 g.fillOval(x - w * 0.7, y - h * 0.8, w * 0.4, h * 0.4);
                 g.fillOval(x + w * 0.3, y - h * 0.8, w * 0.4, h * 0.4);
-                g.setFill(Color.web("#2a2030"));
+                g.setFill(Webs.C_2A2030);
                 g.fillOval(x - 1.5, y - h, 3, h * 1.8);
                 g.setFill(Color.WHITE);
                 g.setFont(Font.font("System", FontWeight.BOLD, size * 0.4));
@@ -447,5 +447,31 @@ final class DetectorSkinArt {
             g.fillText(count, x + size * 0.9, y - size * 0.4);
         }
         g.setTextAlign(TextAlignment.LEFT);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_060B14 = Color.web("#060b14");
+        static final Color C_101018 = Color.web("#101018");
+        static final Color C_1C1C22 = Color.web("#1c1c22");
+        static final Color C_203050 = Color.web("#203050");
+        static final Color C_2A2030 = Color.web("#2a2030");
+        static final Color C_2C4866 = Color.web("#2c4866");
+        static final Color C_4A8AD8 = Color.web("#4a8ad8");
+        static final Color C_5A3A14 = Color.web("#5a3a14");
+        static final Color C_6A6A74 = Color.web("#6a6a74");
+        static final Color C_8A8A94 = Color.web("#8a8a94");
+        static final Color C_A02010 = Color.web("#a02010");
+        static final Color C_B8860B = Color.web("#b8860b");
+        static final Color C_C8C8D0 = Color.web("#c8c8d0");
+        static final Color C_D8D8E0 = Color.web("#d8d8e0");
+        static final Color C_F4F4F8 = Color.web("#f4f4f8");
+        static final Color C_FF4A1C = Color.web("#ff4a1c");
+        static final Color C_FF7AD9 = Color.web("#ff7ad9");
+        static final Color C_FFD27F = Color.web("#ffd27f");
+        static final Color C_FFF0C0 = Color.web("#fff0c0");
+        static final Color C_FFF3B0 = Color.web("#fff3b0");
+        static final Color C_FFF8DC = Color.web("#fff8dc");
+        static final Color C_FFFFFF = Color.web("#ffffff");
     }
 }

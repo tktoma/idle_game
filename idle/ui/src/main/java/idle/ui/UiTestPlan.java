@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -19,6 +20,19 @@ import java.util.function.Consumer;
  * <p>Deux façons de combiner : <b>tout croisé</b>, chaque combinaison possible (le produit des choix de chaque visuel,
  * Classique compris), énuméré à la demande sans rien garder en mémoire ; ou <b>par paires</b>, un jeu bien plus court où
  * chaque skin d'un visuel croise au moins une fois chaque skin de chaque autre visuel coché.
+ *
+ * <p>Version 0.287 : un visuel ne se croise qu'avec ce qui se voit en même temps que lui. Les skins de l'atome et ceux du
+ * tableau ne se croisent plus : les deux sous-onglets ne s'affichent jamais ensemble. Les états se rangent en parts,
+ * une par sous-onglet, chacune avec ses combinaisons ; le thème, la notation et ce qui couvre toute la fenêtre se croisent
+ * partout.
+ *
+ * <p>Version 0.288 : un sous-onglet où ne se voit aucun visuel de l'onglet (les améliorations, les paliers) ne se passe
+ * plus dans l'onglet ; seuls les skins de la fenêtre y changent, le passage « Fenêtre » les couvre.
+ *
+ * <p>Version 0.286 : la <b>charge maximale</b>, une option par onglet. Ses états remplacent ceux d'habitude : l'onglet
+ * au plus chargé que la partie peut atteindre (les 118 orbes de l'atome et ses 40 copies, les 30 générateurs au dernier
+ * palier de vitesse, la plus grosse boule de matière noire, le trou noir du vide plein…), pour voir chaque skin et
+ * mesurer les images par seconde là où la vue a le plus à dessiner.
  *
  * <p>Le plan ne touche pas l'interface : il passe par un {@link Driver}, que le jeu fournit, et que les vérifications
  * remplacent.
@@ -54,6 +68,13 @@ final class UiTestPlan {
         void ending();
 
         void startButton();
+
+        /**
+         * Version 0.286 : la vitesse des particules que voient les générateurs, en ordre de grandeur (log10 des créations
+         * par seconde), à la place de celle de la partie ; {@code NaN} rend celle de la partie. Chaque étape repart de
+         * celle de la partie.
+         */
+        void particleSpeed(double log);
     }
 
     /**
@@ -62,8 +83,22 @@ final class UiTestPlan {
      */
     record Step(String label, boolean live, Consumer<Driver> action) {}
 
-    /** Un onglet : son nom affiché, l'onglet du jeu, ses visuels et ses états. */
-    record Group(String name, String tab, List<SkinVisual> visuals, List<Step> steps) {}
+    /**
+     * Un onglet : son nom affiché, l'onglet du jeu, ses visuels et ses états ; et ses états à la charge maximale
+     * (version 0.286), ceux d'habitude s'il n'en a pas à lui.
+     */
+    record Group(String name, String tab, List<SkinVisual> visuals, List<Step> steps, List<Step> heaviest) {
+        Group {
+            visuals = List.copyOf(visuals);
+            steps = List.copyOf(steps);
+            heaviest = heaviest == null || heaviest.isEmpty() ? steps : List.copyOf(heaviest);
+        }
+
+        Group(String name, String tab, List<SkinVisual> visuals, List<Step> steps) { this(name, tab, visuals, steps, List.of()); }
+
+        /** Les états d'un passage : ceux de la charge maximale, ou ceux d'habitude. */
+        List<Step> steps(boolean heaviest) { return heaviest ? this.heaviest : steps; }
+    }
 
     /** Tout croisé, ou par paires. */
     enum Mode {
@@ -90,7 +125,16 @@ final class UiTestPlan {
                 still("Une notification", d -> d.toast("Succès : un essai du profil test UI")),
                 still("L'aide ouverte", Driver::help),
                 still("L'écran de fin", Driver::ending),
-                still("Le bouton de départ", Driver::startButton))));
+                still("Le bouton de départ", Driver::startButton)), List.of(
+                live("Notifications au maximum sur 30 générateurs", d -> {
+                    d.act(TestActions::heaviestParticles);
+                    d.particleSpeed(MAX_SPEED_LOG);
+                    for (int i = 0; i < TOASTS; i++) d.toast("Succès : la charge maximale du profil test UI, n° " + (i + 1));
+                }),
+                still("L'aide ouverte sur l'onglet chargé", d -> {
+                    d.act(TestActions::heaviestParticles);
+                    d.help();
+                }))));
         List<Step> particles = new ArrayList<>();
         for (int count : new int[] {1, 2, 5, 10, GameAppBase.MAX_VISIBLE_GENERATORS}) {
             particles.add(live(count + (count > 1 ? " générateurs" : " générateur"), d -> d.act(a -> a.setGenerators(count))));
@@ -100,7 +144,16 @@ final class UiTestPlan {
             d.hook(TestTools.Hooks::fusion);
         }));
         groups.add(new Group("Particules", "PARTICLES", List.of(SkinVisual.PARTICLE_FUSION, SkinVisual.AMBIENT_DUST,
-                SkinVisual.GENERATOR_FUSION), particles));
+                SkinVisual.GENERATOR_FUSION), particles, List.of(
+                live(GameAppBase.MAX_VISIBLE_GENERATORS + " générateurs au dernier palier de vitesse", d -> {
+                    d.act(TestActions::heaviestParticles);
+                    d.particleSpeed(MAX_SPEED_LOG);
+                }),
+                still("Fusion de " + GameAppBase.MAX_VISIBLE_GENERATORS + " générateurs", d -> {
+                    d.act(TestActions::heaviestParticles);
+                    d.particleSpeed(MAX_SPEED_LOG);
+                    d.hook(TestTools.Hooks::fusion);
+                }))));
         groups.add(new Group("Atomes", "ATOMS", List.of(SkinVisual.ATOM, SkinVisual.TABLE, SkinVisual.TABLE_PAGE), List.of(
                 still("Atome", d -> d.subTab("Atome")),
                 still("Nouvel atome", d -> {
@@ -113,6 +166,19 @@ final class UiTestPlan {
                 }),
                 still("Tableau rempli", d -> {
                     d.act(a -> a.fillTable(true));
+                    d.subTab("Tableau périodique");
+                })), List.of(
+                live("Atome au maximum : 118 orbes et 40 copies", d -> {
+                    d.act(TestActions::heaviestAtoms);
+                    d.subTab("Atome");
+                }),
+                still("Nouvel atome au maximum", d -> {
+                    d.act(TestActions::heaviestAtoms);
+                    d.subTab("Atome");
+                    d.hook(TestTools.Hooks::newAtom);
+                }),
+                still("Tableau rempli, chaque exemplaire", d -> {
+                    d.act(TestActions::heaviestAtoms);
                     d.subTab("Tableau périodique");
                 }))));
         groups.add(new Group("Matière noire", "DARK_MATTER", List.of(SkinVisual.DARK_BALL, SkinVisual.DARK_ANIMATION,
@@ -137,7 +203,24 @@ final class UiTestPlan {
                     d.act(TestActions::fillTree);
                     d.subTab("Arbre");
                 }),
-                still("Défis", d -> d.subTab("Défis")))));
+                still("Défis", d -> d.subTab("Défis"))), List.of(
+                live("Boule au maximum", d -> {
+                    d.act(TestActions::heaviestDarkMatter);
+                    d.subTab("Matière noire");
+                }),
+                still("Explosion de la boule au maximum", d -> {
+                    d.act(TestActions::heaviestDarkMatter);
+                    d.subTab("Matière noire");
+                    d.hook(TestTools.Hooks::explosion);
+                }),
+                still("Arbre rempli", d -> {
+                    d.act(TestActions::heaviestDarkMatter);
+                    d.subTab("Arbre");
+                }),
+                still("Tous les défis réussis", d -> {
+                    d.act(TestActions::heaviestDarkMatter);
+                    d.subTab("Défis");
+                }))));
         groups.add(new Group("Collisionneur", "COLLIDER", List.of(SkinVisual.COLLIDER_BEAM, SkinVisual.COLLIDER, SkinVisual.DETECTOR,
                 SkinVisual.LIGHTNING, SkinVisual.SPARKS, SkinVisual.QUARK_FLIGHT), List.of(
                 live("Énergie", d -> d.subTab("Énergie")),
@@ -148,28 +231,68 @@ final class UiTestPlan {
                     d.subTab("Énergie");
                 }),
                 still("Chaîne", d -> d.subTab("Chaîne")),
-                still("Améliorations", d -> d.subTab("Améliorations")))));
+                still("Améliorations", d -> d.subTab("Améliorations"))), List.of(
+                live("Énergie, tout au maximum", d -> {
+                    d.act(TestActions::heaviestCollider);
+                    d.subTab("Énergie");
+                }),
+                still("Chaîne, tout au maximum", d -> {
+                    d.act(TestActions::heaviestCollider);
+                    d.subTab("Chaîne");
+                }),
+                still("Améliorations au maximum", d -> {
+                    d.act(TestActions::heaviestCollider);
+                    d.subTab("Améliorations");
+                }))));
         groups.add(new Group("Hadrons", "HADRONS", List.of(SkinVisual.QUARKS, SkinVisual.GLUONS, SkinVisual.HADRON_BACKGROUND), List.of(
                 live("Gluons", d -> d.subTab("Gluons")),
                 still("Paliers", d -> d.subTab("Paliers")),
-                live("Liaison", d -> d.subTab("Liaison")))));
+                live("Liaison", d -> d.subTab("Liaison"))), List.of(
+                live("Gluons, quarks au maximum", d -> {
+                    d.act(TestActions::heaviestHadrons);
+                    d.subTab("Gluons");
+                }),
+                still("Tous les paliers", d -> {
+                    d.act(TestActions::heaviestHadrons);
+                    d.subTab("Paliers");
+                }),
+                live("Liaison, quarks et hadrons au maximum", d -> {
+                    d.act(TestActions::heaviestHadrons);
+                    d.subTab("Liaison");
+                }))));
         groups.add(new Group("Le vide", "VOID", List.of(SkinVisual.VOID_FOAM, SkinVisual.VOID_PAIRS, SkinVisual.VOID_HOLE), List.of(
                 live("Paires", d -> d.subTab("Paires")),
                 live("Trou noir plus massif", d -> {
                     d.act(TestActions::voidMass);
                     d.subTab("Paires");
                 }),
-                still("Améliorations", d -> d.subTab("Améliorations")))));
+                still("Améliorations", d -> d.subTab("Améliorations"))), List.of(
+                live("Paires au maximum, trou noir plein", d -> {
+                    d.act(TestActions::heaviestVoid);
+                    d.subTab("Paires");
+                }),
+                still("Améliorations au maximum", d -> {
+                    d.act(TestActions::heaviestVoid);
+                    d.subTab("Améliorations");
+                }))));
         List<Step> bang = new ArrayList<>();
         bang.add(still("Animation du Big Bang", d -> d.hook(TestTools.Hooks::bigBang)));
         for (String sub : List.of("Molécules", "Expansion de la matière", "États de la matière", "Assemblages", "Astres",
-                "Systèmes solaires", "Univers", "Sondes", "Paliers", "Améliorations")) {
-            boolean moving = sub.equals("Expansion de la matière") || sub.equals("Astres") || sub.equals("Univers");
+                "Systèmes solaires", "Cosmos", "Sondes", "Paliers", "Améliorations")) {
+            boolean moving = sub.equals("Expansion de la matière") || sub.equals("Astres") || sub.equals("Cosmos");
             bang.add(new Step(sub, moving, d -> d.subTab(sub)));
+        }
+        List<Step> bangHeaviest = new ArrayList<>();
+        for (Step step : bang) {
+            bangHeaviest.add(new Step(step.label() + ", tout au maximum", step.live(), d -> {
+                d.act(TestActions::heaviestBigBang);
+                step.action().accept(d);
+            }));
         }
         groups.add(new Group("Big Bang", "BIG_BANG", List.of(SkinVisual.BIG_BANG, SkinVisual.BODY, SkinVisual.MOLECULE,
                 SkinVisual.MOLECULE_PALETTE, SkinVisual.CLUMPS, SkinVisual.BLOCKS, SkinVisual.GAS, SkinVisual.SKY, SkinVisual.GALAXY,
-                SkinVisual.GALAXY_CLUSTER, SkinVisual.COSMIC_WEB, SkinVisual.SYSTEM, SkinVisual.PROBE, SkinVisual.MATTER_SIGNS), bang));
+                SkinVisual.GALAXY_CLUSTER, SkinVisual.COSMIC_WEB, SkinVisual.SYSTEM, SkinVisual.PROBE, SkinVisual.MATTER_SIGNS), bang,
+                bangHeaviest));
         groups.add(new Group("Univers", "UNIVERSE", List.of(SkinVisual.UNIVERSE_BUBBLE, SkinVisual.UNIVERSE_BIRTH, SkinVisual.UNIVERSE_LINKS,
                 SkinVisual.LAUNCH, SkinVisual.DIMENSIONS_MAP, SkinVisual.FINALE_FILL, SkinVisual.TRANSITION), List.of(
                 live("Les univers", d -> d.subTab("Univers")),
@@ -182,6 +305,18 @@ final class UiTestPlan {
                 }),
                 still("Défi final rempli", d -> {
                     d.act(TestActions::reachAllFinalTiers);
+                    d.subTab("Dimensions");
+                })), List.of(
+                live(idle.ui.universe.UniverseView.MAX_BUBBLES + " univers et plus", d -> {
+                    d.act(TestActions::heaviestUniverses);
+                    d.subTab("Univers");
+                }),
+                still("Naissance d'un univers parmi " + idle.ui.universe.UniverseView.MAX_BUBBLES, d -> {
+                    d.act(TestActions::heaviestUniverses);
+                    d.hook(TestTools.Hooks::birth);
+                }),
+                still("Défi final rempli", d -> {
+                    d.act(TestActions::heaviestUniverses);
                     d.subTab("Dimensions");
                 }))));
         groups.add(new Group("Graine", "UNIVERSE", List.of(SkinVisual.TREE, SkinVisual.SEED, SkinVisual.WATERING_CAN, SkinVisual.SHELF,
@@ -209,6 +344,18 @@ final class UiTestPlan {
                 live("Bulles de l'arbre", d -> {
                     seed(d, Game.SEED_STAGES);
                     d.act(TestActions::openFinalChallenge);
+                })), List.of(
+                live("Arbre au maximum sous l'orage", d -> {
+                    heaviestSeed(d);
+                    d.act(a -> a.weather(Game.Weather.STORM));
+                }),
+                live("Arbre au maximum au beau temps", d -> {
+                    heaviestSeed(d);
+                    d.act(a -> a.weather(Game.Weather.SUN));
+                }),
+                live("Arbre au maximum, arrosoir en main", d -> {
+                    heaviestSeed(d);
+                    d.act(a -> a.holdWateringCan(true));
                 }))));
         List<SkinVisual> dimensionVisuals = new ArrayList<>(Arrays.asList(SkinVisual.DIMENSIONS));
         dimensionVisuals.add(SkinVisual.DIMENSION_FRAME);
@@ -218,15 +365,32 @@ final class UiTestPlan {
             int number = d;
             dimensions.add(live("Dimension " + d + " : " + TestActions.DIMENSIONS[d - 1], driver -> driver.dimension(number)));
         }
-        groups.add(new Group("Dimensions", "UNIVERSE", dimensionVisuals, dimensions));
+        List<Step> dimensionsHeaviest = new ArrayList<>();
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
+            int number = d;
+            dimensionsHeaviest.add(live("Dimension " + d + " au maximum : " + TestActions.DIMENSIONS[d - 1], driver -> {
+                driver.act(a -> a.heaviestDimension(number));
+                driver.dimension(number);
+            }));
+        }
+        groups.add(new Group("Dimensions", "UNIVERSE", dimensionVisuals, dimensions, dimensionsHeaviest));
         List<Step> profile = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
             int index = i;
             profile.add(still("Sous-onglet " + (i + 1), d -> d.subTabAt(index)));
         }
-        groups.add(new Group("Profil", "PROFILE", List.of(SkinVisual.AVATAR_FRAME, SkinVisual.AVATAR_STYLE, SkinVisual.ALBUM), profile));
+        List<Step> profileHeaviest = new ArrayList<>();
+        for (Step step : profile) {
+            profileHeaviest.add(still(step.label() + ", tout débloqué", d -> {
+                d.act(TestActions::grantAchievements);
+                step.action().accept(d);
+            }));
+        }
+        groups.add(new Group("Profil", "PROFILE", List.of(SkinVisual.AVATAR_FRAME, SkinVisual.AVATAR_STYLE, SkinVisual.ALBUM), profile,
+                profileHeaviest));
         groups.add(new Group("Succès", "ACHIEVEMENTS", List.of(SkinVisual.ACHIEVEMENT_TILE, SkinVisual.ACHIEVEMENT_LOCKED), List.of(
                 still("Aucun succès", d -> d.act(TestActions::clearAchievements)),
+                still("Tous les succès", d -> d.act(TestActions::grantAchievements))), List.of(
                 still("Tous les succès", d -> d.act(TestActions::grantAchievements)))));
         List<Step> stats = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
@@ -235,6 +399,17 @@ final class UiTestPlan {
         }
         groups.add(new Group("Statistiques", "STATS", List.of(SkinVisual.CHART, SkinVisual.CHART_PALETTE, SkinVisual.TIMELINE), stats));
         return groups;
+    }
+
+    /** La charge maximale : le dernier palier de vitesse des particules (13), au milieu de sa plage. */
+    static final double MAX_SPEED_LOG = 6000;
+    /** Les notifications montrées d'un coup à la charge maximale : une de plus que la pile n'en garde. */
+    static final int TOASTS = 5;
+
+    /** La sous-page Graine au plus chargé : l'arbre au dernier palier, chaque amélioration, le chrono plein et les bulles. */
+    private static void heaviestSeed(Driver d) {
+        seed(d, Game.SEED_STAGES);
+        d.act(TestActions::heaviestSeed);
     }
 
     /** La sous-page Graine, la graine à cette étape et l'arrosoir reposé. */
@@ -339,46 +514,144 @@ final class UiTestPlan {
         final Group group;
         final List<Axis> crossed;
         final Mode mode;
-        private final int[] sizes;
-        /** Le jeu par paires, calculé une fois ; {@code null} en tout croisé. */
-        private final List<int[]> pairs;
+        /** Version 0.286 : les états de la charge maximale à la place de ceux d'habitude. */
+        final boolean heaviest;
+        private final List<Step> steps;
+        /**
+         * Version 0.287 : les parts du passage. Un visuel ne se voit que sur ses sous-onglets (l'atome sur « Atome », le
+         * tableau sur « Tableau périodique ») : il ne se croise qu'avec ce qui se voit en même temps. Les états qui
+         * montrent les mêmes visuels font une part ; chaque part croise ses axes à elle, les autres restent d'origine.
+         */
+        private final List<Part> parts = new ArrayList<>();
 
-        Run(Group group, List<Axis> crossed, Mode mode) {
+        /** Une part : ses états (dans l'ordre du passage), ses axes (rangs dans {@link #crossed}) et leurs combinaisons. */
+        private static final class Part {
+            final List<Step> steps = new ArrayList<>();
+            final int[] axes;
+            final int[] sizes;
+            final List<int[]> pairs;
+            long firstStep, firstCombination;
+
+            Part(int[] axes, int[] sizes, Mode mode) {
+                this.axes = axes;
+                this.sizes = sizes;
+                pairs = mode == Mode.PAIRS ? pairwise(sizes, 41) : null;
+            }
+
+            long combinations() {
+                if (pairs != null) return pairs.size();
+                long count = 1;
+                for (int size : sizes) {
+                    if (count > Long.MAX_VALUE / size) return Long.MAX_VALUE;
+                    count *= size;
+                }
+                return count;
+            }
+
+            long total() {
+                long combinations = combinations();
+                return combinations > Long.MAX_VALUE / steps.size() ? Long.MAX_VALUE : combinations * steps.size();
+            }
+
+            /** Le choix de chacun de ses axes à sa combinaison {@code index}. */
+            int[] choice(long index) {
+                if (pairs != null) return pairs.get((int) index).clone();
+                int[] choice = new int[sizes.length];
+                // Le premier axe change le plus vite : chaque skin d'un visuel se voit tôt.
+                for (int i = 0; i < sizes.length; i++) {
+                    choice[i] = (int) (index % sizes[i]);
+                    index /= sizes[i];
+                }
+                return choice;
+            }
+        }
+
+        Run(Group group, List<Axis> crossed, Mode mode) { this(group, crossed, mode, false); }
+
+        Run(Group group, List<Axis> crossed, Mode mode, boolean heaviest) {
             this.group = group;
             this.crossed = List.copyOf(crossed);
             this.mode = mode;
-            sizes = new int[this.crossed.size()];
-            for (int i = 0; i < sizes.length; i++) sizes[i] = Math.max(1, this.crossed.get(i).options().size());
-            pairs = mode == Mode.PAIRS ? pairwise(sizes, 41) : null;
+            this.heaviest = heaviest;
+            Map<String, Part> byAxes = new LinkedHashMap<>();
+            for (Step step : shown(group, heaviest)) {
+                String scene = sceneOf(step);
+                List<Integer> shown = new ArrayList<>();
+                for (int i = 0; i < this.crossed.size(); i++) if (shows(scene, this.crossed.get(i))) shown.add(i);
+                Part part = byAxes.computeIfAbsent(shown.toString(), key -> {
+                    int[] axes = shown.stream().mapToInt(Integer::intValue).toArray(), sizes = new int[axes.length];
+                    for (int i = 0; i < axes.length; i++) sizes[i] = Math.max(1, this.crossed.get(axes[i]).options().size());
+                    return new Part(axes, sizes, mode);
+                });
+                part.steps.add(step);
+            }
+            parts.addAll(byAxes.values());
+            List<Step> ordered = new ArrayList<>();
+            long firstStep = 0, firstCombination = 0;
+            for (Part part : parts) {
+                part.firstStep = firstStep;
+                part.firstCombination = firstCombination;
+                ordered.addAll(part.steps);
+                firstStep = add(firstStep, part.total());
+                firstCombination = add(firstCombination, part.combinations());
+            }
+            steps = List.copyOf(ordered);
         }
 
-        /** Le nombre de combinaisons ; {@link Long#MAX_VALUE} si le compte déborde. */
-        long combinations() {
-            if (pairs != null) return pairs.size();
-            long count = 1;
-            for (int size : sizes) {
-                if (count > Long.MAX_VALUE / size) return Long.MAX_VALUE;
-                count *= size;
+        /**
+         * Les états du passage (version 0.288) : ceux qui montrent au moins un visuel de l'onglet. Un sous-onglet sans
+         * visuel à lui (les améliorations, les paliers) ne change qu'avec la fenêtre : c'est le passage « Fenêtre » qui le
+         * couvre, pas besoin de le repasser ici.
+         */
+        static List<Step> shown(Group group, boolean heaviest) {
+            List<Step> shown = new ArrayList<>();
+            for (Step step : group.steps(heaviest)) {
+                String scene = sceneOf(step);
+                if (group.visuals().stream().anyMatch(visual -> shows(scene, Axis.of(visual)))) shown.add(step);
             }
+            return shown.isEmpty() ? group.steps(heaviest) : shown;
+        }
+
+        private static long add(long a, long b) { return a > Long.MAX_VALUE - b ? Long.MAX_VALUE : a + b; }
+
+        /** Le nombre de combinaisons, toutes parts comprises ; {@link Long#MAX_VALUE} si le compte déborde. */
+        long combinations() {
+            long count = 0;
+            for (Part part : parts) count = add(count, part.combinations());
             return count;
         }
 
-        /** Le nombre d'étapes : chaque combinaison par chaque état ; {@link Long#MAX_VALUE} si le compte déborde. */
+        /** Le nombre d'étapes : chaque combinaison d'une part par chacun de ses états ; {@link Long#MAX_VALUE} s'il déborde. */
         long total() {
-            long combinations = combinations(), steps = group.steps().size();
-            return combinations > Long.MAX_VALUE / steps ? Long.MAX_VALUE : combinations * steps;
+            long count = 0;
+            for (Part part : parts) count = add(count, part.total());
+            return count;
         }
 
-        /** Le choix de chaque axe croisé à la combinaison {@code index} (rang dans ses choix). */
+        /** La part de l'étape {@code step}. */
+        private Part partOfStep(long step) {
+            for (int i = parts.size() - 1; i >= 0; i--) if (step >= parts.get(i).firstStep) return parts.get(i);
+            return parts.get(0);
+        }
+
+        /** La part de la combinaison {@code index}. */
+        private Part partOfCombination(long index) {
+            for (int i = parts.size() - 1; i >= 0; i--) if (index >= parts.get(i).firstCombination) return parts.get(i);
+            return parts.get(0);
+        }
+
+        /** Le choix de chaque axe croisé à la combinaison {@code index} (rang dans ses choix) ; 0 pour un axe hors de sa part. */
         int[] choice(long index) {
-            if (pairs != null) return pairs.get((int) index).clone();
-            int[] choice = new int[sizes.length];
-            // Le premier axe change le plus vite : chaque skin d'un visuel se voit tôt.
-            for (int i = 0; i < sizes.length; i++) {
-                choice[i] = (int) (index % sizes[i]);
-                index /= sizes[i];
-            }
+            Part part = partOfCombination(index);
+            int[] local = part.choice(index - part.firstCombination), choice = new int[crossed.size()];
+            for (int i = 0; i < part.axes.length; i++) choice[part.axes[i]] = local[i];
             return choice;
+        }
+
+        /** Vrai si l'axe {@code axis} (rang dans {@link #crossed}) se croise à la combinaison {@code index}. */
+        boolean crosses(long index, int axis) {
+            for (int shown : partOfCombination(index).axes) if (shown == axis) return true;
+            return false;
         }
 
         /** Le choix de l'axe {@code id} à la combinaison {@code index} ; 0 (celui d'origine) s'il n'est pas croisé. */
@@ -391,32 +664,118 @@ final class UiTestPlan {
         /** Le skin de ce visuel à la combinaison {@code index} ({@code null} pour le Classique, ou s'il n'est pas croisé). */
         Skin skin(long index, SkinVisual visual) { return options(visual).get(option(index, visual.name())); }
 
-        /** Les skins de la combinaison {@code index} : chaque visuel croisé et son skin ({@code null} pour le Classique). */
+        /** Les skins de la combinaison {@code index} : chaque visuel croisé dans sa part et son skin ({@code null} pour le Classique). */
         Map<SkinVisual, Skin> skins(long index) {
             Map<SkinVisual, Skin> skins = new LinkedHashMap<>();
-            for (Axis axis : crossed) if (axis.visual() != null) skins.put(axis.visual(), skin(index, axis.visual()));
+            for (int i = 0; i < crossed.size(); i++) {
+                Axis axis = crossed.get(i);
+                if (axis.visual() != null && crosses(index, i)) skins.put(axis.visual(), skin(index, axis.visual()));
+            }
             return skins;
         }
 
-        /** La combinaison de l'étape {@code step}. */
-        long combinationOf(long step) { return step / group.steps().size(); }
+        /** La combinaison de l'étape {@code step}, numérotée sur tout le passage. */
+        long combinationOf(long step) {
+            Part part = partOfStep(step);
+            return part.firstCombination + (step - part.firstStep) / part.steps.size();
+        }
 
         /** L'état de l'étape {@code step}. */
-        Step stepOf(long step) { return group.steps().get((int) (step % group.steps().size())); }
+        Step stepOf(long step) {
+            Part part = partOfStep(step);
+            return part.steps.get((int) ((step - part.firstStep) % part.steps.size()));
+        }
 
-        /** La combinaison de l'étape {@code step} en mots : « Atome : Craie · Tableau : Classique · Thème : Sépia ». */
+        /** Les états du passage, rangés part par part. */
+        List<Step> steps() { return steps; }
+
+        /** Le nombre de parts : les groupes d'états qui montrent les mêmes visuels. */
+        int parts() { return parts.size(); }
+
+        /** La façon de combiner en mots, « charge maximale » en plus s'il le faut. */
+        String modeLabel() { return mode.label + (heaviest ? " · charge maximale" : ""); }
+
+        /** La combinaison de l'étape {@code step} en mots : « Atome : Craie · Thème : Sépia ». */
         String describe(long step) { return describeCombination(combinationOf(step)); }
 
-        /** La combinaison {@code index} en mots. */
+        /** La combinaison {@code index} en mots : les axes de sa part seulement. */
         String describeCombination(long index) {
             int[] choice = choice(index);
             StringBuilder text = new StringBuilder();
             for (int i = 0; i < choice.length; i++) {
+                if (!crosses(index, i)) continue;
                 if (!text.isEmpty()) text.append(" · ");
                 text.append(crossed.get(i).label()).append(" : ").append(crossed.get(i).options().get(choice[i]));
             }
             return text.isEmpty() ? "Tout au Classique" : text.toString();
         }
+    }
+
+    /**
+     * Le sous-onglet qu'un état montre (version 0.287) : celui qu'il choisit (« Atome », « #2 » pour le troisième, ou
+     * « dimension 4 ») ; {@link #ANIMATION} pour une animation plein écran lancée sans sous-onglet ; vide sinon (une
+     * notification, un onglet entier).
+     */
+    static final String ANIMATION = "animation";
+
+    static String sceneOf(Step step) {
+        String[] scene = {""};
+        step.action().accept(new Driver() {
+            @Override public void tab(String tab) { }
+            @Override public boolean subTab(String label) { scene[0] = label; return true; }
+            @Override public boolean subTabAt(int index) { scene[0] = "#" + index; return true; }
+            @Override public void act(Consumer<TestActions> change) { }
+            @Override public void hook(Consumer<TestTools.Hooks> animation) { if (scene[0].isEmpty()) scene[0] = ANIMATION; }
+            @Override public void dimension(int number) { scene[0] = "dimension " + number; }
+            @Override public void toast(String text) { }
+            @Override public void help() { }
+            @Override public void ending() { }
+            @Override public void startButton() { }
+            @Override public void particleSpeed(double log) { }
+        });
+        return scene[0];
+    }
+
+    /**
+     * Vrai si l'axe se voit dans ce sous-onglet : un réglage (thème, notation) et un visuel de toute la fenêtre partout ;
+     * un visuel d'un sous-onglet sur le sien ({@link #scenes}) ; tout, dans un état qui ne choisit pas de sous-onglet.
+     */
+    static boolean shows(String scene, Axis axis) {
+        if (axis.visual() == null || scene.isEmpty()) return true;
+        Set<String> where = scenes(axis.visual());
+        return where.isEmpty() || where.contains(scene);
+    }
+
+    /**
+     * Les sous-onglets où se voit un visuel (version 0.287), aux noms des états ; vide s'il se voit partout dans son
+     * onglet. {@link #ANIMATION} : dans les animations plein écran (le Big Bang, la naissance d'un univers…).
+     */
+    static Set<String> scenes(SkinVisual visual) {
+        return switch (visual) {
+            case ATOM -> Set.of("Atome");
+            case TABLE, TABLE_PAGE -> Set.of("Tableau périodique");
+            case DARK_BALL, DARK_RULER, DARK_ANIMATION -> Set.of("Matière noire");
+            case DARK_TREE -> Set.of("Arbre");
+            case CHALLENGES -> Set.of("Défis");
+            case COLLIDER_BEAM, COLLIDER, DETECTOR, LIGHTNING, SPARKS, QUARK_FLIGHT -> Set.of("Énergie");
+            case GLUONS -> Set.of("Gluons");
+            case QUARKS, HADRON_BACKGROUND -> Set.of("Liaison");
+            case VOID_FOAM, VOID_PAIRS, VOID_HOLE -> Set.of("Paires");
+            case BIG_BANG -> Set.of("Expansion de la matière", ANIMATION);
+            case CLUMPS, BLOCKS, GAS -> Set.of("Expansion de la matière");
+            case BODY -> Set.of("Astres", "Expansion de la matière", "Cosmos");
+            case MOLECULE, MOLECULE_PALETTE -> Set.of("Molécules", "Expansion de la matière", "États de la matière", "Assemblages");
+            case MATTER_SIGNS -> Set.of("Molécules", "Expansion de la matière", "États de la matière");
+            case SKY, SYSTEM -> Set.of("Astres", "Systèmes solaires");
+            case GALAXY, GALAXY_CLUSTER, COSMIC_WEB -> Set.of("Cosmos");
+            case PROBE -> Set.of("Sondes");
+            case UNIVERSE_BUBBLE, UNIVERSE_LINKS -> Set.of("Univers");
+            case DIMENSIONS_MAP, FINALE_FILL -> Set.of("Dimensions");
+            case UNIVERSE_BIRTH, LAUNCH, TRANSITION -> Set.of(ANIMATION);
+            case LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX ->
+                    Set.of("dimension " + (Arrays.asList(SkinVisual.DIMENSIONS).indexOf(visual) + 1));
+            default -> Set.of();
+        };
     }
 
     /**

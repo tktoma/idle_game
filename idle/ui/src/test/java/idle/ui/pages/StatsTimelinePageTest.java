@@ -53,7 +53,7 @@ class StatsTimelinePageTest {
         assertEquals("87 h 23 min", TimelinePane.at(87 * 3_600 + 23 * 60 + 20));
         assertEquals("avant la version 0.168", TimelinePane.at(Double.NaN));
         assertEquals("inconnue", TimelinePane.span(Double.NaN));
-        assertEquals("4,1 %", TimelinePane.share(0.041));
+        assertEquals("4.1 %", TimelinePane.share(0.041));
         GameStats.UniverseRecord r = new GameStats.UniverseRecord(3, 0, 600, 1_800, 3_600, 4_200, 7_200);
         assertEquals("acte 1 10 min 00 s  ·  acte 2 20 min 00 s  ·  Big Bangs et astres 30 min 00 s  ·  galaxie 10 min 00 s  ·  amas 50 min 00 s",
                 TimelinePane.phases(r));

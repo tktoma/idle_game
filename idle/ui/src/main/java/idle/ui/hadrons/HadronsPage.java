@@ -1,7 +1,7 @@
 package idle.ui.hadrons;
 
 import idle.core.Game;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.GluonMilestone;
 import idle.core.collider.Hadron;
 import idle.core.collider.Quark;
@@ -308,7 +308,7 @@ public final class HadronsPage extends VBox {
 
     /** « 1 », « 1,08 » : un bonus, en décimales à la française ; le bonus nul (×1) sans virgule. */
     private static String boost(double value, int decimals) {
-        return value == 1 ? "1" : String.format(Locale.FRANCE, "%." + decimals + "f", value);
+        return value == 1 ? "1" : String.format(Locale.ROOT, "%." + decimals + "f", value);
     }
 
     /** Recopie la partie : les gluons, les quarks en main, chaque hadron, les paliers, seulement si quelque chose a changé. */
@@ -362,7 +362,9 @@ public final class HadronsPage extends VBox {
             Card.State state = done ? Card.State.DONE : gluons > 0 ? Card.State.STARTED : Card.State.WAITING;
             long missing = milestone.gluons() - gluons;
             milestoneCards.get(milestone).show(state, Format.whole(milestone.gluons()) + " gluons",
-                    done ? (Card.signsShown() ? "atteint" : "✓ atteint") : "", milestone.label(), milestone.effect(), "",
+                    done ? (Card.signsShown() ? "atteint" : "✓ atteint") : "", milestone.label(), milestone.effect(),
+                    "Chaque quark lié compte un gluon ; le palier agit dès qu'il est atteint. Un nouvel univers reprend les hadrons "
+                            + "et leurs gluons, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde.",
                     done ? "" : "Il manque " + Format.whole(missing) + (missing > 1 ? " gluons" : " gluon"),
                     done ? "" : Math.round(share * 100) + " %");
             gauges.get(milestone).setPrefWidth(share * GAUGE_WIDTH);

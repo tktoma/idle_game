@@ -16,7 +16,7 @@ import javafx.scene.text.*;
  * {@link #rootStyle}. Avec un skin, la racine du jeu reçoit une marge ({@link #rootPadding}) et un voile
  * {@code #0b0e14} à 78 % : Papier (grain léger sur crème), Ardoise (traits de craie le long des bords, quelques traces
  * effacées), Nuit étoilée (80 étoiles fixes, dont une vingtaine scintillent), Terminal (une bordure de caractères ASCII en
- * vert, un curseur qui clignote en bas à gauche), Blueprint (un quadrillage blanc, un cartouche de plan en bas à droite).
+ * vert, un curseur qui clignote en bas à gauche), Plan d'architecte (un quadrillage blanc, un cartouche de plan en bas à droite).
  *
  * <p>Le dessin se refait quand la fenêtre change de taille ({@link #fit}) ou de skin ({@link #setSkin}), pas à chaque
  * image : seuls la Nuit étoilée (le scintillement) et le Terminal (le curseur) se redessinent, deux fois par seconde au
@@ -55,7 +55,7 @@ final class Chrome extends Canvas {
     private static final Font MONO = Font.font("Monospaced", 14);
     private static final Font MONO_SMALL = Font.font("Monospaced", 11);
     private static final Font TITLE = Font.font("Monospaced", FontWeight.BOLD, 18);
-    /** Le pas du quadrillage du Blueprint, et le nombre de pas entre deux lignes marquées. */
+    /** Le pas du quadrillage du plan d'architecte, et le nombre de pas entre deux lignes marquées. */
     private static final double GRID_STEP = 24;
     private static final int GRID_BOLD_EVERY = 5;
     private static final String VERSION_LINE = "Version " + Version.CURRENT;
@@ -154,7 +154,7 @@ final class Chrome extends Canvas {
             case AMBIENT_SLATE -> drawSlate(g, w, h);
             case AMBIENT_NIGHT -> drawNight(g, w, h);
             case AMBIENT_TERMINAL -> drawTerminal(g, w, h);
-            case AMBIENT_BLUEPRINT -> drawBlueprint(g, w, h);
+            case AMBIENT_BLUEPRINT -> drawArchitectPlan(g, w, h);
             default -> { }     // un skin d'un autre visuel ne peut pas arriver ici : {@code chosenSkin(AMBIENT)} ne rend que les siens
         }
     }
@@ -232,8 +232,8 @@ final class Chrome extends Canvas {
         if (((int) (time / LIVE_INTERVAL)) % 2 == 0) g.fillRect(left + cell + 2, bottom - MARGIN - 1, cell, MARGIN - 4);
     }
 
-    /** Blueprint : un bleu de plan, un quadrillage blanc léger marqué tous les cinq pas, et un cartouche en bas à droite. */
-    private void drawBlueprint(GraphicsContext g, double w, double h) {
+    /** Plan d'architecte : un bleu de plan, un quadrillage blanc léger marqué tous les cinq pas, et un cartouche en bas à droite. */
+    private void drawArchitectPlan(GraphicsContext g, double w, double h) {
         g.setFill(BLUEPRINT);
         g.fillRect(0, 0, w, h);
         g.setLineWidth(1);

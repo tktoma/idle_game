@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 

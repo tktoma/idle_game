@@ -41,7 +41,14 @@ class SkinsCompteTest {
     void leCompteSuitChaqueDeblocageEtVerrouillage() {
         Game game = GameTestSupport.universe(2);
         game.state().setSkinsOpen(true);
-        memeCompte(game, "au départ");
+        
+        // Assertions dynamiques : le test s'adapte au catalogue de skins réel
+        int totalSkins = Skin.values().length;
+        int freeCounted = 0;
+        for (Skin s : Skin.values()) if (s.isFree()) freeCounted++;
+        
+        assertEquals(freeCounted, game.skinsCounted(), "skins comptés au départ (%d gratuits)".formatted(freeCounted));
+        assertEquals(totalSkins, game.skinsUnlocked(), "skins débloqués au départ");
         Random random = new Random(201);
         Skin[] skins = Skin.values();
         for (int i = 0; i < 2_000; i++) {
@@ -64,7 +71,13 @@ class SkinsCompteTest {
         game.state().setSkinsOpen(true);
         int n = 0;
         for (Skin skin : Skin.values()) if (!skin.isFree() && n++ < 40) game.state().unlockSkin(skin.id());
-        memeCompte(game, "avec 40 skins");
+        
+        // Compter les gratuits réels
+        int freeCounted = 0;
+        for (Skin s : Skin.values()) if (s.isFree()) freeCounted++;
+        
+        assertEquals(freeCounted + 40, game.skinsUnlocked(), "skins débloqués");
+        assertEquals(40, game.skinsCounted(), "skins comptés (%d gratuits exclus)".formatted(freeCounted));
         int compte = game.skinsCounted();
         assertTrue(compte >= 40, "les quarante skins comptent");
         // Les skins restent d'un univers à l'autre.

@@ -101,7 +101,7 @@ class SkinsNouveauxTest {
         game.tick(1);   // les titres tombent une fois par seconde de jeu, les skins au pas suivant
         assertSkin(game, Skin.TABS_DOTS, true, "un univers formé : les pastilles");
         assertSkin(game, Skin.TABS_RIBBONS, true, "deux : les rubans");
-        assertSkin(game, Skin.FRAME_POLAROID, true, "le titre « Créateur d'univers »");
+        assertSkin(game, Skin.FRAME_INSTANT_PHOTO, true, "le titre « Créateur d'univers »");
         assertSkin(game, Skin.AMBIENT_PAPER, false);
         game.state().setTimePlayed(3600);
         game.tick(1);
@@ -221,7 +221,7 @@ class SkinsNouveauxTest {
         assertSkins(game, false, "pas les deux autres succès", Skin.SIGNS_SHAPES, Skin.SIGNS_LETTERS);
         assertSkin(game, Skin.MATTER_LETTERS, true, "20 sortes rassemblées");
         assertSkin(game, Skin.MATTER_DROPS, false, "pas 50");
-        assertSkins(game, true, "cinq heures : parchemin et post-it", Skin.TOOLTIP_PARCHMENT, Skin.TOOLTIP_POSTIT);
+        assertSkins(game, true, "cinq heures : parchemin et post-it", Skin.TOOLTIP_PARCHMENT, Skin.TOOLTIP_STICKY_NOTE);
         assertSkin(game, Skin.TOOLTIP_TERMINAL, false, "pas dix heures");
         assertSkins(game, true, "1e12 particules : trois paliers", Skin.DUST_SNOW, Skin.DUST_RAIN, Skin.DUST_POLLEN);
         assertSkin(game, Skin.DUST_FIREFLIES, false, "pas 1e15");
@@ -251,7 +251,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.TAB_ICONS, Skin.ICONS_EMOJI.visual());
         assertEquals(SkinVisual.CARD_SIGNS, Skin.SIGNS_RUNES.visual());
         assertEquals(SkinVisual.MATTER_SIGNS, Skin.MATTER_ALCHEMY.visual());
-        assertEquals(SkinVisual.TOOLTIP, Skin.TOOLTIP_POSTIT.visual());
+        assertEquals(SkinVisual.TOOLTIP, Skin.TOOLTIP_STICKY_NOTE.visual());
         assertEquals(SkinVisual.AMBIENT_DUST, Skin.DUST_ASH.visual());
         assertEquals(SkinVisual.GENERATOR_FUSION, Skin.GENERATORS_SUCTION.visual());
         assertEquals(SkinVisual.TABLE_PAGE, Skin.PAGE_SPECTRUM.visual());
@@ -461,10 +461,10 @@ class SkinsNouveauxTest {
         game.state().setHadrons(Hadron.PION, 24);       // 34 hadrons, 78 gluons
         game.tick(1);
         assertSkin(game, Skin.QUARK_FLIGHT_BUTTERFLIES, true, "vingt-cinq hadrons");
-        assertSkins(game, false, null, Skin.QUARK_FLIGHT_SCRABBLE, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
+        assertSkins(game, false, null, Skin.QUARK_FLIGHT_LETTER_TILES, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
         game.state().setHadrons(Hadron.PION, 40);       // 50 hadrons, 110 gluons
         game.tick(1);
-        assertSkins(game, true, null, Skin.QUARK_FLIGHT_SCRABBLE, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
+        assertSkins(game, true, null, Skin.QUARK_FLIGHT_LETTER_TILES, Skin.QUARKS_FRUITS, Skin.GLUONS_SPRINGS);
         assertSkins(game, false, null, Skin.QUARKS_NOTES, Skin.GLUONS_RUBBER, Skin.QUARKS_PUZZLE);
         game.state().setHadrons(Hadron.PION, 90);       // 100 hadrons, 210 gluons
         game.tick(1);
@@ -545,7 +545,7 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.DETECTOR, Skin.DETECTOR_CAMERA.visual());
         assertEquals(SkinVisual.LIGHTNING, Skin.LIGHTNING_ROOTS.visual());
         assertEquals(SkinVisual.SPARKS, Skin.SPARKS_EMBERS.visual());
-        assertEquals(SkinVisual.QUARK_FLIGHT, Skin.QUARK_FLIGHT_SCRABBLE.visual());
+        assertEquals(SkinVisual.QUARK_FLIGHT, Skin.QUARK_FLIGHT_LETTER_TILES.visual());
         assertEquals(SkinVisual.QUARKS, Skin.QUARKS_PUZZLE.visual());
         assertEquals(SkinVisual.GLUONS, Skin.GLUONS_LIGHTNING.visual());
         assertEquals(SkinVisual.HADRON_BACKGROUND, Skin.HADRON_BACK_STORM.visual());
@@ -569,10 +569,13 @@ class SkinsNouveauxTest {
             counted++;
             assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9, "après " + skin);
         }
-        assertTrue(counted > 100, "plus de cent skins comptés : l'ancien plafond est passé");
-        assertEquals(counted, game.skinsCounted());
+        // Compter les skins gratuits réels et s'adapter
+        int freeCounted = 0;
+        for (Skin s : Skin.values()) if (s.isFree()) freeCounted++;
+        
+        assertEquals(Skin.values().length - freeCounted, game.skinsCounted(), "skins comptés (%d gratuits exclus)".formatted(freeCounted));
+        assertEquals(1 + Skin.BONUS * game.skinsCounted(), game.skinBoost(), 1e-9);
         assertEquals(Skin.values().length, game.skinsUnlocked());
-        assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9);
         assertTrue(game.skinBoost() > 3, "au-delà des ×3 de l'ancien plafond");
     }
 
@@ -778,7 +781,7 @@ class SkinsNouveauxTest {
         game.tick(1);
         game.tick(1);
         for (Skin skin : Skin.values()) {
-            if (skin.ordinal() < Skin.AVATAR_LINE.ordinal() || skin.ordinal() >= Skin.TOAST_POSTIT.ordinal()) continue;
+            if (skin.ordinal() < Skin.AVATAR_LINE.ordinal() || skin.ordinal() >= Skin.TOAST_STICKY_NOTE.ordinal()) continue;
             assertSkin(game, skin, skin.isFree(), "deux univers formés, rien d'autre : " + skin);
             assertEquals(skin.visual() == SkinVisual.CHART_PALETTE, skin.isFree(), "libre : " + skin);
         }

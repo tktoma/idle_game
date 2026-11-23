@@ -5,16 +5,16 @@ package idle.core.universe;
  * choix pour chacun. « Classique » est l'apparence d'origine, toujours là.
  */
 public enum SkinVisual {
-    PARTICLE_FUSION("Fusion des particules"),
-    ATOM("Atome"),
-    TABLE("Tableau périodique"),
-    DARK_BALL("Boule de matière noire"),
-    DARK_ANIMATION("Animation de la matière noire"),
-    BIG_BANG("Big Bang"),
-    COLLIDER_BEAM("Faisceau du collisionneur"),
-    COLLIDER("Collisionneur"),
+    PARTICLE_FUSION("La fusion des particules"),
+    ATOM("L'atome"),
+    TABLE("Le tableau périodique"),
+    DARK_BALL("La boule de matière noire"),
+    DARK_ANIMATION("L'animation de la matière noire"),
+    BIG_BANG("Le Big Bang"),
+    COLLIDER_BEAM("Le faisceau du collisionneur"),
+    COLLIDER("Le collisionneur"),
     /** Version 0.185 : l'arbre de la graine, du bonsaï à l'arbre-monde, et ses essences. */
-    TREE("L'arbre"),
+    TREE("L'essence de l'arbre"),
     /** Version 0.186 : les astres, dans l'espace, le ciel et leurs cartes. */
     BODY("Les astres"),
     /** Version 0.187 : les dix mini-jeux des dimensions, un visuel chacun. */
@@ -85,7 +85,7 @@ public enum SkinVisual {
     SEASONS("Les saisons"),
     /** L'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les cadres et la palette des mini-jeux. */
     TREE_SEASON("La saison de l'arbre"),
-    TREE_FANTASY("L'arbre de fantaisie"),
+    TREE_FANTASY("La matière de l'arbre"),
     TREE_GROUND("Le sol de l'arbre"),
     TREE_BUBBLES("Les bulles de l'arbre"),
     TREE_BUBBLE_LINKS("Les liens des bulles de l'arbre"),

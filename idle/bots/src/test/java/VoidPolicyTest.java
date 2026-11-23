@@ -4,7 +4,7 @@ import idle.core.collider.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.GameUniverseBase.VoidUpgrade;
 import idle.core.math.BigNum;
 import java.util.Random;
 import org.junit.jupiter.api.Test;

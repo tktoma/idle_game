@@ -8,6 +8,8 @@ import idle.core.collider.*;
 import idle.core.probes.*;
 import idle.core.save.*;
 import idle.core.universe.CycleChoice;
+import idle.core.universe.Trial;
+import idle.core.bigbang.BigBangCondition;
 import java.util.*;
 import java.nio.file.*;
 public class IdleProfiles24 extends RobotCosmosPlanner {
@@ -156,6 +158,18 @@ int actions=0, planningActions=0, techActions=0, otherActions=0;
 int first8=-1, galaxy=-1, cluster=-1, universe=-1;
 int lastBang, lastCosmos, lastExplosions;
 final ProfileProgressGuard progressGuard;
+/**
+ * Version 0.294 : les mécaniques que les bots ne jouaient pas (le calme du Big Bang, les épreuves, le rond de
+ * croissance de la graine), jouées par tous les profils sauf le Speedrunner, la référence de l'équilibrage. Leur hasard
+ * est à part : celui des autres gestes ne bouge pas.
+ */
+final Random extraRng;
+/** Les épreuves déjà tentées dans cet univers : chacune une fois au plus. */
+final Set<Trial> triedTrials=EnumSet.noneOf(Trial.class);
+int triedTrialsUniverse=-1;
+/** Vrai tant que le profil laisse le calme du Big Bang faire baisser le seuil de particules : il n'achète plus en particules. */
+boolean calm=false;
+int calmWaits=0, trialsStarted=0, bloomsCaught=0;
 double nextGuardSampleAt=ProfileProgressGuard.SAMPLE_SECONDS;
 IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
 super(game,decisionStep);this.p=profile;this.rng=new Random(seed ^ (profile.id*11939L));
@@ -172,6 +186,7 @@ this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^
 // Un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
 this.tree.occasionalHandSeconds=profile.actionEverySeconds();
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
+this.extraRng=new Random(seed ^ (profile.id*4271L) ^ 0x3a1cL);
 progressGuard=new ProfileProgressGuard(profile);
 }
 /** Les relevés des univers se comptent en temps réel, comme le reste du bilan des profils. */
@@ -293,7 +308,7 @@ private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){if(g.isStarted())tree.tick(g,dt);g.tick(dt);return;}
 double left=dt;
 // Le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
-while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}
+while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety && !calm)g.buyAllWithParticles();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){
@@ -302,6 +317,68 @@ nextActionAt=Math.min(actionInterval,step);
 logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
 if(!quiet)progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));
 }
+/** Vrai pour le Speedrunner : la référence de l'équilibrage ne joue pas les mécaniques ajoutées en 0.294. */
+boolean reference(){return p.id()==1;}
+
+/**
+ * Les mécaniques ajoutées en 0.294, à chaque décision, sauf pour le Speedrunner :
+ * <ul>
+ * <li>le calme du Big Bang (récompense du défi « Fuite ») : quand seules les particules manquent au Big Bang, un profil
+ * qui planifie cesse d'acheter en particules et laisse le seuil baisser (une heure suffit toujours) ;</li>
+ * <li>les épreuves de l'onglet Skins : chacune, une fois par univers, selon l'attention aux à-côtés ; un skin gagné
+ * ajoute au bonus de la collection ;</li>
+ * <li>le rond de croissance de la graine, cueilli quand il se montre, selon l'attention au ciel.</li>
+ * </ul>
+ */
+void extras(){
+if(reference()){calm=false;return;}
+calm=calmWanted();
+if(calm)calmWaits++;
+if(g.isBloomVisible() && extraRng.nextDouble()<p.skyAttention() && !sansJouer("rond") && g.catchBloom())bloomsCaught++;
+if(!sansJouer("epreuves"))trials();
+}
+
+/** Vrai si attendre le calme vaut mieux qu'acheter : tout est réuni pour le Big Bang, sauf les particules. */
+boolean calmWanted(){
+if(sansJouer("calme") || p.planning()<0.5 || !g.isBigBangUnlocked() || g.inChallenge()) return false;
+if(!g.state().completedChallenges().contains(Challenges.LEAK.id())) return false;
+for(BigBangCondition c:g.bigBangConditions()){
+  if(c==BigBangCondition.PARTICLES) continue;
+  if(!g.isBigBangConditionMet(c)) return false;
+}
+if(g.isBigBangConditionMet(BigBangCondition.PARTICLES) || g.bigBangCalmRelief()>=1) return false;
+// Attendre ne vaut que si les particules sont loin : moins de la moitié des ordres de grandeur demandés (mesuré en
+// 0.294 : attendre dès qu'il en manquait un peu rendait le Régulier plus lent d'une demi-heure à l'univers 2).
+double relief=g.bigBangCalmRelief();
+double need=g.bigBangParticles().log10()/Math.max(1e-9,1-relief), have=g.state().particles().log10();
+return have<CALM_SHARE*need;
+}
+
+/** En dessous de cette part des ordres de grandeur demandés, le calme du Big Bang vaut mieux que les achats. */
+static final double CALM_SHARE=0.5;
+
+/** Vrai pour une épreuve qui ralentit tout un acte tant qu'elle dure (un seul générateur compris : +1 h 45 au Méthodique). */
+static boolean costly(Trial t){return t==Trial.SOFT_CONTRACTION || t==Trial.COLD_BANG || t==Trial.LONE_GENERATOR;}
+/** Vrai pour les profils qui veulent tout avoir : le chasseur de succès et le collectionneur. */
+boolean collects(){return p.id()==5 || p.id()==6;}
+
+/** Commence une épreuve pas encore tentée dans cet univers, s'il n'y en a aucune en cours. */
+void trials(){
+if(g.universes()!=triedTrialsUniverse){triedTrials.clear();triedTrialsUniverse=g.universes();}
+if(g.activeTrial()!=null) return;
+for(Trial t:Trial.values()){
+  if(triedTrials.contains(t) || g.isTrialCompleted(t) || !g.canStartTrial(t)) continue;
+  // Les épreuves qui ralentissent tout un acte (un seul générateur, la contraction douce, le Big Bang à froid) : seulement pour le chasseur de
+  // succès et le collectionneur. Mesuré en 0.294 : tentées par le Régulier, elles lui coûtaient une demi-heure à l'univers 2.
+  if(costly(t) && !collects()) continue;
+  // Les épreuves du collisionneur demandent de capter des croisements : sans le déclencheur automatique au plus haut,
+  // un bot qui ne décide que toutes les 20 s ou plus les rate toutes (mesuré : 0 réussite sur 3 au Régulier).
+  if(t.isCollider() && g.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH)<3) continue;
+  triedTrials.add(t);
+  if(extraRng.nextDouble()<p.techAttention() && g.startTrial(t)){trialsStarted++;return;}
+}
+}
+
 /** Juste avant les décisions du pas, la partie déjà avancée : rien ici. */
 void beforeDecisions(){}
 /** Le pas joué ; rend vrai pour arrêter la partie (ici, seulement quand l'univers visé est atteint). */
@@ -341,7 +418,8 @@ if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention() && !sansJouer("impul
 // Celui qui ne tient pas M l'appuie une fois à chaque décision (un achat « max » en particules).
 // Rien pendant la sobriété (sans fusion, les générateurs s'empilaient : le skin Essaim, 100 générateurs, tombait
 // à l'univers 3 et pas sans elle, et décalait l'univers 4).
-if(!holdsBuyAll() && g.isStarted() && !sobriety)g.buyAllWithParticles();
+extras();
+if(!holdsBuyAll() && g.isStarted() && !sobriety && !calm)g.buyAllWithParticles();
 if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
 probes();cosmos();resourceLoop();
 }

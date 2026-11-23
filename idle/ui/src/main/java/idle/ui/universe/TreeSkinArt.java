@@ -348,7 +348,12 @@ final class TreeSkinArt {
         g.setFill(BLOSSOM);
         g.setGlobalAlpha(0.95);
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
-        g.setFill(Color.web("#fff6e0"));
+        g.setFill(Webs.C_FFF6E0);
         g.fillOval(x - r * 0.35, y - r * 0.35, r * 0.7, r * 0.7);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_FFF6E0 = Color.web("#fff6e0");
     }
 }

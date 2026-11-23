@@ -429,12 +429,12 @@ final class BodySkinArt {
                     g.strokeArc(cx - 0.7 * size, cy - 0.7 * size, 1.4 * size, 1.4 * size, 100, 130, ArcType.OPEN);
                 }
             }
-            case ICY -> BodyArt.cracks(g, seed, INK, 0.02, x, y, r, 5, 0);
+            case ICY -> BodyArtSurfaces.cracks(g, seed, INK, 0.02, x, y, r, 5, 0);
             case MOLTEN -> {
-                BodyArt.cracks(g, seed, INK, 0.03, x, y, r, 5, 0);
-                BodyArt.spots(g, seed, 400, 4, 0.03, 0.04, 0.7, x, y, r);
+                BodyArtSurfaces.cracks(g, seed, INK, 0.03, x, y, r, 5, 0);
+                BodyArtSurfaces.spots(g, seed, 400, 4, 0.03, 0.04, 0.7, x, y, r);
             }
-            case DARK -> BodyArt.spots(g, seed, 500, 10, 0.02, 0.04, 0.85, x, y, r);
+            case DARK -> BodyArtSurfaces.spots(g, seed, 500, 10, 0.02, 0.04, 0.85, x, y, r);
             case HAZY -> lines(g, x, y, r, -0.5, 0.5, 3);
             case OCEAN -> {
                 // Les continents du Classique, en contours, et deux calottes en arcs.

@@ -3,7 +3,7 @@ package idle.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.*;
 import java.util.List;
 import org.junit.jupiter.api.Test;

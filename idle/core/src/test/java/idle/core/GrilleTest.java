@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.GameGrid.GridPoint;
 import idle.core.GameGrid.GridProbe;
 import idle.core.GameGrid.GridUpgrade;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

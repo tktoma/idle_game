@@ -745,4 +745,91 @@ final class TestActions {
 
     /** Toute la partie secondaire à son début : un seul univers, rien en réserve, ni graine, ni vide, ni dimension. */
     void resetUniverses() { game.testResetUniverses(); }
+
+    // La charge maximale du profil test UI (version 0.286) : chaque onglet au plus chargé que la partie peut atteindre.
+
+    /** Les générateurs montrés, au plus : {@link GameAppBase#MAX_VISIBLE_GENERATORS}. */
+    void heaviestParticles() { setGenerators(GameAppBase.MAX_VISIBLE_GENERATORS); }
+
+    /**
+     * L'atome au plus chargé : 118 orbes et ses 40 copies (dix milliards de fois plus d'atomes, le plafond levé comme
+     * l'arbre de la matière noire le permet), chaque amélioration et chaque exemplaire du tableau.
+     */
+    void heaviestAtoms() {
+        maxAtomUpgrades();
+        fillTable(true);
+        BigNum many = BigNum.of(1, 12);
+        state().setAtoms(state().atoms().max(many));
+        state().setTotalAtoms(state().totalAtoms().max(many));
+    }
+
+    /** La boule de matière noire la plus grosse, l'arbre rempli et chaque défi réussi. */
+    void heaviestDarkMatter() {
+        darkMatterSize(1000);
+        fillTree();
+        completeAllChallenges();
+    }
+
+    /** Le collisionneur au plus haut : chaque amélioration (la vitesse des faisceaux comprise), l'énergie, les quarks. */
+    void heaviestCollider() {
+        colliderUpgrades(true);
+        colliderEnergy();
+        colliderGenerators();
+        collisionsAndFlavors();
+        blackHoleEnergy();
+    }
+
+    /** Des quarks et des hadrons bien au-delà de ce que la vue dessine : chacun en représente plusieurs. */
+    void heaviestHadrons() {
+        openHadrons();
+        if (game.quarks(Quark.values()[0]) < 100_000) addQuarks(100_000);
+        if (state().hadrons(Hadron.values()[0]) < 1_000_000) addHadrons(1_000_000);
+    }
+
+    /** Le vide au plus haut : chaque amélioration, le trou noir plein, de l'énergie en masse. */
+    void heaviestVoid() {
+        openVoid();
+        voidUpgrades(true);
+        voidMass();
+        addVoidEnergy(BigNum.of(1, 100));
+    }
+
+    /**
+     * Le Big Bang au plus chargé : beaucoup de chaque molécule, chaque état et chaque assemblage, chaque astre, l'espace
+     * et ses améliorations, chaque échelle du cosmos sous l'univers, chaque défi de Big Bang.
+     */
+    void heaviestBigBang() {
+        for (Molecule molecule : game.molecules()) state().setMoleculeCount(molecule.id(), Math.max(game.moleculeCount(molecule.id()), 1_000_000));
+        gatherAll();
+        spaceUpgrades();
+        state().setSpace(state().space().max(BigNum.of(1, 30)));
+        formAllAssemblies();
+        formAllBodies();
+        for (int i = 0; i < 10; i++) {
+            Cosmos next = game.nextCosmos();
+            if (next == null || next == Cosmos.UNIVERSE) break;
+            nextCosmos();
+        }
+        allBangChallenges();
+    }
+
+    /** Plus d'univers que la vue n'en dessine ({@link idle.ui.universe.UniverseView#MAX_BUBBLES}), et le défi final rempli. */
+    void heaviestUniverses() {
+        while (game.universes() < idle.ui.universe.UniverseView.MAX_BUBBLES + 5 && game.testAddUniverse()) { }
+        reachAllFinalTiers();
+    }
+
+    /** La graine au plus chargé : chaque amélioration, le chrono plein, les bulles de l'arbre. */
+    void heaviestSeed() {
+        seedUpgrades(true);
+        fullChrono();
+        openFinalChallenge();
+    }
+
+    /** Une dimension au plus haut : chaque amélioration, son seuil atteint, des éclats en masse. */
+    void heaviestDimension(int number) {
+        dimensionLevels(number, true);
+        reachDimensionThreshold(number);
+        addDimensionShards(number, 1e30);
+    }
 }

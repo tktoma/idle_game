@@ -83,8 +83,8 @@ public enum ColliderAchievement {
         return switch (kind) {
             case OUTPUT -> generator == ColliderGenerator.BEAM ? "énergie des faisceaux ×2" : "production ×2";
             case COST -> "prix ÷2";
-            case ENERGY -> "énergie ×1,5";
-            case ALL_OUTPUT -> "tous les générateurs produisent ×1,5";
+            case ENERGY -> "énergie ×1.5";
+            case ALL_OUTPUT -> "tous les générateurs produisent ×1.5";
             case CHANCE -> "chance de collision +2 points";
         };
     }

@@ -20,7 +20,96 @@ public final class Version {
     }
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
-    static final List<Note> NOTES = List.of(
+    static final List<Note> NOTES = joined(List.of(
+            new Note("0.295", "Moins de dessin caché", List.of(
+                    "La fenêtre d'une dimension recouvre tout le jeu : tant qu'elle est ouverte, ce qu'elle cache (le fond animé, "
+                            + "les icônes des onglets, l'onglet en cours, la carte des dimensions ou la graine) ne se redessine "
+                            + "plus. Rien ne change à l'écran ; la carte des dimensions au maximum coûtait à elle seule une dizaine "
+                            + "de millisecondes de rendu par image, pour rien.",
+                    "Les couleurs écrites en clair dans le dessin des skins (atome, arbre, univers, Big Bang, matière noire, "
+                            + "collisionneur, espace) ne sont plus relues à chaque image. Les images sont identiques au pixel près.")),
+            new Note("0.294", "Les bots jouent ce qu'ils oubliaient", List.of(
+                    "Rien ne change en jeu. Les profils de bots, sauf le Speedrunner (la référence de l'équilibrage, inchangée), "
+                            + "jouent maintenant le calme du Big Bang, les épreuves de l'onglet Skins et le rond de croissance de la graine.",
+                    "Les épreuves qui ralentissent tout un acte ne sont tentées que par le chasseur de succès et le collectionneur ; "
+                            + "celles du collisionneur seulement avec le déclencheur automatique au plus haut.",
+                    "Univers 2, avec / sans : Régulier 26 h 41 / 27 h 17, Méthodique 33 h 22 / 33 h 22, chasseur de succès "
+                            + "29 h 38 / 27 h 02, Astronome 25 h 53 / 25 h 53.",
+                    "Les autres mécaniques notées comme oubliées étaient déjà jouées (accélérer la maturation, les recherches, "
+                            + "la graine et le chrono, les planètes en double par le placement des systèmes).")),
+            new Note("0.293", "Le code rangé, encore", List.of(
+                    "Rien ne change en jeu. Plus aucun fichier ne dépasse 1 000 lignes : les quinze qui le faisaient sont "
+                            + "découpés en chaînes de classes, une par thème, comme en 0.098 (la vue des dimensions en huit, "
+                            + "l'univers du moteur en sept, la fenêtre des dimensions et la graine en quatre…). Le reste du jeu, "
+                            + "les tests et les bots les appellent comme avant.",
+                    "Les notes de version les plus anciennes, de la 0.199 à la 0.034, sont rangées dans deux fichiers à part.")),
+            new Note("0.292", "Les décimales avec un point", List.of(
+                    "Tous les nombres à virgule s'écrivent maintenant avec un point, comme la plupart l'étaient déjà : "
+                            + "« ×1.5 », « 0.5 s », « 4.1 % ». Avant, certains textes écrivaient « ×1,5 » ou « 12,5 % » : "
+                            + "aides, cartes, hadrons, vide, dimensions, statistiques, multiplicateurs, historique des achats, "
+                            + "notes de version.",
+                    "Seul le fichier des images par seconde du profil test UI garde la virgule, pour s'ouvrir tel quel dans "
+                            + "un tableur réglé en français.")),
+            new Note("0.291", "Le mode détails partout", List.of(
+                    "La ligne et le plan ont enfin leur paragraphe de détails, comme les huit autres dimensions : le trajet "
+                            + "des boules et ce que rapporte un trait, l'apparition des éclats du plan, ce qui traverse les univers "
+                            + "et ce que leurs éclats paient dans la graine.",
+                    "Des cartes sans explication en ont une : les améliorations de la graine (niveau sur le maximum, ce qui "
+                            + "les paie, elles restent d'un univers à l'autre), celles des sondes, les paliers de gluons (d'où "
+                            + "viennent les gluons, ce qu'un nouvel univers en fait), la fusion prismatique et la recherche sur le "
+                            + "noyau dense (les skins de chaque palier), et les épreuves (une à la fois, l'abandon, l'échec au "
+                            + "bout du temps, le skin, le rejeu).")),
+            new Note("0.290", "Des noms plus justes", List.of(
+                    "Des noms qui se répétaient d'un endroit à l'autre sont séparés : dans l'arbre de matière noire, "
+                            + "« Inflation » devient « Inflation sombre », « Gravité » « Puits de gravité » et « Noyau dense » "
+                            + "« Noyau compact » (l'inflation de l'espace, le palier « Gravité » et la recherche sur le noyau dense "
+                            + "gardent leur nom) ; le succès « Horizon » devient « Horizon des événements ». Dans l'onglet Big Bang, "
+                            + "la sous-page « Univers » devient « Cosmos », pour ne plus se confondre avec l'onglet Univers.",
+                    "Deux épreuves du collisionneur changent de nom : « Défi du détecteur » devient « Cinq de suite », et "
+                            + "« Un seul générateur » devient « Chaîne arrêtée », avec une description qui dit enfin ce qu'elle fait "
+                            + "(seul le premier générateur produit). Les skins les appellent toutes « épreuve », plus « défi ».",
+                    "Des skins quittent les noms de marque et l'anglais : Briques (ex-Lego), Pense-bête (ex-Post-it), "
+                            + "Photo instantanée (ex-Polaroid), Jetons de lettres (ex-Lettres de Scrabble), Avis de recherche "
+                            + "(ex-Wanted, l'affiche dit « RECHERCHÉ »), Plan d'architecte (ex-Blueprint), Planétaire mécanique et "
+                            + "Globe planétaire (ex-Orrery), Émoji, Adapté aux daltoniens (ex-Daltonien sûr). Rien n'est perdu : "
+                            + "un skin débloqué ou choisi le reste.",
+                    "Dans l'onglet Skins, les visuels ont tous leur article (« L'atome », « Le collisionneur »…) ; « L'arbre » "
+                            + "devient « L'essence de l'arbre » et « L'arbre de fantaisie » « La matière de l'arbre », comme le dit "
+                            + "leur description.",
+                    "Textes corrigés : l'aide des sons (plus de délai d'une seconde entre deux sons, les sons ajoutés depuis, "
+                            + "les paires du vide), le succès « Razzia » (le raccourci « Tout acheter avec les particules »), le "
+                            + "bouton « Lancer l'univers suivant » dans l'aide.")),
+            new Note("0.289", "Relecture du code", List.of(
+                    "Rien ne change en jeu. Le code des sons, passé au-dessus de 1 000 lignes avec les enregistrements, est "
+                            + "coupé en deux : la fabrication des sons (lecture des fichiers, mise à niveau, synthèse) d'un côté, "
+                            + "leur lecture de l'autre.",
+                    "La base de la fenêtre repasse sous 1 000 lignes : les gestes de sauvegarde des réglages et les outils "
+                            + "d'affichage du panneau de test rejoignent la partie « fenêtre et sauvegarde ».",
+                    "Commentaires remis à jour (les sons ne sont plus tous synthétisés), imports inutiles retirés.")),
+            new Note("0.288", "Le profil test UI saute les sous-onglets sans visuel", List.of(
+                    "Un sous-onglet qui n'a aucun visuel de l'onglet (les améliorations du collisionneur, du vide et du Big "
+                            + "Bang, la chaîne du collisionneur, les paliers des hadrons et du Big Bang) ne se passe plus : seuls "
+                            + "les skins de la fenêtre y changent, et c'est le passage « Fenêtre » qui s'en occupe.",
+                    "Moins d'étapes dans ces onglets, à la charge maximale aussi.")),
+            new Note("0.287", "Le profil test UI ne croise plus les sous-onglets entre eux", List.of(
+                    "Un visuel ne se croise plus qu'avec ce qui se voit en même temps que lui : les skins de l'atome ne se "
+                            + "croisent plus avec ceux du tableau périodique, la boule de matière noire plus avec l'arbre ni les "
+                            + "défis, les astres plus avec les sondes, et ainsi de suite dans chaque onglet.",
+                    "Le passage se range par sous-onglet : tous les états de l'atome d'abord, puis ceux du tableau. Chaque "
+                            + "part a ses combinaisons ; le thème, la notation et ce qui couvre toute la fenêtre se croisent dans "
+                            + "chacune. Les animations plein écran (le Big Bang, la naissance d'un univers…) ne croisent que leurs skins.",
+                    "Bien moins d'étapes : le Big Bang tout croisé passe de plusieurs années à quelques jours. Le panneau dit "
+                            + "combien de parts compte l'onglet.")),
+            new Note("0.286", "La charge maximale du profil test UI", List.of(
+                    "Le profil test UI a une option « Charge maximale » : les états de l'onglet choisi sont remplacés par "
+                            + "l'onglet au plus chargé que la partie peut atteindre, pour voir chaque skin et mesurer les images "
+                            + "par seconde là où la vue a le plus à dessiner.",
+                    "Par onglet : 30 générateurs au dernier palier de vitesse (et leur fusion) ; l'atome à 118 orbes et ses 40 "
+                            + "copies, le tableau rempli de chaque exemplaire ; la plus grosse boule de matière noire, l'arbre "
+                            + "rempli, chaque défi ; le collisionneur et le vide au maximum, le trou noir plein ; quarks et hadrons "
+                            + "en masse ; tout le Big Bang formé ; plus d'univers que la vue n'en dessine ; l'arbre de la graine "
+                            + "au maximum ; chaque dimension au maximum ; cinq notifications d'un coup.",
+                    "Le fichier des images par seconde dit « charge maximale » pour ces passages.")),
             new Note("0.285", "Plus de mémoire pour les tests de l'interface", List.of(
                     "Les tests de l'interface ont 2 Go par JVM (1 Go ne suffisait pas sous Windows), une JVM neuve toutes les "
                             + "10 classes, et au plus deux JVM à la fois.")),
@@ -57,7 +146,7 @@ public final class Version {
                     "Les annonces qui n'avaient pas de son en ont un, choisi par le joueur (un court son doux), quand rien "
                             + "d'autre ne sonne ; il suit le réglage « Autres annonces ».")),
             new Note("0.277", "Les sons des jalons, des skins et des succès", List.of(
-                    "Un jalon fait maintenant le son choisi par le joueur (un court son de bascule, 0,22 s), à la place des "
+                    "Un jalon fait maintenant le son choisi par le joueur (un court son de bascule, 0.22 s), à la place des "
                             + "deux notes ; toutes les annonces de jalon le partagent (cosmos, ensembles, paliers de gluons, "
                             + "racines liées, nouveaux titres, premier atome…).",
                     "Un skin débloqué fait le son choisi par le joueur (deux déclics, l'un à gauche, l'autre à droite), à la "
@@ -74,18 +163,18 @@ public final class Version {
                     "Les skins montrent aussi le palier de vitesse : leurs traits s'épaississent à chaque palier, et un rond "
                             + "fin par palier passé entoure le noyau, dans la couleur du skin (en carrés pour le Pixel).")),
             new Note("0.274", "Le bong des particules", List.of(
-                    "Une particule récupérée fait maintenant le « bong » choisi par le joueur (une note courte, 0,12 s), à la "
+                    "Une particule récupérée fait maintenant le « bong » choisi par le joueur (une note courte, 0.12 s), à la "
                             + "place de l'ancien fa ; comme avant, il est plus aigu aux paliers lents et plus grave aux paliers "
-                            + "rapides, où il s'allonge un peu (jusqu'à 0,4 s).")),
+                            + "rapides, où il s'allonge un peu (jusqu'à 0.4 s).")),
             new Note("0.273", "Le son du nouvel élément", List.of(
-                    "Un nouvel élément fait maintenant le son choisi par le joueur (1,5 s, en stéréo), à la place de la petite "
+                    "Un nouvel élément fait maintenant le son choisi par le joueur (1.5 s, en stéréo), à la place de la petite "
                             + "cloche ; l'élément unique et l'astre mûr, qui partageaient ce son, aussi.")),
             new Note("0.272", "Le fond des paires du vide", List.of(
                     "Sur le sous-onglet Paires du vide, le son choisi par le joueur tourne en boucle en fond (un souffle grave, "
-                            + "toutes les 0,8 s) ; le son de chaque paire qui naît reste par-dessus.",
+                            + "toutes les 0.8 s) ; le son de chaque paire qui naît reste par-dessus.",
                     "Les collisions du collisionneur ne sonnent plus que sur son sous-onglet Énergie, comme son fond.")),
             new Note("0.271", "Les sons des défis", List.of(
-                    "Un palier du défi final atteint fait maintenant le son choisi par le joueur (1,7 s), au volume des sons "
+                    "Un palier du défi final atteint fait maintenant le son choisi par le joueur (1.7 s), au volume des sons "
                             + "rares, à la place des deux notes synthétisées.",
                     "Un défi réussi (de matière noire ou de Big Bang) fait le son choisi par le joueur, un court accord de "
                             + "confirmation, à la place des trois notes ; un record battu aussi, qui partageait ce son.",
@@ -100,12 +189,12 @@ public final class Version {
                             + "pause, même quand le palier suivant est payable ; en pause, il devient « Relancer ».")),
             new Note("0.268", "Les paliers sur une seule carte", List.of(
                     "Dans l'automatisation des dimensions, les cinq paliers de celui qui joue une dimension (5 s, 2 s, 1 s, "
-                            + "0,5 s, sans attente) tiennent sur une seule carte : elle dit le palier acheté (« 2/5 ») et le prix du "
+                            + "0.5 s, sans attente) tiennent sur une seule carte : elle dit le palier acheté (« 2/5 ») et le prix du "
                             + "suivant. Payable, un clic l'achète ; sinon, un clic met en pause ou relance tous les paliers ensemble.",
                     "Un palier acheté pendant une pause reste en pause. Les sauvegardes gardent leurs paliers achetés.")),
             new Note("0.267", "Une fin à choisir", List.of(
-                    "La fin de la partie a le son choisi par le joueur (9,6 s, il continue sur l'écran de fin).",
-                    "Dans l'animation de la fin, la vue toute jaune tient une seconde avant l'écran de fin (7,5 s en tout).",
+                    "La fin de la partie a le son choisi par le joueur (9.6 s, il continue sur l'écran de fin).",
+                    "Dans l'animation de la fin, la vue toute jaune tient une seconde avant l'écran de fin (7.5 s en tout).",
                     "L'écran de fin propose deux boutons : « Recommencer de zéro », qui efface toute la partie comme dans les "
                             + "réglages (un second clic le confirme), et « Continuer la sauvegarde », qui la garde.",
                     "Les skins de l'écran de fin (Générique qui défile, Certificat encadré, Photo souvenir) sont retirés : l'écran "
@@ -208,14 +297,14 @@ public final class Version {
                     "La boucle : ses touches (S, D, F, Espace…) jouent de nouveau les cercles. Un champ de texte (la recherche "
                             + "du panneau de test, les chiffres de la grille) gardait le clavier ; un clic ailleurs le rend au jeu.",
                     "Le miroir : une barre « Vitesse du motif » dans sa fenêtre, de la mémorisation entière (à gauche) à "
-                            + "0,3 s par case (à droite). Elle se garde dans les réglages.",
+                            + "0.3 s par case (à droite). Elle se garde dans les réglages.",
                     "La cigale du beau temps est 8 dB plus douce (moins de la moitié de son amplitude). La comète (et le "
                             + "quark top, les sondes revenues), le nouvel élément, le palier de vitesse (et l'annonce d'une "
                             + "collision) et le tic-tac du chrono sonnent une octave plus grave.",
                     "Les paires du vide ne sonnent que sur le sous-onglet « Paires ». Plus aucun son n'attend un délai avant "
                             + "de revenir ; seul le nombre de sons en même temps est borné (24).")),
             new Note("0.246", "L'animation du Big Bang", List.of(
-                    "Le Big Bang sans skin a maintenant son animation plein écran (3,5 s) : la nuit tombe et la matière des "
+                    "Le Big Bang sans skin a maintenant son animation plein écran (3.5 s) : la nuit tombe et la matière des "
                             + "quatre ressources tombe vers un point qui s'allume et tremble ; puis l'éclair, l'onde de choc et la "
                             + "matière projetée jusqu'aux bords, une boule de feu qui refroidit du blanc au violet, et les étoiles "
                             + "et les premières galaxies qui s'allument.",
@@ -265,7 +354,7 @@ public final class Version {
                     "Panneau de test : le piano du miroir, la corde de la brane et l'appui de la durée s'écoutent aussi.")),
             new Note("0.239", "Le panneau de test", List.of(
                     "Profil de test (runTest) : la barre du haut laisse place à un panneau à droite, qui s'ouvre et se ferme "
-                            + "par sa poignée ou par F9. En haut, la vitesse du jeu (de figé à ×1 000, avec ×0,25 et ×0,5), "
+                            + "par sa poignée ou par F9. En haut, la vitesse du jeu (de figé à ×1 000, avec ×0.25 et ×0.5), "
                             + "une recherche dans tous les outils, le bot de la partie et le résumé ; dessous, une section par "
                             + "onglet du jeu (celle de l'onglet affiché passe en tête, ouverte), puis le temps et l'avance rapide "
                             + "(+10 s à +24 h, sans bloquer la fenêtre, annulable), les bots, les dimensions, les sons, les "
@@ -282,20 +371,20 @@ public final class Version {
                     "Le fond de la 0.237 change de place : il tourne sur le sous-onglet « Expansion de la matière » du Big "
                             + "Bang, plus sur Astres. Sa catégorie devient « L'expansion de la matière (son de fond) ».")),
             new Note("0.237", "Le fond du ciel", List.of(
-                    "Sur le sous-onglet Astres du Big Bang, ton enregistrement tourne en boucle (4,1 s de sa partie tenue, "
+                    "Sur le sous-onglet Astres du Big Bang, ton enregistrement tourne en boucle (4.1 s de sa partie tenue, "
                             + "la fin fondue dans le début), en stéréo, au niveau des sons répétitifs. Il entre et sort en "
                             + "fondu, et se coupe avec sa propre catégorie : « Le ciel (son de fond) ».")),
             new Note("0.236", "Les particules à l'heure", List.of(
-                    "Le son d'une particule tombe avec l'onde qui atteint le noyau : sa montée du début (0,04 s, plus "
+                    "Le son d'une particule tombe avec l'onde qui atteint le noyau : sa montée du début (0.04 s, plus "
                             + "longue aux paliers graves) est coupée.",
                     "Les particules de générateurs différents se superposent : seules celles du même instant (à moins de "
-                            + "0,05 s) n'en font qu'une. Au plus six sonnent en même temps.")),
+                            + "0.05 s) n'en font qu'une. Au plus six sonnent en même temps.")),
             new Note("0.235", "La collision plus franche", List.of(
                     "Le fond du collisionneur ne joue plus que sur son sous-onglet Énergie, celui des faisceaux.",
                     "Le son d'une collision est un peu plus fort (4 dB au-dessus des autres sons répétitifs), et son choc "
-                            + "tombe tout de suite : la montée presque inaudible du début (0,11 s) est coupée.")),
+                            + "tombe tout de suite : la montée presque inaudible du début (0.11 s) est coupée.")),
             new Note("0.234", "Le fond du collisionneur", List.of(
-                    "Sur l'onglet du collisionneur, ton enregistrement tourne en boucle (1,5 s, sa fin fondue dans son début) "
+                    "Sur l'onglet du collisionneur, ton enregistrement tourne en boucle (1.5 s, sa fin fondue dans son début) "
                             + "tant que les faisceaux tournent, lu à leur vitesse : ×1 au départ, ×2 avec les cinq niveaux de "
                             + "« Faisceaux rapides », en glissant. Il se coupe avec la catégorie du collisionneur.",
                     "Un croisement capté au milieu sonne maintenant, même avant l'amélioration « Collisions » : il ne "
@@ -460,7 +549,7 @@ public final class Version {
                             + "ligne, les facettes pour le plan…), au lieu de celle de la dimension d'avant et des graines d'univers : "
                             + "il faut jouer une dimension à la main avant de l'automatiser.",
                     "Ceux qui jouent la dimension à votre place viennent maintenant en dernier, les plus chers, en cinq paliers : "
-                            + "une action toutes les 5 s, puis 2 s, 1 s, 0,5 s, et le dernier sans attente. Le plus rapide acheté "
+                            + "une action toutes les 5 s, puis 2 s, 1 s, 0.5 s, et le dernier sans attente. Le plus rapide acheté "
                             + "joue ; aucune bulle ni la matière noire ne change leur cadence. Une partie qui avait l'automatisme de "
                             + "jeu d'une dimension garde les cinq paliers.",
                     "Ceux qui achètent les améliorations d'une dimension gardent de quoi payer son automatisme suivant.",
@@ -570,1682 +659,20 @@ public final class Version {
                             + "quetta, puis scientifique) à 1e30 particules, Battements de cœur (les nombres en scientifique, les durées en "
                             + "battements, un par seconde) au chrono plein.",
                     "La liste de SKINS.md est entièrement réalisée depuis la 0.185 : 369 skins, dix-neuf thèmes et quatorze notations.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.199", "Vingt-quatre skins pour la fenêtre autour du jeu : notifications, panneaux, transition, fin, démarrage, curseur", List.of(
-                    "Six visuels de plus dans l'onglet Skins. Les notifications : Post-it (jaune, collé de travers), Télégramme (en capitales, "
-                            + "terminé par STOP), Bulle de BD, Ticket de caisse (étroit, bords crantés), Parchemin déroulé, à 20, 50, 100, 200 et "
-                            + "500 notifications reçues depuis l'ouverture du jeu ; ce compte n'est pas sauvegardé, il repart à chaque lancement, "
-                            + "mais les skins obtenus restent.",
-                    "Les panneaux par-dessus la fenêtre (l'aide, l'absence, la fin de l'univers et la fin de partie faute d'un skin de fin) : "
-                            + "Page de livre à cinq heures de jeu, Écran de cinéma (rideau rouge en voile, écran blanc) à dix, Tableau d'affichage "
-                            + "(liège et feuille punaisée) à vingt. Sur un fond clair, les textes passent à l'encre en gardant leur teinte.",
-                    "Le guide de transition entre univers et le rideau joué quand on confirme : Fondu au blanc, Page tournée, Diaphragme, Trou "
-                            + "noir, à un, deux, trois et quatre univers formés.",
-                    "L'écran de fin (l'univers formé et la partie finie) : Générique qui défile (tout noir, la carte monte) à la partie finie, "
-                            + "Certificat encadré à dix univers formés, Photo souvenir (polaroïd de travers) à onze.",
-                    "Le bouton de démarrage : Interrupteur à la partie finie, Graine qu'on plante, Allumette, Détonateur à neuf, dix et onze "
-                            + "univers formés. « Recommencer » efface les skins avec le reste ; le bouton de la partie neuve garde pourtant celui "
-                            + "qui était choisi, le temps de cette ouverture du jeu.",
-                    "Le curseur, dessiné au code et posé sur toute la fenêtre : Main de verre (succès « Premier automatisme »), Étoile filante "
-                            + "avec sa traînée d'étincelles (« Attrapée au vol »), Arrosoir sur l'onglet Univers seulement (« Jeune pousse »), "
-                            + "Loupe sur l'onglet Big Bang seulement (« À mi-chemin »), Baguette (« Dix explosions »). Le curseur système reste "
-                            + "le Classique.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.198", "Vingt-sept skins et huit avatars pour le profil, les succès et les statistiques", List.of(
-                    "Sept visuels de plus dans l'onglet Skins. Le style des avatars du jeu, qui redessine l'en-tête du profil et toute la "
-                            + "galerie, pas l'image importée : Trait (les contours à l'encre sur du papier), Pixel, Craie (sur une ardoise), "
-                            + "Vitrail (des panneaux de verre entre des plombs), à 25, 50, 75 succès obtenus, puis tous.",
-                    "Huit avatars de plus dans la galerie : le hadron (titre « Tisseur de gluons »), la sonde (dix voyages de sondes), la "
-                            + "toile de l'univers (« Créateur d'univers »), la bulle d'univers (« Tisseur de multivers »), l'arrosoir (le "
-                            + "tuyau d'arrosage acheté), le chrono (le chrono acheté), le miroir (« Gardien du miroir »), le kaléidoscope "
-                            + "(« Maître du mélange »).",
-                    "Les albums du profil : Illustré met sur chaque case trouvée le dessin de la molécule, de l'astre ou du bloc de "
-                            + "l'assemblage, dans les skins du Big Bang choisis (50 entrées dans les albums, tous ensemble) ; Vignettes "
-                            + "autocollantes, Timbres, Cartes de collection (avec leur dos sur les cases vides) et Herbier l'habillent (un, "
-                            + "deux, trois albums complets, puis les quatre).",
-                    "Les tuiles des succès obtenus portent un insigne : Médailles (bronze, argent, or selon le palier du succès dans sa "
-                            + "liste ; or pour les succès à bonus propre), Badges brodés, Étoiles, Trophées, Timbres (25, 50, 75, 90 succès "
-                            + "obtenus, puis tous) ; les succès non obtenus le leur : Silhouette grise, Point d'interrogation, Pièce manquante "
-                            + "(10, 20, 30 succès).",
-                    "Les courbes des statistiques : Papier millimétré, Oscilloscope (vert sur noir, un réticule, la rémanence du trait), "
-                            + "Crayon (graphite à main levée), Aquarelle (l'aire sous la courbe lavée), à 1, 5, 10 et 20 heures de jeu ; la "
-                            + "palette des séries, libre et sans bonus : Pastel, Néon, Niveaux de gris, la daltonien-sûre restant celle "
-                            + "d'origine ; la frise des univers de la chronologie : Musée, Pellicule, Train (une locomotive, un wagon par "
-                            + "univers), à 3, 5 et 7 univers formés.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.197", "Quarante-un skins pour l'arbre, ses bulles, la carte des dimensions, le défi final et les mini-jeux", List.of(
-                    "Neuf visuels de plus dans l'onglet Skins, qui se combinent avec l'essence de l'arbre. La saison de l'arbre, figée quel "
-                            + "que soit le temps : Automne figé (les saisons débloquées), Hiver figé (les saisons débloquées, 10 univers formés), "
-                            + "Printemps figé (11 univers formés) ; l'arbre de fantaisie, qui remplace le feuillage et le bois : Cristal, Corail, "
-                            + "Circuit lumineux, Nuages, Inversé (les racines en haut), Pixel art (des bulles de l'arbre de 1 à 6 paliers "
-                            + "différents achetées) ; le sol de l'arbre : Herbe, Sable, Neige, Mousse, Dallage, Eau (l'arbre sur une île), par "
-                            + "la graine aux paliers 2 à 7.",
-                    "Les bulles de l'arbre : Fruits (achetée : mûre ; verte sinon ; fermée : un bourgeon), Lanternes, Gouttes de rosée, "
-                            + "Pierres précieuses, Graines (5, 10, 15, 18 bulles achetées, puis toutes les dix-neuf) ; leurs liens : Branches, "
-                            + "Fils de lumière, Racines (10, 15 bulles, puis toutes).",
-                    "La carte des dimensions : Planètes, Perles, Menhirs, Fenêtres d'une tour, Cadran (2, 4, 6, 8, 10 dimensions ouvertes) ; "
-                            + "le remplissage du défi final : Eau, Sable, Lumière, Lierre (le défi final fini, puis avec 9, 10, 11 univers formés) ; "
-                            + "le cadre des mini-jeux : Hublot, Cadre doré, Écran cathodique, Livre ouvert (4, 6, 8, 10 dimensions ouvertes) ; la "
-                            + "palette des dix dimensions, en bloc et partout (arène, fenêtre, carte skinnée) : Pastel, Daltonien sûr (Okabe et "
-                            + "Ito), Monochrome, Arc-en-ciel saturé, Sépia, cinq options libres, sans condition ni bonus.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.196", "Cinquante-deux skins pour les univers en bulles, le lancement, la graine et son établi", List.of(
-                    "Douze visuels de plus dans l'onglet Skins. Les bulles des univers : Bulle de savon, Ballon noué, Boule à neige, Globe "
-                            + "d'orrery, Planète-fruit, Œuf (un par univers formé, du premier au sixième) ; la naissance d'un univers : Éclosion, "
-                            + "Bourgeon, Feu d'artifice, Page tournée (les univers 5 à 8 formés) ; les liens entre les univers : Fil, Lierre, "
-                            + "Circuit, Constellation (les univers 7 à 10 formés) ; le lancement de l'univers suivant : Fusée de papier, Graine "
-                            + "qui germe, Pierre dans l'eau, Lampe, Rideau de théâtre (les univers 5 à 9 formés).",
-                    "La graine : Noix, Gland, Noyau d'avocat, Pépin, Tournesol, Œuf, Pierre brute (ses paliers 1 à 7) ; l'arrosoir : Théière "
-                            + "(10 arrosages de la graine en cours), Pichet (100), Nuage (1 000), Bec d'oiseau (le tuyau acheté), Coquillage (la "
-                            + "terre fertile achetée) ; l'étagère : Pierre, Atelier, Bambou, Nuage (l'étage du chrono acheté, avec 3 à 6 univers "
-                            + "formés) ; le tuyau : Liane, Fontaine, Rigole, Pipette (le tuyau aux niveaux 2, 4, 6, 10) ; le chrono : Sablier (le "
-                            + "chrono plein), Montre à gousset, Cadran solaire, Métronome (le chrono plein avec 3, 4, 5 univers formés).",
-                    "Le rond de croissance : Anneau de fée, Halo doré, Soleil levant (5, 20, 50 ronds cueillis depuis l'ouverture de la "
-                            + "fenêtre) ; la météo : Bulletin télé, Gravure japonaise, Pastel (1, 5, 10 orages depuis l'ouverture) ; les saisons : "
-                            + "Cartes à jouer, Roue de couleurs, Vitrail (1, 2, 3 cycles complets des saisons depuis l'ouverture). Ces trois "
-                            + "comptes ne sont pas sauvegardés ; les skins gagnés le sont.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.195", "Trente-six skins pour le reste du collisionneur, les hadrons et le vide", List.of(
-                    "Dix visuels de plus dans l'onglet Skins. Dans le collisionneur, le détecteur : Œil (100 collisions), Lanterne (250), "
-                            + "Cloche (500), Appareil photo (1 000 ; le flash au croisement) ; les éclairs du croisement : Fils d'or (1 000 "
-                            + "croisements des faisceaux), Fissures de glace (2 500), Racines (5 000) ; les étincelles : Pétales (le défi du "
-                            + "détecteur), Confettis (l'épreuve « Sans surchauffe »), Braises (« Pleine charge ») ; les quarks qui s'envolent : "
-                            + "Ballons (10 hadrons liés), Papillons (25), Lettres de Scrabble (50, la saveur en lettre et sa valeur).",
-                    "Dans la liaison des hadrons, les quarks : Billes de verre (10 hadrons liés), Fruits (50, la saveur en couleur de fruit), "
-                            + "Notes de musique (100 ; la liaison fait monter un accord de notes, dessiné et non joué), Puzzle (chaque sorte de "
-                            + "hadron liée au moins une fois) ; les gluons : Ressorts (100 gluons), Élastiques (250), Laine (500), Éclairs "
-                            + "(1 000) ; le fond : Tableau noir, Table de laboratoire, Ciel d'orage (les paliers de gluons « Mémoire des "
-                            + "liaisons », « Automatismes liés », « Éléments liés »).",
-                    "Dans le vide, l'écume : Bulles de savon (le vide ouvert), Mousse de bière, Pellicule, Neige de télévision (une "
-                            + "amélioration du vide au niveau 1, 2, 3) ; les paires : Jumeaux (100 paires nées depuis l'ouverture de la "
-                            + "fenêtre), Aimants (1 000), Yin et yang (10 000) ; le trou noir du vide : Bouche d'égout, Puits de pierre, Iris, "
-                            + "Nœud de bois, Tourbillon de thé (le trou noir du vide ouvert quand il compte 1 à 5 univers, soit les univers 4 à 8 "
-                            + "formés).",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.194", "Trente-cinq skins pour le Big Bang au-delà des molécules : palette, amas, blocs, gaz, ciel, cosmos, systèmes, sondes", List.of(
-                    "Dix visuels de plus dans l'onglet Skins. La palette des molécules, à côté de leur forme et combinée avec elle : Pastel, "
-                            + "Daltonien sûr (la palette d'Okabe et Ito) et Monochrome par rayon, trois skins libres, sans bonus ; la couleur "
-                            + "dominante des molécules, dans l'espace et la galaxie, la suit.",
-                    "Dans l'expansion de la matière : les amas rassemblés (Minéraux à 5 sortes rassemblées, Néon à 20, Pastel à 50 ; flaques, "
-                            + "cristaux à facettes ou nuages de coton selon l'état), les blocs d'assemblage (Pierre taillée à 10 assemblages, "
-                            + "Lingots à 15, Cristaux bruts à 20, Pains de glace aux 30 : le catalogue n'en a pas 40) et le gaz au loin (Brume à "
-                            + "1 000 molécules de gaz rassemblées, Fumée à 10 000, Aurore à 100 000).",
-                    "Le ciel des astres : Planche naturaliste (15 astres formés dans un univers), Mobile (25), Vitrine (35). La galaxie : "
-                            + "Nautile (la galaxie formée), Pelote de laine, Empreinte digitale, Tourbillon, Roue de feu d'artifice (les univers 2 "
-                            + "à 5 formés). L'amas de galaxies : Grappe de raisin (l'amas formé), Lampions (univers 2), Essaim d'abeilles (univers "
-                            + "3). La toile de l'univers : Neurones, Dentelle, Toile au matin, Métro (les univers 1 à 4 formés).",
-                    "Les systèmes solaires : Orrery (1 système complet), Dessin d'enfant (2), Radar (3, les planètes en échos). Les sondes : "
-                            + "Avion de papier (10 voyages), Montgolfière (25), Bouteille à la mer (50), Pigeon (100) ; la trajectoire suit le "
-                            + "skin (pointillés de carte au trésor, condensation, fil d'Ariane, plumes), comme le dos de la carte du butin.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.193", "Dix skins pour la matière noire hors de la boule : l'échelle des grandeurs, l'arbre, les défis", List.of(
-                    "Trois visuels de plus dans l'onglet Skins. L'échelle des grandeurs : Règle de bois (10 explosions), Règle "
-                            + "d'architecte (20 explosions), Repères célestes (le succès « Plus grand que tout », les 26 paliers de "
-                            + "taille), où les cercles des objets connus deviennent leur silhouette, du proton à l'univers observable.",
-                    "L'arbre de matière noire : Racines (30 cases de l'arbre achetées), Circuit (100 niveaux achetés dans l'arbre, en "
-                            + "tout, à la place de « l'arbre complet », que les bifurcations et les cases sans limite rendent impossible), "
-                            + "Constellation (la galaxie formée), Métro (les quatre branches entamées : l'arbre n'en a pas cinq). Les "
-                            + "traits changent d'allure et chaque case porte une vignette qui suit son niveau.",
-                    "Les défis : Tarot (3 défis réussis ; les lames se retournent à l'arrivée de la fuite), Wanted (6 défis), Sceaux "
-                            + "(les dix défis : un sceau de cire rouge sur chaque défi réussi).",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.192", "Vingt-huit skins pour le chrome et les particules : icônes, signes, bulles, fond, fusion, page du tableau", List.of(
-                    "Sept visuels de plus dans l'onglet Skins. Les icônes d'onglet, l'atome compris : Trait de craie (50 atomes créés), "
-                            + "Pixel art (une reconstruction en moins d'une minute), Constellation (la galaxie formée), Emoji (la bulle du "
-                            + "bonsaï de droite), et Figées, libre, qui les arrête comme le réglage. Les signes d'état des cartes : Runes "
-                            + "(succès Cent fusions), Formes pleines (succès Ensemble complet), Lettres (succès Dix explosions). Les signes "
-                            + "des états de la matière : Lettres (20 sortes rassemblées), Gouttes et grains (50), Alchimie (toutes). Les "
-                            + "info-bulles des compteurs : Parchemin (une heure de jeu), Post-it (cinq), Terminal (dix).",
-                    "Le fond de poussières des particules : Neige, Pluie, Pollen, Lucioles, Bulles, Poussière d'or, Cendres, un palier de "
-                            + "particules créées chacun (1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24), et Silence, libre, qui le laisse vide "
-                            + "comme le réglage. La fusion des générateurs : Tourbillon (100 fusions), Aspiration (1 000), Éclat (le skin "
-                            + "Éclair). La page du tableau périodique hors cases : Médailles sur les tuiles des ensembles (un ensemble "
-                            + "complet), Creuset sur la carte de synthèse (100 synthèses), Spectre sur la légende des familles (toutes les "
-                            + "familles possédées).",
-                    "Le bonus des skins s'arrête à cent skins comptés (×3 au plus) ; les skins libres ne comptent pas.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.191", "Quarante skins de plus pour les huit visuels d'origine", List.of(
-                    "La fusion des particules : Braise (100 fusions), Encre (1 000), Essaim (100 générateurs), Horloge (10 000 "
-                            + "fusions), Verre soufflé (le skin Prisme), Pixel (une reconstruction en moins de 30 s). L'atome : "
-                            + "modèle de Bohr au tableau noir (50 atomes), nuage de probabilité (1 000), système à anneaux (les 118 "
-                            + "éléments), horlogerie (1 000 synthèses), vitrail (100 éléments). Le tableau : bois gravé (50 "
-                            + "éléments), cristal (10 000 synthèses), rouille (le défi Rouille), néon (le skin Néon du collisionneur), "
-                            + "carte au trésor (dix sondes), minuscule (le premier élément).",
-                    "La boule de matière noire : goutte de mercure (25 explosions), trou noir (10), œuf (le skin Contractée), nœud "
-                            + "(200), lanterne (500). Son animation : pluie (15 explosions), neige (50), feu d'artifice (100), "
-                            + "sablier (1 000). Le Big Bang : encre de Chine (5 Big Bangs), vitrail (3 systèmes complets), abysses "
-                            + "(la planète océan), papier plié (10 Big Bangs), carte ancienne (25 comètes), néon de ville (20 Big "
-                            + "Bangs). Le faisceau : lucioles (100 collisions), encre (1 000), laser (10 000), comète (50 comètes). "
-                            + "L'anneau : bois et cuivre (10 générateurs du collisionneur), circuit imprimé (100), stade (1 000), "
-                            + "ruban de Möbius (le skin Glace).",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.190", "Le chrome a ses skins : fonds, onglets, cartes", List.of(
-                    "Trois visuels de plus dans l'onglet Skins. Le fond de la fenêtre : Papier (une heure de jeu), Ardoise (50 "
-                            + "éléments découverts), Nuit étoilée (la galaxie formée), Terminal (100 explosions), Blueprint (10 "
-                            + "assemblages formés). Les onglets : onglets de classeur (le Big Bang débloqué), boutons physiques (dix "
-                            + "heures de jeu), pastilles (l'univers 1 formé), rubans (l'univers 2 formé). Les cartes : fiche cartonnée "
-                            + "(100 fusions), tuile de verre (le skin Cristal du Big Bang), carte à jouer (les dix défis), étiquette "
-                            + "(dix sondes revenues).",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.189", "Les cadres de l'avatar", List.of(
-                    "Six cadres pour l'avatar du profil, un par titre : rond (Alchimiste), hexagone (Lecteur du tableau), écusson "
-                            + "(Briseur de défis), cadre doré baroque (Faiseur de Big Bang), timbre-poste dentelé (Chasseur de "
-                            + "comètes), polaroid (Créateur d'univers). Visuel « Le cadre de l'avatar » dans l'onglet Skins.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.188", "Les skins des molécules", List.of(
-                    "Quatre apparences pour les molécules, dans l'espace et sur leurs cartes : Boules pleines (50 sortes créées), "
-                            + "Traits (toutes les sortes créées), Perles (20 sortes rassemblées), Lego (1 000 molécules créées). "
-                            + "Visuel « Les molécules » dans l'onglet Skins.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.187", "Un skin par mini-jeu", List.of(
-                    "Chaque dimension a son apparence de rechange, débloquée à son seuil : la ligne en rails et wagons, le plan en "
-                            + "feuille de cahier, le volume en aquarium, la durée en vinyle, la boucle en cible de tir à l'arc, la "
-                            + "brane en toile d'araignée, le clicker en bulles de savon, la grille en démineur, le miroir en vitrail, "
-                            + "le mélange en kaléidoscope. Dix visuels de plus dans l'onglet Skins, chacun avec son Classique ; "
-                            + "chaque skin débloqué donne toujours +2 % à toutes les ressources d'en dessous de l'univers.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.186", "Les skins des astres", List.of(
-                    "Trois apparences pour les trente-cinq astres, dans l'espace, le ciel, les systèmes et les cartes : Planétarium "
-                            + "(sphères de laiton et de verre dépoli sur leur tige) à dix astres formés dans un univers, Gravure "
-                            + "(hachures noir et blanc) à vingt, Cartographie (globes à méridiens et parallèles, nommés en "
-                            + "capitales) aux trente-cinq. Les couches de détail de la 0.183 restent propres au Classique.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.185", "Les essences de l'arbre", List.of(
-                    "L'arbre de la graine, du bonsaï à l'arbre-monde, a huit essences à choisir dans l'onglet Skins, une débloquée "
-                            + "par univers formé à partir du quatrième : bouleau, saule pleureur, érable rouge, cerisier en fleur, "
-                            + "baobab, séquoia, pin, palmier. Chacune change l'écorce, les feuilles et la silhouette ; le Classique "
-                            + "ne bouge pas.",
-                    "Le rendu réel n'a pas été vu pendant le développement.")),
-            new Note("0.184", "La liste des skins, triée", List.of(
-                    "SKINS.md relu et trié : onze idées retirées (le fruit de l'atome, les serpents du faisceau, l'anneau de Saturne du "
-                            + "collisionneur, la case du Big Bang, les astres en sucre, en bestiaire et en mécanique, les skins par échelle, "
-                            + "les cartes de butin, l'arbre-monde, le thème d'après le skin), et l'horlogerie de l'atome refaite : chaque "
-                            + "particule est un petit engrenage. 167 visuels restent. Rien dans le jeu ne change.")),
-            new Note("0.183", "Des astres plus détaillés, un espace lisible de loin", List.of(
-                    "Assez grands à l'écran (14 pixels de rayon et plus), les astres gagnent des couches de détail : limbe "
-                            + "assombri, reflet sur les mers et les glaces, liseré d'atmosphère, ombres des nuages, bords éclairés "
-                            + "des cratères, remous entre les bandes et œil de la tempête des géantes, ombre des anneaux sur la "
-                            + "planète et de la planète sur ses anneaux, granulation, protubérances et rayons des étoiles, jets et "
-                            + "stries des comètes, facettes ombrées des astéroïdes, disque d'un trou noir plus brillant d'un côté et "
-                            + "anneau de photons. Les cartes d'achat des astres sont plus hautes (84 pixels) pour que cela se voie, "
-                            + "et le ciel dessine un peu plus grandes les comètes et les naines blanches.",
-                    "Dans l'espace vu de loin, le gaz ne cache plus la structure : chaque bloc d'assemblage reste un disque plein "
-                            + "et net de sa couleur, chaque amas garde un anneau fin et une lueur de la couleur de son état, le "
-                            + "tout d'autant plus marqué qu'on est loin. De près, rien ne change ; la galaxie enroulée non plus.",
-                    "Le rendu réel n'a pas été vu pendant le développement : si un détail déborde ou se trouve du mauvais côté de la "
-                            + "lumière (qui vient d'en haut à gauche), c'est à signaler.")),
-            new Note("0.182", "Le chrono dès le deuxième univers, les automatismes des dimensions palier par palier", List.of(
-                    "L'étage du chrono est sur la branche Plan de la graine : il se paie en facettes (1 167, un tiers du seuil du "
-                            + "plan) et vient donc avec le deuxième univers, au lieu de la durée et du cinquième. Le tuyau d'arrosage "
-                            + "passe au volume (1 600 sphères), la terre fertile à la durée (3 000 000 d'instants) ; les réglages du "
-                            + "chrono restent dans les quatre premières dimensions. Les niveaux déjà achetés sont gardés tels quels.",
-                    "Le chrono, une fois son étage acheté, se règle aussi depuis une petite carte en bas à gauche de la fenêtre, "
-                            + "sur tous les onglets ; elle se cache sur la sous-page Graine, où il est déjà.",
-                    "Les automatismes des dimensions ne s'ouvrent plus d'un coup par la bulle du sommet de l'arbre-monde, mais "
-                            + "dimension par dimension : ceux de la ligne avec la graine craquelée (palier 3) et deux univers formés, "
-                            + "ceux du plan avec la graine brisée et trois univers, puis un palier et un univers de plus par dimension "
-                            + "(ceux du miroir et du mélange avec l'arbre-monde, dix et onze univers). La bulle du sommet les fait "
-                            + "moitié prix. L'onglet Automatisation dit pour chaque dimension ce qui lui manque.",
-                    "Les bots mettent le chrono à fond dès son étage acheté : le temps de jeu mesuré ne change pas, le temps réel si.",
-                    "Les anciennes sauvegardes se chargent telles quelles : rien de nouveau n'est enregistré.")),
-            new Note("0.181", "Un premier univers plus court, des défis qui se corsent", List.of(
-                    "Le premier univers demande moins à ses Big Bangs : 10⁸⁵ ⁰⁰⁰ particules et 42 000 matières noires en réserve pour "
-                            + "le tout premier (10¹⁹⁰ ⁰⁰⁰ et 120 000 avant), 10³⁰ ⁰⁰⁰ particules pour les suivants (10⁵⁰ ⁰⁰⁰ avant), "
-                            + "10¹¹ atomes au lieu de 10¹² ; et l'élan de sa matière noire est multiplié par 1,6 après son premier "
-                            + "Big Bang. Les univers suivants gardent les seuils d'avant. Mesuré sur le Speedrunner (graine 201) : le "
-                            + "deuxième acte passe de 5 h 43 à 4 h 09, les sept Big Bangs de 6 h 52 à 5 h 41 ; le premier acte et "
-                            + "le troisième ne bougent pas.",
-                    "Les défis d'explosion se corsent un peu à chaque univers formé : la masse de leur tableau est multipliée "
-                            + "par 1,3 par univers (×2,9 au quatrième, ×13,8 au onzième). Au premier univers, rien ne change ; "
-                            + "ensuite ils demandent de nouveau quelques minutes au lieu de moins d'une, sans jamais barrer la "
-                            + "route. L'aide de la matière noire le dit.",
-                    "Les anciennes sauvegardes se chargent telles quelles : rien de nouveau n'est enregistré.")),
-            new Note("0.180", "Les skins à venir : la liste", List.of(
-                    "SKINS.md, à la racine du dépôt : tout ce que le jeu dessine ou joue et qui pourrait changer d'apparence, "
-                            + "des huit visuels déjà skinnés au chrome de la fenêtre, aux astres, aux arbres, aux dix mini-jeux, "
-                            + "aux avatars, aux sons et aux thèmes ; pour chacun, des idées de skins, ce qu'ils changeraient et "
-                            + "comment on les obtiendrait. Une liste de travail : rien dans le jeu ne change.")),
-            new Note("0.179", "La graine se paie en temps de jeu des dimensions", List.of(
-                    "Les prix de la graine se mesurent en temps de jeu : chaque amélioration coûte au premier niveau trois "
-                            + "minutes de jeu de sa dimension (un cinquième de son seuil, qui vaut un quart d'heure), puis "
-                            + "×1,6 par niveau ; l'étage du chrono et la bulle des racines coûtent cinq minutes. Avant, les prix "
-                            + "allaient de 350 à 1 500 000 sans rapport entre eux et grandissaient de ×2,5 à ×4 par niveau : "
-                            + "au-delà du troisième niveau, plus rien ne s'achetait avant les automatismes des dimensions.",
-                    "Les paliers de la graine demandent de plus en plus d'arrosages (30, 60, 900, 2 700, 5 400, 10 800, "
-                            + "16 200, 21 600, 32 400, 43 200 de plus à chaque palier ; 300 en tout avant) : à l'arrosoir seul, le "
-                            + "bonsaï vient en un quart d'heure, le jeune arbre en trois heures, l'arbre-monde en douze. Les "
-                            + "éclats gagnés dans les dimensions pendant les attentes de l'amas et de la formation paient les "
-                            + "améliorations qui raccourcissent ce chemin : c'est la prochaine phase de l'arbre qu'on accélère.",
-                    "La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir la "
-                            + "prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante.",
-                    "La terre fertile compte un arrosage de plus par niveau (×2 par niveau avant : ×1 024 au dixième).",
-                    "L'amas de galaxies et l'univers demandent 60 % de la matière rassemblée d'avant (60 / 6 / 13,75 et 240 / 24 / 55 "
-                            + "millions de gaz, de liquide et de cristal) : sans les collections de rayon, qui triplaient l'espace à la "
-                            + "fin du premier univers, la formation attendait la matière plus d'une heure de plus.",
-                    "Les sauvegardes d'avant chargent telles quelles : les niveaux et les arrosages sont gardés, et un palier déjà "
-                            + "atteint peut redescendre si ses arrosages ne suffisent plus ; les bulles achetées restent.")),
-            new Note("0.178", "Catalogue resserré : 73 molécules, 4 rayons, 3 états", List.of(
-                    "Catalogue resserré : 73 molécules en 4 rayons (petites molécules, acides et sels, minéraux et "
-                            + "matériaux, chimie du carbone), 30 assemblages (un par astre), 3 états de la matière (gaz, "
-                            + "liquide, cristal). Les sels ont rejoint les acides, les matériaux les minéraux ; le vivant, "
-                            + "les terres rares, le solide et le métal disparaissent.",
-                    "Les collections de rayon disparaissent, et les assemblages comptent double : 100 % par 100 molécules. "
-                            + "« Chimiste » demande 30 sortes. Trois rayons à ouvrir dans les améliorations d'espace, à 2 000, "
-                            + "20 000 et 200 000 ; les sondes ont une destination par rayon.",
-                    "Page des molécules allégée : une phrase, la recherche et deux filtres (état, usage), le prochain pas, les "
-                            + "rayons, l'impulsion, le meilleur achat et le tri, les cartes. Chaque carte tient en trois lignes au "
-                            + "plus : dessin, formule, nom et compte ; bonus et prix ; ce que le prochain pas en demande. L'espace "
-                            + "occupé, le rendement et la formule détaillée sont dans l'info-bulle. Finis « Au hasard dans ce "
-                            + "rayon », la réservation par recette et le badge « inutile ».",
-                    "Création automatique refaite : elle suit la liste de courses, puis la matière et la variété qui manquent "
-                            + "par état, puis les amas confiés ; plus rien à régler à part sa réserve d'espace et ses trois "
-                            + "plafonds par état. L'onglet Automatisation nomme les amas confiés, et un clic en retire un.",
-                    "Les sauvegardes d'avant chargent, ce qui a disparu est écarté : les solides et les métaux rejoignent les "
-                            + "cristaux, les molécules et les assemblages retirés ne comptent plus.")),
-            new Note("0.177", "Le trou noir du vide fait mûrir les trous noirs plus vite", List.of(
-                    "Le trou noir du vide, ouvert, raccourcit la maturation du trou noir et du trou noir supermassif : "
-                            + "÷ (1 + 10 % par univers formé à partir du quatrième). ÷1,1 quand quatre univers sont formés, "
-                            + "÷1,5 quand huit le sont ; les trous noirs qui mûrissent déjà à son ouverture voient leur reste "
-                            + "raccourci d'autant.",
-                    "Le gain du collisionneur (l'arbuste, à gauche) ne compte plus le premier univers formé : ×1,6 quand "
-                            + "quatre sont formés, puis ×1,8, ×2, ×2,2.",
-                    "Le trou noir du vide le dit dans l'onglet Vide, et l'aide de la maturation aussi.",
-                    "Les bots gardent l'énergie du vide pour les bulles dans le dernier quart d'heure avant la formation "
-                            + "de l'univers : le Régulier achetait l'assise une minute avant et n'avait plus de quoi payer ses bulles.",
-                    "Mesuré depuis la formation du quatrième univers : le Speedrunner forme ses univers 5 à 8 à 66:18, "
-                            + "72:24, 78:22 et 80:49 (66:28, 73:06, 79:16 et 81:42 en 0.176), soit 53 min de mieux à "
-                            + "l'univers 8. Le Régulier forme son huitième univers à 151:49 au lieu de 160:00 : il prend neuf "
-                            + "bulles d'un coup dès la formation du sixième.")),
-            new Note("0.176", "Le gain du collisionneur passe à l'arbuste, à gauche", List.of(
-                    "Les 20 % d'énergie et de hadrons par univers formé de la 0.175 passent de l'arbre mûr à l'arbuste, à "
-                            + "gauche (21 400), la bulle qui ouvre le collisionneur dès le début de l'univers : ×1,8 à "
-                            + "l'achat, à la formation du quatrième univers, puis ×2, ×2,2, ×2,4.",
-                    "Chaque univers doit encore remplir l'énergie du trou noir supermassif : le gain l'accélère dans "
-                            + "chacun. L'arbre mûr, à gauche, garde le collisionneur d'un univers à l'autre, comme avant la 0.175.",
-                    "La décomposition de l'énergie du collisionneur montre « Arbuste, à gauche : N univers formés ».",
-                    "Mesuré depuis la formation du quatrième univers : le Speedrunner forme ses univers 5 à 8 à 66:28, "
-                            + "73:06, 79:16 et 81:42, au lieu de 67:05, 74:04, 80:57 et 83:24 (1 h 42 d'avance, 39 min de "
-                            + "plus qu'avec l'arbre mûr). Le Régulier forme son huitième univers à 160:00 au lieu de 159:38 : "
-                            + "son collisionneur plus rapide change l'ordre de ses achats, et les écarts se compensent.")),
-            new Note("0.175", "Le collisionneur traverse les univers et va plus vite à chacun", List.of(
-                    "La bulle de l'arbre mûr, à gauche (32 100) donne au collisionneur 20 % d'énergie et de hadrons de "
-                            + "plus par univers formé : ×2,2 au septième univers, ×3 au onzième. Chaque univers va plus vite "
-                            + "que le précédent.",
-                    "Les hadrons assemblés en reçoivent leur part : un à un ou d'un coup, le même nombre vient. Ceux "
-                            + "gardés d'un univers à l'autre prennent le gain du moment au prochain assemblage.",
-                    "La décomposition de l'énergie du collisionneur montre le gain, sous Univers.",
-                    "Mesuré depuis la formation de l'univers 6 : le Speedrunner forme son univers 7 à 79:55 au lieu de "
-                            + "80:57 (la galaxie attend 3 h 51 au lieu de 4 h 53), puis garde 1 h 03 d'avance (univers 10 "
-                            + "à 86:26 au lieu de 87:29). Ensuite, chaque univers dure 2 h, l'amas et la formation, comme "
-                            + "avant. Le Régulier, dont le collisionneur n'attendait plus, ne change pas.")),
-            new Note("0.174", "Les nouveautés du deuxième univers s'ouvrent par des succès", List.of(
-                    "Dix-sept succès du deuxième univers. Douze ouvrent chacun une nouveauté au moment logique de la remontée : "
-                            + "le régime des générateurs au troisième générateur, la synergie des rangs au dixième, l'onglet "
-                            + "Skins après cinq fusions, le noyau dense et les épreuves à la première explosion, le petit arbre du "
-                            + "cycle au premier Big Bang, la prime de cycle parfait, les éléments gratuits, la famille préférée, "
-                            + "les épreuves du collisionneur, la fuite, les planètes dans deux systèmes. Les cinq autres, un par défi de Big Bang, portent ses bonus d'univers. Rien ne "
-                            + "tombe avant la formation du premier univers ; une ancienne sauvegarde reçoit à la seconde les succès "
-                            + "de ce qu'elle avait déjà ouvert.",
-                    "Quinze succès jalonnent la suite jusqu'à la fin de la partie (le vide, les hadrons, dix univers, "
-                            + "l'arbre-monde, les sommets des dimensions, la fin des temps) ; six portent un petit bonus de 2 %. "
-                            + "Le catalogue passe de 67 à 99 succès, chacun +1 % de particules. La puissance des succès reste "
-                            + "pleine à 67 succès, comme avant : le premier univers se forme à la même seconde.",
-                    "Les bots (dès le deuxième univers ; le premier ne change pas) : la réserve pour le vide et les hadrons "
-                            + "ne gèle plus le collisionneur pour un prix à plus de dix minutes de production, et le vide reste "
-                            + "ouvert pendant que la galaxie attend le collisionneur. Le collisionneur s'achète par valeur : "
-                            + "énergie et puissance d'abord, puis les générateurs du haut vers le bas. L'expert achète ses bulles "
-                            + "dans un nouvel ordre, le moins utile en dernier. Mesuré depuis le troisième univers : l'univers 8 "
-                            + "se forme 5 h 17 plus tôt chez le Speedrunner (83:24 au lieu de 88:41) et 20 h 16 plus tôt chez le "
-                            + "Régulier (152:18 au lieu de 172:34), qui prend enfin la bulle qui garde le collisionneur.")),
-            new Note("0.173", "L'effet des racines tient dans sa bulle", List.of(
-                    "L'effet de la bulle des racines tient de nouveau sur deux lignes dans l'arbre : « Le défi final : un palier "
-                            + "par dimension, les dix finissent la partie ; les gluons l'abaissent jusqu'à moitié ». Depuis la 0.169, "
-                            + "le texte faisait plus de deux cents caractères et débordait de la bulle ; le détail du jalon des "
-                            + "racines reste dans les paliers des hadrons.",
-                    "Les tests de l'interface passent tous : la page Statistiques du collisionneur était vérifiée avec les "
-                            + "mauvais hadrons.")),
-            new Note("0.172", "Des tests qui prennent le temps du plus long, pas la somme", List.of(
-                    "Rien ne change dans le jeu. Les tests : les trois modules se testent en même temps, les campagnes des "
-                            + "vingt-quatre profils de bots jouent un profil par cœur (un test par profil dans le rapport, les mêmes "
-                            + "parties), et « tester-change » ne rejoue que les modules où quelque chose a bougé ; « tout tester » "
-                            + "rejoue toujours tout.")),
-            new Note("0.171", "Un vide qui se gagne d'un univers à l'autre, une maturation ×4", List.of(
-                    "Les améliorations du vide repartent de zéro à chaque univers : leur premier niveau coûte maintenant dix fois "
-                            + "moins (50 à 500 énergie du vide), à la portée d'un seul univers, et leur dernier trente fois plus (2,1 à "
-                            + "18 millions), à la portée de l'équilibre du vide en fin de partie. Chaque niveau coûte de 1,9 à 8,1 fois "
-                            + "le précédent : les achats s'étalent sur toute la partie au lieu de tomber dans le même univers.",
-                    "Depuis le deuxième univers, chaque défi de Big Bang réussi fait mûrir les astres 1,26 fois plus vite (la racine "
-                            + "cubique de 2) au lieu de 1,36 : avec les trois défis et la barre haute, ×4 au lieu de ×5, et le trou noir "
-                            + "supermassif met 90 minutes au lieu de 72.")),
-            new Note("0.170", "Un moteur plus rapide au bit près, des simulations compressées", List.of(
-                    "Le tirage des éléments et le cumul de leurs bonus se calculent sans construire de listes ni rechercher dans "
-                            + "des tables : les mêmes nombres exactement, de 10 à 20 % de temps de calcul en moins quand le tableau se "
-                            + "remplit vite (synthèse sans délai, rattrapage d'absence). Vérifié sur des parties entières : événements "
-                            + "à la seconde et sauvegardes identiques.",
-                    "Les bots : les univers d'une partie de référence se rejouent en parallèle depuis des jalons (sauvegarde et "
-                            + "mémoire du bot à chaque univers lancé), la chaîne se vérifie octet pour octet et seule la partie "
-                            + "changée se rejoue ; l'analyste espace ses estimations selon le temps qu'elles annoncent (deux fois moins "
-                            + "de copies jouées au plus, la partie inchangée) ; les tests se répartissent sur plusieurs JVM.")),
-            new Note("0.169", "Des bulles qui agissent tout de suite, un vide plafonné, les racines liées", List.of(
-                    "Une bulle de l'arbre achetée après la formation de l'univers agit déjà sur celui qu'on lance : jusqu'au bouton "
-                            + "« univers suivant », le jeu garde en mémoire ce que l'univers formé laisse (collisionneur, vide, matière "
-                            + "noire, hadrons, défis du Big Bang), et chaque bulle achetée entre-temps en garde sa part. Avant, elle "
-                            + "n'agissait qu'à l'univers d'après.",
-                    "Le rassemblement plus court du vide retire 10 % par niveau (cinq niveaux), la maturation plus courte 5 % "
-                            + "(dix niveaux) : −50 % au plus chacun, au lieu de −80 % et −70 %.",
-                    "Les prix du vide suivent ceux des bulles : le premier niveau de chaque amélioration coûte de 500 à 5 000 "
-                            + "énergie du vide, comme les premières bulles, le dernier de 70 000 à 600 000, comme les dernières. Le "
-                            + "gain par paire s'arrête à quinze niveaux.",
-                    "Le jalon des racines : avec la bulle des racines, dix paliers de gluons, de 80 000 à 400 000, chacun abaisse "
-                            + "les paliers du défi final d'environ 7 %, de moitié avec les dix. Il s'affiche avec les paliers de "
-                            + "gluons, et les deux derniers sont longs à atteindre.",
-                    "La sous-page « Collisionneur » des statistiques dit ce que le collisionneur, les hadrons et le vide font au "
-                            + "reste du jeu : ce qu'ils multiplient, ce que le vide raccourcit, ce qu'il prend au collisionneur et à "
-                            + "l'espace, et ce qu'il a payé dans l'arbre.")),
-            new Note("0.168", "La chronologie de la partie, la valeur durable des achats", List.of(
-                    "Une sous-page « Chronologie » dans les statistiques : la durée de chaque univers formé et de ses cinq phases, en "
-                            + "barres à la même échelle ; quand chaque dimension s'est ouverte, combien de temps sa fenêtre est restée "
-                            + "ouverte, son premier automatisme, son seuil, son palier final et sa part de la partie ; les paliers de la "
-                            + "graine et le défi final. Le journal commence avec cette version.",
-                    "Dans la sous-page « Achats », chaque achat dit jusqu'où il tient (la prochaine fusion, explosion, le prochain Big "
-                            + "Bang, l'univers, toute la partie) et ce qu'il fait gagner sur toute cette durée, estimée par la dernière "
-                            + "partie du même genre.",
-                    "Corrigé : deux tests de l'interface attendaient encore le prix du bonsaï d'avant la 0.166, et une bulle des "
-                            + "racines ouverte sans la graine à son dernier palier ni bulle voisine achetée.",
-                    "Le bot analyste garde sa mémoire et son hasard à côté de chaque sauvegarde : une partie jouée en plusieurs "
-                            + "tranches reste la même partie. Il note les achats faits au pas qui lance un univers, le palier final de "
-                            + "chaque dimension, la condition qui manque seule à la galaxie, et mesure aussi les cases de l'arbre et les "
-                            + "bulles « sans », avec un ordre des bulles imposé pour mesurer la dispersion.")),
-            new Note("0.167", "Persistance par paliers, un espace à sa mesure", List.of(
-                    "Persistance a cinq niveaux, de 8 à 118 atomes : la fusion garde 10 %, 25 %, 50 %, 75 % puis 100 % des "
-                            + "niveaux de vitesse et de couplage. La bulle de l'arbuste, à droite, se rachète cinq fois : un niveau "
-                            + "de Persistance offert par niveau.",
-                    "Les automatismes achètent un seul niveau par action, générateurs compris. Dès la matière noire, chacun "
-                            + "peut acheter en lot : ×2 par niveau payé en matière noire (2, 8, 32… 2 048), jusqu'à 64 par action, pour "
-                            + "tout l'univers, et l'historique des achats le note. "
-                            + "La bulle du bonsaï, à droite, les fait agir sans délai et acheter tout ce qu'ils peuvent.",
-                    "Au-delà de 10 000 par seconde, l'espace gagné ne croît plus que comme la racine cubique de ses bonus : "
-                            + "il n'en vient plus des milliards de fois plus que ce qui sert.",
-                    "Chaque univers formé ajoute 1 au multiplicateur de la matière noire des explosions et de sa croissance "
-                            + "(×2, ×3, ×4…), au lieu de le doubler.",
-                    "« Couper tous les automatismes » arrête aussi les automates du collisionneur, et un bouton les coupe ou "
-                            + "les relance tous dans l'onglet Automatisation.",
-                    "Le bot analyste sait payer les niveaux de Persistance un à un, achète le lot de chaque automatisme et la "
-                            + "bulle sans délai, et le Speedrunner tient la touche M (tout acheter) entre deux décisions.")),
-            new Note("0.166", "Une galaxie qui se joue, des bulles qui se choisissent", List.of(
-                    "Depuis le deuxième univers, les défis de Big Bang font mûrir les astres cinq fois plus vite, et non plus cent "
-                            + "vingt-huit : le trou noir supermassif met 72 minutes au lieu de 3, la galaxie redevient une étape, et "
-                            + "le vide, les places de maturation et les impulsions comptent de nouveau.",
-                    "Les bulles de l'arbre coûtent ensemble environ 1,4 fois l'énergie du vide qu'un univers laisse : il faut "
-                            + "choisir lesquelles prendre d'abord. Les deux bulles qui se rachètent coûtent 2,5 fois plus à chaque niveau.",
-                    "Le tout premier Big Bang demande une réserve de 120 000 matières noires : le joueur n'attend plus quatre "
-                            + "heures les seules particules, mais une heure, sans que le Big Bang vienne plus tard.",
-                    "Le compteur de la prochaine étape ne se tait plus avant le Big Bang : une condition qui se perd un instant "
-                            + "(les atomes, à chaque explosion) ne le remet plus à zéro.",
-                    "Le bot analyste joue aussi le Régulier et un joueur absent, dit ce qui a débloqué chaque palier, compte "
-                            + "les décisions par heure, mesure les améliorations des dimensions et de la graine, et repère les réserves "
-                            + "qui dorment et les paliers bloqués par une seule condition.")),
-            new Note("0.165", "Vos achats et la prochaine étape", List.of(
-                    "La ligne d'objectif dit dans combien de temps vient la prochaine étape (première fusion, explosion, Big "
-                            + "Bang, galaxie, amas, univers), au rythme des dix dernières minutes. Quand l'avancée ne bouge pas assez "
-                            + "pour en tirer un temps, elle n'en donne pas. Elle se cache dans les réglages, comme les autres "
-                            + "morceaux de l'objectif.",
-                    "Dans les statistiques, la sous-page « Achats » garde vos achats de la session : ce qu'ils ont coûté et la "
-                            + "part de la réserve, ce qu'ils multiplient, et le temps qu'ils font gagner vers la prochaine étape ; "
-                            + "puis ce qui a fait gagner le plus de temps. Ceux des automatismes n'y sont pas.",
-                    "Le jeu et le bot analyste lisent les achats de la même façon : la lecture vit maintenant dans le moteur.")),
-            new Note("0.164", "Les détecteurs d'illogismes", List.of(
-                    "Le bot analyste relit sa partie avec dix détecteurs : joueur moins présent plus rapide, achat jamais rentable, "
-                            + "amélioration jamais achetée, défi trivial, rafale de succès, étape éclair ou interminable, estimation "
-                            + "ratée, automatisme en va-et-vient, ressource jamais dépensée, gros multiplicateur sans effet. Ils "
-                            + "s'écrivent dans illogismes.txt et en tête du rapport.",
-                    "Une partie sans une amélioration : elle garde son nom mais prend un prix impossible ; comparée à la partie "
-                            + "normale, elle dit ce que l'amélioration apporte.",
-                    "Deux parties se comparent palier par palier (comparaison.html), et le bot se joue sur plusieurs graines pour "
-                            + "voir ce qui tient au hasard (graines.html).")),
-            new Note("0.163", "Jusqu'à la fin", List.of(
-                    "Le plan, le volume et la brane automatiques rapportent pendant une absence autant que fenêtre ouverte. "
-                            + "Avant, une absence se rejouait par pas de 10 secondes : le point du plan avançait quarante fois "
-                            + "moins vite, la plongée du volume expirait avant de replonger (moitié moins de sphères), et la brane "
-                            + "rapportait de −17 % à +46 % selon le pas.",
-                    "La tirée automatique de la brane vise le point d'où l'onde en touche le plus. Avant, elle tirait au milieu "
-                            + "des points : quand ils étaient trop écartés, l'onde n'en touchait aucun, aucun ne partait, et la "
-                            + "brane s'arrêtait pour de bon.",
-                    "Le bot analyste joue jusqu'à la fin de la partie : il continue de former des univers après le onzième, "
-                            + "prend les bulles du sommet et des racines et les améliorations de la graine, laisse les automatismes "
-                            + "jouer les dimensions, et s'arrête aux dix paliers du défi final. Il peut aussi repartir d'une "
-                            + "sauvegarde.")),
-            new Note("0.162", "Le bot analyste dit pourquoi", List.of(
-                    "Chaque achat a sa rentabilité : le temps de production qu'il a coûté (son prix divisé par ce que la ressource "
-                            + "rapportait par seconde), contre le temps qu'il fait gagner vers le palier suivant. Le rapport classe "
-                            + "tout ce qui a été acheté, du plus rentable au moins rentable.",
-                    "Chaque défi lancé dit sa contrainte, sa récompense, s'il est une condition du Big Bang, et combien de temps il "
-                            + "prendra (joué sur une copie de la partie) ; à la fin, réussi ou abandonné, en combien de temps.",
-                    "Chaque succès dit ce qu'il demandait, son bonus et son poids sur chaque grandeur ; chaque automatisme, ce qu'il "
-                            + "fait et pourquoi il est mis en marche ou coupé ; chaque explosion, la matière noire qu'elle rapporte par heure.",
-                    "À chaque palier principal, « et si » : la suite jouée par un joueur qui passe une fois par minute, puis toutes "
-                            + "les dix minutes, à côté du temps du bot.",
-                    "Les parties se rejouent à l'identique : le rassemblement automatique parcourait les molécules dans un ordre "
-                            + "qui changeait à chaque lancement du jeu, et deux parties jouées pareil divergeaient.",
-                    "Le moteur compte les éléments possédés sans chercher dans une table : c'était sa première dépense. Une partie "
-                            + "de bot se calcule environ 17 % plus vite ; le jeu devrait en profiter aussi, surtout quand la synthèse "
-                            + "automatique tourne.")),
-            new Note("0.161", "Le bot analyste", List.of(
-                    "Un nouveau bot pour comprendre le jeu : il joue comme le meilleur profil, à vitesse humaine (une décision "
-                            + "toutes les cinq secondes), et note tout à la seconde de jeu près. Un double-clic sur analyste.bat le "
-                            + "lance pour onze univers.",
-                    "Chaque achat est noté : quoi, combien, payé en quoi, combien, la part de la réserve, son poids sur chaque "
-                            + "grandeur du jeu et le temps qu'il fait gagner. Les succès, les défis, les automatismes allumés ou "
-                            + "coupés, les explosions et les Big Bangs aussi.",
-                    "Chaque palier est noté avec son chrono : les trois actes de chaque univers et leurs étapes, chaque Big Bang, "
-                            + "les paliers de la graine, les dimensions et leurs seuils, le défi final et la fin. Une sauvegarde est "
-                            + "gardée à chaque palier.",
-                    "Toutes les 30 minutes de jeu, il estime le temps jusqu'au prochain palier en jouant la suite sur une copie de "
-                            + "la partie, et dit ce qui freine. S'il n'avance plus, il s'arrête et explique pourquoi.",
-                    "Tout s'écrit en texte brut, en tableaux CSV et dans une page HTML : frise, résumé par étape, paliers, courbes, "
-                            + "achats regroupés, journal filtrable.",
-                    "En option, il compare six façons de jouer à chaque palier (chacune joue la suite sur une copie) et garde la plus "
-                            + "rapide, avec le classement et ce que chaque autre aurait coûté.")),
-            new Note("0.160", "Le défi final", List.of(
-                    "Le défi final, comme le joueur l'avait demandé : la bulle des racines achetée, chaque dimension a un "
-                            + "palier à atteindre, en ressource gagnée en tout (cent fois son seuil ; dix millions de fragments "
-                            + "pour le mélange).",
-                    "Sur la carte des dimensions, chaque point se remplit de vert, du bas vers le haut, selon l'avancée vers "
-                            + "son palier, comptée en puissances de dix ; il devient tout vert au palier atteint. Le rond vert du "
-                            + "seuil devient un anneau autour du point ; l'avancée s'écrit sous chaque nom, et les paliers "
-                            + "atteints au milieu.",
-                    "Les dix paliers atteints, la partie est finie : les traits de la carte deviennent verts en vague, dans "
-                            + "une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue, et l'écran de fin s'ouvre "
-                            + "(temps de jeu, univers formés, chiffres de toute la partie). « Continuer » : le jeu continue "
-                            + "derrière. « Revoir la fin » la rejoue ; une partie déjà finie au chargement ne la rejoue pas seule.",
-                    "Le titre « Racines du monde » vient avec la fin. Les notifications ont leur catégorie « Défi final » "
-                            + "(un palier atteint, la fin) ; les statistiques, l'aide et le profil de test ont le défi final.")),
-            new Note("0.159", "Le mélange refait", List.of(
-                    "Le mélange est refait de fond en comble, à la demande du joueur : plus de tirage au hasard entre les "
-                            + "mini-jeux. C'est maintenant un seul mini-jeu, sur une grande arène, qui mêle étape par étape les "
-                            + "mécaniques des autres dimensions : la ligne seule à l'étape 1, puis le plan, le volume, la durée, "
-                            + "la boucle, la brane, le clicker, la grille et le miroir, jusqu'à l'étape 9 où tout est mêlé.",
-                    "Au-dessus de l'arène, l'étape (« Étape 4 sur 9 : ligne + plan + volume + durée ») et sa barre de "
-                            + "progression ; « Mêler la dimension suivante » s'allume quand l'étape est gagnée. Chaque dimension "
-                            + "mêlée ajoute 50 % au gain ; un malus de 10 % pèse au départ de chaque étape.",
-                    "On y joue à la souris (clic ou bouton tenu pour mener le point, molette pour la profondeur, bouton droit "
-                            + "tenu pour la charge, clics rapides pour la cadence) ou au clavier (Z Q S D et les flèches, A et E, "
-                            + "la barre d'espace). Le halo du point dit si le trésor caché est proche, sans jamais le montrer ; "
-                            + "l'axe du miroir et un trait entre les deux éclats d'une paire guident les reflets.",
-                    "Onze améliorations, payées en fragments, chacune ouverte à l'étape de sa mécanique (grisées avant, avec "
-                            + "l'étape qui les ouvre) : elles repartent de zéro à chaque changement d'étape. Les améliorations du "
-                            + "mélange de la 0.158 ne sont pas gardées.",
-                    "Le mélange automatique mène le point vers l'éclat le plus proche, plonge, tient et relâche la charge en "
-                            + "rythme, clique et passe seul les étapes ; avec un automatisme par amélioration, il y en a "
-                            + "maintenant soixante-neuf.",
-                    "Les statistiques ont l'étape du mélange, ses charges, ses trésors et ses paires ; l'aide le décrit ; le "
-                            + "profil de test a de quoi gagner une étape, y passer ou revenir à la première.")),
-            new Note("0.158", "Le mélange", List.of(
-                    "La dixième dimension s'ouvre au dixième univers : le mélange, à la place du « point », qui n'était qu'un "
-                            + "visuel. Il passe au hasard d'un mini-jeu des neuf autres dimensions à un autre, toutes les vingt "
-                            + "secondes ; sa fenêtre montre le mini-jeu du moment, où l'on joue comme dans sa propre fenêtre, et "
-                            + "« Ouvrir » l'ouvre en grand (« Retour » ramène au mélange).",
-                    "Ce que vous gagnez dans le mini-jeu du moment devient des fragments, la ressource du mélange, en part du "
-                            + "seuil de sa dimension, avec un énorme malus au départ (1 %). Le compte à rebours, le malus, le "
-                            + "multiplicateur et les changements en réserve s'affichent sous les mini-jeux.",
-                    "Six améliorations, payées en fragments : meilleur gain, réduction du malus, changements (« Changer » relance "
-                            + "un mini-jeu), mélange (jusqu'à trois mini-jeux à la fois, côte à côte), multiplicateur selon leur "
-                            + "nombre, et durée. Le seuil du mélange (5 000 fragments) marque la dimension d'un rond vert et "
-                            + "donne le titre « Maître du mélange ».",
-                    "L'automatisation des dimensions gagne la section du mélange, payée en reflets du miroir : le mélange "
-                            + "automatique ne tire plus que des dimensions qui se jouent seules, puis un automatisme par "
-                            + "amélioration ; il y en a maintenant soixante-quatre.",
-                    "La bulle des racines : la branche « Mélange » des améliorations de la graine, payée en fragments, l'ouvre ; "
-                            + "jusque-là, la bulle le dit. Son effet reste le défi final, à venir.",
-                    "La grille, comme le joueur l'avait demandé : quand un point se cache ailleurs (trouvé, ou ses essais "
-                            + "épuisés), les couleurs des cases essayées contre lui s'effacent ; le dernier essai le dit encore en "
-                            + "toutes lettres.",
-                    "Le miroir, comme le joueur l'avait demandé : le plateau s'agrandit seul toutes les trois réussites, d'une "
-                            + "colonne de chaque côté et d'une ligne, et le gain ×1,5 de plus, trois fois au plus ; la fenêtre dit "
-                            + "les réussites qu'il manque, et un éclat salue l'agrandissement. « Plateau plus vaste » permet un "
-                            + "agrandissement de plus par niveau.",
-                    "Les statistiques de l'univers ont le mélange, sa courbe, ses mélanges et le plateau du miroir ; l'aide les "
-                            + "décrit ; le profil de test a la rangée du mélange.")),
-            new Note("0.157", "Le miroir", List.of(
-                    "La neuvième dimension s'ouvre au neuvième univers : le miroir, à la place de « toutes les lois », qui "
-                            + "n'était qu'un visuel. Un plateau coupé en deux par un trait de lumière ; un motif s'allume case "
-                            + "après case sur la moitié gauche, puis s'éteint, et il faut le refaire de mémoire, en miroir, sur "
-                            + "la moitié droite, dans le même ordre. Seules les cases déjà reproduites restent visibles.",
-                    "Réussi, un motif donne des reflets, la ressource du miroir, d'autant plus qu'il est long, et le suivant "
-                            + "a une case de plus (jusqu'à vingt) ; manqué, il en donne un peu, et le suivant a une case de "
-                            + "moins (jamais moins de trois). La longueur, le record et les erreurs s'affichent au-dessus du plateau.",
-                    "Cinq améliorations, payées en reflets : gain, multiplicateur de longueur, temps de mémorisation, seconde "
-                            + "chance (jusqu'à trois erreurs permises) et plateau plus grand (le gain ×1,5 par niveau). Le seuil "
-                            + "du miroir (5 000 reflets) marque la dimension d'un rond vert et donne le titre « Gardien du miroir ».",
-                    "L'automatisation des dimensions gagne la section du miroir, payée en repères de la grille : le miroir "
-                            + "automatique refait le motif, une case toutes les 0,4 s, sans faute jusqu'à six cases, puis un "
-                            + "automatisme par amélioration ; il y en a maintenant cinquante-sept.",
-                    "La grille est refaite, comme le joueur l'avait demandé : énorme dès le départ, mille cases par côté (un "
-                            + "milliard de cases), et un seul essai par point caché avant qu'il se cache ailleurs. On vise une "
-                            + "case d'un clic sur la carte de la couche (le zoom la précise) ou par ses coordonnées x, y, z, et on "
-                            + "l'essaie. La « Réduction de la grille » la rend plus petite, ×0,7 par niveau jusqu'à deux cases "
-                            + "par côté, pour toucher plus souvent ; petite, elle se montre case par case. La nouvelle "
-                            + "amélioration « Essais » en ajoute un par point, jusqu'à quatre ; les essais automatiques trouvent "
-                            + "rarement sur la grande grille, souvent sur une grille réduite.",
-                    "Les saisons de la graine : avec le miroir, printemps, été, automne et hiver passent, deux minutes chacune. "
-                            + "La branche « Miroir » des améliorations de la graine, payée en reflets, fait remplir le chrono à "
-                            + "chaque arrosage, davantage au printemps, moins en hiver ; la saison se lit près du chrono.",
-                    "Les statistiques de l'univers ont le miroir, sa courbe, ses motifs réussis et manqués, son record et la "
-                            + "saison ; l'aide les décrit ; le profil de test a la rangée du miroir.")),
-            new Note("0.156", "La grille", List.of(
-                    "La huitième dimension s'ouvre au huitième univers : la grille, à la place de « la toile des débuts », "
-                            + "qui n'était qu'un visuel. Un cube de 1 000 de côté, découpé en cases (deux par côté au départ), "
-                            + "où des points se cachent. On choisit une couche (les boutons, la molette ou les flèches haut et "
-                            + "bas) et l'on sonde une case d'un clic : plus son centre est près d'un point, plus elle donne de "
-                            + "repères, la ressource de la grille.",
-                    "La case qui contient un point le trouve : un éclat doré, « Trouvé ! ×5 », et le point se cache ailleurs. "
-                            + "Après chaque sondage, une demi-seconde d'attente. À côté de la couche, le cube vu de biais montre "
-                            + "la couche choisie et les cases déjà sondées.",
-                    "Cinq améliorations, payées en repères : division de la grille (jusqu'à 24 cases par côté), gain, "
-                            + "affichage du point, nombre de points (jusqu'à sept) et multiplicateur de proximité. L'affichage "
-                            + "montre d'abord la distance de chaque sondage (les cases vont du froid au chaud), puis la couche, "
-                            + "et enfin la colonne du point le plus proche du dernier sondage ; avant lui, seul le gain se voit.",
-                    "Le seuil de la grille (5 000 repères) marque la dimension d'un rond vert et donne le titre « Arpenteur de "
-                            + "la grille ». L'automatisation des dimensions gagne la section de la grille, payée en étincelles "
-                            + "du clicker : le sondage automatique sonde une case près d'un point toutes les deux secondes, puis "
-                            + "un automatisme par amélioration ; il y en a maintenant cinquante.",
-                    "La graine profonde : la branche « Grille » des améliorations de la graine, payée en repères, multiplie "
-                            + "tout l'arrosage, d'un dixième par niveau de la racine carrée de la puissance de dix de l'énergie "
-                            + "du vide récupérée ; la ligne de la graine dit son effet.",
-                    "Les statistiques de l'univers ont la grille, sa courbe, ses sondages, ses points trouvés et la graine "
-                            + "profonde ; l'aide les décrit ; le profil de test a la rangée de la grille.")),
-            new Note("0.155", "Le clicker", List.of(
-                    "La septième dimension s'ouvre au septième univers : le clicker, à la place de « tous les débuts », qui "
-                            + "n'était qu'un visuel. Chaque clic sur sa surface donne des étincelles, et d'autant plus que vous "
-                            + "cliquez vite : la cadence, comptée sur les deux dernières secondes jusqu'à vingt clics par seconde, "
-                            + "multiplie chaque clic ; elle s'écrit au-dessus de la surface. Chaque clic fait une onde, et son "
-                            + "gain monte du point.",
-                    "Huit améliorations, payées en étincelles : gain, multiplicateur de cadence, et les zones ×2, qui en "
-                            + "débloquent cinq autres (multiplicateur, durée, nombre et taille des zones, zones superposées). "
-                            + "Les zones apparaissent une toutes les trois secondes et s'éteignent au bout d'un temps, que leur "
-                            + "anneau montre en se vidant ; elles peuvent se superposer, et chaque endroit prend la couleur du "
-                            + "nombre de zones qui le couvrent. Sous la souris s'écrit le multiplicateur (×N).",
-                    "Le seuil du clicker (5 000 étincelles) marque la dimension d'un rond vert et donne le titre « Virtuose du "
-                            + "clic ». L'automatisation des dimensions gagne la section du clicker, payée en ondes de la brane : "
-                            + "les clics automatiques cliquent six fois par seconde au meilleur endroit, de vrais clics qui se "
-                            + "voient sur la surface, puis un automatisme par amélioration ; il y en a maintenant quarante-quatre.",
-                    "La météo de la graine : avec le clicker, le ciel est variable, parfois beau (+30 % sur tout l'arrosage "
-                            + "par seconde), parfois orageux (−10 %). Il se voit en haut de la vue de la graine (soleil, nuage, "
-                            + "pluie et éclairs), avec son effet et le temps qu'il lui reste. La branche « Clicker » des "
-                            + "améliorations de la graine allonge le beau temps, raccourcit les orages et renforce le soleil.",
-                    "La brane : une seule onde à la fois, mais elle rebondit plusieurs fois, et la grandeur des ondes va "
-                            + "maintenant jusqu'à vingt-cinq niveaux, +30 % chacun. Les rebonds se voient mieux : chaque front "
-                            + "prend une couleur et une épaisseur selon ses rebonds, un éclat marque le bord où il rebondit, et "
-                            + "le gain dit ses rebonds, plus gros (« +9, 2 rebonds »). Le point touché reste doré et affiche ses "
-                            + "passages jusqu'à partir avec l'onde ; les statistiques ont le record de rebonds en un passage.",
-                    "Les statistiques de l'univers ont le clicker, sa courbe, ses clics, sa cadence, le record de zones "
-                            + "superposées et la météo ; l'aide les décrit ; le profil de test a la rangée du clicker et deux "
-                            + "outils de météo.")),
-            new Note("0.154", "La brane", List.of(
-                    "La sixième dimension s'ouvre au sixième univers : la brane, à la place de « tous les possibles », qui "
-                            + "n'était qu'un visuel. Une membrane carrée : on l'appuie en un point, on glisse pour la tendre, "
-                            + "et un cercle en pointillé montre jusqu'où ira l'onde ; au relâchement, l'onde part du point "
-                            + "appuyé, grandit, et rebondit sur les bords.",
-                    "Des points apparaissent sur la membrane, un toutes les deux secondes, six au plus. Chaque passage du "
-                            + "front sur un point, en direct puis après chaque rebond, donne des ondes, la ressource de la "
-                            + "brane : davantage après un rebond, et davantage pour chaque passage de plus de la même onde. Un "
-                            + "point touché se dore et reste tant que l'onde court, puis part avec elle. Trois ondes au plus à la fois.",
-                    "Cinq améliorations, payées en ondes : gain, élasticité (une tirée plus courte porte déjà à fond), "
-                            + "grandeur des ondes, rebond, et points en une onde. Le seuil de la brane (5 000 ondes) marque la "
-                            + "dimension d'un rond vert et donne le titre « Surfeur de la brane » ; l'oméga renforce aussi ses ondes.",
-                    "La lumière astrale : la branche « Brane » des améliorations de la graine, payée en ondes, multiplie "
-                            + "l'arrosage par seconde de l'arrosoir et du tuyau, +20 % par niveau.",
-                    "L'automatisation des dimensions gagne la section de la brane, payée en nœuds de la boucle : la tirée "
-                            + "automatique tire la membrane à fond au milieu des points toutes les trois secondes, puis un "
-                            + "automatisme par amélioration ; il y en a maintenant trente-cinq.",
-                    "La boucle : le rythme automatique joue vraiment, clic par clic, fenêtre ouverte : chacun de ses clics "
-                            + "éclaire son cercle, son mot monte du point, et la zone touchée part ailleurs, comme pour un clic "
-                            + "du joueur. Les zones d'un même cercle ne se superposent plus.",
-                    "Les statistiques de l'univers ont la brane, sa courbe, ses ondes tirées, ses points touchés et la lumière "
-                            + "astrale ; l'aide les décrit ; le profil de test a la rangée de la brane.")),
-            new Note("0.153", "La boucle", List.of(
-                    "La cinquième dimension s'ouvre au cinquième univers : la boucle, à la place des embranchements, qui "
-                            + "n'étaient qu'un visuel. Sur un cercle, un point tourne, très lentement au début ; une zone y "
-                            + "attend, en trois parts : le bord « mauvais », puis « bien », le centre « excellent ».",
-                    "Un clic sur le cercle (ou sa touche) quand le point est dans la zone donne des nœuds, d'autant plus "
-                            + "que le clic est juste, et la zone se pose ailleurs. Après chaque clic, juste ou non, le cercle "
-                            + "attend un court instant, qu'un anneau autour du point montre : cliquer sans arrêt ne rapporte rien. "
-                            + "Le mot du clic monte du point : « Excellent », « Bien », « Mauvais » ou « Raté ».",
-                    "Six améliorations, payées en nœuds : rapidité du point, nombre de zones (jusqu'à quatre par cercle), "
-                            + "gain par zone, précision, taille des zones, et des cercles de plus, jusqu'à sept. Chaque cercle "
-                            + "a sa touche, S D F Espace J K L d'origine, à changer dans les réglages, sous-onglet Clavier.",
-                    "Un métronome, à brancher dans la fenêtre de la boucle, fait un tic à chaque passage du point du premier "
-                            + "cercle sur le centre d'une zone ; il suit le réglage des sons et leur volume.",
-                    "Le rond de croissance : avec la boucle, un rond vert pousse de temps en temps près de la graine, avec son "
-                            + "compte à rebours. Cueilli d'un clic, il accélère l'arrosage de 25 % pendant 30 s ; la ligne "
-                            + "« Croissance +25 % : 30 s » le dit au-dessus de l'étagère. La branche « Boucle » des "
-                            + "améliorations de la graine allonge sa durée et renforce son effet.",
-                    "L'automatisation des dimensions gagne la section de la boucle, payée en instants de la durée : le rythme "
-                            + "automatique clique « bien » à chaque passage d'un point dans une zone, puis un automatisme par "
-                            + "amélioration ; il y en a maintenant vingt-neuf. Le seuil de la boucle (5 000 nœuds) marque la "
-                            + "dimension d'un rond vert et donne le titre « Danseur de la boucle » ; l'oméga renforce aussi ses nœuds.",
-                    "Les statistiques de l'univers ont la boucle, sa courbe et le rond de croissance ; l'aide les décrit ; le "
-                            + "profil de test a la rangée de la boucle et un outil qui fait pousser le rond de croissance.")),
-            new Note("0.152", "Onze univers à l'essai", List.of(
-                    "Profil de test : les bots jouent maintenant depuis zéro jusqu'au onzième univers. Ils arrosent la graine, "
-                            + "achètent les bulles, lient des hadrons et prennent les automatismes des dimensions ; le Speedrunner "
-                            + "forme son onzième univers vers 82 h 45 de jeu.",
-                    "La bulle du géant de gauche, en bas : l'énergie du vide gardée d'un univers à l'autre ne compte plus au "
-                            + "cumul qu'une fois ; seule celle gagnée depuis la formation d'avant s'y ajoute (avant, elle était "
-                            + "recomptée à chaque formation et rendait toutes les bulles gratuites).",
-                    "La bulle du bonsaï, à droite : les automatismes sans délai font avancer le jeu par quarts de seconde, et "
-                            + "plus au délai le plus court ; ils achètent toujours tout ce qu'ils peuvent, sans recalculer les "
-                            + "bonus des éléments des centaines de fois par seconde.")),
-            new Note("0.151", "Ce que font les hadrons", List.of(
-                    "Chaque sorte de hadrons a maintenant son effet, qui grandit avec leur nombre : ×(1 + 0,25 × log₁₀(1 + n)) "
-                            + "pour n hadrons, ×1,25 à 9, ×1,5 à 99. Le proton renforce les atomes par fusion, le neutron "
-                            + "la matière noire par explosion, le pion l'énergie du collisionneur, le kaon l'espace par seconde, "
-                            + "le lambda les particules par création, l'oméga les éclats des quatre dimensions, le méson D "
-                            + "l'énergie du vide.",
-                    "Trois font baisser un prix, divisé d'autant : le J/ψ celui des améliorations du collisionneur, le méson B "
-                            + "celui des générateurs, l'upsilon celui des générateurs du collisionneur.",
-                    "Sous chaque carte du sous-onglet « Gluons », son bonus : ce qu'il vaut, ce qu'il vaudrait avec un de plus "
-                            + "et avec « Lier tout ». En tête de l'onglet, les gluons : chaque quark lié en compte un.",
-                    "Nouveau sous-onglet « Paliers » : cinq paliers de gluons, de 1 000 à 400 000, font garder les "
-                            + "améliorations, les automatismes et les éléments à l'explosion, l'arbre de matière noire et les "
-                            + "défis réussis au Big Bang. Ils agissent dès qu'ils sont atteints, et s'annoncent dans la "
-                            + "catégorie « Collisionneur ».",
-                    "Nouveau sous-onglet « Liaison » : les quarks en main y flottent, et chaque hadron lié s'y joue, ses "
-                            + "quarks rapprochés, reliés par des ressorts de gluons, puis rangés avec les hadrons formés. Il "
-                            + "suit le réglage « Animations du collisionneur ».",
-                    "Les statistiques des multiplicateurs ont un aspect « Hadrons » ; celles de l'univers comptent les gluons "
-                            + "et les paliers atteints. L'aide décrit les bonus, leur calcul et les paliers.")),
-            new Note("0.150", "L'automatisation des dimensions", List.of(
-                    "La bulle du sommet de l'arbre-monde prend effet : l'onglet Automatisation gagne deux sous-onglets, "
-                            + "« Automatismes », tout ce qu'il montrait déjà, et « Dimensions », avec la bulle.",
-                    "Vingt-deux automatismes, une carte chacun, rangés par dimension : ils s'achètent l'un après l'autre, "
-                            + "ceux de la ligne en graines d'univers, ceux du plan en segments, ceux du volume en facettes, "
-                            + "ceux de la durée en sphères. Un clic sur une carte achetée la met en pause ou la relance.",
-                    "La visée automatique fait filer le point du plan vers l'éclat le plus proche quand vous ne tenez aucune "
-                            + "touche ; la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
-                            + "0,4 s ; l'appui automatique tient le bouton de la durée jusqu'au centre, relâche et recommence. "
-                            + "Les autres achètent chacun une amélioration dès qu'elle est payable. Pendant l'appui "
-                            + "automatique, les améliorations de la durée s'achètent bouton tenu.",
-                    "Ils jouent même fenêtre fermée ; dans la fenêtre de la dimension, une mention « automatique » le dit, "
-                            + "la vue suit la plongée et les relâchements, et vos clics ne cassent pas l'appui automatique.",
-                    "« Couper tous les automatismes » les arrête aussi ; achetés, ils traversent les univers. Dans la partie "
-                            + "secondaire, l'onglet Automatisation revient pour eux seuls.",
-                    "L'aide a sa section, et les statistiques de l'univers comptent les automatismes des dimensions achetés.")),
-            new Note("0.149", "Les hadrons", List.of(
-                    "Nouvel onglet « Hadrons » : avec la bulle de l'arbuste, au milieu, il se propose dans le collisionneur "
-                            + "et s'ouvre contre dix minutes de sa production, comme le vide. La bulle du jeune arbre, à gauche, "
-                            + "l'ouvre dès le début de l'univers.",
-                    "Sous-onglet « Gluons » : les quarks en main se lient en protons (u u d) et en neutrons (u d d), un à un "
-                            + "ou tous d'un coup ; chaque hadron a sa carte, avec sa formule, sa recette et le nombre possédé.",
-                    "La bulle du cœur de l'arbre-monde ouvre huit particules exotiques, du pion à l'upsilon ; un antiquark "
-                            + "coûte un quark de sa saveur. La bulle de l'arbre ancien, à gauche, garde les hadrons d'un univers "
-                            + "à l'autre.",
-                    "Les hadrons n'ont pas encore d'effet : on les assemble, on les compte.",
-                    "Deux titres de plus au profil : « Tisseur de gluons », au premier hadron, et « Chasseur d'exotiques », "
-                            + "à la première particule exotique.",
-                    "L'offre s'annonce dans la catégorie « Collisionneur » ; une pastille « Hadrons », qui se coupe dans "
-                            + "« Notifications et signes », dit quand des quarks attendent d'être liés. L'aide a sa section, "
-                            + "et les statistiques de l'univers comptent les hadrons assemblés.")),
-            new Note("0.148", "Les bulles de l'arbre prennent effet", List.of(
-                    "Chaque bulle de l'arbre a maintenant son effet, qui vaut pour tous les univers suivants ; au survol, elle "
-                            + "dit ce qu'elle fait.",
-                    "Graine : une place de maturation des astres de plus par dimension ouverte. Bonsaï : à gauche, ×2 sur "
-                            + "l'énergie du vide gagnée, cinq fois ; à droite, les automatismes agissent sans délai et achètent "
-                            + "tout ce qu'ils peuvent.",
-                    "Arbuste : à gauche, le collisionneur ouvert dès le début de l'univers ; à droite, Persistance offerte "
-                            + "et une part de fusion en atomes chaque seconde, sans fusionner. Jeune arbre, à droite : plus de "
-                            + "plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite.",
-                    "Arbre mûr : à gauche, le collisionneur traverse les univers ; à droite, la matière noire, son arbre, "
-                            + "les explosions et les défis réussis aussi. Arbre ancien, à droite : les astres n'ont plus "
-                            + "besoin de mûrir.",
-                    "Arbre géant : tout à gauche, 5 % du gain du vide vont aussi au cumul des bulles, cinq fois ; à gauche "
-                            + "en bas, le vide reste ouvert d'un univers à l'autre, avec son énergie et ses améliorations ; "
-                            + "tout à droite, de la matière noire chaque seconde selon les atomes, sans exploser ; à droite en "
-                            + "bas, tous les paliers du Big Bang ouverts et les défis du Big Bang gardés.",
-                    "Les bulles des hadrons, de l'automatisation des dimensions et des racines s'achètent déjà : leur "
-                            + "effet viendra avec leur onglet.",
-                    "Le guide de formation de l'univers dit ce que les bulles font garder ; les statistiques de l'univers "
-                            + "montrent ce qu'elles produisent seules.")),
-            new Note("0.147", "Le profil du joueur, et tous les automatismes au même endroit", List.of(
-                    "Nouvel onglet « Profil », dès le premier générateur : le nom du joueur, son avatar, le titre qu'il porte, "
-                            + "son temps de jeu, ses univers et ses Big Bang. Le journal y déménage, dans son propre sous-onglet.",
-                    "Trente-deux titres, de « Étincelle » à « Éternel », en passant par « Apprenti alchimiste », « Forgeron "
-                            + "d'étoiles », « Architecte de galaxies » et « Tisseur de multivers » : chacun tombe quand sa condition "
-                            + "est vraie, s'annonce dans le journal et reste acquis pour toujours. On porte celui qu'on veut.",
-                    "Avatar : une galerie de douze dessins, débloqués par les titres, ou une image à soi, choisie sur l'ordinateur.",
-                    "Après le premier Big Bang, quatre albums dans le profil : les molécules, les états de la matière, les "
-                            + "assemblages et les astres, avec ce qui a déjà été découvert. Les pages du Big Bang ne changent pas.",
-                    "Le profil, les titres et les albums traversent le Big Bang, l'univers suivant et « Recommencer de zéro », "
-                            + "comme les records. Ils ne donnent aucun bonus. Leurs annonces ont leur catégorie dans « Notifications "
-                            + "et signes », « Titres du profil ».",
-                    "Onglet Automatisation : les huit automates du collisionneur (achat, marche et pause), son "
-                            + "déclencheur automatique et le tuyau d'arrosage de la graine y sont aussi. « Tout couper » ne les arrête pas : ils gardent "
-                            + "chacun leur propre interrupteur, comme avant.")),
-            new Note("0.146", "Notifications et signes, réglés par catégorie", List.of(
-                    "Réglages : un sous-onglet « Notifications et signes » réunit les notifications, l'objectif du moment et "
-                            + "les signes d'état, qui étaient dans « Affichage ».",
-                    "Les notifications se coupent par catégorie, sous leur grand interrupteur : dix-neuf catégories, du premier "
-                            + "élan aux succès, aux records et aux skins, avec « Toutes affichées » et « Toutes coupées ». Une "
-                            + "catégorie coupée ne s'affiche pas et ne sonne pas ; le journal garde tout.",
-                    "L'objectif se règle morceau par morceau : l'objectif, le temps qu'il demande, le prochain Big Bang, le "
-                            + "troisième acte et le chrono, qui quitte le sous-onglet « Jeu ».",
-                    "Les pastilles ● des onglets se cachent par sorte (arbre, défis, collisionneur, paliers, ciel, comète, "
-                            + "sondes, systèmes solaires, vide) ; cachée, une pastille ne s'allume ni sur son sous-onglet ni sur "
-                            + "l'onglet qui le porte.",
-                    "Quand beaucoup de nouvelles arrivent d'un coup, le résumé « … et N autres » ne compte plus que celles qui "
-                            + "s'affichent, et le journal les garde une par une.")),
-            new Note("0.145", "Les racines de l'arbre-monde, de retour", List.of(
-                    "À l'arbre-monde, les deux bulles du bas, celle de la graine et celle des racines, remontent un peu et "
-                            + "s'écartent à nouveau, et la bulle des racines retrouve son aura dorée : le grand ménage de la 0.144 "
-                            + "les avait effacées.",
-                    "Tests : celui de l'arbre de la graine vérifie le vrai centre du feuillage, celui des touffes de feuilles, "
-                            + "au lieu d'une position fixe qu'il n'a jamais eue.")),
-            new Note("0.144", "Grand ménage : moins de code, mêmes règles", List.of(
-                    "Statistiques : nouvelle sous-page « Univers » (univers formés, graine et arrosoir, les quatre dimensions et "
-                            + "leurs seuils, le vide et ses paires, les bulles de l'arbre, les règles du deuxième univers), avec "
-                            + "ses courbes ; l'énergie du vide entre dans le graphique de toutes les ressources ; les lignes du "
-                            + "vide quittent la sous-page Big Bang.",
-                    "Multiplicateurs : trois grandeurs de plus se décomposent, l'énergie du collisionneur par seconde, l'énergie "
-                            + "du vide par seconde (la part laissée au vide y apparaît en frein) et les segments de la ligne par seconde.",
-                    "Le moteur, l'interface et les bots perdent environ 900 lignes sans changer une règle ni un pixel : niveaux "
-                            + "d'améliorations en tableaux, boucles sur les paliers et barres de sous-onglets partagées, méthodes "
-                            + "et outils que plus rien n'appelait ; les textes de l'aide et des popups lisent les constantes du jeu.",
-                    "Profil de test : les bots gardent leur choix de cycle pendant un défi de Big Bang, jouent la « Barre haute » "
-                            + "avec ses vrais seuils, retentent les défis abandonnés au bon moment, écrivent leurs CSV avec le point "
-                            + "décimal ; onze outils d'essai obsolètes retirés, README et PROFILS_24 remis d'accord avec le code.",
-                    "Tests : doublons retirés, cinq tests qui ne pouvaient pas échouer rendus effectifs, suite du moteur plus rapide, "
-                            + "et une centaine de vérifications ajoutées (prix des améliorations des dimensions, bulles, planètes "
-                            + "en double, épreuves, collisionneur, sondes, fenêtres de la ligne et du plan).")),
-            new Note("0.143", "Le réseau des bulles, jusqu'à l'arbre-monde", List.of(
-                    "Les bulles de l'arbre continuent jusqu'au dernier palier de la graine : deux de plus au jeune arbre, deux "
-                            + "à l'arbre mûr, deux à l'arbre ancien, quatre à l'arbre géant, et trois à l'arbre-monde, dont une "
-                            + "dans les racines, sous la graine. Dix-neuf en tout, reliées comme un réseau.",
-                    "Une bulle s'ouvre quand une bulle reliée à elle est achetée, d'un côté comme de l'autre du lien : on "
-                            + "commence toujours par la base, puis on avance de proche en proche.",
-                    "Les bulles portent le nom du palier où elles naissent (« Bulle du bonsaï, à gauche »…) et coûtent "
-                            + "environ une fois et demie plus à chaque palier, de 1 000 à 30 000 d'énergie du vide.",
-                    "Le jeune arbre est un peu plus grand : il paraissait plus petit que l'arbuste d'avant.")),
-            new Note("0.142", "Les bulles de l'arbre", List.of(
-                    "Au palier de la graine qui ouvre l'univers 4, à la fin de la dimension 3, une bulle naît à la base de "
-                            + "l'arbre, sur la graine. Au palier suivant, deux bulles sur le feuillage ; au palier d'après, trois "
-                            + "à la cime. Elles sont reliées : chacune s'ouvre quand une bulle reliée en dessous est achetée, et "
-                            + "il faut celle de la base pour les autres.",
-                    "Un clic sur une bulle l'achète avec l'énergie du vide accumulée, celle qu'il restait à la formation de "
-                            + "chaque univers, affichée sur la page de la graine avec ce qu'il en reste à dépenser. Au survol, "
-                            + "une bulle dit son nom et son prix. Achetée, elle s'allume ; elle n'a pas encore d'effet.",
-                    "Le sous-onglet « Vide » de l'onglet Univers est retiré : le vide se joue dans son onglet, et son cumul "
-                            + "est sur la page de la graine.")),
-            new Note("0.141", "Les améliorations de la graine s'achètent au premier clic", List.of(
-                    "Les cartes des améliorations de la graine se rafraîchissaient quatre fois par seconde en étant retirées "
-                            + "puis remises : un clic tombé entre l'appui et le relâché était perdu, et beaucoup de cartes "
-                            + "semblaient ne pas s'acheter. Elles restent maintenant en place ; seul leur contenu change.",
-                    "Le curseur du chrono va par quarts et ne saute plus pendant qu'on le glisse.")),
-            new Note("0.140", "Des améliorations qui se voient", List.of(
-                    "Les cartes des améliorations de la graine gardent leur format, mais se voient mieux : une carte qui "
-                            + "s'achète a une bordure dorée et son prix en vert ; s'il manque de quoi payer, le prix passe en "
-                            + "orange et dit ce qui manque ; une carte fermée reste lisible ; au maximum, elle passe au vert.",
-                    "L'onglet d'une branche où quelque chose s'achète porte une pastille.",
-                    "Les boutons d'amélioration des dimensions suivent : achetables, ils prennent la couleur de leur "
-                            + "dimension ; sinon ils restent lisibles au lieu de s'éteindre.",
-                    "Profil de test : les outils des dimensions sont refaits, une rangée par dimension (l'ouvrir, +10 % du "
-                            + "seuil, le seuil, ses améliorations au maximum ou à zéro), plus la graine et son chrono. À côté, "
-                            + "« Bots dimension » fait jouer le bot d'une dimension, en direct ou en avance rapide.")),
-            new Note("0.139", "Les ressources des dimensions font grandir la graine", List.of(
-                    "La graine ne dépend plus des seuils des dimensions : seuls les arrosages la font passer d'un palier à "
-                            + "l'autre, et chaque palier ouvre toujours un univers. Le rond vert marque toujours le seuil d'une dimension.",
-                    "Les éclats des dimensions ont un nom : les segments de la ligne, les facettes du plan, les sphères du "
-                            + "volume, les instants de la durée.",
-                    "Nouvelles améliorations de la graine, une branche par dimension : le débit de l'arrosoir (segments, +1 "
-                            + "arrosage par seconde), le tuyau d'arrosage qui arrose seul 10 % de l'arrosoir et plus (facettes), la "
-                            + "terre fertile qui fait compter chaque arrosage double (sphères), l'étage du chrono (instants).",
-                    "Le chrono, sur l'étage du haut de l'étagère, se remplit de temps tout seul, même en absence. Réglé au-dessus "
-                            + "de ×1, il fait passer tout le jeu plus vite, et plus il va vite, plus il perd de temps. Ses "
-                            + "améliorations : remplissage (segments), réserve (facettes), accélération (sphères), pertes (instants).",
-                    "Les branches des dimensions 5 à 10 sont déjà là, verrouillées, en attendant leurs dimensions.")),
-            new Note("0.138", "Le prochain astre n'est plus une matière exotique trop tôt", List.of(
-                    "Avant le huitième Big Bang, la liste de courses et l'objectif ne visent plus une matière exotique : "
-                            + "une nébuleuse planétaire dont la matière était déjà réunie passait devant le dernier astre "
-                            + "ordinaire, sans pouvoir être formée, et la liste restait vide.",
-                    "Profil de test : le Thésauriseur, bloqué à 27 astres pendant 24 h depuis la 0.131, repasse le huitième "
-                            + "Big Bang et forme l'univers en 19 h ; le Prestige passe de 14 h 54 à 11 h 46 ; le Speedrunner forme l'univers 1 en 26 h 53 au lieu de 27 h 01.")),
-            new Note("0.137", "L'arrosoir de la graine", List.of(
-                    "La graine ne s'arrose plus d'un bouton : un arrosoir attend sur une étagère de bois, en bas à droite de la "
-                            + "sous-page « Graine d'univers ». Un bouton posé sur l'étagère le débloque, une fois.",
-                    "On prend l'arrosoir à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, "
-                            + "et la graine reçoit un arrosage par seconde. Le premier la fait germer.",
-                    "Relâché, l'arrosoir se redresse et revient tout seul sur l'étagère. Une absence le repose aussi.",
-                    "Outil d'essai : « Reprendre l'arrosoir », pour revoir le bouton de l'étagère.")),
-            new Note("0.136", "Un quart d'heure par dimension", List.of(
-                    "Le rond vert de chaque dimension demande environ un quart d'heure de jeu appliqué, au lieu d'une à trois "
-                            + "minutes : 250 000 éclats de la ligne, 3 500 du plan, 8 000 du volume et 15 millions de la "
-                            + "durée, au lieu de 100 chacune.",
-                    "Les améliorations de la durée montent plus vite de prix (×3,4, ×4, ×4 et ×3,2 par niveau au lieu de "
-                            + "×2,4, ×3, ×3 et ×2,2) : elles ne sont plus toutes au plus haut en trois minutes.",
-                    "Outils d'essai : « +10 % du seuil » remplace « +100 éclats » pour chaque dimension.",
-                    "Profil de test : un bot par dimension mesure le temps jusqu'au rond vert.")),
-            new Note("0.135", "Les bots jouent mieux, chacun à sa façon", List.of(
-                    "Profil de test : dès le premier univers, chaque profil de bot fait ses propres choix (ordre d'achat, "
-                            + "arbre de matière noire, défis de Big Bang, durée des voyages des sondes), et à partir du "
-                            + "deuxième univers les bots font les défis de Big Bang même quand le Big Bang est prêt.")),
-            new Note("0.134", "La durée : la quatrième dimension se joue", List.of(
-                    "Au quatrième univers, la dimension 4, la durée, se joue : un rond, et un bouton au milieu.",
-                    "Tant qu'on tient le bouton (clic tenu, ou la barre d'espace), les spirales avancent du bord vers le "
-                            + "centre ; au relâchement, elles donnent des éclats de la durée, propres à cette dimension.",
-                    "Plus on tient, plus chaque tour rapporte : le premier tour vaut 1, le deuxième 2, le troisième 3… Les "
-                            + "spirales atteignent le centre en 6 s au départ ; tenir plus ne rapporte plus rien, sans rien faire perdre.",
-                    "Quatre améliorations, bouton relâché : vitesse des spirales (+20 %), nombre de spirales (jusqu'à 10), "
-                            + "valeur, et temps au plus (+2 s par niveau, jusqu'à 46 s).",
-                    "Le seuil de la durée, cent éclats gagnés, ouvre le palier 5 de la graine, donc l'univers 5.",
-                    "L'aide (H), page « Dimensions », explique la durée.")),
-            new Note("0.132", "Le vide raccourcit le troisième acte", List.of(
-                    "Nouvelle amélioration du vide, « Rassemblement plus court » : −16 % par niveau du délai de deux heures de "
-                            + "l'amas de galaxies et de l'univers, cinq niveaux, jusqu'à −80 %.",
-                    "« Maturation plus courte » va bien plus loin : −7 % par niveau au lieu de −3 %, jusqu'à −70 % du temps de "
-                            + "maturation des astres (le trou noir supermassif mûrit en 1 h 48 au lieu de 6 h).",
-                    "Les trois améliorations qui raccourcissent le troisième acte (maturation, rassemblement, allègement du ciel) "
-                            + "coûtent davantage au départ mais montent moins vite : elles se gagnent au fil de l'acte.",
-                    "Les cinq améliorations qui font grandir le vide (gain, rythme, coût en énergie, espace, fonte) montent bien plus "
-                            + "vite de prix (×3,7 à ×4,1 par niveau) : le vide ne se remplit plus en une heure.",
-                    "Le journal annonce quand le vide se propose, quand son trou noir s'ouvre et quand une amélioration du "
-                            + "troisième acte est au plus haut.",
-                    "Les statistiques du Big Bang (Avancée) montrent l'énergie du vide et son équilibre, ses niveaux "
-                            + "d'amélioration, ce qu'il raccourcit et la masse de son trou noir.",
-                    "Les bots jouent le vide : ils l'ouvrent, lui laissent la moitié du collisionneur et de l'espace libre, "
-                            + "achètent d'abord ce qui raccourcit le troisième acte et nourrissent le trou noir.")),
-            new Note("0.131", "Les bots ont chacun leur façon de jouer", List.of(
-                    "Profil de test : dans le deuxième univers, chaque profil de bot fait ses propres choix. Le "
-                            + "thésauriseur met en réserve, le chimiste prend la synthèse, le débutant oublie le régime rapide "
-                            + "et prend le premier élément offert, le distrait oublie souvent.",
-                    "Les bots saisissent les anomalies du ciel, chacun selon son attention au ciel.")),
-            new Note("0.130", "Les bots jouent l'univers 2", List.of(
-                    "Profil de test : les bots savent rejouer les trois actes du deuxième univers, avec le régime rapide, "
-                            + "le choix de cycle, la famille préférée et les éléments offerts. Les dimensions, la graine, "
-                            + "l'onglet Univers et le vide restent hors de leur portée pour l'instant.")),
-            new Note("0.129", "Le vide se joue", List.of(
-                    "Au premier Big Bang du troisième univers, le vide se propose dans l'onglet Collisionneur : il s'ouvre contre "
-                            + "dix minutes de production du collisionneur, comptées à son arrivée, une fois par univers.",
-                    "Ouvert, le collisionneur y fait naître des paires de particules : chacune coûte de son énergie, tient de "
-                            + "l'espace libre pendant ses 6 secondes de vie, et donne de l'énergie du vide à sa naissance.",
-                    "Un réglage, dans l'onglet du vide, dit quelle part du collisionneur et de l'espace libre il peut prendre.",
-                    "L'énergie du vide fond de 0,2 % par seconde : elle monte vers un équilibre, affiché à côté de la réserve.",
-                    "Sept améliorations, en énergie du vide, dans leur sous-onglet : gain par paire, rythme, coût en énergie, "
-                            + "espace par paire, fonte plus lente, allègement du ciel (jusqu'à −30 % des besoins des astres, de l'amas "
-                            + "et de l'univers) et maturation plus courte (jusqu'à −30 % du temps de maturation des astres).",
-                    "Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie raccourcissent la "
-                            + "vie des paires et ralentissent la fonte.",
-                    "À la formation de l'univers, l'énergie du vide qui reste rejoint un cumul, gardé et affiché dans le "
-                            + "sous-onglet Graine ; le vide repart de zéro dans l'univers suivant.",
-                    "L'aide (H) a une page « Le vide ».")),
-            new Note("0.128", "Le volume : on plonge dans le cube", List.of(
-                    "La troisième dimension se joue : un clic sur le cube qui tourne fait plonger la vue jusqu'en son centre.",
-                    "Dedans, le clic gauche tenu fait regarder autour de soi, et le clic droit cueille la boule visée : chaque "
-                            + "boule donne des éclats du volume, propres à cette dimension.",
-                    "Une plongée dure 12 secondes au départ, puis le cube rejette le joueur ; les boules qui restaient s'en vont.",
-                    "Les boules sont petites au départ : il faut viser, et l'amélioration de taille les grossit jusqu'à quatre fois.",
-                    "Caméra libre, au choix dans la fenêtre du volume : le regard suit la souris sans clic, une croix vise au "
-                            + "centre et un clic cueille ; le choix est gardé dans les réglages.",
-                    "En caméra libre, la souris reste retenue dans la vue du cube ; Échap la rend sans finir la plongée, "
-                            + "un clic dans la vue la reprend, et elle n'est jamais retenue quand le jeu n'a pas la main.",
-                    "Cinq améliorations s'achètent hors du cube : durée (+3 s), valeur, réapparition, nombre et taille des boules.",
-                    "Le seuil du volume, cent éclats gagnés, ouvre le palier 4 de la graine, donc l'univers 4, qui restait fermé.",
-                    "L'aide (H) a une page « Dimensions ».")),
-            new Note("0.127", "Anomalies du ciel, guide d'univers, points de reprise", List.of(
-                    "Anomalies du ciel, facultatives : de temps en temps, un bouton apparaît trois minutes dans l'onglet "
-                            + "Big Bang. Le vent de particules double la création de particules pendant deux minutes ; la "
-                            + "fenêtre d'exploration avance de dix minutes les sondes en vol. Rien ne se perd à les ignorer, "
-                            + "et un réglage les masque tout à fait.",
-                    "Avant de former l'univers, et avant de lancer l'univers suivant, un guide dit exactement ce qui repart "
-                            + "de zéro, ce qui reste (succès, records, réglages, graines, dimensions, skins…) et ce que vous "
-                            + "gagnez. « Plus tard » ne change rien.",
-                    "Points de reprise : cinq emplacements nommés dans les réglages, en plus de la sauvegarde automatique. "
-                            + "Reprendre un point met d'abord la partie en cours de côté, pour revenir en arrière en cas d'erreur.",
-                    "L'export dit la version du jeu qui l'a écrit ; à l'import, un premier clic montre ce que contient la "
-                            + "partie collée (temps de jeu, Big Bangs, succès, univers), le second l'importe.",
-                    "Le rapport de bug dit aussi la graine du hasard de la session, l'onglet ouvert, l'étape atteinte, les "
-                            + "paliers payés ou en attente et le défi en cours, avec le début de la première erreur. Il ne "
-                            + "contient plus le chemin du fichier de sauvegarde ni le nom du compte.")),
-            new Note("0.126", "Ce que le jeu dit, il le fait", List.of(
-                    "Dans les univers suivants, l'amas de galaxies et l'univers attendent de nouveau deux heures de "
-                            + "rassemblement chacun : le délai se compte depuis la galaxie de la partie en cours, plus depuis "
-                            + "la toute première.",
-                    "Les records et la « prochaine étape » valent pour chaque nouvelle partie : leur temps se compte "
-                            + "depuis le début de la partie en cours. Le chrono revient donc dans les univers suivants.",
-                    "Pendant l'épreuve « Premier générateur seulement », l'automatisme des générateurs n'en achète plus.",
-                    "Une fois le premier univers formé, tout le temps d'absence est rejoué, aussi dans les parties suivantes.",
-                    "Vos réglages (coupure générale des automatismes, rassemblement et formation automatiques, ordres "
-                            + "d'achat, seuil de fusion, verrou de l'appui, part d'espace laissée libre, molécules favorites, "
-                            + "automatismes de matière noire allumés, pauses du collisionneur) "
-                            + "tiennent d'une remise à zéro à l'autre, quelle qu'elle soit. Seul « Recommencer de zéro » les efface.",
-                    "« Rouvrir les bifurcations » rend la matière noire payée pour les liaisons, en réserve, et une fenêtre "
-                            + "dit combien.",
-                    "Sur une longue absence, la surchauffe, le régime rapide, la prime de cycle parfait et le sursaut des "
-                            + "sondes comptent exactement le temps qu'il leur reste.",
-                    "Une sauvegarde qui nomme une famille d'éléments inconnue se relit quand même : la synthèse repart sans cible.",
-                    "Textes : le décompte du calme du Big Bang suit le bon compteur, et sa récompense dit que les achats des "
-                            + "automatismes le rompent ; l'aide décrit les paliers payants, les conditions du Big Bang (six "
-                            + "pour les derniers), ce qu'il garde, les places de maturation et la touche réglée pour les "
-                            + "sondes ; « une nébuleuse » ; les crans des isotopes et le départ lancé suivent le moteur.",
-                    "Profil de test et bots : les bots ne partent plus avec le jeu livré, seulement avec « runTest ». La "
-                            + "victoire d'un bot est celle du jeu, l'univers formé. L'outil de comparaison des sauvegardes ne "
-                            + "confond plus 1.5e10 et 1.5e100.")),
-            new Note("0.125", "Le premier univers réglé sur le meilleur joueur", List.of(
-                    "L'équilibrage suit maintenant le bot « Speedrunner » du dépôt, parti d'une partie neuve : environ "
-                            + "5 h pour le premier acte, 6 h pour le deuxième et 16 h pour le troisième, 27 h en tout. Un joueur "
-                            + "moins appliqué mettra davantage (35 h environ pour le profil « Régulier »).",
-                    "Le jeu va 1,5 fois plus vite au départ : 3 créations par seconde au lieu de 2.",
-                    "Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules, les suivants 10⁵⁰⁰⁰⁰.",
-                    "La vitesse de création s'essouffle à partir de 300 niveaux, mais bien plus fort.",
-                    "Les puissances montent : tableau périodique +2, ciel +4,5, collisionneur +0,35. Le tableau compte "
-                            + "surtout ses éléments différents, plus seulement ses exemplaires.",
-                    "Les astres mûrissent trois fois plus lentement (12 minutes pour un amas de roches, 6 heures pour le "
-                            + "trou noir supermassif) ; une impulsion n'en retire plus que 18 secondes.",
-                    "L'amas de galaxies et l'univers demandent deux heures de rassemblement chacun.",
-                    "Les derniers paliers coûtent 10⁵⁵⁰⁰⁰ (Univers mûr), 10¹⁶⁰⁰⁰⁰ (Systèmes solaires), 10²⁰⁰⁰⁰⁰ "
-                            + "(Ateliers du ciel, en particules désormais) et 10²³⁰⁰⁰⁰ particules (Matières exotiques).")),
-            new Note("0.124", "Des paliers à payer, et chaque système qui pèse", List.of(
-                    "Le calme du Big Bang (la récompense de la fuite) a son propre compteur : tout achat le rompt, y compris "
-                            + "ceux des automatismes. Pour en profiter, il faut couper les automatismes et attendre.",
-                    "Pendant le défi « Barre haute », le calme ne réduit plus le seuil de particules du Big Bang.",
-                    "Les paliers de Big Bang se paient : une fois ouvert, un palier coûte des particules ou des atomes, de quoi "
-                            + "attendre deux à quinze minutes dans la partie. Un clic sur sa carte le paie ; il agit dès lors, "
-                            + "et jusqu'à l'univers suivant. Les sauvegardes existantes gardent les paliers déjà atteints, payés.",
-                    "Nouvelles puissances : la production (vitesse × particules par création) est élevée à une puissance que "
-                            + "nourrissent le tableau périodique (jusqu'à +1,5, avec les exemplaires et les explosions), le ciel "
-                            + "(jusqu'à +3,8, avec les astres, assemblages et sortes de molécules), le collisionneur (+0,25) et les "
-                            + "succès (+0,1). La sous-page Multiplicateurs les montre.",
-                    "La vitesse de création s'essouffle au-delà de cent niveaux : chaque niveau coûte de plus en plus. "
-                            + "Elle faisait à elle seule près des quatre cinquièmes de la production.",
-                    "Les prix en particules du deuxième acte et du Big Bang sont ramenés à proportion : le premier Big Bang "
-                            + "demande 10¹⁶⁵³⁰ particules, les suivants 10¹³⁰⁵.",
-                    "La puissance du tableau mûrit avec les explosions de l'univers en cours : 300 dans le premier, 200 dans "
-                            + "les suivants.",
-                    "Dans l'univers vide, la puissance du ciel tombe de moitié.",
-                    "Le cinquième palier, « Univers mûr », se paie en particules : en atomes, il bloquait l'univers vide.",
-                    "Les trois actes du premier univers gardent leur durée : environ 5 h, 6 h et 16 h.")),
-            new Note("0.123", "D'où vient chaque grandeur : la sous-page Multiplicateurs", List.of(
-                    "Nouvelle sous-page « Multiplicateurs » dans les statistiques, comme le détail d'Antimatter Dimensions : "
-                            + "particules par seconde, atomes par fusion, matière noire par explosion, élan de la matière noire "
-                            + "et espace par seconde, partagés entre les aspects du jeu selon les ordres de grandeur que chacun apporte.",
-                    "Une barre montre les parts d'un coup d'œil ; un clic sur un aspect déplie ses facteurs, un par ligne. "
-                            + "Ce qui divise (le premier élan, le premier cycle) est listé à part, en rouge.",
-                    "Correction : le régime rapide (+15 %) et la synergie des rangs du deuxième univers ne pressaient que "
-                            + "l'animation des générateurs. Ils comptent maintenant dans la production.")),
-            new Note("0.122", "La barre du profil de test, onglet par onglet", List.of(
-                    "La barre du profil de test a un groupe d'outils par onglet du jeu : particules, atomes, automatisation, "
-                            + "matière noire, collisionneur, Big Bang, univers, dimensions, le vide, succès et skins. Le groupe de "
-                            + "l'onglet affiché s'ouvre tout seul.",
-                    "À droite : la vitesse, le temps (+10 min, +1 h, +6 h), les bots avec leurs durées, la remise à zéro des "
-                            + "paliers, et le résumé de la partie.",
-                    "Les thèmes et notations sont passés dans le groupe des skins. Nouveaux outils : les dix défis, la fuite, le "
-                            + "calme du Big Bang, les défis de Big Bang, le palier suivant de la graine, les éclats et seuils de la "
-                            + "ligne et du plan, l'énergie du vide, le régime prêt, un élément gratuit.")),
-            new Note("0.121", "Une graine qui devient vraiment un arbre", List.of(
-                    "Les arbres de la graine, du bonsaï à l'arbre-monde, sont redessinés : bien plus grands à chaque palier, "
-                            + "avec un tronc qui s'effile, son écorce et ses nœuds, des rameaux de plus en plus fins, des feuilles "
-                            + "une à une, un sol avec ses herbes, sa mousse et ses pierres, puis des racines.",
-                    "Les effets montent avec l'avancement : halo et poussière plus denses, fleurs, fruits, lucioles, feuilles "
-                            + "qui tombent, sève qui monte dans le tronc, rayons de lumière ; l'arbre-monde a ses étoiles, ses "
-                            + "mondes en orbite et ses racines de lumière.",
-                    "Le passage d'un palier est de plus en plus marqué : plus d'ondes, plus d'étincelles, un éclair plus fort.")),
-            new Note("0.120", "Les onze paliers de la graine", List.of(
-                    "Le plan a son seuil, comme la ligne : 100 éclats du plan gagnés, et la dimension 2 porte son rond vert.",
-                    "La graine a onze paliers : graine, tige, graine craquelée, graine brisée, bonsaï, arbuste, jeune arbre, "
-                            + "arbre mûr, arbre ancien, arbre géant, arbre-monde. Le palier N ouvre l'univers N.",
-                    "Chaque palier demande trente arrosages de plus, une fois atteint le seuil de la dimension du palier d'avant : "
-                            + "la ligne pour la tige, le plan pour la graine craquelée. L'univers 3 attend donc le palier 3.",
-                    "Le passage d'un palier se joue en animation : la vue s'éloigne, la graine craque, la tige grossit.")),
-            new Note("0.119", "Les molécules plafonnées à ×8", List.of(
-                    "Le multiplicateur de molécules des défis de Big Bang du deuxième univers ne double plus à chaque défi : "
-                            + "×2 au premier, ×4 au troisième, ×8 au cinquième, et pas au-delà.")),
-            new Note("0.118", "Plus de molécules au lieu de plus d'espace", List.of(
-                    "Dans le deuxième univers, les défis de Big Bang ne multiplient plus l'espace : l'espace en plus faisait "
-                            + "créer trop de molécules, qui prenaient l'hydrogène dont l'amas de galaxies a besoin.",
-                    "À la place, chaque défi réussi double les molécules que donne une création, pour le même prix en "
-                            + "éléments. Chacune prend sa place : sans assez d'espace libre, il en vient moins.",
-                    "Les sondes passent à ×2 en vitesse et ×2 en récompenses par défi (×4 et ×10 avant).")),
-            new Note("0.117", "Deux défis de Big Bang plus courts", List.of(
-                    "« Barre haute » : rien n'est remis à zéro, la partie continue ; le Big Bang suivant demande une fois et "
-                            + "demie plus d'ordres de grandeur de particules, cent fois plus d'atomes et deux fois plus de matière "
-                            + "noire. Récompense : maturation des astres ×2.",
-                    "« Ciel figé » : rien n'est remis à zéro, mais plus aucune molécule ni aucun astre jusqu'au Big Bang ; il ne "
-                            + "se commence qu'une fois le ciel du Big Bang suivant réuni. Récompense : vitesse des sondes ×2.",
-                    "Ils comptent aussi pour les bonus du deuxième univers ; les planètes deux fois restent liées aux trois "
-                            + "défis d'origine.",
-                    "Correctif : les bonus des éléments sont bornés, pour ne plus dépasser ce qu'un nombre sait écrire quand "
-                            + "les sondes rapportent énormément.")),
-            new Note("0.116", "Des défis de Big Bang utiles, le vide au troisième univers", List.of(
-                    "Dans le deuxième univers, chaque défi de Big Bang réussi donne en plus : particules ×2, espace ×2, "
-                            + "maturation des astres ×4, vitesse des sondes ×4 et récompenses des sondes ×10, multipliés d'un "
-                            + "défi à l'autre. Les trois réussis, chaque planète peut entrer dans deux systèmes solaires.",
-                    "Le vide s'ouvre désormais au premier Big Bang du troisième univers, et non plus du deuxième.")),
-            new Note("0.115", "La fuite devient un défi", List.of(
-                    "La fuite n'est plus une épreuve de l'onglet Skins : c'est un onzième défi de l'acte 2, dans l'onglet "
-                            + "Matière noire. Il n'apparaît que dans le deuxième univers, une fois les dix autres réussis, et "
-                            + "se joue comme eux, de zéro. Le Big Bang ne le demande pas.",
-                    "Son arrivée s'anime : la vue passe aux défis et y reste le temps de l'animation ; les défis s'écartent, "
-                            + "puis la fuite apparaît au milieu de la grille, grandit et se pose.",
-                    "Le tableau ne peut pas exploser avant 2 minutes de défi. Une fuite réussie en 0.114 compte pour le défi.")),
-            new Note("0.114", "La fuite, et le calme du Big Bang", List.of(
-                    "Une épreuve du deuxième univers, dans l'onglet Skins : « Fuite ». Les particules fuient de plus en plus "
-                            + "vite tant que le joueur n'achète aucune amélioration ; chaque achat fait soi-même l'arrête et la fait "
-                            + "repartir de zéro, ceux des automatismes non. But : exploser, après au moins 2 minutes d'épreuve.",
-                    "Elle s'ouvre aux dix défis réussis, une demi-heure environ avant que la matière noire du Big Bang soit réunie.",
-                    "Réussie, elle donne le calme du Big Bang : tant que le joueur n'achète aucune amélioration, les particules "
-                            + "que demande le Big Bang baissent peu à peu, jusqu'à une seule au bout d'une heure. Les automatismes "
-                            + "peuvent continuer. L'avancée du calme se lit dans la condition des particules du Big Bang.")),
-            new Note("0.113", "Un univers de trop au chargement", List.of(
-                    "Une sauvegarde d'avant la 0.083 dont l'univers était formé comptait, au chargement, un univers de "
-                            + "plus : le bonus de matière noire de la 0.112 y valait ×4 au lieu de ×2. Elle n'en compte plus qu'un.")),
-            new Note("0.112", "Chaque univers double la matière noire", List.of(
-                    "Bonus permanent : chaque univers formé multiplie par 2 la matière noire des explosions (prime de "
-                            + "vitesse comprise) et la vitesse de sa croissance. Il se cumule : ×2 dans la partie de "
-                            + "l'univers 2, ×4 dans celle du troisième, et ainsi de suite.",
-                    "Il s'affiche dans l'onglet Univers, dans le détail de la matière noire et dans les statistiques.")),
-            new Note("0.111", "Lancer l'univers 2", List.of(
-                    "La brindille n'ouvre plus l'univers 2 d'elle-même : comme au tout début de la partie, un bouton qui "
-                            + "respire, « Lancer l'univers 2 », attend au centre de l'onglet Univers, sur chacune de ses sous-pages.",
-                    "Le clic joue un petit lancement : un point de lumière gonfle, éclate en anneaux, et une gerbe monte vers "
-                            + "les onglets. À l'éclat, les trois actes repartent de zéro et l'onglet Particules réapparaît en "
-                            + "grandissant ; une fois posé, le jeu y va.")),
-            new Note("0.110", "L'univers à moitié formé", List.of(
-                    "L'outil d'essai « Échelle suivante du cosmos » montait jusqu'à l'univers sans le former : pas de "
-                            + "remise à zéro, et la brindille ne pouvait pas ouvrir le deuxième univers. Il le forme maintenant "
-                            + "pour de vrai.",
-                    "Une partie déjà dans cet état est réparée : au chargement, l'univers se forme ; en cours de jeu, la "
-                            + "brindille ouvre quand même le deuxième univers.")),
-            new Note("0.109", "La brindille ouvre l'univers 2, les fenêtres attendent leur acte", List.of(
-                    "La brindille n'ouvrait pas le deuxième univers quand l'outil d'essai « +1 univers » (celui qui ouvre "
-                            + "le plan) avait servi : le jeu se croyait déjà au deuxième. Elle l'ouvre maintenant dans tous les "
-                            + "cas, une seule fois : l'onglet Particules revient, les trois actes à zéro, avec les nouveautés "
-                            + "du deuxième univers.",
-                    "Les fenêtres d'explication déjà vues dans le premier univers ne reviennent pas.",
-                    "Les nouveautés du deuxième univers ne s'annoncent que pendant sa partie, une fois leur acte ouvert : "
-                            + "l'acte 1 d'emblée, l'acte 2 à la première explosion, l'acte 3 au premier Big Bang.")),
-            new Note("0.108", "La brindille rouvre vraiment l'univers", List.of(
-                    "La brindille ouvrait le deuxième univers seulement au clic qui la faisait pousser : une brindille "
-                            + "déjà là (arrosée avant la 0.106) n'ouvrait rien. Elle l'ouvre maintenant dès qu'elle est là.",
-                    "Ouvrir l'univers suivant remet les trois actes entièrement à zéro, même si quelque chose s'est joué "
-                            + "depuis la formation de l'univers. Restent la partie secondaire : univers, graine, dimensions, "
-                            + "skins, succès et temps de jeu.")),
-            new Note("0.107", "Un point plus petit", List.of(
-                    "Dans le plan, le point du joueur part beaucoup plus petit (rayon 0,025 au lieu de 0,06), et chaque "
-                            + "niveau de Taille l'agrandit de 25 % au lieu de 15 % : l'amélioration se sent vraiment.")),
-            new Note("0.106", "La brindille", List.of(
-                    "Au trentième arrosage, le germe de la graine devient une brindille : une tige de bois, plus épaisse, "
-                            + "avec deux rameaux.",
-                    "La brindille ouvre le deuxième univers : le jeu recommence aussitôt, comme univers n° 2, et l'onglet "
-                            + "Univers reste ouvert. Avant elle, « Rouvrir les paliers » ne s'affiche plus ; les univers "
-                            + "suivants s'ouvrent comme avant.")),
-            new Note("0.105", "La graine se laisse germer", List.of(
-                    "Le bouton « Faire germer la graine » restait grisé une fois l'objectif de la dimension 1 atteint : il "
-                            + "demandait en plus une graine en réserve. Il ne demande plus que l'objectif.",
-                    "Il n'y a qu'une graine : son compteur disparaît de la sous-page, de son onglet et de la page Univers.")),
-            new Note("0.104", "Le plan se joue", List.of(
-                    "Deuxième dimension : le plan se joue au clavier, sur sa grille en perspective. Z Q S D (ou les flèches) "
-                            + "mènent le point, qui ne sort pas de la grille et dessine la courbe de son passage ; des éclats "
-                            + "apparaissent au hasard, et passer dessus les ramasse.",
-                    "Chaque dimension a ses propres éclats : ceux de la ligne s'appellent maintenant éclats de la ligne, "
-                            + "ceux du plan éclats du plan.",
-                    "Cinq améliorations du plan, payées en éclats du plan : Valeur, Réapparition, Nombre, Vitesse du point "
-                            + "et Taille du point.")),
-            new Note("0.103", "La graine germe", List.of(
-                    "Sous-page « Graine d'univers » : un bouton s'ouvre avec l'objectif de la dimension 1 (100 éclats "
-                            + "de dimension gagnés). Le premier clic fait germer la graine ; les suivants font tomber une goutte "
-                            + "d'eau sur le germe, qui grandit et prend des feuilles. Pour l'instant, c'est un visuel.",
-                    "La pousse ne grandit plus seule avec le nombre de graines : elle attend la germination.")),
-            new Note("0.102", "Plus de boules, plus de lignes", List.of(
-                    "Trois améliorations de plus pour la ligne : Élan (les boules vont 25 % plus vite par niveau), "
-                            + "Boules (une boule de plus sur chaque ligne, jusqu'à dix) et Lignes (une ligne de plus, jusqu'à cinq).",
-                    "Le seuil de la ligne : à 100 éclats de dimension gagnés en tout, la dimension 1 porte un rond vert "
-                            + "dans la sous-page Dimensions.")),
-            new Note("0.101", "La ligne prend vie", List.of(
-                    "Première dimension : la ligne n'a plus qu'un trait à chaque bout. Chaque trait que touche la boule "
-                            + "donne 0,1 éclat de dimension, la nouvelle ressource ; la boule court même fenêtre fermée.",
-                    "Deux améliorations, payées en éclats : Densité (chaque trait touché donne 0,1 éclat de plus) et "
-                            + "Graduation (un trait de plus entre les deux bouts, tous à égale distance, jusqu'à quarante).")),
-            new Note("0.100", "Les dimensions dès le premier univers", List.of(
-                    "La sous-page « Dimensions » de l'onglet Univers s'ouvre dès le premier univers, avec une dimension ; "
-                            + "chaque univers en ouvre une de plus, jusqu'à dix. Avant, elle attendait le deuxième univers.")),
-            new Note("0.099", "Le vide", List.of(
-                    "Le deuxième acte de la partie secondaire commence : au premier Big Bang du deuxième univers, un nouvel "
-                            + "onglet s'ouvre, « Le vide », avec sa ressource, l'énergie du vide. Pour l'instant, c'est un visuel "
-                            + "sans logique : l'écume quantique, des paires de particules qui naissent et s'annulent.")),
-            new Note("0.098", "Le code rangé", List.of(
-                    "Rien ne change en jeu : les fichiers trop longs du code sont découpés en parties d'un millier de lignes "
-                            + "au plus. Le jeu (Game), son état (GameState), l'application, la page et la vue du Big Bang et la page "
-                            + "des statistiques deviennent des chaînes de classes, une par thème ; les tests des règles sont rangés "
-                            + "en treize fichiers.")),
-            new Note("0.097", "Une matière noire plus étalée", List.of(
-                    "Avant le premier Big Bang, chaque explosion donne ×0,8 de matière noire : le deuxième acte dure six heures "
-                            + "environ au lieu de cinq. La matière noire s'affiche avec son dixième.",
-                    "Les huit premiers défis se jouent sur un tableau de masse 5 000 au lieu de 1 : quelques minutes chacun au "
-                            + "lieu de quelques secondes.",
-                    "Le seuil du Big Bang : huit cases nouvelles au bout de l'arbre, six dans la branche des particules "
-                            + "(Proto-étoiles, Nuage primordial, Seuil, Point zéro, Fluctuation primordiale, Veille du Big Bang, de "
-                            + "10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰ particules) et deux dans celle de la taille (Fond diffus, Mur de Planck). Elles "
-                            + "jalonnent la montée vers le premier Big Bang, qui demande maintenant 10³⁸⁰⁰⁰ particules.")),
-            new Note("0.096", "Le premier élan par paliers", List.of(
-                    "Dans la toute première partie, la création prend son élan par paliers : 13 fois moins vite jusqu'au "
-                            + "premier atome (1 h), 9 fois jusqu'au cinquième (2 h), 2,8 fois jusqu'au trentième (vers 2 h 40), où "
-                            + "s'ouvrent l'automatisation et le tableau. Chaque palier s'annonce.",
-                    "Persistance vers 2 h 55, 118 éléments et première explosion vers 5 h 15. Rien ne change après la "
-                            + "première explosion.")),
-            new Note("0.095", "Le premier élan", List.of(
-                    "Jusqu'au tout premier atome d'une partie neuve, la création va 13 fois moins vite : ce début dure environ "
-                            + "une heure au lieu de cinq minutes. Le détail des particules l'indique (« dont ÷13, premier élan »).",
-                    "Dès le premier atome, la création prend son élan pour de bon, et le jeu l'annonce. Rien ne ralentit plus "
-                            + "ensuite : ni les fusions suivantes, ni après une explosion, ni dans l'univers suivant.",
-                    "La suite ne bouge pas : 30 atomes vers 1 h 23, Persistance vers 1 h 40, 118 éléments et première "
-                            + "explosion vers 4 h (3 h avant).")),
-            new Note("0.094", "Fenêtre en Petit", List.of(
-                    "À la première ouverture, la fenêtre prend le format Petit (1280 × 800), recentrée sur l'écran et ramenée "
-                            + "à sa taille s'il est plus petit. Ensuite, elle se rouvre à la place et à la taille de la dernière fois, ou en Petit si cette place n'est plus sur un écran.")),
-            new Note("0.093", "Formats de fenêtre", List.of(
-                    "Les formats de fenêtre deviennent Petit (1280 × 800), Moyen (1600 × 900) et Grand (1920 × 1080) ; "
-                            + "Compacte disparaît.",
-                    "Deux plein écrans : Plein écran fenêtré, la fenêtre agrandie au maximum, et Plein écran, tout l'écran "
-                            + "sans barre, dont Échap fait sortir.")),
-            new Note("0.092", "Taille de la fenêtre", List.of(
-                    "La fenêtre ne se rétrécit plus en dessous de 820 × 600, où tout reste utilisable ; la limite grandit avec "
-                            + "la taille de l'interface (984 × 720 en Grande).",
-                    "Dans Réglages, Affichage : des formats prédéfinis, Compacte (1024 × 680), Moyenne (1280 × 800), Grande "
-                            + "(1600 × 900), Très grande (1920 × 1080) et Plein écran. Un clic redimensionne et recentre la fenêtre ; "
-                            + "un format plus grand que l'écran est grisé.")),
-            new Note("0.091", "Correctifs", List.of(
-                    "L'expansion de la matière ne plante plus quand une place de l'espace reste sans molécule : la place prend "
-                            + "une sorte réellement possédée.",
-                    "Les étiquettes des cartes n'écrivent plus une couleur invalide (transparence écrite deux fois), qui faisait "
-                            + "râler JavaFX dans la console.")),
-            new Note("0.090", "Skins plus marqués", List.of(
-                    "Faisceau doré : chaque faisceau devient un ruban d'or massif qui remplit l'anneau jusqu'à une grande étoile "
-                            + "dorée, qui sème des paillettes ; les arcs du croisement sont dorés.",
-                    "Vortex et Pulsar habillent aussi l'onglet Matière noire en permanence : un tourbillon violet qui alimente le "
-                            + "point, ou deux faisceaux qui balaient la vue. L'explosion sous Vortex assombrit tout l'écran au lieu de le blanchir.",
-                    "Aurore, Supernova et Cristal redessinent tout l'espace du Big Bang : le ciel entier, l'espace créé et son bord.",
-                    "Les animations plein écran prennent toute la fenêtre, quelle que soit sa taille, et sont plus longues et plus fortes.")),
-            new Note("0.089", "Skins redessinés et fenêtres d'explication", List.of(
-                    "Chaque skin est un vrai dessin à lui, plus un simple changement de couleurs : éclairs, cristal à facettes ou "
-                            + "lune solitaire pour la fusion ; noyau de protons ou petit soleil et ses planètes pour l'atome ; plaques "
-                            + "de plomb ou lingots d'or pour le tableau ; pierre taillée, nuage de gaz ou cœur contracté pour la "
-                            + "matière noire ; néon, plasma ou glace pour le collisionneur, et une comète dorée pour le faisceau.",
-                    "Vortex et Pulsar remplacent l'onde de l'explosion par une spirale ou deux faisceaux qui balaient l'écran. "
-                            + "Aurore, Supernova et Cristal jouent leur animation à chaque Big Bang et habillent le fond de l'espace.",
-                    "Chaque skin débloqué s'annonce, avec le bonus total : +2 % par skin, cumulés, qu'il soit choisi ou non.",
-                    "À l'ouverture d'un onglet, une fenêtre dit en quelques phrases ce qu'est sa ressource et comment elle marche. "
-                            + "Dans le deuxième univers, chaque nouveauté des trois actes s'annonce de même au moment où elle s'ouvre.",
-                    "Chaque fenêtre ne s'affiche qu'une fois ; une partie déjà commencée ne revoit pas ce qu'elle connaît.")),
-            new Note("0.088", "Les skins à obtenir", List.of(
-                    "Dans l'onglet Skins, les dix-neuf skins s'obtiennent : des paliers de matière noire (100, 1 000, 10 000, 100 000 "
-                            + "gagnés) et de Big Bangs (1 et 3), qui se débloquent seuls, et un record de reconstruction : de la fusion "
-                            + "aux dix générateurs en une minute au plus.",
-                    "Deux recherches facultatives : « Fusion prismatique », 1e50 particules ; le noyau dense, ouvert à un million "
-                            + "d'atomes créés, quatre paliers payés en atomes (100, 1 000, 100 000, 1e8).",
-                    "Sept épreuves volontaires, une à la fois, qu'on peut abandonner sans rien perdre : premier générateur seul, "
-                            + "contraction douce, Big Bang à froid, et quatre au collisionneur (détecteur, sans surchauffe, pleine "
-                            + "charge, un seul générateur). Chacune donne son skin.",
-                    "Un skin choisi change la palette de ce qu'il habille : la fusion, l'atome, le tableau, la boule de matière "
-                            + "noire, l'onde de l'explosion, le Big Bang, le collisionneur et son faisceau.",
-                    "Les épreuves réussies, les recherches et le record traversent l'univers suivant.")),
-            new Note("0.087", "Le deuxième univers", List.of(
-                    "Dans l'onglet Univers, « Rouvrir les paliers » : les anciens onglets reviennent pour une partie neuve, celle "
-                            + "de l'univers suivant. Former l'univers à la fin de cette partie le crée : une remise à zéro et une "
-                            + "graine de plus. Tout ce qui suit ne s'ouvre qu'à partir du deuxième univers.",
-                    "L'onglet Skins, sous les réglages, s'ouvre à la cinquième fusion du deuxième univers. Chaque skin débloqué "
-                            + "donne +2 % à toutes les ressources d'en dessous de l'univers ; les choisir ne change que l'apparence.",
-                    "Régime des générateurs, dès trois générateurs : +15 % de cadence pendant 20 s, puis 40 s de repos, toujours à "
-                            + "la main. Synergie par rang, dès le dixième : +0,5 % au plus à chaque générateur.",
-                    "Prime de cycle parfait, une fois Persistance achetée : trois fusions de suite sans le plafond d'atomes donnent "
-                            + "+10 % de particules pendant une minute, sans se cumuler.",
-                    "Dès le premier Big Bang, un petit arbre de trois choix pour le cycle : fusion, synthèse ou réserve. Un seul, "
-                            + "rendu gratuitement par le Big Bang suivant.",
-                    "Avec la synthèse ciblée, une famille préférée dont les chances montent à chaque tirage au hasard, jusqu'à ×2. "
-                            + "Et tous les dix éléments découverts, un élément gratuit : un clic sur un élément pas encore découvert le prend.")),
-            new Note("0.086", "Sondes : l'urgence et l'absence", List.of(
-                    "Dès le troisième Big Bang, l'onde d'urgence chimique : un voyage de 20 minutes, sans destination, qui ramène "
-                            + "un petit lot de l'élément déjà découvert que l'astre visé demande le plus. Jamais un élément inconnu.",
-                    "Pendant votre absence, une sonde arrivée vide son butin et repart pour le même voyage : les sondes servent "
-                            + "à qui s'absente, sans rien demander à qui reste. Le bilan du retour les compte.",
-                    "Les plans de l'arbre et des systèmes ont cinq emplacements de sauvegarde, à choisir dans une liste qui "
-                            + "dit ce que chacun contient.",
-                    "Profil de test : les bots partis de zéro font maintenant les succès et les défis (44 succès et les 10 "
-                            + "défis vers 11 h de jeu, au lieu de 37 et aucun).")),
-            new Note("0.085", "Planifier la matière", List.of(
-                    "Dès cinq astres formés, l'étoile ☆ d'une carte d'astre l'ajoute au plan, trois au plus. Le plan réunit "
-                            + "leurs besoins : ce qui manque d'abord, ce qui est déjà réuni ensuite. Un seuil demandé par plusieurs "
-                            + "astres en même temps ne compte qu'une fois ; les ingrédients de leurs assemblages s'ajoutent.",
-                    "Plafond par état, dans l'automatisation : la création automatique ne donne pas plus de la part choisie de "
-                            + "l'espace créé aux gaz, aux liquides, aux solides, aux cristaux ou aux métaux (de 90 % à 5 %).",
-                    "Dès le premier assemblage, la réservation par recette : chaque carte de molécule dit ce qu'il en faut "
-                            + "encore pour le prochain assemblage, et prévient quand en créer plus prendrait l'espace qui manque au reste.",
-                    "Dès le premier Big Bang, le tableau périodique peut éclairer les éléments utiles au prochain astre et "
-                            + "estomper les autres.",
-                    "Profil de test : la politique du bot se choisit dans une liste.")),
-            new Note("0.084", "Plans de l'arbre et des systèmes", List.of(
-                    "Sous l'arbre de matière noire et dans les systèmes solaires, une barre de plan : « Sauvegarder » garde les "
-                            + "voies prises (ou la disposition des systèmes), « Charger » la reprend, « Copier le code » et « Coller "
-                            + "un code » la font passer en texte. Un plan chargé se suit seul : ce qu'il demande se prend dès que "
-                            + "c'est payable ou mûr, et se reprend après chaque Big Bang, jusqu'à « Oublier le plan ».",
-                    "« Rouvrir les bifurcations à la prochaine explosion » : un clic, et l'explosion suivante rend les voies "
-                            + "prises et leurs liaisons, comme un Big Bang, pour changer de chemin sans attendre.",
-                    "Un clic sur une voie, même trop chère ou fermée, surligne sa bifurcation et toutes les cases qu'il "
-                            + "faut au-dessus d'elle ; sur une liaison, ses voies et leurs chemins. Un second clic l'éteint.",
-                    "Profil de test : le groupe « Bots » fait jouer le bot V2 sur la partie en cours, en direct ou en avance "
-                            + "rapide (10 min, 1 h, 6 h, jusqu'au prochain Big Bang), avec la politique de son choix.")),
-            new Note("0.083", "L'univers remet tout à zéro", List.of(
-                    "Former l'univers remet à zéro tout ce qui y a mené : particules, atomes, matière noire, collisionneur, "
-                            + "Big Bangs, molécules, astres et cosmos. Restent les succès, le temps de jeu, les statistiques et "
-                            + "tout ce qui appartient à l'onglet Univers.",
-                    "Former l'univers donne une graine d'univers. Elle a son sous-onglet, « Graine d'univers » : la graine "
-                            + "dorée qui respire, sa pousse qui grandit, et les graines suivantes qui tournent autour. Elle ne "
-                            + "sert encore à rien.",
-                    "L'écran de fin garde le bilan de la partie d'avant la remise à zéro. Une sauvegarde déjà dans l'univers "
-                            + "se remet à zéro à son premier chargement.")),
-            new Note("0.082", "Plus léger, rien de changé", List.of(
-                    "L'onglet Statistiques ne redessine plus son graphique à chaque image, seulement quand ses points, sa "
-                            + "taille ou l'écriture des nombres changent : il coûtait le cinquième de chaque image, à peine "
-                            + "plus que les autres onglets maintenant.",
-                    "Le jeu ne recompte plus ses succès et ne relit plus les bonus de chaque générateur dans des tables à "
-                            + "chaque instant. Des parties entières rejouées avant et après donnent les mêmes sauvegardes : "
-                            + "rien ne change dans le jeu.")),
-            new Note("0.081", "La partie secondaire : univers, dimensions, Vide", List.of(
-                    "L'univers formé, tous les anciens onglets disparaissent, particules et collisionneur compris : restent "
-                            + "l'Univers, les succès, les statistiques et les réglages. Leurs raccourcis et leurs annonces se taisent.",
-                    "Chaque univers est une bulle ronde, un nuage coloré qui dérive dedans. Les suivants viennent autour, plus "
-                            + "petits, reliés par des lignes semi-transparentes ; chaque nouvel univers rejoue la naissance.",
-                    "Dès le deuxième univers, le sous-onglet « Dimensions » : dix points autour d'un onzième qui les relie, une "
-                            + "dimension de plus par univers. Chacune s'ouvre dans sa fenêtre, avec un bouton « Retour ».",
-                    "Les graines d'univers, l'énergie du vide et le Vide, deuxième acte de la partie secondaire ; quatre "
-                            + "améliorations, Brane, Bulk, Paysage et Omnivers ; un succès, « Grappe d'univers », à cinq univers.",
-                    "Rien de tout cela n'a encore de logique : des outils d'essai créent des univers, des graines, de l'énergie "
-                            + "du vide, et font revenir les anciens onglets.")),
-            new Note("0.080", "Le quatrième acte : l'onglet Univers", List.of(
-                    "Quand l'univers se forme, un nouvel onglet « Univers » s'ouvre, et l'on y va. Sa naissance s'y joue : "
-                            + "un point de lumière, l'éclair blanc, une onde qui part du centre, puis les amas de galaxies et leurs "
-                            + "filaments qui s'allument à mesure que l'expansion les atteint. L'écran de fin vient après.",
-                    "L'onglet montre ensuite la toile de l'univers, qui tourne doucement, et un bouton pour revoir sa naissance. "
-                            + "Il n'y a encore rien à y faire : c'est le début du quatrième acte.",
-                    "Un réglage « Animations de l'univers » coupe le mouvement ; la naissance passe alors d'un coup.")),
-            new Note("0.079", "Une sorte pleine le dit", List.of(
-                    "Une sorte de molécule arrivée à un milliard affiche « Pleine : un milliard au plus par sorte », au lieu de "
-                            + "réclamer de l'espace qui ne manquait pas, et ne promet plus de gain.",
-                    "Les grands comptes de molécules s'écrivent comme les autres grands nombres : sur les cartes (« ×1.00e9 ») "
-                            + "et dans ce que demande un astre.")),
-            new Note("0.078", "Des boules en feu et de l'électricité", List.of(
-                    "Dans l'anneau d'énergie, les boules des faisceaux prennent feu quand elles tournent une fois et demie plus "
-                            + "vite qu'au départ (« Faisceaux rapides » niveau 3) : une flamme qui traîne derrière elles, du jaune au "
-                            + "rouge, qui vacille et grandit jusqu'au niveau 5.",
-                    "À chaque croisement, de l'électricité crépite entre les deux boules et jaillit du détecteur ; plus d'arcs, "
-                            + "et plus longs, quand elles sont en feu. Le réglage « Étincelles du collisionneur » la coupe aussi.")),
-            new Note("0.077", "Des copies de l'atome au-delà du tableau", List.of(
-                    "Le grand atome reste comme avant, à sa taille. Passé 118 atomes, des copies de lui, complètes (noyau, "
-                            + "couches et 118 orbes), viennent autour : de tailles variées, jamais plus grandes que lui, vues de biais.",
-                    "Une copie dès 119 atomes, quatre de plus par ordre de grandeur, jusqu'à quarante vers cent milliards : la vue, "
-                            + "qui prend maintenant toute la largeur, est alors pleine. Les plus petites sont plus pâles et passent derrière.",
-                    "Les anneaux de petits atomes de la 0.075 disparaissent.")),
-            new Note("0.076", "Plus de plafond à deux milliards de molécules", List.of(
-                    "Les molécules ne s'arrêtent plus à deux milliards en tout : les comptes passent en entiers longs, et la "
-                            + "sauvegarde les relit. Seule une même sorte reste plafonnée à un milliard.",
-                    "Le compte des molécules s'écrit comme les autres grands nombres : « 2.00e9 molécules » au lieu de « 2000000000 ».")),
-            new Note("0.075", "Des anneaux d'atomes au-delà du tableau", List.of(
-                    "Passé 118 atomes, de petits atomes tournent autour du grand, sur des anneaux inclinés vus de biais, de tailles "
-                            + "variées, les plus gros avec un petit noyau doré.",
-                    "Un anneau de plus à chaque fois que les atomes en trop sont multipliés par seize environ, jusqu'à neuf : vers "
-                            + "quatre milliards d'atomes, l'écran est plein. Le grand atome se resserre pour leur faire place.",
-                    "Les anneaux passent devant et derrière le grand atome ; ce qui est derrière est plus pâle.")),
-            new Note("0.074", "Des défis Présence et Absence corsés", List.of(
-                    "« Présence » et « Absence » s'ouvrent à 300 et 350 matières noires, quand l'arbre a toutes ses voies. De tout "
-                            + "l'arbre, seules y agissent les voies et les accords du style, et le tableau pèse trois millions de fois plus.",
-                    "Avec les voies du bon style, ils prennent une ou deux minutes ; avec les autres, vingt à quarante. « Branche coupée » "
-                            + "et « Tronc nu » s'ouvrent maintenant avant eux, à 24 et 27 matières noires.",
-                    "Pour garder un deuxième acte de cinq heures, le premier Big Bang demande 10³²⁰⁰⁰ particules au lieu de 10³⁷⁰⁰⁰.")),
-            new Note("0.073", "Un deuxième acte de cinq heures", List.of(
-                    "Le deuxième acte dure maintenant 5 h en jouant parfaitement, au lieu d'une heure et demie. Le premier Big Bang demande "
-                            + "10³²⁰⁰⁰ particules ; les cases du bas de l'arbre s'étalent jusque-là : Singularité en trente niveaux, "
-                            + "Réacteur en huit, Horizon en dix, et les dernières bifurcations bien plus loin.",
-                    "Les voies de présence sont plus fortes, exprès : « Croissance continue » et « Poussée » renforcent les paliers de "
-                            + "vitesse, ce qui fait grandir une partie qu'on laisse tourner. Les accords de présence rapportent 1 puis 2 "
-                            + "matières noires par explosion.",
-                    "Les voies d'absence sont plus lentes, mais moins fatigantes : pendant une absence, une bifurcation où vous n'avez "
-                            + "pas choisi prend sa voie d'absence, et l'accord d'absence y tente les défis. Le bilan du retour dit "
-                            + "désormais les voies prises et les défis lancés, et le défi en cours.",
-                    "La Superposition s'ouvre au cinquième Big Bang, au milieu du troisième acte, au lieu de l'amas de galaxies.",
-                    "L'amas de galaxies puis l'univers demandent chacun 45 minutes de rassemblement après l'échelle d'avant : la fin "
-                            + "ne passe plus en vingt minutes pour qui va très vite.")),
-            new Note("0.072", "Une planche claire pour les liaisons", List.of(
-                    "Les liaisons et les accords quittent l'intérieur de l'arbre : leurs traits traversaient les colonnes et se "
-                            + "lisaient mal. Ils ont leur planche sous la case du Big Bang, un rang par rang de bifurcations, "
-                            + "liaisons d'abord, accords ensuite.",
-                    "Chaque carte dit ses voies une à une : ✓ prise, ○ à prendre, × fermée jusqu'au prochain Big Bang ; et ce "
-                            + "qu'il manque : l'une des deux voies, les trois, ou rien à faire avant le prochain Big Bang.",
-                    "L'arbre retrouve sa hauteur d'avant : plus de rangées vides entre les cases. En mode détails, chaque voie "
-                            + "dit quelles liaisons et quels accords elle aide à ouvrir.")),
-            new Note("0.071", "Deux styles de jeu, des accords, dix défis", List.of(
-                    "Dans chaque bifurcation, la voie de gauche est celle de la présence, la voie de droite celle de l'absence : "
-                            + "chaque voie d'absence prise rend 5 points de plus du temps passé jeu fermé. La bonne voie dépend "
-                            + "maintenant de la façon de jouer.",
-                    "Quatre accords, entre les branches : ils demandent trois voies du même style à la fois. Ceux de présence "
-                            + "rapportent 2 puis 3 matières noires de plus à chaque explosion. Le premier d'absence fait tenter les "
-                            + "défis ouverts pendant l'absence ; le second rend 10 points de plus du temps passé jeu fermé.",
-                    "Quatre défis de plus, dix en tout : « Présence » et « Absence » éteignent les voies de l'autre style, « Branche "
-                            + "coupée » la branche des particules, « Tronc nu » toutes les voies et liaisons. Leur difficulté dépend "
-                            + "du passage pris dans l'arbre. Le Big Bang demande les dix.",
-                    "La Superposition du collisionneur attend l'amas de galaxies : jusque-là, les choix de l'arbre comptent.")),
-            new Note("0.070", "Liaisons, Superposition, et un arbre sans seuils", List.of(
-                    "Trois bifurcations de plus : « Poussée » ou « Écho sombre » (particules, après la Résonance), « Noyau dense » "
-                            + "ou « Synthèse double » (atomes, après la Mémoire de la matière), « Abîme » ou « Moisson profonde » "
-                            + "(taille, tout au bout). Sept en tout, et toutes nettement plus fortes qu'avant.",
-                    "Six liaisons entre les branches, payées en matière noire : chacune s'ouvre dès que l'une des deux voies "
-                            + "voisines est prise. Elles se posent dans une rangée sous les bifurcations, à cheval entre deux branches, "
-                            + "et repartent au Big Bang avec les voies.",
-                    "Une nouvelle amélioration du collisionneur, « Superposition », après la saveur top : les deux voies de chaque "
-                            + "bifurcation se prennent, et voies et liaisons restent d'un Big Bang à l'autre.",
-                    "Plus aucune case de l'arbre n'attend un nombre de matières noires gagnées : seuls les prix rythment l'arbre, "
-                            + "et ils ont été relevés pour qu'il s'étale sur une vingtaine d'explosions.",
-                    "Aucune voie ne rapporte plus de matière noire par explosion : « Grandes explosions » devient « Cadence sombre », "
-                            + "« Moisson » donne des atomes. Au robot, toutes les voies de gauche ou toutes celles de droite finissent "
-                            + "le jeu à cinq minutes près.")),
-            new Note("0.069", "Un arbre de matière noire à bifurcations", List.of(
-                    "Quatre bifurcations dans l'arbre, deux voies côte à côte : « Croissance continue » ou « Grandes explosions » "
-                            + "(particules), « Fusion riche » ou « Synthèse fine » (atomes), « Croissance soutenue » ou « Onde "
-                            + "amplifiée » (taille), « Gravité » ou « Moisson » (au-delà du Débordement). Prendre une voie ferme "
-                            + "l'autre ; la case d'après demande l'une ou l'autre.",
-                    "Le choix se refait à chaque Big Bang, même quand l'arbre est gardé : la voie prise est rendue, ce qui la suit reste.",
-                    "Trois cases de plus au bout des branches, au-delà de 70 matières noires : Singularité, Réacteur, Horizon. "
-                            + "L'arbre passe de 20 à 31 cases.",
-                    "L'automatisme de l'arbre ne prend jamais une bifurcation : c'est au joueur de choisir sa voie.")),
-            new Note("0.068", "Une vraie fin de partie", List.of(
-                    "La galaxie, l'amas de galaxies et l'univers multiplient enfin : ×4, puis ×2, puis ×2. Avant, ils ajoutaient "
-                            + "1 024, 2 048 et 4 096 à des bonus qui valaient déjà plus de cent mille : leur effet réel était d'environ 1 %.",
-                    "L'amas demande dix fois plus de matière, et l'univers quatre fois celle de l'amas : la réserve accumulée en "
-                            + "attendant les derniers astres ne paie plus tout en quelques minutes.",
-                    "Dix jalons : chaque état de la matière réuni pour l'amas, puis pour l'univers, ajoute 10 % à toutes les grandeurs, "
-                            + "s'annonce et se marque sur la carte. L'objectif dit l'état le plus en retard.",
-                    "Un écran de fin, une fois par partie : le temps de jeu, comparé au record, la durée de chaque acte et quelques "
-                            + "chiffres de la partie. Le jeu continue derrière.")),
-            new Note("0.067", "Quatre effets de plus, coupés tout de suite", List.of(
-                    "Quatre effets visuels de plus à couper : la création de particules (l'onde et les poussières), la "
-                            + "matière noire animée, les animations du Big Bang (espace, ciel, systèmes, galaxie) et celles du "
-                            + "collisionneur (ondes, envol des quarks, scintillement ; les faisceaux restent, ils servent à viser). "
-                            + "Douze en tout, rangés onglet par onglet.",
-                    "Un effet coupé s'arrête dès l'image suivante : plus de poussières, d'ondes, d'étincelles ou d'allure qui "
-                            + "finissent de s'éteindre, ni en arrivant sur l'onglet. Le fond animé coupé s'efface au lieu de rester figé.")),
-            new Note("0.066", "Le record de la fusion la plus rapide se débloque", List.of(
-                    "Une fusion de zéro seconde (tout de suite après la précédente, quand tout est gardé) inscrivait un record "
-                            + "de 0, que l'écran lit comme « pas encore » et qu'aucune fusion ne pouvait battre. Une durée nulle "
-                            + "ne compte plus, et un record à 0 relu d'une sauvegarde est battu par la prochaine fusion. Pareil "
-                            + "pour l'explosion et le Big Bang les plus rapides.")),
-            new Note("0.065", "Courbes tout de suite, nombres en notation, outils des thèmes", List.of(
-                    "Les courbes ont toujours un point de l'instant : une courbe toute neuve (comme celles du collisionneur "
-                            + "sur une partie déjà longue, dont les relevés s'espacent de plusieurs minutes) n'est plus vide en "
-                            + "attendant le prochain relevé ; elle se remplit à partir de maintenant.",
-                    "Collisionneur : tous les nombres (énergie, générateurs, achetés, quarks, prix en quarks, production) suivent "
-                            + "la notation choisie au-delà de mille.",
-                    "Effets : l'atome de l'onglet Atomes a son propre réglage, « Atome qui tourne », et l'icône de l'onglet se "
-                            + "fige avec les autres icônes.",
-                    "Thème « Contraste fort » adouci : les tons sombres (orbites de l'atome, cadres) ne disparaissent plus.",
-                    "Profil de test : un groupe « Thèmes et notations », pour tout débloquer, tout refermer, ou ouvrir et refermer chacun.")),
-            new Note("0.064", "Courbes du collisionneur, records complets, collisionneur plus sobre", List.of(
-                    "Statistiques : l'énergie du collisionneur rejoint le graphique de toutes les ressources, et sa courbe "
-                            + "d'énergie produite la vue d'ensemble. Le sous-onglet « Collisionneur » a cinq courbes : énergie "
-                            + "produite, énergie par seconde, énergie en réserve, collisions, quarks.",
-                    "Records : chaque record a sa ligne dès le début, « pas encore » tant qu'il n'est pas tenu (fusion la plus "
-                            + "rapide, explosion la plus rapide, chaque défi…).",
-                    "Collisionneur : les cartes d'amélioration disent l'essentiel en quelques mots, l'explication complète passe "
-                            + "en mode détails, comme les saveurs fermées, le quark top et les annonces.",
-                    "Les courbes relues d'une sauvegarde se réécrivent à l'identique (un arrondi pouvait changer d'un chiffre).")),
-            new Note("0.063", "Thèmes, notations secrètes, réglages rangés, records", List.of(
-                    "Neuf thèmes de plus : Nuit, Aurore, Monochrome et Contraste fort tout de suite ; Sépia, Phosphore, "
-                            + "Infrarouge, Nébuleuse et Or à débloquer. Deux notations de plus (en mots, en puissances), et trois à "
-                            + "débloquer (Alphabet, Logarithme, Romaine). Chaque déblocage demande quelque chose de très précis : "
-                            + "un clic sur un cadenas en donne l'indice.",
-                    "Les réglages se rangent en cinq sous-onglets : Affichage, Effets et sons, Jeu, Clavier, Partie. Les "
-                            + "effets visuels se coupent un par un (éclair, fond animé, onglet qui bat, icônes, allure des "
-                            + "générateurs, étincelles du collisionneur, chute de matière noire).",
-                    "La sauvegarde automatique se règle : toutes les 10 s, 30 s, 1 min ou 5 min. Le temps hors ligne peut "
-                            + "être coupé : le jeu reprend alors là où il en était.",
-                    "Les statistiques gagnent deux sous-onglets : « Collisionneur » (énergie, croisements, collisions, quarks) "
-                            + "et « Records », acte par acte (étapes, fusion, explosion et Big Bang les plus rapides, défis).",
-                    "Profil de test : deux groupes d'outils de plus, « Collisionneur » et « Actes » (refaire un acte, vider "
-                            + "le collisionneur, ouvrir ou refermer les cosmétiques).",
-                    "Les textes d'aide, d'objectifs et de détail qui parlaient encore des hadrons ou du plasma sont remis à jour.")),
-            new Note("0.062", "Plus de hadrons : l'énergie ouvre les trous noirs", List.of(
-                    "Les hadrons disparaissent, avec leurs bonus, leurs paliers et la capture : les quarks servent désormais à "
-                            + "payer la chaîne, chaque étape dans sa saveur (u, u, d, s, c, b), en plus de l'énergie.",
-                    "Les deux trous noirs demandent un palier d'énergie produite au collisionneur depuis le début : "
-                            + "mille milliards pour le trou noir, un million de milliards pour le trou noir supermassif.",
-                    "Le sous-onglet « Hadrons » devient « Chaîne » ; les sondes rapportent des quarks c et b dès la saveur charmée.")),
-            new Note("0.061", "Particules vivantes, succès rangés, chaîne dans les hadrons", List.of(
-                    "Les générateurs de particules suivent leur vitesse : lents, des poussières bleues et un noyau calme ; plus "
-                            + "vite, des traînées, des spirales et des anneaux d'accrétion qui tournent ; très vite, une couronne "
-                            + "de rayons, des arcs d'énergie, et la couleur qui passe du bleu au violet puis à l'or.",
-                    "Le fond de l'onglet des particules file et se teinte avec la production ; l'icône des particules et celle "
-                            + "du collisionneur tournent avec leur vitesse ; la matière noire attire en spirale de la matière qui "
-                            + "tombe, d'autant plus fort qu'elle grossit vite.",
-                    "Les succès du collisionneur passent dans l'onglet « Succès », avec la matière noire ; quatorze succès du "
-                            + "Big Bang s'y ajoutent au premier Big Bang (Big Bangs, molécules, astres, galaxie, systèmes, sondes, "
-                            + "comètes), chacun renforçant l'espace, les particules, les atomes ou la matière noire.",
-                    "La chaîne énergie → particules → atomes → matière noire → espace → molécules prend la place des cartes "
-                            + "du sous-onglet « Hadrons » ; les hadrons se forment désormais d'eux-mêmes.")),
-            new Note("0.060", "Collisionneur par améliorations, succès du collisionneur, onglets à glisser", List.of(
-                    "Les collisions ne viennent plus d'office : l'amélioration « Collisions », première du sous-onglet ouvert "
-                            + "par le huitième générateur, donne aux croisements leur chance ; les saveurs s'ouvrent ensuite une à "
-                            + "une, avec l'énergie : étrange, charmée, belle, top.",
-                    "Les générateurs coûtent moins : les huit arrivent en trois heures environ, au lieu de deux jours.",
-                    "Les améliorations se rangent en quatre familles : collisions et saveurs ; faisceaux (vitesse, détecteur, "
-                            + "déclencheur) ; générateurs (production ×2 par niveau, un automate par générateur, ouvert un à un) ; "
-                            + "et la chaîne énergie → particules → atomes → matière noire → vitesse de l'espace → dédoublement des molécules.",
-                    "Nouveau sous-onglet « Succès » : dix-neuf succès du collisionneur, gagnés en achetant des générateurs ; "
-                            + "chacun double une production, divise des prix par deux, ou renforce l'énergie ou la chance.",
-                    "Un appui long sur un onglet le laisse glisser à une autre place, en haut comme à gauche ; l'ordre est "
-                            + "gardé, et un réglage remet l'ordre d'origine.")),
-            new Note("0.059", "Collisions au hasard, améliorations du collisionneur, systèmes lisibles", List.of(
-                    "Le sous-onglet « Collisions » disparaît : chaque croisement des faisceaux a désormais 15 % de chances "
-                            + "de donner une collision, donc un quark, qui s'envole du détecteur à la couleur de sa saveur.",
-                    "Un clic au moment du croisement capte trois secondes d'énergie et assure une collision au butin doublé.",
-                    "Les saveurs plus lourdes s'ouvrent avec un hadron et un générateur : l'étrange avec un proton et la "
-                            + "cavité accélératrice, le charmé avec un kaon et l'anneau de stockage, et ainsi de suite.",
-                    "Avec le huitième générateur s'ouvre le sous-onglet « Améliorations » : une seule au début, chacune en "
-                            + "ouvrant d'autres (automates des générateurs, chance, saveurs lourdes, capture de hadrons, "
-                            + "déclencheur automatique, énergie, espace, top stable).",
-                    "Les plasma et matière étrange changent : 20 % de chance de collision, et un quark de plus une fois sur quatre.",
-                    "Les systèmes solaires se dessinent : l'étoile, une orbite par planète, verte quand la planète est à sa "
-                            + "place et orange sinon, la zone habitable ; trois pas à suivre en haut, et « Ranger au mieux ».",
-                    "Chaque onglet a son icône animée et une allure selon son rôle : cadre plein pour les actes, pointillés "
-                            + "pour ce qui tourne à côté, sans cadre pour les pages pour s'y retrouver.",
-                    "À gauche, les onglets ne bougent plus au clic : la barre du haut garde sa hauteur, et la colonne descend "
-                            + "jusqu'en bas de la fenêtre.",
-                    "Le lanceur de tests n'emploie plus ce que Gradle 10 refusera.")),
-            new Note("0.058", "Paquets thématiques et lanceur de tests", List.of(
-                    "Le code est rangé en paquets par thème : particules, atomes, matière noire, collisionneur, Big Bang, "
-                            + "molécules, ciel, sondes, sauvegarde… pour s'y retrouver plus vite.",
-                    "Un seul clic lance tous les essais, ceux d'aujourd'hui comme ceux à venir : tester-tout.bat, "
-                            + "tester-tout.sh, la configuration « Tous les tests » d'IntelliJ ou « gradlew toutTester ».")),
-            new Note("0.057", "Collisionneur à part, et onglets à gauche", List.of(
-                    "Le collisionneur a son propre onglet, ouvert à la première explosion, avec trois sous-onglets : "
-                            + "l'énergie, les collisions, les hadrons.",
-                    "L'énergie ne vient plus de la production de particules : les faisceaux croisés la donnent, et huit "
-                            + "générateurs s'achètent avec elle, chacun produisant le précédent, de l'aimant supraconducteur "
-                            + "au collisionneur de Planck.",
-                    "Un clic quand les faisceaux se croisent, sur le grand anneau, capte trois secondes de production.",
-                    "Les collisions coûtent désormais 100, 10 000, 100 millions, mille milliards et dix millions de milliards d'énergie.",
-                    "Nouveau réglage « Disposition des onglets » : en haut comme avant, ou à gauche, la barre du haut "
-                            + "montrant alors les sous-onglets de l'onglet affiché.")),
-            new Note("0.056", "Collisionneur et sondes en images", List.of(
-                    "Le collisionneur se dessine : un anneau par place, deux faisceaux qui partent de l'injecteur et se "
-                            + "croisent dans le détecteur. Un clic sur l'anneau quand ils se croisent tente la résonance ; "
-                            + "réussie, des quarks jaillissent.",
-                    "Les sondes ont leur carte du ciel : le hangar, une trajectoire par sonde, et la sonde qui avance "
-                            + "jusqu'à sa destination.",
-                    "Arrivée, la sonde attend : un clic sur elle ouvre son butin au premier plan, une carte à la fois. "
-                            + "Chaque clic ouvre la suivante, « Tout ouvrir » ouvre le reste d'un coup. La sonde rentre au "
-                            + "hangar une fois tout ouvert.")),
-            new Note("0.055", "Réglage de la route vers la galaxie", List.of(
-                    "Les Big Bangs six, sept et huit demandent aussi 18, 24 puis 28 astres mûrs : le ciel avance entre les "
-                            + "derniers paliers.",
-                    "Les astres, à partir des lunes, demandent 50 % de matière et de molécules en plus ; les matières "
-                            + "exotiques aussi.",
-                    "Maturation un peu plus longue : 4 min pour un amas de roches, 25 pour une planète, 50 pour une étoile ; "
-                            + "toujours 2 h pour le trou noir supermassif.",
-                    "Collisionneur : l'énergie croît avec le logarithme de la production au lieu de s'emballer (environ 2 à 5 "
-                            + "par seconde) ; haute énergie à 5 000, très haute à 40 000, extrême à 250 000.")),
-            new Note("0.054", "Paliers 6 à 8 : systèmes solaires, places, matières exotiques", List.of(
-                    "Trois paliers de plus, aux Big Bangs six, sept et huit : refaire des Big Bangs jusqu'au huitième a "
-                            + "désormais un sens.",
-                    "6e Big Bang : la sous-page « Systèmes solaires ». Autour d'une étoile, des planètes rangées de la plus "
-                            + "proche à la plus lointaine, et des lunes ; l'harmonie d'un système complet augmente toutes les "
-                            + "grandeurs. La galaxie demande trois systèmes complets.",
-                    "7e Big Bang : deux places de maturation de plus, et une sonde de plus en vol.",
-                    "8e Big Bang : les matières exotiques, cinq astres (pulsar, magnétar, deux nébuleuses, quasar) faits "
-                            + "d'astres déjà formés et de beaucoup de matière. La galaxie en compte désormais 35.",
-                    "Les défis de Big Bang s'ouvrent toujours au cinquième Big Bang.")),
-            new Note("0.053", "Maturation des astres", List.of(
-                    "Un astre formé mûrit avant de compter en entier : 3 min pour un amas de roches, 20 min pour une "
-                            + "planète, 45 min pour une étoile, jusqu'à 2 h pour le trou noir supermassif.",
-                    "En attendant, il donne le quart de son bonus ; il ne compte ni pour les astres qui partent de lui, ni "
-                            + "pour la galaxie.",
-                    "Trois astres mûrissent à la fois : on choisit lesquels former avant de s'absenter.",
-                    "« Accélérer » dépense une charge d'impulsion pour gagner une minute. Une annonce dit quand un astre est mûr.")),
-            new Note("0.052", "Sondes", List.of(
-                    "Un nouveau palier au troisième Big Bang ouvre la sous-page « Sondes » du Big Bang.",
-                    "Une sonde part 15 minutes, 1 heure, 4 heures ou 8 heures, vers le vide intersidéral ou vers la "
-                            + "destination d'un rayon ouvert. Plus le voyage est long, plus le butin est riche par heure.",
-                    "Au retour, chaque récompense se réclame d'un clic (ou de la touche R), puis la suivante apparaît : "
-                            + "éléments du rayon, espace d'un coup, sursaut d'expansion (espace par seconde ×2), échantillons.",
-                    "Les échantillons paient cinq améliorations : récompenses plus riches, voyages plus courts, sursauts "
-                            + "plus longs, une récompense de plus, une sonde de plus en vol.",
-                    "Avec le palier du charme, les voyages d'une heure et plus rapportent aussi des quarks c et b.")),
-            new Note("0.051", "Paliers du collisionneur", List.of(
-                    "Quatre paliers, gagnés avec les hadrons, au bas de la page du collisionneur.",
-                    "Plasma quark-gluon (10 protons et 10 neutrons) : la collision basse énergie se relance d'elle-même "
-                            + "dans une place libre ; un bouton la coupe. Elle ne s'annonce plus à chaque fois.",
-                    "Matière étrange (5 kaons ou lambdas) : une troisième place de collision.",
-                    "Charme (3 J/psi) : les sondes, à venir, rapporteront aussi des quarks c et b.",
-                    "Cœur de galaxie (1 upsilon) : le trou noir supermassif le demande. Sans lui, pas de galaxie.")),
-            new Note("0.050", "Collisionneur de quarks", List.of(
-                    "Une nouvelle sous-page de la matière noire, ouverte à la première explosion : le collisionneur. "
-                            + "La production donne de l'énergie, les collisions donnent des quarks, les quarks forment des hadrons.",
-                    "Cinq énergies de collision, de 30 secondes à 8 heures, deux à la fois. Chacune s'ouvre avec le hadron "
-                            + "de la précédente.",
-                    "Les hadrons renforcent la partie pour toujours : particules (protons), atomes par fusion (neutrons), "
-                            + "matière noire (kaons, lambdas), espace (J/psi). Au-delà de dix d'une même sorte, chacun compte un peu moins.",
-                    "Après un Big Bang, l'onglet de la matière noire reste ouvert pour le collisionneur, même avant la "
-                            + "première explosion de la partie.",
-                    "La résonance : un clic au bon moment double le butin d'une collision. Le quark top se désintègre en "
-                            + "une minute ; lancé à temps, il donne dix minutes de surchauffe, particules ×10.")),
-            new Note("0.049", "Achat simple", List.of(
-                    "Au-dessus des molécules, une ligne dit ce que demande le prochain pas, rayon par rayon : "
-                            + "« Pour Comète glacée : 3 à créer en Sels, 2 en Minéraux · 4 solides à rassembler ».",
-                    "Chaque rayon dit combien de ses molécules il faut encore créer.",
-                    "« Au hasard dans ce rayon » crée une molécule du rayon, prise d'abord parmi celles que le prochain pas demande : "
-                            + "plus besoin de choisir la sorte.",
-                    "La création automatique suit la liste de courses d'office : elle crée ce que demande le prochain pas, "
-                            + "sans amas à confier. Réglable dans l'onglet Automatisation.")),
-            new Note("0.048", "Impulsion", List.of(
-                    "Après le premier Big Bang, l'impulsion : chaque clic donne d'un coup dix secondes d'expansion. Une "
-                            + "charge revient toutes les trois secondes, quarante au plus en réserve.",
-                    "Deux boutons, sur la page Expansion et au-dessus des molécules, et le raccourci I à tenir. "
-                            + "En cliquant sans arrêt, l'espace vient jusqu'à quatre fois plus vite ; sans cliquer, rien ne change.")),
-            new Note("0.047", "Retours de jeu", List.of(
-                    "Plusieurs raccourcis tenus à la fois se répètent ensemble : M et F achètent et fusionnent en boucle.",
-                    "Le bouton d'explosion garde sa place entre deux explosions : la fenêtre ne saute plus, et les "
-                            + "sous-onglets restent sous la souris quand tout va vite.",
-                    "« Automatismes offerts » agit aussi pendant les défis de matière noire.",
-                    "L'automatisme de l'arbre monte aussi les cases sans fin (Densité, Noyau lourd), quand un niveau "
-                            + "coûte au plus 1 % de ce que possède la branche.",
-                    "La liste de courses et le filtre « Utiles au prochain astre » suivent les assemblages et les astres formés.",
-                    "Molécules : le bouton « Créer » du meilleur achat reste au même endroit, et « Créer le maximum » crée "
-                            + "tout ce que permettent les molécules filtrées ou favorites.",
-                    "La page des astres défile d'un bloc, ciel compris : la liste reste accessible dans une petite fenêtre.",
-                    "Plus tôt et moins cher : l'achat groupé en atomes s'achète aussi pour 8 atomes, la création continue "
-                            + "coûte 100 d'espace et les gestes groupés 1 500.")),
-            new Note("0.046", "Technique", List.of(
-                    "Des sons, tous fabriqués par le jeu : succès, élément nouveau, explosion, Big Bang, comète, défi réussi. "
-                            + "Volume réglable et coupure dans les réglages ; un même son ne revient pas avant une seconde.",
-                    "Économie d'énergie : 60, 30 ou 15 images par seconde au choix, 4 quand la fenêtre est derrière une autre, "
-                            + "1 quand elle est réduite. Le jeu avance au même rythme.",
-                    "Le retour après une longue absence se rejoue environ deux fois plus vite en fin de partie.")),
-            new Note("0.045", "Rythme", List.of(
-                    "Tout va plus vite : les générateurs créent huit fois plus de particules par seconde dès le départ. "
-                            + "La première explosion vient en trois heures environ, au lieu de vingt-quatre.",
-                    "L'automatisme « Nouveau générateur » achète d'un coup tous les générateurs que les particules "
-                            + "permettent : les parties automatiques ne sont plus freinées par neuf achats un à un.",
-                    "Moins de malchance à la synthèse : après deux synthèses sans rien de nouveau, la suivante donne "
-                            + "à coup sûr un élément inconnu. La carte de synthèse l'annonce.",
-                    "La croissance de la matière noire et le seuil du rendement de fusion ont été recalés sur la "
-                            + "nouvelle vitesse : ils gardent l'allure qu'ils avaient.")),
-            new Note("0.044", "Troisième acte et après", List.of(
-                    "Prime de vitesse : exploser en moins de 90 % du temps de la dernière explosion primée rapporte une "
-                            + "matière noire de plus.",
-                    "Collections : la moitié d'un rayon de molécules, puis le rayon entier, multiplient une grandeur.",
-                    "L'amas de galaxies et l'univers demandent aussi de la variété : un nombre de sortes rassemblées par état.",
-                    "Une comète traverse l'expansion de temps en temps : saisie, elle double l'espace créé pendant deux minutes.",
-                    "Trois améliorations d'espace de fin de partie : Inflation III et IV, Cadence de création II.",
-                    "Records par étape, gardés d'une partie à l'autre, et mode chrono dans la ligne d'objectif.",
-                    "Seize succès pour le troisième acte, de la première molécule à l'univers.",
-                    "Défis de Big Bang, une fois tous les paliers atteints : trois contraintes, trois récompenses qui restent.")),
-            new Note("0.043", "Lisibilité", List.of(
-                    "Liste de courses au-dessus des assemblages, des astres et de l'univers : ce qu'il manque pour le "
-                            + "prochain pas, avec un bouton « Créer » ou « Rassembler » sur chaque ligne.",
-                    "Meilleur achat : chaque molécule dit ce qu'elle rapporte pour l'espace qu'elle prend, une ligne "
-                            + "nomme la meilleure, et un bouton range les cartes par rendement.",
-                    "Sous les onglets : le temps d'expansion qu'il reste avant le prochain astre, et ce qu'il manque "
-                            + "aux cinq conditions du prochain Big Bang.",
-                    "La case du Big Bang dit le palier qu'il donnera ; le bouton d'explosion, ce que sa matière noire ouvrira.",
-                    "Au survol d'un compteur, une bulle dit de quoi il est fait : production, atomes par fusion, "
-                            + "matière noire par explosion, espace par seconde.",
-                    "Signes d'état devant le nom des cartes, et un signe par état de la matière : tout se reconnaît "
-                            + "sans la couleur. Réglable.",
-                    "Journal des cent dernières annonces, dans les statistiques.")),
-            new Note("0.042", "Automatisation", List.of(
-                    "Ordre d'achat au choix pour « Améliorations en atomes » et « Achat des automatismes » : le moins cher "
-                            + "d'abord, ou votre liste, rangée par deux flèches.",
-                    "Nouvel automatisme de matière noire, après le premier Big Bang : il rachète l'arbre tout seul.",
-                    "Nouveau palier au troisième Big Bang, « Mémoire des défis » : les défis réussis le restent.",
-                    "Création automatique : une réserve d'espace réglable, un bouton « Tout confier », et l'amélioration "
-                            + "d'espace « Cadence de création » (une création toutes les 2 secondes au lieu de 5).",
-                    "Deux améliorations d'espace : « Rassemblement automatique » et « Formation automatique » des "
-                            + "assemblages et des astres. La galaxie, l'amas de galaxies et l'univers restent à vous.")),
-            new Note("0.041", "Confort de jeu", List.of(
-                    "Aide « Comment jouer », par sa touche (H) ou son bouton sous les onglets.",
-                    "Un raccourci pour presque tout : synthèse, explosion, Big Bang, coupure des automatismes, "
-                            + "flèches pour changer d'onglet et de sous-onglet. Chaque touche se change dans les réglages.",
-                    "Confirmations réglables une par une : explosion, Big Bang, défis.",
-                    "Achat par dix ou « max » des améliorations en atomes, avec « Achat groupé » (1 matière noire).",
-                    "Un bouton et une touche coupent ou relancent tous les automatismes d'un geste.",
-                    "Les améliorations d'espace sont acquises d'elles-mêmes dès leur seuil. Deux nouvelles : "
-                            + "« Création continue » (tenir le clic répète la création) et « Gestes groupés » "
-                            + "(tout rassembler, tout assembler, former les astres prêts).",
-                    "Une pastille signale l'onglet et le sous-onglet où quelque chose est prêt.",
-                    "Molécules favorites, et deux filtres : créables maintenant, utiles au prochain astre.",
-                    "Le verrou de l'appui, le seuil de fusion et les automatismes de matière noire gardent leur réglage "
-                            + "à travers les explosions et les Big Bangs.")),
-            new Note("0.040", "Sauvegarde", List.of(
-                    "La partie est sauvegardée toute seule : toutes les 30 secondes et à la fermeture.",
-                    "Au retour, une part du temps d'absence est rejouée : 10 % au premier acte, 40 % après la première "
-                            + "explosion, 70 % après le premier Big Bang, 100 % une fois l'univers formé. "
-                            + "Un résumé dit ce que l'absence a rapporté.",
-                    "Export et import de la partie en texte, par le presse-papiers.",
-                    "La fenêtre retrouve sa taille, sa place et son onglet au lancement.",
-                    "Rapport de bug en un clic, et ces notes de version.")),
-            new Note("0.039", "Amas de galaxies et univers dans l'expansion", List.of(
-                    "La vue de l'expansion de la matière peut reculer jusqu'à l'amas de galaxies, puis jusqu'à l'univers.")),
-            new Note("0.038", "Amas de galaxies et univers", List.of(
-                    "Deux échelles après la galaxie : l'amas de galaxies, puis l'univers.",
-                    "Le sous-onglet « Galaxie » devient « Univers ».")),
-            new Note("0.037", "Graphique de toutes les ressources", List.of(
-                    "Un graphique des statistiques trace toutes les ressources ensemble, en échelle logarithmique.")),
-            new Note("0.036", "Statistiques du Big Bang", List.of(
-                    "La page de statistiques du Big Bang est complète : durées, paliers, expansion, molécules, astres.")),
-            new Note("0.035", "Cinquième palier", List.of(
-                    "À partir du cinquième Big Bang, l'arbre de matière noire est gardé.")),
-            new Note("0.034", "Énergie sombre et création automatique", List.of(
-                    "Le palier « Énergie sombre » fait dépendre l'expansion de la matière noire en réserve.",
-                    "Le palier « Création automatique » entretient les amas de molécules choisis.")));
+                    "Le rendu réel n'a pas été vu pendant le développement."))), VersionNotes100.NOTES, VersionNotes000.NOTES);
 
     /** Le numéro de la version en cours. */
     public static final String CURRENT = NOTES.get(0).number();
 
     private Version() {
+    }
+
+    /** Les notes récentes, puis les plus anciennes, rangées dans d'autres fichiers (0.293). */
+    @SafeVarargs
+    private static List<Note> joined(List<Note>... parts) {
+        List<Note> all = new java.util.ArrayList<>();
+        for (List<Note> part : parts) all.addAll(part);
+        return List.copyOf(all);
     }
 
     /** Les notes de version en texte : une version par paragraphe, ses changements en dessous. */

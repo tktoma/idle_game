@@ -719,30 +719,35 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Au-delà d'un certain nombre, les générateurs tournent sans être dessinés : ils deviendraient illisibles.
         generators.setCount(Math.min(game.generatorCount(), MAX_VISIBLE_GENERATORS));
         if (windowPane != null) burst.frame(dt, windowPane.getWidth(), windowPane.getHeight());
-        chrome.frame(dt);
+        // Version 0.295 : la fenêtre d'une dimension recouvre tout le jeu d'un fond opaque. Tant qu'elle est ouverte, ce
+        // qu'elle cache ne se redessine plus (le fond, les icônes, l'onglet en cours) : rien ne change à l'écran, et la
+        // carte des dimensions ou la graine ne se dessinent plus deux fois, dessous et dans la fenêtre.
+        boolean covered = dimensionWindow.isOpen();
+        if (!covered) chrome.frame(dt);
         idle.ui.particles.ParticleView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.PARTICLE_FUSION));
         // L'atome de l'onglet tourne comme les autres icônes : immobile quand elles le sont.
-        atomsTabIcon.frame(settings.effect(Settings.Effect.TAB_ICONS) ? dt : 0);
+        if (!covered) atomsTabIcon.frame(settings.effect(Settings.Effect.TAB_ICONS) ? dt : 0);
         // Les icônes suivent ce qu'elles montrent : les particules tournent avec la production, les
         // faisceaux du collisionneur avec leur vitesse.
         double production = Math.min(game.productionPerSecond().toDouble(), 1e12);
         particlesIcon.setSpeed(1 + 3 * ParticleView.intensity(production));
         colliderIcon.setSpeed(Game.RESONANCE_PERIOD / game.colliderPeriod());
-        for (TabIcon icon : tabIcons) icon.frame(dt, settings.effect(Settings.Effect.TAB_ICONS));
-        if (selectedTab == Tab.ATOMS) atomsPage.frame(dt);
-        if (selectedTab == Tab.DARK_MATTER) darkMatterPage.frame(dt, timeFactor());
-        if (selectedTab == Tab.COLLIDER) colliderPage.frame(dt);
-        if (selectedTab == Tab.BIG_BANG) bigBangPage.frame(dt);
-        if (selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying() || universePage.isFinalePlaying()) {
+        if (!covered) for (TabIcon icon : tabIcons) icon.frame(dt, settings.effect(Settings.Effect.TAB_ICONS));
+        if (!covered && selectedTab == Tab.ATOMS) atomsPage.frame(dt);
+        if (!covered && selectedTab == Tab.DARK_MATTER) darkMatterPage.frame(dt, timeFactor());
+        if (!covered && selectedTab == Tab.COLLIDER) colliderPage.frame(dt);
+        if (!covered && selectedTab == Tab.BIG_BANG) bigBangPage.frame(dt);
+        // Le lancement et la fin avancent même cachés : leur écran vient à son heure.
+        if (!covered && selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying() || universePage.isFinalePlaying()) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
         if (particlesTabPop >= 0) popParticlesTab(dt);
-        if (selectedTab == Tab.VOID) voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
+        if (!covered && selectedTab == Tab.VOID) voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         // La liaison des hadrons : elle ne se joue que dans son sous-onglet, à l'écran.
-        if (selectedTab == Tab.HADRONS) hadronsPage.frame(dt, settings.effect(Settings.Effect.COLLIDER_MOTION));
+        if (!covered && selectedTab == Tab.HADRONS) hadronsPage.frame(dt, settings.effect(Settings.Effect.COLLIDER_MOTION));
         dimensionWindow.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         lootPane.frame(dt);
-        if (selectedTab != Tab.PARTICLES) return;
+        if (covered || selectedTab != Tab.PARTICLES) return;
         if (settings.effect(Settings.Effect.AMBIENT)) generators.animateBackground(dt, production);   // celle du haut
         else generators.clearBackground();
         // Chaque générateur a sa propre vitesse : les éléments du tableau périodique en accélèrent certains.
@@ -751,6 +756,11 @@ public abstract class GameAppTabs extends GameAppWindow {
             // La vitesse plafonnée règle les poussières ; son ordre de grandeur, sans plafond, donne le palier.
             idle.core.math.BigNum speed = game.speed(i);
             double factor = timeFactor();
+            if (Double.isFinite(testSpeedLog)) {
+                // Le profil test UI à la charge maximale : la vitesse qu'il demande, les poussières au plus.
+                views.get(i).frame(dt, game.state().formation(i), 1e9, testSpeedLog);
+                continue;
+            }
             views.get(i).frame(dt, game.state().formation(i), Math.min(speed.toDouble() * factor, 1e9),
                     speed.isZero() ? Double.NEGATIVE_INFINITY : speed.log10() + Math.log10(factor));
         }

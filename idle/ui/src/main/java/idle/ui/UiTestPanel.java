@@ -50,6 +50,12 @@ final class UiTestPanel extends VBox {
     /** Version 0.252 : croiser aussi tout ce qui touche l'onglet (la fenêtre, le curseur, les cartes, le thème, la notation). */
     private final CheckBox around = new CheckBox("Avec tout ce qui touche l'onglet : fenêtre, onglets, cartes, curseur, "
             + "info-bulles, avatar, notifications, panneaux, thème, notation");
+    /**
+     * Version 0.286 : la charge maximale. Les états de l'onglet sont remplacés par l'onglet au plus chargé que la partie
+     * peut atteindre (l'atome à 118 orbes et 40 copies, 30 générateurs au dernier palier de vitesse…).
+     */
+    private final CheckBox heaviest = new CheckBox("Charge maximale : l'onglet au plus chargé que la partie peut atteindre "
+            + "(atome à 118 orbes et 40 copies, 30 générateurs au dernier palier, boule de matière noire au plus gros…)");
     /** Les axes des réglages (le thème, la notation), fournis par la fenêtre. */
     private final List<UiTestPlan.Axis> settingsAxes;
     private final Label size = new Label();
@@ -104,6 +110,10 @@ final class UiTestPanel extends VBox {
         around.setStyle(TEXT);
         around.setFocusTraversable(false);
         around.setOnAction(event -> fillVisuals());
+        heaviest.setWrapText(true);
+        heaviest.setStyle(TEXT);
+        heaviest.setFocusTraversable(false);
+        heaviest.setOnAction(event -> rebuild());
 
         crossButton.setOnAction(event -> setMode(UiTestPlan.Mode.CROSS));
         pairsButton.setOnAction(event -> setMode(UiTestPlan.Mode.PAIRS));
@@ -161,7 +171,7 @@ final class UiTestPanel extends VBox {
         visualsScroll.setFitToWidth(true);
         visualsScroll.setPrefViewportHeight(170);
         visualsScroll.setStyle("-fx-background: #0e1a24; -fx-background-color: #0e1a24;");
-        getChildren().addAll(title, intro, head("Onglet"), groupBox, around, modeRow, head("Visuels croisés"), visualsScroll, size,
+        getChildren().addAll(title, intro, head("Onglet"), groupBox, around, heaviest, modeRow, head("Visuels croisés"), visualsScroll, size,
                 head("Lecture"), paceText, pace, controls, position, state, combination,
                 head("Images par seconde"), fpsNow, fpsLast, fpsSlowest, fpsFileText, copyPath,
                 head("Erreurs"), errorsText, errorsArea, new HBox(6, copy, clear));
@@ -232,7 +242,7 @@ final class UiTestPanel extends VBox {
     private UiTestPlan.Run currentRun(UiTestPlan.Group group) {
         List<UiTestPlan.Axis> crossed = new ArrayList<>();
         for (Map.Entry<UiTestPlan.Axis, CheckBox> entry : checks.entrySet()) if (entry.getValue().isSelected()) crossed.add(entry.getKey());
-        return new UiTestPlan.Run(group, crossed, mode);
+        return new UiTestPlan.Run(group, crossed, mode, heaviest.isSelected());
     }
 
     /** Un autre passage (onglet, visuels ou façon de combiner) : la lecture s'arrête, on repart de la première étape. */
@@ -287,14 +297,14 @@ final class UiTestPanel extends VBox {
     void close() { run.flushFps(); }
 
     private void showFps() {
-        fpsNow.setText(String.format(java.util.Locale.FRANCE, "En ce moment : %.0f images par seconde · calcul %.1f ms par image",
+        fpsNow.setText(String.format(java.util.Locale.ROOT, "En ce moment : %.0f images par seconde · calcul %.1f ms par image",
                 run.liveFps(), run.liveWorkMs()));
         UiTestRun.Fps last = run.lastFps();
-        fpsLast.setText(last == null ? "Combinaison d'avant : pas encore mesurée." : String.format(java.util.Locale.FRANCE,
+        fpsLast.setText(last == null ? "Combinaison d'avant : pas encore mesurée." : String.format(java.util.Locale.ROOT,
                 "Combinaison d'avant (n° %s) : %.0f en moyenne, %.0f au plus bas (pire image %.0f ms, état « %s »), mise en place %.0f ms",
                 Format.whole(last.combination() + 1), last.average(), last.lowest(), last.worstMs(), last.slowestState(), last.setupMs()));
         UiTestRun.Fps slow = run.slowestFps();
-        fpsSlowest.setText(slow == null ? "" : String.format(java.util.Locale.FRANCE, "La plus lente : n° %s, %.0f en moyenne : %s",
+        fpsSlowest.setText(slow == null ? "" : String.format(java.util.Locale.ROOT, "La plus lente : n° %s, %.0f en moyenne : %s",
                 Format.whole(slow.combination() + 1), slow.average(), slow.skins()));
         if (fpsFile == null) fpsFileText.setText("Pas de fichier.");
         else fpsFileText.setText((fpsFile.problem().isEmpty() ? "Une ligne par combinaison dans " : "Écriture impossible (" + fpsFile.problem() + ") : ")
@@ -314,10 +324,13 @@ final class UiTestPanel extends VBox {
         crossButton.setStyle(mode == UiTestPlan.Mode.CROSS ? ON_STYLE : TOOL_STYLE);
         pairsButton.setStyle(mode == UiTestPlan.Mode.PAIRS ? ON_STYLE : TOOL_STYLE);
         long combinations = current.combinations(), total = current.total();
-        size.setText((combinations == Long.MAX_VALUE ? "Plus de 9 × 10¹⁸" : Format.whole(combinations)) + " combinaisons × "
-                + current.group.steps().size() + " états = " + (total == Long.MAX_VALUE ? "trop" : Format.whole(total))
+        // Version 0.287 : chaque visuel ne se croise que sur son sous-onglet ; les états se rangent en parts.
+        int parts = current.parts();
+        size.setText((combinations == Long.MAX_VALUE ? "Plus de 9 × 10¹⁸" : Format.whole(combinations)) + " combinaisons sur "
+                + current.steps().size() + (current.heaviest ? " états à la charge maximale" : " états")
+                + (parts > 1 ? " (" + parts + " parts, une par sous-onglet)" : "") + " = " + (total == Long.MAX_VALUE ? "trop" : Format.whole(total))
                 + " étapes ; il reste " + run.remaining() + " à cette allure.");
-        paceText.setText(String.format(java.util.Locale.FRANCE, "%.1f s par étape", run.secondsPerStep()));
+        paceText.setText(String.format(java.util.Locale.ROOT, "%.1f s par étape", run.secondsPerStep()));
         play.setText(run.playing() ? "Pause" : "Lecture");
         play.setStyle(run.playing() ? ON_STYLE : TOOL_STYLE);
         position.setText("Étape " + Format.whole(run.step() + 1) + " / " + (total == Long.MAX_VALUE ? "…" : Format.whole(total)));

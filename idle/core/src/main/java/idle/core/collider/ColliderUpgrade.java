@@ -52,7 +52,7 @@ public enum ColliderUpgrade {
     AUTO_PLANCK(ColliderGenerator.PLANCK, 1.6e14, AUTO_SUPERCOLLIDER),
     // La chaîne : l'énergie, puis ce qu'elle renforce ailleurs.
     ENERGY(Section.CHAIN, "Production d'énergie", "Énergie ×2 par niveau", 10, 2e10, 6, COLLISIONS, 1, null, Quark.UP, 10),
-    PARTICLES(Section.CHAIN, "Particules", "Particules ×1,5 par niveau", 10, 1e11, 8, ENERGY, 1, null, Quark.UP, 30),
+    PARTICLES(Section.CHAIN, "Particules", "Particules ×1.5 par niveau", 10, 1e11, 8, ENERGY, 1, null, Quark.UP, 30),
     ATOMS(Section.CHAIN, "Atomes", "Atomes par fusion +10 % par niveau", 10, 1e12, 8, PARTICLES, 1, null, Quark.DOWN, 30),
     DARK_MATTER(Section.CHAIN, "Matière noire", "Croissance de la matière noire +20 % par niveau", 10, 1e13, 8, ATOMS, 1, null, Quark.STRANGE, 15),
     SPACE(Section.CHAIN, "Vitesse de l'espace", "Espace par seconde +25 % par niveau", 4, 1e14, 10, DARK_MATTER, 1, null, Quark.CHARM, 10),
@@ -154,7 +154,7 @@ public enum ColliderUpgrade {
             case AUTO_CATCH -> "Clique seul aux croisements";
             case GENERATOR_POWER -> "Générateurs ×2";
             case ENERGY -> "Énergie ×2";
-            case PARTICLES -> "Particules ×1,5";
+            case PARTICLES -> "Particules ×1.5";
             case ATOMS -> "Atomes par fusion +10 %";
             case DARK_MATTER -> "Matière noire +20 %";
             case SPACE -> "Espace par seconde +25 %";

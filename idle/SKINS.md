@@ -69,7 +69,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Bois et cuivre — **fait en 0.191** (condition retenue : 10 générateurs du collisionneur) : anneau en lattes vernies cerclées de cuivre `#b87333`, poussières en sciure ; dix générateurs du collisionneur.
 - Circuit imprimé — **fait en 0.191** (condition retenue : 100 générateurs) : anneau en piste verte `#1f5a2a` avec pastilles dorées, poussières en bits qui passent ; tous les générateurs achetés.
 - Stade — **fait en 0.191** (condition retenue : 1 000 générateurs) : anneau en piste d'athlétisme à huit couloirs, détecteur en ligne d'arrivée ; cent tours du faisceau rapide.
-- Ruban de Möbius — **fait en 0.191** (condition retenue : le skin Glace) : l'anneau se tord sur lui-même, les faisceaux passent dessus puis dessous ; le défi « Un seul générateur » réussi deux fois.
+- Ruban de Möbius — **fait en 0.191** (condition retenue : le skin Glace) : l'anneau se tord sur lui-même, les faisceaux passent dessus puis dessous ; l'épreuve « Chaîne arrêtée » (ex « Un seul générateur ») réussi deux fois.
 
 ## 2. Le chrome : fenêtre, onglets, cartes
 
@@ -78,7 +78,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Ardoise — **fait en 0.190** : fond `#1d2a24` à la craie, bordures en traits de craie ; cinquante éléments découverts.
 - Nuit étoilée — **fait en 0.190** : un ciel très sombre avec quelques étoiles fixes derrière les pages ; la galaxie formée.
 - Terminal — **fait en 0.190** : fond noir pur, texte vert `#6dff8f`, bordures en caractères ASCII ; cent explosions.
-- Blueprint — **fait en 0.190** : fond bleu de plan `#1a3a6b`, lignes blanches fines, quadrillage discret ; dix assemblages formés.
+- Plan d'architecte (ex Blueprint, renommé en 0.290) — **fait en 0.190** : fond bleu de plan `#1a3a6b`, lignes blanches fines, quadrillage discret ; dix assemblages formés.
 
 ### Les onglets (`tabStyle`, couleurs par onglet)
 - Onglets en onglets de classeur — **fait en 0.190** (visuel « Les onglets ») : forme trapèze, papier coloré, le courant dépasse ; le Big Bang débloqué.
@@ -135,7 +135,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 
 ### Les défis (`ChallengesPane`, l'arrivée de « la fuite »)
 - Cartes de tarot — **fait en 0.193** (skin « Tarot » ; condition retenue : 3 défis réussis) : chaque défi une lame, l'arrivée les retourne ; trois défis réussis.
-- Affiches « wanted » — **fait en 0.193** (skin « Wanted » ; condition retenue : 6 défis réussis) : papier déchiré, portrait du défi ; six défis.
+- Affiches « wanted » — **fait en 0.193** (skin « Avis de recherche », ex « Wanted » ; condition retenue : 6 défis réussis) : papier déchiré, portrait du défi ; six défis.
 - Sceaux — **fait en 0.193** (condition retenue : les dix défis réussis) : le défi réussi porte un sceau de cire rouge ; tous les défis.
 
 ## 5. Le Big Bang : espace, ciel, galaxie
@@ -144,7 +144,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Boules pleines (space-filling) — **fait en 0.188** (visuel « Les molécules ») : pas de bâtons, atomes qui se touchent ; cinquante sortes créées.
 - Traits (squelette) — **fait en 0.188** : seulement les liaisons, atomes en lettres ; toutes les sortes créées (73).
 - Perles — **fait en 0.188** : atomes en perles nacrées, bâtons en fil ; vingt sortes rassemblées.
-- Lego — **fait en 0.188** : atomes en briques à tenons, couleurs vives ; mille molécules créées.
+- Briques (ex Lego, renommé en 0.290) — **fait en 0.188** : atomes en briques à tenons, couleurs vives ; mille molécules créées.
 - Palette CPK alternative — **fait en 0.194** (visuel « La palette des molécules », trois skins libres, combinés avec la forme) : « pastel », « daltonien sûr » (une palette vérifiée), « monochrome par rayon » ; chacun dès le premier Big Bang (option d'accessibilité, sans condition).
 
 ### Les amas rassemblés, les blocs d'assemblage, le gaz (`SpaceView`, `SpaceViewPlacement`, `SpaceViewPacking`)
@@ -168,7 +168,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Toile de l'univers — **fait en 0.194** (condition retenue : un skin par univers formé, du premier au quatrième) : en réseau de neurones, en dentelle, en toile d'araignée au matin (gouttes), en carte de métro ; l'univers formé.
 
 ### Les systèmes solaires (`SystemView`)
-- Orrery — **fait en 0.194** (condition retenue : 1 système complet) : orbites en cercles de laiton, planètes sur tiges ; un système complet.
+- Planétaire mécanique (ex Orrery, renommé en 0.290) — **fait en 0.194** (condition retenue : 1 système complet) : orbites en cercles de laiton, planètes sur tiges ; un système complet.
 - Dessin d'enfant — **fait en 0.194** (condition retenue : 2 systèmes complets) : orbites au crayon de couleur, Soleil à rayons ; deux systèmes.
 - Radar — **fait en 0.194** (condition retenue : 3 systèmes complets ; les planètes y sont remplacées par des échos) : fond vert, orbites en cercles de balayage, planètes en échos ; trois systèmes.
 

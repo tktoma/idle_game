@@ -11,7 +11,7 @@ import javafx.scene.shape.*;
  * <ul>
  * <li>Les bulles : « Bulle de savon » (une sphère presque transparente, irisée d'arcs-en-ciel qui tournent, deux reflets),
  * « Boule à neige » (un globe de
- * verre sur un socle de bois, un sapin dedans et la neige qui tombe), « Globe d'orrery » (un globe de verre sur son pied de
+ * verre sur un socle de bois, un sapin dedans et la neige qui tombe), « Globe planétaire » (un globe de verre sur son pied de
  * laiton, un méridien, des planètes qui tournent sur leurs anneaux) ; version 0.203 : le ballon noué, la planète-fruit et
  * l'œuf retirés ;</li>
  * <li>la naissance : « Éclosion » (un œuf qui se fend, dont les deux moitiés s'écartent sur la lumière), « Bourgeon »
@@ -39,7 +39,7 @@ final class UniverseSkinArt {
     private static final Color PAGE = Color.web("#f6f1e4");
     private static final Color PAGE_SHADE = Color.web("#b8ad98");
     private static final Color[] BALLOONS = {Color.web("#ff5a6e"), Color.web("#4a9bff"), Color.web("#ffd23f"), Color.web("#5fd36a"),
-        Color.web("#c47aff"), Color.web("#ff9a3a")};
+        Webs.C_C47AFF, Webs.C_FF9A3A};
     private static final Color[] FIREWORK = {Color.web("#ffd23f"), Color.web("#ff6b8a"), Color.web("#6bd4ff"), Color.web("#9fff8a")};
 
     private UniverseSkinArt() {
@@ -104,14 +104,14 @@ final class UniverseSkinArt {
         g.fillRect(x - r * 0.75, y + r * 0.72, r * 1.5, r * 0.08);
         // Le globe, un verre bleuté, et la neige au fond.
         g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#2a3a60")), new Stop(1, Color.web("#0c1430"))));
+                new Stop(0, Webs.C_2A3A60), new Stop(1, Webs.C_0C1430)));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
-        g.setFill(Color.web("#eef4ff"));
+        g.setFill(Webs.C_EEF4FF);
         g.setGlobalAlpha(lit * 0.9);
         g.fillArc(x - r * 0.95, y - r * 0.95, r * 1.9, r * 1.9, 200, 140, ArcType.CHORD);
         // Un sapin, posé sur la neige.
         g.setGlobalAlpha(lit);
-        g.setFill(Color.web("#2f7a3a"));
+        g.setFill(Webs.C_2F7A3A);
         for (int layer = 0; layer < 3; layer++) {
             double top = y + r * (0.05 - 0.28 * (2 - layer)), width = r * (0.22 + 0.14 * layer);
             g.fillPolygon(new double[] {x, x - width, x + width}, new double[] {top - r * 0.28, top + r * 0.05, top + r * 0.05}, 3);
@@ -151,9 +151,9 @@ final class UniverseSkinArt {
                 new Stop(0, Color.color(0.6, 0.75, 1, 0.18)), new Stop(1, Color.color(0.2, 0.3, 0.6, 0.35))));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
         // Le soleil au centre, et les planètes sur leurs anneaux inclinés.
-        UniverseView.glow(g, x, y, r * 0.3, Color.web("#ffd27f"), 0.9 * lit);
+        UniverseView.glow(g, x, y, r * 0.3, Webs.C_FFD27F, 0.9 * lit);
         g.setGlobalAlpha(lit);
-        g.setFill(Color.web("#ffe6a0"));
+        g.setFill(Webs.C_FFE6A0);
         double sun = r * 0.1;
         g.fillOval(x - sun, y - sun, 2 * sun, 2 * sun);
         int planets = 3 + seed % 2;
@@ -223,7 +223,7 @@ final class UniverseSkinArt {
             g.setFill(SHELL);
             eggPath(g, cx + shake, cy, r);
             g.fill();
-            g.setStroke(Color.web("#3a2a18"));
+            g.setStroke(Webs.C_3A2A18);
             g.setLineWidth(Math.max(1.5, r * 0.05));
             double crack = Math.min(1, t / 0.9);
             int points = 2 + (int) (crack * 6);
@@ -289,7 +289,7 @@ final class UniverseSkinArt {
         if (stem < 1) return;
         // Les pétales, du bourgeon serré à la fleur ouverte, autour de la lumière.
         double r = size * 0.1;
-        UniverseView.glow(g, cx, top, r * (0.5 + 3 * open), Color.web("#fff0b0"), 0.9 * open * fade);
+        UniverseView.glow(g, cx, top, r * (0.5 + 3 * open), Webs.C_FFF0B0, 0.9 * open * fade);
         int petals = 6;
         for (int k = 0; k < petals; k++) {
             double a = -Math.PI / 2 + (k - (petals - 1) / 2.0) * (0.25 + 1.0 * open);
@@ -298,7 +298,7 @@ final class UniverseSkinArt {
             g.translate(cx, top);
             g.rotate(Math.toDegrees(a) + 90);
             g.setGlobalAlpha(fade * 0.95);
-            g.setFill(Color.web("#ff9fd6").interpolate(Color.web("#ffe0f0"), open * 0.6));
+            g.setFill(Webs.C_FF9FD6.interpolate(Webs.C_FFE0F0, open * 0.6));
             g.fillOval(-wide, -len, 2 * wide, len);
             g.restore();
         }
@@ -309,7 +309,7 @@ final class UniverseSkinArt {
             g.fillPolygon(new double[] {cx, cx + side * r * (0.6 + 0.6 * open), cx + side * r * 0.2},
                     new double[] {top + r * 0.2, top - r * (0.3 - 0.3 * open), top + r * 0.9}, 3);
         }
-        g.setFill(Color.web("#fff6c0"));
+        g.setFill(Webs.C_FFF6C0);
         double heart = r * 0.35 * open;
         g.fillOval(cx - heart, top - heart, 2 * heart, 2 * heart);
     }
@@ -318,7 +318,7 @@ final class UniverseSkinArt {
         if (t < 1.0) {
             // La fusée monte du bas, sa traînée derrière elle.
             double y = h + 10 - (h + 10 - cy) * t * (2 - t);
-            g.setStroke(Color.web("#ffd27f"));
+            g.setStroke(Webs.C_FFD27F);
             g.setLineWidth(2);
             for (int k = 0; k < 10; k++) {
                 g.setGlobalAlpha(0.6 * (1 - k / 10.0));
@@ -352,7 +352,7 @@ final class UniverseSkinArt {
         }
         // L'onde, en écho à celle du Classique : un cercle pâle qui s'élargit.
         double radius = front * half;
-        g.setStroke(Color.web("#ffd27f"));
+        g.setStroke(Webs.C_FFD27F);
         g.setLineWidth(1.5);
         g.setGlobalAlpha(0.35 * fade);
         g.strokeOval(cx - radius, cy - radius * 0.8, 2 * radius, 1.6 * radius);
@@ -472,7 +472,7 @@ final class UniverseSkinArt {
         g.fillRect(kx - 3, ky - 3, 6, 6);
         g.fillOval(ax - 3, ay - 3, 6, 6);
         g.fillOval(bx - 3, by - 3, 6, 6);
-        g.setFill(Color.web("#12161c"));
+        g.setFill(Webs.C_12161C);
         g.fillOval(ax - 1.2, ay - 1.2, 2.4, 2.4);
         g.fillOval(bx - 1.2, by - 1.2, 2.4, 2.4);
         // L'impulsion, qui suit la piste.
@@ -489,7 +489,7 @@ final class UniverseSkinArt {
             px = kx + (bx - kx) * t;
             py = ky + (by - ky) * t;
         }
-        UniverseView.glow(g, px, py, 6, Color.web("#9fffe0"), 0.9 * lit);
+        UniverseView.glow(g, px, py, 6, Webs.C_9FFFE0, 0.9 * lit);
     }
 
     private static void constellation(GraphicsContext g, double ax, double ay, double bx, double by, double lit, double time, int seed) {
@@ -514,5 +514,24 @@ final class UniverseSkinArt {
         g.strokeLine(x - r, y, x + r, y);
         g.strokeLine(x, y - r, x, y + r);
         UniverseView.glow(g, x, y, r * 1.6, STAR, alpha * 0.6);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_0C1430 = Color.web("#0c1430");
+        static final Color C_12161C = Color.web("#12161c");
+        static final Color C_2A3A60 = Color.web("#2a3a60");
+        static final Color C_2F7A3A = Color.web("#2f7a3a");
+        static final Color C_3A2A18 = Color.web("#3a2a18");
+        static final Color C_9FFFE0 = Color.web("#9fffe0");
+        static final Color C_C47AFF = Color.web("#c47aff");
+        static final Color C_EEF4FF = Color.web("#eef4ff");
+        static final Color C_FF9A3A = Color.web("#ff9a3a");
+        static final Color C_FF9FD6 = Color.web("#ff9fd6");
+        static final Color C_FFD27F = Color.web("#ffd27f");
+        static final Color C_FFE0F0 = Color.web("#ffe0f0");
+        static final Color C_FFE6A0 = Color.web("#ffe6a0");
+        static final Color C_FFF0B0 = Color.web("#fff0b0");
+        static final Color C_FFF6C0 = Color.web("#fff6c0");
     }
 }

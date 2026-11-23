@@ -17,12 +17,15 @@ import org.junit.jupiter.api.Test;
  * tous ses états, la mise en place de chaque état à part, et une ligne par combinaison dans le fichier.
  */
 class ImagesParSecondeTestUiTest {
+    /** Version 0.287 : les états du sous-onglet Atome, le premier passé ; ceux du tableau viennent après. */
+    private static final int ATOM_STATES = 2;
+
     private static UiTestPlan.Group group(String name) {
         for (UiTestPlan.Group group : UiTestPlan.groups()) if (group.name().equals(name)) return group;
         throw new AssertionError(name);
     }
 
-    /** Un passage sur les Atomes (quatre états par combinaison), la mesure envoyée dans une liste. */
+    /** Un passage sur les Atomes (la part de l'atome d'abord : deux états par combinaison), la mesure envoyée dans une liste. */
     private static UiTestRun atoms(List<UiTestRun.Fps> sent) {
         UiTestPlan.Group atoms = group("Atomes");
         UiTestRun run = new UiTestRun(new UiTestPlan.Run(atoms, UiTestPlan.axes(atoms), UiTestPlan.Mode.CROSS));
@@ -39,7 +42,7 @@ class ImagesParSecondeTestUiTest {
     void uneMesureParCombinaisonSurTousSesEtats() {
         List<UiTestRun.Fps> sent = new ArrayList<>();
         UiTestRun run = atoms(sent);
-        int states = run.run().group.steps().size();
+        int states = ATOM_STATES;
         for (int s = 0; s < states; s++) {
             // Le deuxième état est lent : une image toutes les 50 ms au lieu de 1/60 s.
             show(run, 1, s == 1 ? 0.05 : 1 / 60.0, 0.002);
@@ -53,7 +56,7 @@ class ImagesParSecondeTestUiTest {
         UiTestRun.Fps fps = sent.get(0);
         assertEquals(0, fps.combination());
         assertEquals(states, fps.states(), "tous ses états mesurés");
-        assertEquals(run.run().group.steps().get(1).label(), fps.slowestState(), "la pire image dans l'état lent");
+        assertEquals(run.run().steps().get(1).label(), fps.slowestState(), "la pire image dans l'état lent");
         assertEquals(50, fps.worstMs(), 1e-6);
         assertEquals(20, fps.lowest(), 1e-6);
         assertTrue(fps.average() > 20 && fps.average() < 60, "entre les deux : " + fps.average());
@@ -71,7 +74,7 @@ class ImagesParSecondeTestUiTest {
         // La première image d'un état est longue (la mise en place), le reste à 60 images par seconde.
         run.measure(0.2, 0.15);
         show(run, 1, 1 / 60.0, 0.001);
-        run.goTo(run.run().group.steps().size());
+        run.goTo(ATOM_STATES);
         UiTestRun.Fps fps = sent.get(0);
         assertEquals(200, fps.setupMs(), 1e-6, "la mise en place : la pire image des premières secondes");
         assertEquals(60, fps.lowest(), 0.5, "elle ne compte pas dans le plus bas");
@@ -83,7 +86,7 @@ class ImagesParSecondeTestUiTest {
     void laPlusLenteEtLaFinDeSeance() {
         List<UiTestRun.Fps> sent = new ArrayList<>();
         UiTestRun run = atoms(sent);
-        int states = run.run().group.steps().size();
+        int states = ATOM_STATES;
         assertNull(run.lastFps());
         show(run, 1, 1 / 60.0, 0);
         run.goTo(states);

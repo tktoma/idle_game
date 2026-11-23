@@ -131,7 +131,7 @@ class SignesEtBullesSkinsTest {
                 assertFalse(breakdown.text().isEmpty());
             }
             assertEquals(3, styles.size(), "trois styles différents");
-            assertTrue(Breakdown.style(Skin.TOOLTIP_POSTIT).contains("#f9eeda"), "le jaune du post-it");
+            assertTrue(Breakdown.style(Skin.TOOLTIP_STICKY_NOTE).contains("#f9eeda"), "le jaune du post-it");
             assertTrue(Breakdown.style(Skin.TOOLTIP_TERMINAL).contains("Monospaced"), "le terminal à chasse fixe");
             assertTrue(Breakdown.style(Skin.TOOLTIP_PARCHMENT).contains("serif"), "le parchemin à empattements");
             assertEquals(Breakdown.CLASSIC_STYLE, Breakdown.style(Skin.CARD_INDEX), "un skin d'un autre visuel");

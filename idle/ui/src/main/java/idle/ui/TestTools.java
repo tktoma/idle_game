@@ -174,7 +174,7 @@ final class TestTools {
     /** Le nom d'une vitesse du jeu : « Figé », « ×0,25 », « ×10 ». */
     static String speedName(double factor) {
         if (factor == 0) return "Figé";
-        return "×" + (factor == Math.rint(factor) ? String.valueOf((long) factor) : String.valueOf(factor).replace('.', ','));
+        return "×" + (factor == Math.rint(factor) ? String.valueOf((long) factor) : String.valueOf(factor));
     }
 
     /** Le texte sans accents ni majuscules, pour chercher. */

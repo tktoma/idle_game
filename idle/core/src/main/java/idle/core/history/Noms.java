@@ -5,7 +5,7 @@ import idle.core.collider.*;
 import idle.core.probes.ProbeUpgrade;
 import idle.core.profile.Title;
 import idle.core.universe.*;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.achievements.*;
 import idle.core.bigbang.*;
 import idle.core.darkmatter.*;

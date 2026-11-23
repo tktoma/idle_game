@@ -107,6 +107,34 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.objectifDimension` | `DimensionBots` | Les éclats à gagner au lieu du seuil du jeu, ou `infini` (jouer jusqu'au temps donné). | le seuil du jeu |
 | `idle.testProfilesStart`, `idle.testProfilesEnd` | `Profiles24CampaignTest`, `Profiles24LongCampaignTest` | Le segment de profils d'une campagne de test (la CI en lance quatre). | `1` et `24` |
 
+## Les mécaniques oubliées (version 0.294)
+
+Tous les profils **sauf le Speedrunner** (la référence de l'équilibrage, qui ne change pas : `reference()`) jouent trois
+mécaniques qu'aucun bot ne jouait, avec leur propre hasard (`extraRng`), pour que les autres gestes restent les mêmes :
+
+- **le calme du Big Bang** (récompense du défi « Fuite ») : quand tout est réuni pour le Big Bang sauf les particules,
+  et qu'il en manque plus de la moitié des ordres de grandeur, un profil qui planifie (`planning` ≥ 0.5) cesse d'acheter
+  en particules (`calm`) ;
+- **les épreuves** de l'onglet Skins, une fois chacune par univers, selon `techAttention` ; celles qui ralentissent tout
+  un acte (un seul générateur, la contraction douce, le Big Bang à froid) seulement pour le chasseur de succès et le
+  collectionneur ; celles du collisionneur seulement avec le déclencheur automatique au plus haut ;
+- **le rond de croissance** de la graine, cueilli quand il se montre, selon `skyAttention`.
+
+Chacune se coupe pour une mesure (`sansMecaniques` : `calme`, `epreuves`, `rond`, voir `AnalyseMecaniques`).
+
+Mesures, univers 2 depuis `checkpoint_universe1_speedrunner.save`, graine 42, pas de 20 s (avec / sans) :
+
+| Profil | Avec | Sans | Épreuves réussies | Skins |
+| --- | --- | --- | --- | --- |
+| Régulier (3) | 26 h 41 | 27 h 17 | 1 | 27 / 26 |
+| Méthodique (4) | 33 h 22 | 33 h 22 | 0 | 26 / 26 |
+| Chasseur de succès (5) | 29 h 38 | 27 h 02 | 4 | 31 / 27 |
+| Astronome (8) | 25 h 53 | 25 h 53 | 1 | 28 / 27 |
+
+Le calme seul ne change aucune durée mesurée ; les épreuves coûtent du temps à qui les tente toutes (le chasseur), et un
+peu d'avance au Régulier par le bonus de collection. Le rond de croissance n'apparaît qu'avec la graine (univers 4 et
+au-delà) : ces mesures de l'univers 2 ne le voient pas.
+
 ## Les correctifs des bots (19 octobre 2026)
 
 Trois défauts des bots faussaient les anciennes campagnes. Ils sont corrigés dans `RobotCosmosPlanner`, que tous les profils et le bot V2 utilisent.

@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameMix.MixRhythm;
 import idle.core.GameMix.MixUpgrade;
-import idle.core.GameUniverse.SeedUpgrade;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.SeedUpgrade;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

@@ -197,7 +197,7 @@ final class HelpPane extends Overlay {
                     + (game.isSkinsUnlocked() ? " L'échelle des grandeurs, l'arbre et les défis ont leurs skins, choisis dans l'onglet Skins : "
                             + "Règle de bois (10 explosions), Règle d'architecte (20) et Repères célestes (les 26 paliers de taille) pour "
                             + "l'échelle ; Racines (30 cases achetées), Circuit (100 niveaux), Constellation (la galaxie) et Métro (les quatre "
-                            + "branches entamées) pour l'arbre, qui changent ses traits, ses vignettes, ses en-têtes et son fond ; Tarot (3 défis réussis), Wanted (6) et Sceaux (les dix) pour les défis." : "")));
+                            + "branches entamées) pour l'arbre, qui changent ses traits, ses vignettes, ses en-têtes et son fond ; Tarot (3 défis réussis), Avis de recherche (6) et Sceaux (les dix) pour les défis." : "")));
         }
         if (game.isBigBangUnlocked()) {
             // Ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
@@ -218,8 +218,8 @@ final class HelpPane extends Overlay {
                     // Les skins des molécules : par les sortes créées, rassemblées et le nombre de molécules.
                     + (game.isSkinsUnlocked() ? " Les molécules ont aussi leurs skins, choisis dans l'onglet Skins et qui changent "
                             + "leur dessin sur les cartes comme dans l'espace : Boules pleines à 50 sortes créées, Traits quand les "
-                            + game.molecules().size() + " sortes du catalogue l'ont été, Perles à 20 sortes rassemblées, Lego à 1 000 "
-                            + "molécules créées ; et trois palettes libres de leurs couleurs (Pastel, Daltonien sûr, Monochrome par rayon). "
+                            + game.molecules().size() + " sortes du catalogue l'ont été, Perles à 20 sortes rassemblées, Briques à 1 000 "
+                            + "molécules créées ; et trois palettes libres de leurs couleurs (Pastel, Adapté aux daltoniens, Monochrome par rayon). "
                             // Les amas, les blocs et le gaz de l'espace, la galaxie, l'amas et la toile.
                             + "Dans l'espace, les amas rassemblés (Minéraux, Néon, Pastel à 5, 20 et 50 sortes rassemblées), les blocs "
                             + "d'assemblage (Pierre taillée, Lingots, Cristaux bruts, Pains de glace à 10, 15, 20 et 30 assemblages) et le gaz "
@@ -263,7 +263,7 @@ final class HelpPane extends Overlay {
         sections.add(new Section("Lire un nombre", "Laissez la souris sur la production, les atomes par fusion, la matière "
                 + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne"
                 // Les info-bulles : trois skins, par les heures de jeu.
-                + (game.isSkinsUnlocked() ? " (elle a ses skins, dans l'onglet Skins : Parchemin à une heure de jeu, Post-it à cinq, Terminal à dix)" : "")
+                + (game.isSkinsUnlocked() ? " (elle a ses skins, dans l'onglet Skins : Parchemin à une heure de jeu, Pense-bête à cinq, Terminal à dix)" : "")
                 + ". Sous "
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
@@ -340,7 +340,7 @@ final class HelpPane extends Overlay {
                 + "les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes de la brane, les étincelles "
                 + "du clicker, les repères de la grille, les reflets du miroir, les fragments du mélange ; ils paient aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre "
                 + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo, graine profonde, saisons, bulle des racines) : "
-                + "chacune coûte au premier niveau trois minutes de jeu de sa dimension (un cinquième du seuil), puis ×1,6 par niveau. La graine s'arrose à l'arrosoir : "
+                + "chacune coûte au premier niveau trois minutes de jeu de sa dimension (un cinquième du seuil), puis ×1.6 par niveau. La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
                 + "univers, et demande de plus en plus d'arrosages : un quart d'heure d'arrosoir pour le bonsaï, trois heures pour le jeune arbre, douze pour "
                 + "l'arbre-monde, ce que les améliorations de la graine raccourcissent d'autant ; les attentes de l'amas et de la formation sont faites pour jouer les "
@@ -377,11 +377,11 @@ final class HelpPane extends Overlay {
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
                 + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
                 + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants, et déjà pour celui qu'on "
-                + "lance : jusqu'au bouton « univers suivant », le jeu garde en mémoire ce que l'univers formé laisse, et une bulle "
+                + "lance : jusqu'au bouton « Lancer l'univers suivant », le jeu garde en mémoire ce que l'univers formé laisse, et une bulle "
                 + "achetée entre-temps en garde sa part (le collisionneur, le vide, les hadrons…). Celle de l'arbuste, à "
                 + "gauche, ouvre le collisionneur dès le début de l'univers et lui donne 20 % d'énergie et de hadrons de plus "
                 + "par univers formé après le premier : chaque univers remplit plus vite l'énergie du trou noir supermassif. Trois "
-                + "se rachètent cinq fois, 2,5 fois plus cher à chaque niveau ; celle des racines ouvre le défi final, "
+                + "se rachètent cinq fois, 2.5 fois plus cher à chaque niveau ; celle des racines ouvre le défi final, "
                 + "et le jalon des racines dans les paliers des hadrons. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
@@ -502,7 +502,7 @@ final class HelpPane extends Overlay {
                 + " du mélange) : il faut d'abord la jouer à la main, de dix minutes à une demi-heure. Viennent d'abord ceux qui "
                 + "achètent chacun une amélioration dès qu'elle est payable, en gardant de quoi payer l'automatisme suivant ; puis, "
                 + "les plus chers, ceux qui jouent la dimension à votre place, en cinq paliers : une action toutes les 5 s, puis "
-                + "2 s, 1 s et 0,5 s, et le dernier sans attente, tous sur une même carte : un clic achète le palier suivant s'il est "
+                + "2 s, 1 s et 0.5 s, et le dernier sans attente, tous sur une même carte : un clic achète le palier suivant s'il est "
                 + "payable, sinon met en pause ou relance, et le bouton « Couper » sous la carte les met en pause à tout moment. Le plus rapide acheté joue ; aucune bulle ni la matière noire "
                 + "ne change leur cadence. La visée automatique fait filer le point du plan vers l'éclat le plus proche tant "
                 + "que vous ne tenez aucune touche, et reprend sa direction à chaque action ; la plongée automatique plonge seule "
@@ -524,7 +524,7 @@ final class HelpPane extends Overlay {
                 + "particules, une par seconde au départ. Chacune coûte une demi-seconde de production du collisionneur, tient un "
                 + "cinquième de seconde d'expansion d'espace libre pendant ses " + (int) Game.VOID_PAIR_LIFE + " secondes de vie, et donne 1 énergie du vide à sa "
                 + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
-                + "départ). L'énergie du vide fond de " + String.format(Locale.FRANCE, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
+                + "départ). L'énergie du vide fond de " + String.format(Locale.ROOT, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
                 + "divisé par la fonte. Elle paie huit améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
                 + "coût en énergie, espace par paire, fonte plus lente, et trois qui raccourcissent le troisième acte : allègement "
                 + "du ciel (−" + Math.round(Game.VOID_LIGHTEN_STEP * 100) + " % par niveau des molécules et de la matière que "
@@ -580,7 +580,7 @@ final class HelpPane extends Overlay {
                 + " à toutes les grandeurs. Au septième Big Bang, deux places de maturation et une sonde de plus ; au huitième, "
                 + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."
                 // Les skins des systèmes, par les systèmes complets.
-                + (game.isSkinsUnlocked() ? " Le dessin des systèmes a ses skins, dans l'onglet Skins : Orrery à un système complet, Dessin "
+                + (game.isSkinsUnlocked() ? " Le dessin des systèmes a ses skins, dans l'onglet Skins : Planétaire mécanique à un système complet, Dessin "
                         + "d'enfant à deux, Radar à trois." : "")));
         if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
                 + "destination, puis un voyage de " + (int) (ProbeTrip.SHORT.seconds() / 60) + " minutes à " + (int) (ProbeTrip.NIGHT.seconds() / 3600) + " heures ; plus il est long, plus le butin est riche par heure. À l'"
@@ -604,13 +604,13 @@ final class HelpPane extends Overlay {
                 // Le chrome de la fenêtre : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
                 + (game.isSkinsUnlocked() ? " Le chrome de la fenêtre a aussi ses skins, choisis dans l'onglet Skins : le fond (Papier à une "
                         + "heure de jeu, Ardoise à 50 éléments découverts, Nuit étoilée à la galaxie formée, Terminal à 100 explosions, "
-                        + "Blueprint à 10 assemblages formés), les onglets (classeur au Big Bang débloqué, boutons physiques à dix heures "
+                        + "Plan d'architecte à 10 assemblages formés), les onglets (classeur au Big Bang débloqué, boutons physiques à dix heures "
                         + "de jeu, pastilles à l'univers 1 formé, rubans à l'univers 2 formé) et les cartes (fiche cartonnée à 100 fusions, "
                         + "tuile de verre avec le skin Cristal du Big Bang, carte à jouer aux dix défis réussis, étiquette à dix sondes "
                         + "revenues). Le fond n'habille que les marges, sous un voile sombre, et suit le thème choisi : le thème clair "
                         + "l'inverse." : "")
                 // La fenêtre autour du jeu : notifications, panneaux, transition, fin, bouton de démarrage, curseur.
-                + (game.isSkinsUnlocked() ? " Autour du jeu encore, dans l'onglet Skins : les notifications (Post-it, Télégramme, Bulle de BD, "
+                + (game.isSkinsUnlocked() ? " Autour du jeu encore, dans l'onglet Skins : les notifications (Pense-bête, Télégramme, Bulle de BD, "
                         + "Ticket de caisse, Parchemin déroulé, à 20, 50, 100, 200 et 500 notifications reçues depuis l'ouverture du jeu), "
                         + "les panneaux comme celui-ci (Page de livre à cinq heures de jeu, Écran de cinéma à dix, Tableau d'affichage à "
                         + "vingt), le guide de transition entre univers et son rideau (Fondu au blanc, Page tournée, Diaphragme, Trou noir, un "
@@ -658,7 +658,7 @@ final class HelpPane extends Overlay {
     }
 
     /** « 1,25 » : un nombre à deux décimales, à la française. */
-    private static String hundredths(double value) { return String.format(Locale.FRANCE, "%.2f", value); }
+    private static String hundredths(double value) { return String.format(Locale.ROOT, "%.2f", value); }
 
     /** « Mémoire des liaisons (1 000 gluons) : l'explosion garde … » : les paliers de gluons. */
     private static String gluonMilestones() {

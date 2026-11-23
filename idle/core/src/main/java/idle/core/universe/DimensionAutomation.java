@@ -200,7 +200,7 @@ public enum DimensionAutomation {
         if (kind != Kind.PLAY) return "";
         if (isInstant()) return "sans attente";
         if (period == 1) return "chaque seconde";
-        return "toutes les " + (period == Math.rint(period) ? String.valueOf((long) period) : String.valueOf(period).replace('.', ',')) + " s";
+        return "toutes les " + (period == Math.rint(period) ? String.valueOf((long) period) : String.valueOf(period)) + " s";
     }
 
     /** Son rang parmi ceux de sa dimension : 0 pour le premier. */

@@ -286,7 +286,9 @@ public final class ProbesPane extends VBox {
             boolean max = level >= upgrade.maxLevel();
             boolean can = game.canBuyProbeUpgrade(upgrade);
             card.show(max ? Card.State.DONE : can ? Card.State.READY : Card.State.WAITING, level + "/" + upgrade.maxLevel(), "",
-                    upgrade.label(), upgrade.effect() + ".", "", max ? "au maximum" : Format.whole(game.probeUpgradeCost(upgrade)) + " échantillons", "");
+                    upgrade.label(), upgrade.effect() + ".",
+                    "Niveau " + level + " sur " + upgrade.maxLevel() + ". Les échantillons se gagnent dans le butin des sondes.",
+                    max ? "au maximum" : Format.whole(game.probeUpgradeCost(upgrade)) + " échantillons", "");
         }
     }
 

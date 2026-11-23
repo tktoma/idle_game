@@ -22,7 +22,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
- * La sous-page « Univers » de l'onglet Big Bang : les trois dernières échelles du jeu, formées l'une après l'autre
+ * La sous-page « Cosmos » de l'onglet Big Bang (« Univers » jusqu'à la 0.289) : les trois dernières échelles du jeu, formées l'une après l'autre
  * ({@link Cosmos}). La galaxie rassemble tous les astres autour du trou noir supermassif ; l'amas de galaxies, puis
  * l'univers, demandent de la matière rassemblée en bien plus grand nombre.
  *

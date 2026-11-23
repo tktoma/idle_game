@@ -15,7 +15,7 @@ import java.util.*;
 public enum Skin {
     FUSION_FLASH(SkinVisual.PARTICLE_FUSION, "Éclair", "Record de reconstruction : de 1 à 10 générateurs en moins d'une minute"),
     FUSION_PRISM(SkinVisual.PARTICLE_FUSION, "Prisme", "Recherche « Fusion prismatique », payée en particules"),
-    FUSION_LONE(SkinVisual.PARTICLE_FUSION, "Solitaire", "Défi volontaire « Premier générateur seulement »"),
+    FUSION_LONE(SkinVisual.PARTICLE_FUSION, "Solitaire", "Épreuve « Premier générateur seulement »"),
     ATOM_DENSE(SkinVisual.ATOM, "Noyau dense", "Recherche sur le noyau dense, palier 1"),
     TABLE_LEAD(SkinVisual.TABLE, "Plomb", "Recherche sur le noyau dense, palier 2"),
     ATOM_STELLAR(SkinVisual.ATOM, "Noyau stellaire", "Recherche sur le noyau dense, palier 3"),
@@ -24,14 +24,14 @@ public enum Skin {
     DARK_VORTEX(SkinVisual.DARK_ANIMATION, "Vortex", "Matière noire, palier 2"),
     DARK_NEBULA(SkinVisual.DARK_BALL, "Nébuleuse", "Matière noire, palier 3"),
     DARK_PULSAR(SkinVisual.DARK_ANIMATION, "Pulsar", "Matière noire, palier 4"),
-    DARK_CONTRACTED(SkinVisual.DARK_BALL, "Contractée", "Défi « Contraction douce »"),
+    DARK_CONTRACTED(SkinVisual.DARK_BALL, "Contractée", "Épreuve « Contraction douce »"),
     BANG_AURORA(SkinVisual.BIG_BANG, "Aurore", "Big Bang, palier 1"),
     BANG_SUPERNOVA(SkinVisual.BIG_BANG, "Supernova", "Big Bang, palier 2"),
-    BANG_CRYSTAL(SkinVisual.BIG_BANG, "Cristal", "Défi « Big Bang à froid »"),
-    BEAM_GOLD(SkinVisual.COLLIDER_BEAM, "Faisceau doré", "Défi du détecteur"),
-    COLLIDER_NEON(SkinVisual.COLLIDER, "Néon", "Défi « Sans surchauffe »"),
-    COLLIDER_PLASMA(SkinVisual.COLLIDER, "Plasma", "Défi « Pleine charge »"),
-    COLLIDER_ICE(SkinVisual.COLLIDER, "Glace", "Défi « Un seul générateur »"),
+    BANG_CRYSTAL(SkinVisual.BIG_BANG, "Cristal", "Épreuve « Big Bang à froid »"),
+    BEAM_GOLD(SkinVisual.COLLIDER_BEAM, "Faisceau doré", "Épreuve « Cinq de suite »"),
+    COLLIDER_NEON(SkinVisual.COLLIDER, "Néon", "Épreuve « Sans surchauffe »"),
+    COLLIDER_PLASMA(SkinVisual.COLLIDER, "Plasma", "Épreuve « Pleine charge »"),
+    COLLIDER_ICE(SkinVisual.COLLIDER, "Glace", "Épreuve « Chaîne arrêtée »"),
     // Les essences de l'arbre, une par univers formé à partir du quatrième (SKINS.md).
     TREE_BIRCH(SkinVisual.TREE, "Bouleau", "Univers 4 formé"),
     TREE_WILLOW(SkinVisual.TREE, "Saule pleureur", "Univers 5 formé"),
@@ -60,20 +60,20 @@ public enum Skin {
     MOLECULE_SPACE_FILLING(SkinVisual.MOLECULE, "Boules pleines", "50 sortes de molécules créées"),
     MOLECULE_SKELETON(SkinVisual.MOLECULE, "Traits", "Les 73 sortes de molécules créées"),
     MOLECULE_PEARLS(SkinVisual.MOLECULE, "Perles", "20 sortes rassemblées"),
-    MOLECULE_BRICKS(SkinVisual.MOLECULE, "Lego", "1 000 molécules créées"),
+    MOLECULE_BRICKS(SkinVisual.MOLECULE, "Briques", "1 000 molécules créées"),
     // Les cadres de l'avatar, un par titre (SKINS.md).
     FRAME_ROUND(SkinVisual.AVATAR_FRAME, "Rond", "Titre « Alchimiste »"),
     FRAME_HEXAGON(SkinVisual.AVATAR_FRAME, "Hexagone", "Titre « Lecteur du tableau »"),
     FRAME_SHIELD(SkinVisual.AVATAR_FRAME, "Écusson", "Titre « Briseur de défis »"),
     FRAME_BAROQUE(SkinVisual.AVATAR_FRAME, "Cadre doré baroque", "Titre « Faiseur de Big Bang »"),
     FRAME_STAMP(SkinVisual.AVATAR_FRAME, "Timbre-poste", "Titre « Chasseur de comètes »"),
-    FRAME_POLAROID(SkinVisual.AVATAR_FRAME, "Polaroid", "Titre « Créateur d'univers »"),
+    FRAME_INSTANT_PHOTO(SkinVisual.AVATAR_FRAME, "Photo instantanée", "Titre « Créateur d'univers »"),
     // Le chrome (SKINS.md).
     AMBIENT_PAPER(SkinVisual.AMBIENT, "Papier", "Une heure de jeu"),
     AMBIENT_SLATE(SkinVisual.AMBIENT, "Ardoise", "50 éléments découverts"),
     AMBIENT_NIGHT(SkinVisual.AMBIENT, "Nuit étoilée", "La galaxie formée"),
     AMBIENT_TERMINAL(SkinVisual.AMBIENT, "Terminal", "100 explosions"),
-    AMBIENT_BLUEPRINT(SkinVisual.AMBIENT, "Blueprint", "10 assemblages formés"),
+    AMBIENT_BLUEPRINT(SkinVisual.AMBIENT, "Plan d'architecte", "10 assemblages formés"),
     TABS_BINDER(SkinVisual.TABS, "Onglets de classeur", "Le Big Bang débloqué"),
     TABS_BUTTONS(SkinVisual.TABS, "Boutons physiques", "Dix heures de jeu"),
     TABS_DOTS(SkinVisual.TABS, "Pastilles", "L'univers 1 formé"),
@@ -123,7 +123,7 @@ public enum Skin {
     ICONS_CHALK(SkinVisual.TAB_ICONS, "Trait de craie", "50 atomes créés"),
     ICONS_PIXEL(SkinVisual.TAB_ICONS, "Pixel art", "Record de reconstruction en moins d'une minute"),
     ICONS_CONSTELLATION(SkinVisual.TAB_ICONS, "Constellation", "La galaxie formée"),
-    ICONS_EMOJI(SkinVisual.TAB_ICONS, "Emoji", "La bulle du bonsaï, à droite, achetée"),
+    ICONS_EMOJI(SkinVisual.TAB_ICONS, "Émoji", "La bulle du bonsaï, à droite, achetée"),
     ICONS_STILL(SkinVisual.TAB_ICONS, "Figées", "Libre : les mêmes icônes, sans animation", true),
     SIGNS_RUNES(SkinVisual.CARD_SIGNS, "Runes", "Succès « Cent fusions »"),
     SIGNS_SHAPES(SkinVisual.CARD_SIGNS, "Formes pleines", "Succès « Ensemble complet »"),
@@ -132,7 +132,7 @@ public enum Skin {
     MATTER_DROPS(SkinVisual.MATTER_SIGNS, "Gouttes et grains", "50 sortes rassemblées"),
     MATTER_ALCHEMY(SkinVisual.MATTER_SIGNS, "Alchimie", "Toutes les sortes de molécules rassemblées"),
     TOOLTIP_PARCHMENT(SkinVisual.TOOLTIP, "Parchemin", "Une heure de jeu"),
-    TOOLTIP_POSTIT(SkinVisual.TOOLTIP, "Post-it", "Cinq heures de jeu"),
+    TOOLTIP_STICKY_NOTE(SkinVisual.TOOLTIP, "Pense-bête", "Cinq heures de jeu"),
     TOOLTIP_TERMINAL(SkinVisual.TOOLTIP, "Terminal", "Dix heures de jeu"),
     DUST_SNOW(SkinVisual.AMBIENT_DUST, "Neige", "1e6 particules créées"),
     DUST_RAIN(SkinVisual.AMBIENT_DUST, "Pluie", "1e9 particules créées"),
@@ -159,13 +159,13 @@ public enum Skin {
     DARK_TREE_CONSTELLATION(SkinVisual.DARK_TREE, "Constellation", "La galaxie formée"),
     DARK_TREE_METRO(SkinVisual.DARK_TREE, "Métro", "Les quatre branches de l'arbre entamées"),
     CHALLENGES_TAROT(SkinVisual.CHALLENGES, "Tarot", "3 défis réussis"),
-    CHALLENGES_WANTED(SkinVisual.CHALLENGES, "Wanted", "6 défis réussis"),
+    CHALLENGES_WANTED(SkinVisual.CHALLENGES, "Avis de recherche", "6 défis réussis"),
     CHALLENGES_SEALS(SkinVisual.CHALLENGES, "Sceaux", "Les dix défis réussis"),
     // Le Big Bang au-delà des molécules (SKINS.md, section 5). Les trois palettes sont libres : des réglages
     // d'accessibilité. Les blocs demandaient 10, 20, 30 et 40 assemblages, le catalogue en a 30 : 10, 15, 20 et tous. Le gaz se
     // compte en molécules de gaz rassemblées ; la galaxie, l'amas et la toile s'échelonnent sur les univers formés.
     PALETTE_PASTEL(SkinVisual.MOLECULE_PALETTE, "Pastel", "Libre : les couleurs CPK adoucies", true),
-    PALETTE_SAFE(SkinVisual.MOLECULE_PALETTE, "Daltonien sûr", "Libre : la palette d'Okabe et Ito", true),
+    PALETTE_SAFE(SkinVisual.MOLECULE_PALETTE, "Adapté aux daltoniens", "Libre : la palette d'Okabe et Ito", true),
     PALETTE_MONO(SkinVisual.MOLECULE_PALETTE, "Monochrome par rayon", "Libre : des gris, le plus clair pour le plus gros atome", true),
     CLUMPS_MINERALS(SkinVisual.CLUMPS, "Minéraux", "5 sortes rassemblées"),
     CLUMPS_NEON(SkinVisual.CLUMPS, "Néon", "20 sortes rassemblées"),
@@ -192,7 +192,7 @@ public enum Skin {
     WEB_LACE(SkinVisual.COSMIC_WEB, "Dentelle", "L'univers 2 formé"),
     WEB_DEW(SkinVisual.COSMIC_WEB, "Toile au matin", "L'univers 3 formé"),
     WEB_METRO(SkinVisual.COSMIC_WEB, "Métro", "L'univers 4 formé"),
-    SYSTEM_ORRERY(SkinVisual.SYSTEM, "Orrery", "1 système solaire complet"),
+    SYSTEM_ORRERY(SkinVisual.SYSTEM, "Planétaire mécanique", "1 système solaire complet"),
     SYSTEM_CRAYON(SkinVisual.SYSTEM, "Dessin d'enfant", "2 systèmes solaires complets"),
     SYSTEM_RADAR(SkinVisual.SYSTEM, "Radar", "3 systèmes solaires complets"),
     PROBE_PAPER(SkinVisual.PROBE, "Avion de papier", "10 voyages de sonde"),
@@ -207,12 +207,12 @@ public enum Skin {
     LIGHTNING_GOLD(SkinVisual.LIGHTNING, "Fils d'or", "1 000 croisements des faisceaux"),
     LIGHTNING_ICE(SkinVisual.LIGHTNING, "Fissures de glace", "2 500 croisements des faisceaux"),
     LIGHTNING_ROOTS(SkinVisual.LIGHTNING, "Racines", "5 000 croisements des faisceaux"),
-    SPARKS_PETALS(SkinVisual.SPARKS, "Pétales", "Défi du détecteur"),
+    SPARKS_PETALS(SkinVisual.SPARKS, "Pétales", "Épreuve « Cinq de suite »"),
     SPARKS_CONFETTI(SkinVisual.SPARKS, "Confettis", "Épreuve « Sans surchauffe »"),
     SPARKS_EMBERS(SkinVisual.SPARKS, "Braises", "Épreuve « Pleine charge »"),
     QUARK_FLIGHT_BALLOONS(SkinVisual.QUARK_FLIGHT, "Ballons", "10 hadrons liés"),
     QUARK_FLIGHT_BUTTERFLIES(SkinVisual.QUARK_FLIGHT, "Papillons", "25 hadrons liés"),
-    QUARK_FLIGHT_SCRABBLE(SkinVisual.QUARK_FLIGHT, "Lettres de Scrabble", "50 hadrons liés"),
+    QUARK_FLIGHT_LETTER_TILES(SkinVisual.QUARK_FLIGHT, "Jetons de lettres", "50 hadrons liés"),
     // Les hadrons.
     QUARKS_MARBLES(SkinVisual.QUARKS, "Billes de verre", "10 hadrons liés"),
     QUARKS_FRUITS(SkinVisual.QUARKS, "Fruits", "50 hadrons liés"),
@@ -241,7 +241,7 @@ public enum Skin {
     // L'univers : les bulles, leur naissance, leurs liens, le lancement, la graine et son établi.
     BUBBLE_SOAP(SkinVisual.UNIVERSE_BUBBLE, "Bulle de savon", "Univers 1 formé"),
     BUBBLE_SNOWGLOBE(SkinVisual.UNIVERSE_BUBBLE, "Boule à neige", "Univers 2 formé"),
-    BUBBLE_ORRERY(SkinVisual.UNIVERSE_BUBBLE, "Globe d'orrery", "Univers 3 formé"),
+    BUBBLE_ORRERY(SkinVisual.UNIVERSE_BUBBLE, "Globe planétaire", "Univers 3 formé"),
     BIRTH_HATCHING(SkinVisual.UNIVERSE_BIRTH, "Éclosion", "Univers 5 formé"),
     BIRTH_BUD(SkinVisual.UNIVERSE_BIRTH, "Bourgeon", "Univers 6 formé"),
     BIRTH_FIREWORKS(SkinVisual.UNIVERSE_BIRTH, "Feu d'artifice", "Univers 7 formé"),
@@ -326,7 +326,7 @@ public enum Skin {
     FRAME_CRT(SkinVisual.DIMENSION_FRAME, "Écran cathodique", "8 dimensions ouvertes"),
     FRAME_BOOK(SkinVisual.DIMENSION_FRAME, "Livre ouvert", "10 dimensions ouvertes"),
     DIM_PALETTE_PASTEL(SkinVisual.DIMENSION_PALETTE, "Pastel", "Libre : une option d'accessibilité", true),
-    DIM_PALETTE_SAFE(SkinVisual.DIMENSION_PALETTE, "Daltonien sûr", "Libre : la palette d'Okabe et Ito", true),
+    DIM_PALETTE_SAFE(SkinVisual.DIMENSION_PALETTE, "Adapté aux daltoniens", "Libre : la palette d'Okabe et Ito", true),
     DIM_PALETTE_MONO(SkinVisual.DIMENSION_PALETTE, "Monochrome", "Libre : une option d'accessibilité", true),
     DIM_PALETTE_RAINBOW(SkinVisual.DIMENSION_PALETTE, "Arc-en-ciel saturé", "Libre : une option d'accessibilité", true),
     DIM_PALETTE_SEPIA(SkinVisual.DIMENSION_PALETTE, "Sépia", "Libre : une option d'accessibilité", true),
@@ -359,7 +359,7 @@ public enum Skin {
     TIMELINE_FILM(SkinVisual.TIMELINE, "Pellicule", "5 univers formés"),
     TIMELINE_TRAIN(SkinVisual.TIMELINE, "Train", "7 univers formés"),
     // Les notifications, les panneaux, la transition entre univers, le bouton de démarrage, le curseur (SKINS.md, section 8).
-    TOAST_POSTIT(SkinVisual.TOAST, "Post-it", "20 notifications reçues depuis l'ouverture du jeu"),
+    TOAST_STICKY_NOTE(SkinVisual.TOAST, "Pense-bête", "20 notifications reçues depuis l'ouverture du jeu"),
     TOAST_TELEGRAM(SkinVisual.TOAST, "Télégramme", "50 notifications reçues depuis l'ouverture du jeu"),
     TOAST_COMIC(SkinVisual.TOAST, "Bulle de BD", "100 notifications reçues depuis l'ouverture du jeu"),
     TOAST_RECEIPT(SkinVisual.TOAST, "Ticket de caisse", "200 notifications reçues depuis l'ouverture du jeu"),
@@ -382,7 +382,7 @@ public enum Skin {
     CURSOR_WAND(SkinVisual.CURSOR, "Baguette", "Succès « Dix explosions »");
 
     /** Les skins des notifications et les notifications reçues depuis l'ouverture du jeu qui les débloquent (compte non sauvegardé). */
-    public static final Skin[] TOASTS = {TOAST_POSTIT, TOAST_TELEGRAM, TOAST_COMIC, TOAST_RECEIPT, TOAST_SCROLL};
+    public static final Skin[] TOASTS = {TOAST_STICKY_NOTE, TOAST_TELEGRAM, TOAST_COMIC, TOAST_RECEIPT, TOAST_SCROLL};
     public static final int[] TOAST_NOTIFICATIONS = {20, 50, 100, 200, 500};
     /** Les skins des panneaux et les heures de jeu qui les débloquent. */
     public static final Skin[] PANELS = {PANEL_BOOK, PANEL_CINEMA, PANEL_BOARD};
@@ -485,7 +485,7 @@ public enum Skin {
     public static final Skin[] LIGHTNINGS = {LIGHTNING_GOLD, LIGHTNING_ICE, LIGHTNING_ROOTS};
     public static final int[] LIGHTNING_CROSSINGS = {1_000, 2_500, 5_000};
     /** Les skins des quarks qui s'envolent et les nombres de hadrons liés qui les débloquent. */
-    public static final Skin[] QUARK_FLIGHTS = {QUARK_FLIGHT_BALLOONS, QUARK_FLIGHT_BUTTERFLIES, QUARK_FLIGHT_SCRABBLE};
+    public static final Skin[] QUARK_FLIGHTS = {QUARK_FLIGHT_BALLOONS, QUARK_FLIGHT_BUTTERFLIES, QUARK_FLIGHT_LETTER_TILES};
     public static final int[] QUARK_FLIGHT_HADRONS = {10, 25, 50};
     /** Les trois premiers skins des quarks de la liaison et les nombres de hadrons liés qui les débloquent ; le Puzzle demande chaque sorte. */
     public static final Skin[] QUARK_SKINS = {QUARKS_MARBLES, QUARKS_FRUITS, QUARKS_NOTES};

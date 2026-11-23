@@ -11,7 +11,7 @@ import javafx.scene.paint.Color;
  * skins libres, des réglages d'accessibilité :
  * <ul>
  * <li>« Pastel » ({@link Skin#PALETTE_PASTEL}) : les couleurs CPK, moins saturées et tirées vers le blanc ;</li>
- * <li>« Daltonien sûr » ({@link Skin#PALETTE_SAFE}) : la palette d'Okabe et Ito, huit couleurs que distinguent les
+ * <li>« Adapté aux daltoniens » ({@link Skin#PALETTE_SAFE}) : la palette d'Okabe et Ito, huit couleurs que distinguent les
  * trois formes courantes de daltonisme, une par élément courant et une par famille pour les autres ; l'hydrogène reste
  * blanc, le carbone prend le gris ;</li>
  * <li>« Monochrome par rayon » ({@link Skin#PALETTE_MONO}) : des gris, d'autant plus clairs que l'atome est gros,
@@ -50,7 +50,7 @@ final class MoleculePaletteArt {
         };
     }
 
-    /** Daltonien sûr : la couleur d'un élément courant, sinon celle de sa famille. */
+    /** Adapté aux daltoniens : la couleur d'un élément courant, sinon celle de sa famille. */
     private static Color safe(Element element) {
         Color known = SAFE_SYMBOLS.get(element.symbol());
         if (known != null) return known;

@@ -21,7 +21,7 @@ import javafx.scene.text.*;
  */
 final class BurstSkinArt {
     private static final Color[] GLASS = {Color.web("#d62839"), Color.web("#f4a259"), Color.web("#f7d354"),
-        Color.web("#4fa36b"), Color.web("#2f6fb5"), Color.web("#7a3fa0")};
+        Webs.C_4FA36B, Webs.C_2F6FB5, Webs.C_7A3FA0};
     // Les mêmes teintes nuit que la vue de l'espace (SpaceSkinArt).
     private static final Color INK = Color.web("#e9e6dd");
     private static final Color PAPER = Color.web("#111215");
@@ -118,20 +118,20 @@ final class BurstSkinArt {
                 g.setGlobalAlpha(on * (0.35 + 0.5 * lit));
                 g.setFill(GLASS[(k + ring) % GLASS.length]);
                 g.fillPolygon(xs, ys, 4);
-                g.setStroke(Color.web("#2a2a2e"));
+                g.setStroke(Webs.C_2A2A2E);
                 g.setLineWidth(Math.max(2, far * 0.008));
                 g.setGlobalAlpha(on);
                 g.strokePolygon(xs, ys, 4);
             }
         }
         // Le cœur de la rosace, blanc or, et la lumière qui traverse tout à la fin.
-        BurstView.glow(g, cx, cy, far * 0.12, Color.web("#fff1c0"), on);
-        BurstView.veil(g, w, h, Color.web("#fff1c0"), 0.5 * Math.max(0, Math.sin(Math.PI * Math.max(0, (t - 0.6) / 0.4))));
+        BurstView.glow(g, cx, cy, far * 0.12, Webs.C_FFF1C0, on);
+        BurstView.veil(g, w, h, Webs.C_FFF1C0, 0.5 * Math.max(0, Math.sin(Math.PI * Math.max(0, (t - 0.6) / 0.4))));
     }
 
     private static void abyss(GraphicsContext g, double w, double h, double cx, double cy, double t, double age) {
         double on = BurstView.envelope(t, 0.15, 0.8);
-        BurstView.veil(g, w, h, Color.web("#010614"), 0.85 * on);
+        BurstView.veil(g, w, h, Webs.C_010614, 0.85 * on);
         double small = Math.min(w, h);
         // Le plancton : des points qui montent et s'allument au passage de la méduse.
         for (int k = 0; k < 220; k++) {
@@ -140,17 +140,17 @@ final class BurstSkinArt {
             double lit = Math.max(0.2, 1 - Math.abs(d - t * 1.4) * 3);
             double size = 1.5 + 2.5 * fraction(k * 6.1);
             g.setGlobalAlpha(on * lit * (0.5 + 0.5 * Math.sin(age * 3 + k)));
-            g.setFill(k % 3 == 0 ? Color.web("#6bffd0") : Color.web("#5ad0ff"));
+            g.setFill(k % 3 == 0 ? Webs.C_6BFFD0 : Webs.C_5AD0FF);
             g.fillOval(x - size / 2, y - size / 2, size, size);
         }
         // La méduse : une ombrelle qui pulse et grandit, des tentacules qui ondulent dessous.
         double pulse = 1 + 0.08 * Math.sin(age * 4);
         double dome = small * (0.08 + 0.3 * t) * pulse;
-        BurstView.glow(g, cx, cy, dome * 1.8, Color.web("#8a6bff"), 0.5 * on);
+        BurstView.glow(g, cx, cy, dome * 1.8, Webs.C_8A6BFF, 0.5 * on);
         g.setGlobalAlpha(0.55 * on);
-        g.setFill(Color.web("#b08aff"));
+        g.setFill(Webs.C_B08AFF);
         g.fillArc(cx - dome, cy - dome * 0.8, 2 * dome, 1.6 * dome, 0, 180, ArcType.ROUND);
-        g.setStroke(Color.web("#dcd0ff"));
+        g.setStroke(Webs.C_DCD0FF);
         g.setLineWidth(Math.max(1.5, dome * 0.03));
         g.setGlobalAlpha(0.7 * on);
         for (int k = 0; k < 9; k++) {
@@ -168,7 +168,7 @@ final class BurstSkinArt {
 
     private static void origami(GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
         double on = BurstView.envelope(t, 0.1, 0.8);
-        BurstView.veil(g, w, h, Color.web("#141824"), 0.9 * on);
+        BurstView.veil(g, w, h, Webs.C_141824, 0.9 * on);
         // La feuille se déplie : des facettes triangulaires de plus en plus nombreuses à partir du centre.
         int facets = 4 + (int) (12 * Math.min(1, t * 1.5));
         double reach = far * Math.min(1, t * 1.4);
@@ -180,7 +180,7 @@ final class BurstSkinArt {
             g.setFill(Color.color(shade * 0.36, shade * 0.42, shade * 0.60));
             g.fillPolygon(new double[] {cx, cx + r0 * Math.cos(a0), cx + r1 * Math.cos(a1)},
                     new double[] {cy, cy + r0 * Math.sin(a0), cy + r1 * Math.sin(a1)}, 3);
-            g.setStroke(Color.web("#5d6a8c"));
+            g.setStroke(Webs.C_5D6A8C);
             g.setLineWidth(Math.max(1, far * 0.002));
             g.setGlobalAlpha(0.6 * on);
             g.strokeLine(cx, cy, cx + r0 * Math.cos(a0), cy + r0 * Math.sin(a0));
@@ -229,10 +229,10 @@ final class BurstSkinArt {
             double a = turn + Math.PI * k / 8;
             double len = k % 4 == 0 ? size : k % 2 == 0 ? size * 0.65 : size * 0.4;
             g.setGlobalAlpha(on);
-            g.setFill(k % 2 == 0 ? SEPIA : Color.web("#b02a2a"));
+            g.setFill(k % 2 == 0 ? SEPIA : Webs.C_B02A2A);
             g.fillPolygon(new double[] {cx, cx + len * Math.cos(a), cx + len * 0.18 * Math.cos(a + 0.4)},
                     new double[] {cy, cy + len * Math.sin(a), cy + len * 0.18 * Math.sin(a + 0.4)}, 3);
-            g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#7a2020"));
+            g.setFill(k % 2 == 0 ? Webs.C_8A6A3A : Webs.C_7A2020);
             g.fillPolygon(new double[] {cx, cx + len * Math.cos(a), cx + len * 0.18 * Math.cos(a - 0.4)},
                     new double[] {cy, cy + len * Math.sin(a), cy + len * 0.18 * Math.sin(a - 0.4)}, 3);
         }
@@ -246,7 +246,7 @@ final class BurstSkinArt {
 
     private static void neon(GraphicsContext g, double w, double h, double cx, double cy, double t, double age) {
         double on = BurstView.envelope(t, 0.1, 0.85);
-        BurstView.veil(g, w, h, Color.web("#0f1114"), 0.9 * on);
+        BurstView.veil(g, w, h, Webs.C_0F1114, 0.9 * on);
         double small = Math.min(w, h);
         // Les fenêtres des immeubles, qui s'éclairent de proche en proche.
         int columns = 24, rows = 14;
@@ -256,12 +256,12 @@ final class BurstSkinArt {
                 if (order > t * 1.6) continue;
                 double x = w * (i + 0.2) / columns, y = h * (j + 0.2) / rows;
                 g.setGlobalAlpha(on * (0.4 + 0.5 * fraction(i + j * 11)));
-                g.setFill(fraction(i * 3 + j) > 0.8 ? Color.web("#9fd0ff") : Color.web("#ffd27f"));
+                g.setFill(fraction(i * 3 + j) > 0.8 ? Webs.C_9FD0FF : Webs.C_FFD27F);
                 g.fillRect(x, y, w / columns * 0.4, h / rows * 0.45);
             }
         }
         // Les reflets sur l'asphalte mouillé : des traînées verticales de la couleur de l'enseigne.
-        Color pink = Color.web("#ff4fd8"), cyan = Color.web("#3ff0ff");
+        Color pink = Webs.C_FF4FD8, cyan = Webs.C_3FF0FF;
         for (int k = 0; k < 30; k++) {
             double x = fraction(k * 1.9) * w;
             g.setGlobalAlpha(0.12 * on);
@@ -280,10 +280,36 @@ final class BurstSkinArt {
         g.setStroke(cyan);
         g.setLineWidth(Math.max(2, small * 0.006));
         g.strokeRoundRect(cx - radius * 1.3, cy - radius * 0.5, radius * 2.6, radius, radius * 0.25, radius * 0.25);
-        g.setFill(Color.web("#fff6fb"));
+        g.setFill(Webs.C_FFF6FB);
         g.setFont(Font.font("Arial", FontWeight.BOLD, radius * 0.45));
         g.setTextAlign(TextAlignment.CENTER);
         g.fillText("BIG BANG", cx, cy + radius * 0.16);
         g.setTextAlign(TextAlignment.LEFT);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_010614 = Color.web("#010614");
+        static final Color C_0F1114 = Color.web("#0f1114");
+        static final Color C_141824 = Color.web("#141824");
+        static final Color C_2A2A2E = Color.web("#2a2a2e");
+        static final Color C_2F6FB5 = Color.web("#2f6fb5");
+        static final Color C_3FF0FF = Color.web("#3ff0ff");
+        static final Color C_4FA36B = Color.web("#4fa36b");
+        static final Color C_5AD0FF = Color.web("#5ad0ff");
+        static final Color C_5D6A8C = Color.web("#5d6a8c");
+        static final Color C_6BFFD0 = Color.web("#6bffd0");
+        static final Color C_7A2020 = Color.web("#7a2020");
+        static final Color C_7A3FA0 = Color.web("#7a3fa0");
+        static final Color C_8A6A3A = Color.web("#8a6a3a");
+        static final Color C_8A6BFF = Color.web("#8a6bff");
+        static final Color C_9FD0FF = Color.web("#9fd0ff");
+        static final Color C_B02A2A = Color.web("#b02a2a");
+        static final Color C_B08AFF = Color.web("#b08aff");
+        static final Color C_DCD0FF = Color.web("#dcd0ff");
+        static final Color C_FF4FD8 = Color.web("#ff4fd8");
+        static final Color C_FFD27F = Color.web("#ffd27f");
+        static final Color C_FFF1C0 = Color.web("#fff1c0");
+        static final Color C_FFF6FB = Color.web("#fff6fb");
     }
 }

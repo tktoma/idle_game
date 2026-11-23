@@ -119,7 +119,7 @@ public final class AvatarView extends Canvas {
             case FRAME_SHIELD -> drawShield(g, s);
             case FRAME_BAROQUE -> drawBaroque(g, s);
             case FRAME_STAMP -> drawStamp(g, s);
-            case FRAME_POLAROID -> drawPolaroid(g, s);
+            case FRAME_INSTANT_PHOTO -> drawInstantPhoto(g, s);
             default -> drawClassic(g, s);
         }
     }
@@ -303,8 +303,8 @@ public final class AvatarView extends Canvas {
         g.restore();
     }
 
-    /** « Polaroid » : un carré blanc penché, l'image carrée en haut, la marge basse large où s'écrit le nom de l'avatar. */
-    private void drawPolaroid(GraphicsContext g, double s) {
+    /** « Photo instantanée » : un carré blanc penché, l'image carrée en haut, la marge basse large où s'écrit le nom de l'avatar. */
+    private void drawInstantPhoto(GraphicsContext g, double s) {
         double c = s / 2, width = s * 0.76, margin = s * 0.04, inner = width - 2 * margin, height = (width - margin) / 0.78;
         double left = c - width / 2, top = c - height / 2;
         g.save();

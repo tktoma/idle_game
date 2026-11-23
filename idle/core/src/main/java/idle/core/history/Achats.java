@@ -3,7 +3,7 @@ package idle.core.history;
 import idle.core.*;
 import idle.core.collider.*;
 import idle.core.darkmatter.DarkUpgrades;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.universe.DimensionAutomation;
 import idle.core.upgrades.*;
 import java.util.*;

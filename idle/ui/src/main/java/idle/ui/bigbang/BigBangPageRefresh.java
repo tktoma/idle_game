@@ -79,8 +79,8 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         boolean galaxy = game.isGalaxyUnlocked();
         galaxyTab.setVisible(galaxy);
         galaxyTab.setManaged(galaxy);
-        galaxyTab.setText((game.cosmosFormed() == 0 ? "Univers" : game.nextCosmos() == null ? "Univers (formé)"
-                : "Univers (" + game.cosmosFormed() + "/" + Cosmos.values().length + ")") + Readiness.dot(Readiness.Kind.SKY, ready.cosmos()));
+        galaxyTab.setText((game.cosmosFormed() == 0 ? "Cosmos" : game.nextCosmos() == null ? "Cosmos (formé)"
+                : "Cosmos (" + game.cosmosFormed() + "/" + Cosmos.values().length + ")") + Readiness.dot(Readiness.Kind.SKY, ready.cosmos()));
         if (selected == 6 && !galaxy) select(0);
         boolean probes = game.isProbesUnlocked();
         probesTab.setVisible(probes);

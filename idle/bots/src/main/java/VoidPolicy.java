@@ -1,5 +1,5 @@
 import idle.core.*;
-import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.GameUniverseBase.VoidUpgrade;
 import idle.core.sky.Cosmos;
 import java.util.*;
 

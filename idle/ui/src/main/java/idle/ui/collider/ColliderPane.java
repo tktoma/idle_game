@@ -285,7 +285,7 @@ public final class ColliderPane extends VBox {
             String color = quarkColor(quark);
             if (open) {
                 double share = game.quarkShare(quark) * 100;
-                label.setText(quark.symbol() + "  " + quark.label() + " : " + (share >= 1 ? Math.round(share) : String.valueOf(Math.round(share * 10) / 10.0).replace('.', ',')) + " %");
+                label.setText(quark.symbol() + "  " + quark.label() + " : " + (share >= 1 ? Math.round(share) : String.valueOf(Math.round(share * 10) / 10.0)) + " %");
                 label.setStyle("-fx-font-size: 12px; -fx-padding: 3 10; -fx-background-radius: 10; -fx-border-radius: 10;"
                         + " -fx-text-fill: " + color + "; -fx-border-color: " + color + "; -fx-background-color: #101c2b;");
             } else {

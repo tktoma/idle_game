@@ -14,7 +14,7 @@ import javafx.scene.text.*;
  * <li>« Tarot » : chaque défi est une lame, bordure dorée sur fond crème, son numéro en chiffres romains et un
  * motif pour sa contrainte ; réussie, la lame est à l'endroit, à tenter elle reste de dos (un dos bleu à losanges) ;
  * l'arrivée de la fuite les retourne toutes ({@link ChallengesPane});</li>
- * <li>« Wanted » : une affiche de papier déchiré, « WANTED » en haut, le portrait du défi en silhouette d'encre
+ * <li>« Avis de recherche » : une affiche de papier déchiré, « RECHERCHÉ » en haut, le portrait du défi en silhouette d'encre
  * brune ; réussi, un tampon rouge « CAPTURÉ » en travers ;</li>
  * <li>« Sceaux » : un sceau de cire rouge dans l'en-tête du défi réussi, la place vide en pointillé pour les autres.</li>
  * </ul>
@@ -129,7 +129,7 @@ final class ChallengesSkinArt {
         g.setFill(BROWN);
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font("Serif", FontWeight.BOLD, 9));
-        g.fillText("WANTED", w / 2, 12);
+        g.fillText("RECHERCHÉ", w / 2, 12, w - 8);
         // Le portrait : un buste dans un cadre, et le motif du défi en guise de visage.
         g.setStroke(BROWN);
         g.strokeRect(w / 2 - 14, 16, 28, h - 22);

@@ -20,14 +20,14 @@ public enum Trial {
                     + "But : exploser.", 0, 0),
     COLD_BANG(Skin.BANG_CRYSTAL, "Big Bang à froid",
             "L'expansion de la matière va deux fois moins vite. But : le Big Bang suivant.", 0, 0),
-    DETECTOR(Skin.BEAM_GOLD, "Défi du détecteur",
+    DETECTOR(Skin.BEAM_GOLD, "Cinq de suite",
             "En 60 s, capter cinq croisements de suite, sans en laisser passer un.", 60, 5),
     NO_OVERHEAT(Skin.COLLIDER_NEON, "Sans surchauffe",
             "En 3 min, capter dix croisements, sans surchauffe pendant l'épreuve.", 180, 10),
     FULL_CHARGE(Skin.COLLIDER_PLASMA, "Pleine charge",
             "En 2 min, produire l'énergie de 5 minutes au rythme du départ : il faut capter les croisements.", 120, 0),
-    LONE_COLLIDER(Skin.COLLIDER_ICE, "Un seul générateur",
-            "En 2 min, la chaîne du collisionneur arrêtée, capter huit croisements.", 120, 8);
+    LONE_COLLIDER(Skin.COLLIDER_ICE, "Chaîne arrêtée",
+            "En 2 min, capter huit croisements : seul le premier générateur du collisionneur produit, les autres s'arrêtent.", 120, 8);
 
     /** Particules à avoir en main pour l'épreuve du premier générateur seul. */
     public static final double LONE_GOAL_LOG10 = 12;

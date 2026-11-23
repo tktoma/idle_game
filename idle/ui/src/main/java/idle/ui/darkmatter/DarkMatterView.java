@@ -282,7 +282,7 @@ public final class DarkMatterView extends Canvas {
                 xs[k] = cx + r * Math.cos(a);
                 ys[k] = cy + r * Math.sin(a) * 0.8;
             }
-            g.setStroke(arm % 2 == 0 ? Color.web("#7a3cff") : Color.web("#c06bff"));
+            g.setStroke(arm % 2 == 0 ? Webs.C_7A3CFF : Webs.C_C06BFF);
             g.setLineWidth(10);
             g.setGlobalAlpha(0.12 * strength);
             g.strokePolyline(xs, ys, steps);
@@ -292,7 +292,7 @@ public final class DarkMatterView extends Canvas {
         }
         // Les grains qui suivent les bras vers le centre.
         int grains = growing ? 90 : 50;
-        g.setFill(Color.web("#efe4ff"));
+        g.setFill(Webs.C_EFE4FF);
         for (int i = 0; i < grains; i++) {
             double seed = (i * 0.618034) % 1;
             double phase = (seed + whirl * 0.12) % 1;
@@ -303,7 +303,7 @@ public final class DarkMatterView extends Canvas {
             g.fillOval(cx + r * Math.cos(a) - size / 2, cy + r * Math.sin(a) * 0.8 - size / 2, size, size);
         }
         // Le disque d'accrétion, serré contre le point.
-        g.setStroke(Color.web("#e0c8ff"));
+        g.setStroke(Webs.C_E0C8FF);
         for (int k = 0; k < 3; k++) {
             double r = inner * (1.25 + 0.2 * k);
             g.setLineWidth(1.5);
@@ -320,16 +320,16 @@ public final class DarkMatterView extends Canvas {
         for (int side = 0; side < 2; side++) {
             double a = whirl + side * Math.PI;
             double spread = 0.07;
-            g.setFill(Color.web("#3cf0ff"));
+            g.setFill(Webs.C_3CF0FF);
             g.setGlobalAlpha(0.18 * strength);
             g.fillPolygon(new double[] {cx, cx + far * Math.cos(a - spread), cx + far * Math.cos(a + spread)},
                     new double[] {cy, cy + far * Math.sin(a - spread), cy + far * Math.sin(a + spread)}, 3);
-            g.setStroke(Color.web("#bff8ff"));
+            g.setStroke(Webs.C_BFF8FF);
             g.setLineWidth(1.5);
             g.setGlobalAlpha(0.8 * strength);
             g.strokeLine(cx, cy, cx + far * Math.cos(a), cy + far * Math.sin(a));
         }
-        g.setStroke(Color.web("#7fe8ff"));
+        g.setStroke(Webs.C_7FE8FF);
         for (int k = 0; k < 3; k++) {
             double phase = (time * 0.8 + k / 3.0) % 1;
             double r = blobRadius * 1.1 + phase * Math.min(w, h) * 0.5;
@@ -367,7 +367,7 @@ public final class DarkMatterView extends Canvas {
                 g.setFill(Color.color(shade, shade * 0.8, shade * 1.4 > 1 ? 1 : shade * 1.4));
                 g.fillPolygon(new double[] {cx + r * 0.15, xs[k], xs[next]}, new double[] {cy - r * 0.1, ys[k], ys[next]}, 3);
             }
-            g.setStroke(Color.web("#a07cff"));
+            g.setStroke(Webs.C_A07CFF);
             g.setLineWidth(1.2);
             g.setGlobalAlpha(0.9);
             for (int k = 0; k < sides; k++) {
@@ -385,7 +385,7 @@ public final class DarkMatterView extends Canvas {
                     new double[] {cy - r * 0.55, cy - r * 0.6, cy - r * 0.2}, 3);
         } else if (skin == Skin.DARK_NEBULA) {
             // Un nuage : des volutes roses et bleues qui ondulent, plus larges que le point.
-            Color[] gas = {Color.web("#ff7ad9"), Color.web("#7fb8ff"), Color.web("#c9a6ff")};
+            Color[] gas = {Webs.C_FF7AD9, Webs.C_7FB8FF, Webs.C_C9A6FF};
             for (int k = 0; k < 16; k++) {
                 double a = k * 2.39996 + time * (0.1 + 0.03 * (k % 4));
                 double d = r * (0.25 + 0.6 * ((k * 0.618034) % 1));
@@ -418,7 +418,7 @@ public final class DarkMatterView extends Canvas {
                 g.strokeOval(cx - rr, cy - rr, rr * 2, rr * 2);
             }
             // Des flèches qui pointent vers le centre.
-            g.setStroke(Color.web("#e0c8ff"));
+            g.setStroke(Webs.C_E0C8FF);
             g.setLineWidth(1.2);
             for (int k = 0; k < 8; k++) {
                 double a = 2 * Math.PI * k / 8 + time * 0.2;
@@ -496,5 +496,20 @@ public final class DarkMatterView extends Canvas {
         g.setFill(TEXT);
         g.setTextAlign(TextAlignment.LEFT);
         g.fillText(Format.length(BigNum.pow10(logLength)), x, y - 9);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_3CF0FF = Color.web("#3cf0ff");
+        static final Color C_7A3CFF = Color.web("#7a3cff");
+        static final Color C_7FB8FF = Color.web("#7fb8ff");
+        static final Color C_7FE8FF = Color.web("#7fe8ff");
+        static final Color C_A07CFF = Color.web("#a07cff");
+        static final Color C_BFF8FF = Color.web("#bff8ff");
+        static final Color C_C06BFF = Color.web("#c06bff");
+        static final Color C_C9A6FF = Color.web("#c9a6ff");
+        static final Color C_E0C8FF = Color.web("#e0c8ff");
+        static final Color C_EFE4FF = Color.web("#efe4ff");
+        static final Color C_FF7AD9 = Color.web("#ff7ad9");
     }
 }

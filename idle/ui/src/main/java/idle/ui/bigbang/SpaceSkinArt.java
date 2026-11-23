@@ -29,7 +29,7 @@ final class SpaceSkinArt {
     private static final Color PAPER = Color.web("#111215");
     private static final Color LEAD = Color.web("#2a2a2e");
     private static final Color[] GLASS = {Color.web("#d62839"), Color.web("#f4a259"), Color.web("#f7d354"),
-        Color.web("#4fa36b"), Color.web("#2f6fb5"), Color.web("#7a3fa0")};
+        Webs.C_4FA36B, Webs.C_2F6FB5, Webs.C_7A3FA0};
     private static final Color PLANKTON = Color.web("#6bffd0");
     private static final Color JELLY = Color.web("#b08aff");
     private static final Color FOLD = Color.web("#5d6a8c");
@@ -63,10 +63,10 @@ final class SpaceSkinArt {
         return switch (look) {
             case BANG_INK -> PAPER;
             case BANG_STAINED -> Color.BLACK;
-            case BANG_ABYSS -> Color.web("#020814");
-            case BANG_ORIGAMI -> Color.web("#141824");
+            case BANG_ABYSS -> Webs.C_020814;
+            case BANG_ORIGAMI -> Webs.C_141824;
             case BANG_MAP -> PARCHMENT;
-            default -> Color.web("#15171a");
+            default -> Webs.C_15171A;
         };
     }
 
@@ -76,7 +76,7 @@ final class SpaceSkinArt {
         switch (look) {
             case BANG_INK -> {
                 // Les fibres du papier : de longs traits à peine visibles.
-                g.setStroke(Color.web("#4a4a52"));
+                g.setStroke(Webs.C_4A4A52);
                 g.setLineWidth(0.8);
                 for (int k = 0; k < 60; k++) {
                     double x = fraction(k * 1.31) * w, y = fraction(k * 2.77) * h;
@@ -112,14 +112,14 @@ final class SpaceSkinArt {
             case BANG_ABYSS -> {
                 g.setGlobalAlpha(1);
                 g.setFill(new LinearGradient(0, 0, 0, h, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, Color.web("#0a2a4a")), new Stop(0.5, Color.web("#041426")), new Stop(1, Color.web("#010610"))));
+                        new Stop(0, Webs.C_0A2A4A), new Stop(0.5, Webs.C_041426), new Stop(1, Webs.C_010610)));
                 g.fillRect(0, 0, w, h);
                 // Les rais de lumière qui tombent de la surface et ondulent.
                 for (int k = 0; k < 9; k++) {
                     double x = w * (0.05 + 0.9 * fraction(k * 1.7)) + Math.sin(time * 0.2 + k) * w * 0.03;
                     double wide = w * (0.02 + 0.04 * fraction(k * 3.3));
                     g.setGlobalAlpha(0.06 + 0.05 * Math.sin(time * 0.5 + k * 2));
-                    g.setFill(Color.web("#7fd8ff"));
+                    g.setFill(Webs.C_7FD8FF);
                     g.fillPolygon(new double[] {x - wide, x + wide, x + wide * 3, x - wide * 3}, new double[] {0, 0, h * 0.7, h * 0.7}, 4);
                 }
             }
@@ -157,7 +157,7 @@ final class SpaceSkinArt {
                     double x = fraction(k * 1.31) * w, y = fraction(k * 2.77) * h, size = small * (0.05 + 0.15 * fraction(k * 4.1));
                     g.setGlobalAlpha(1);
                     g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,
-                            new Stop(0, tint(Color.web("#b89a60"), 0.10)), new Stop(1, tint(Color.web("#b89a60"), 0))));
+                            new Stop(0, tint(Webs.C_B89A60, 0.10)), new Stop(1, tint(Webs.C_B89A60, 0))));
                     g.fillOval(x - size, y - size, 2 * size, 2 * size);
                 }
                 g.setStroke(SEPIA);
@@ -177,7 +177,7 @@ final class SpaceSkinArt {
             default -> {
                 g.setGlobalAlpha(1);
                 g.setFill(new LinearGradient(0, 0, 0, h, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, Color.web("#0b0d10")), new Stop(0.6, Color.web("#15171a")), new Stop(1, Color.web("#23262b"))));
+                        new Stop(0, Webs.C_0B0D10), new Stop(0.6, Webs.C_15171A), new Stop(1, Webs.C_23262B)));
                 g.fillRect(0, 0, w, h);
                 // Les reflets des enseignes sur l'asphalte mouillé : des traînées verticales qui tremblent.
                 for (int k = 0; k < 24; k++) {
@@ -228,7 +228,7 @@ final class SpaceSkinArt {
                 }
                 g.setGlobalAlpha(1);
                 g.setFill(new RadialGradient(0, 0, x, y, r * 0.2, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, Color.web("#fff6d8")), new Stop(1, Color.web("#f4a259"))));
+                        new Stop(0, Webs.C_FFF6D8), new Stop(1, Webs.C_F4A259)));
                 g.fillOval(x - r * 0.2, y - r * 0.2, r * 0.4, r * 0.4);
             }
             case BANG_ABYSS -> {
@@ -236,9 +236,9 @@ final class SpaceSkinArt {
                 double pulse = 1 + 0.04 * Math.sin(time * 2.5);
                 double rx = r * pulse, ry = r * (2 - pulse);
                 g.setFill(new RadialGradient(0, 0, x, y - ry * 0.2, r, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, tint(Color.web("#dcd0ff"), 0.5)), new Stop(0.7, tint(JELLY, 0.3)), new Stop(1, tint(JELLY, 0.15))));
+                        new Stop(0, tint(Webs.C_DCD0FF, 0.5)), new Stop(0.7, tint(JELLY, 0.3)), new Stop(1, tint(JELLY, 0.15))));
                 g.fillOval(x - rx, y - ry, 2 * rx, 2 * ry);
-                g.setStroke(Color.web("#dcd0ff"));
+                g.setStroke(Webs.C_DCD0FF);
                 g.setLineWidth(Math.max(1, r * 0.012));
                 for (int k = 0; k < 7; k++) {
                     double x0 = x - rx * 0.7 + rx * 1.4 * k / 6;
@@ -270,15 +270,15 @@ final class SpaceSkinArt {
             }
             case BANG_MAP -> {
                 // La rose des vents : un disque de vélin un peu plus clair, seize branches or et rouges.
-                g.setFill(Color.web("#2a2217"));
+                g.setFill(Webs.C_2A2217);
                 g.fillOval(x - r, y - r, 2 * r, 2 * r);
                 for (int k = 0; k < 16; k++) {
                     double a = -Math.PI / 2 + Math.PI * k / 8;
                     double len = r * (k % 4 == 0 ? 0.92 : k % 2 == 0 ? 0.62 : 0.4);
-                    g.setFill(k % 2 == 0 ? SEPIA : Color.web("#b02a2a"));
+                    g.setFill(k % 2 == 0 ? SEPIA : Webs.C_B02A2A);
                     g.fillPolygon(new double[] {x, x + len * Math.cos(a), x + len * 0.18 * Math.cos(a + 0.4)},
                             new double[] {y, y + len * Math.sin(a), y + len * 0.18 * Math.sin(a + 0.4)}, 3);
-                    g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#7a2020"));
+                    g.setFill(k % 2 == 0 ? Webs.C_8A6A3A : Webs.C_7A2020);
                     g.fillPolygon(new double[] {x, x + len * Math.cos(a), x + len * 0.18 * Math.cos(a - 0.4)},
                             new double[] {y, y + len * Math.sin(a), y + len * 0.18 * Math.sin(a - 0.4)}, 3);
                 }
@@ -288,7 +288,7 @@ final class SpaceSkinArt {
             }
             default -> {
                 // L'enseigne : un disque sombre, et un anneau de néon rose qui clignote de temps en temps.
-                g.setFill(Color.web("#1c1f24"));
+                g.setFill(Webs.C_1C1F24);
                 g.fillOval(x - r, y - r, 2 * r, 2 * r);
                 boolean off = Math.sin(time * 7) > 0.96 || Math.sin(time * 1.3) > 0.995;
                 double lit = off ? 0.15 : 0.7 + 0.1 * Math.sin(time * 13);
@@ -327,14 +327,14 @@ final class SpaceSkinArt {
                 g.setLineWidth(Math.max(3, r * 0.03));
                 g.setGlobalAlpha(1);
                 g.strokeOval(x - r, y - r, 2 * r, 2 * r);
-                g.setStroke(Color.web("#6a6a70"));
+                g.setStroke(Webs.C_6A6A70);
                 g.setLineWidth(1);
                 g.setGlobalAlpha(0.6);
                 g.strokeOval(x - r * 0.985, y - r * 0.985, 2 * r * 0.985, 2 * r * 0.985);
             }
             case BANG_ABYSS -> {
                 double pulse = 0.5 + 0.5 * Math.sin(time * 2.5);
-                g.setStroke(Color.web("#dcd0ff"));
+                g.setStroke(Webs.C_DCD0FF);
                 g.setLineWidth(Math.max(1.5, r * 0.01));
                 g.setGlobalAlpha(0.3 + 0.4 * pulse);
                 g.strokeOval(x - r, y - r, 2 * r, 2 * r);
@@ -346,7 +346,7 @@ final class SpaceSkinArt {
                     xs[k] = x + r * Math.cos(a);
                     ys[k] = y + r * Math.sin(a);
                 }
-                g.setStroke(Color.web("#8fa0c8"));
+                g.setStroke(Webs.C_8FA0C8);
                 g.setLineWidth(Math.max(1.5, r * 0.008));
                 g.setGlobalAlpha(0.9);
                 g.strokePolyline(xs, ys, sides + 1);
@@ -430,7 +430,7 @@ final class SpaceSkinArt {
                 case BANG_ABYSS -> {
                     double size = 1.2 + 1.8 * twinkle;
                     g.setGlobalAlpha(0.4 + 0.6 * twinkle);
-                    g.setFill(star % 3 == 0 ? PLANKTON : Color.web("#5ad0ff"));
+                    g.setFill(star % 3 == 0 ? PLANKTON : Webs.C_5AD0FF);
                     g.fillOval(x - size / 2, y + Math.sin(time * 0.3 + star) * 3 - size / 2, size, size);
                 }
                 case BANG_ORIGAMI -> {
@@ -451,11 +451,41 @@ final class SpaceSkinArt {
                     // Une fenêtre : allumée la plupart du temps, éteinte quand sa lampe « clignote ».
                     boolean lit = Math.sin(time * pace[star] * 0.5 + star * 2.1) > -0.7;
                     g.setGlobalAlpha(lit ? 0.6 + 0.3 * fraction(star * 2.3) : 0.1);
-                    g.setFill(star % 7 == 0 ? Color.web("#9fd0ff") : WINDOW);
+                    g.setFill(star % 7 == 0 ? Webs.C_9FD0FF : WINDOW);
                     g.fillRect(x - 1.5, y - 2, 3, 4);
                 }
             }
         }
         g.setGlobalAlpha(1);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_010610 = Color.web("#010610");
+        static final Color C_020814 = Color.web("#020814");
+        static final Color C_041426 = Color.web("#041426");
+        static final Color C_0A2A4A = Color.web("#0a2a4a");
+        static final Color C_0B0D10 = Color.web("#0b0d10");
+        static final Color C_141824 = Color.web("#141824");
+        static final Color C_15171A = Color.web("#15171a");
+        static final Color C_1C1F24 = Color.web("#1c1f24");
+        static final Color C_23262B = Color.web("#23262b");
+        static final Color C_2A2217 = Color.web("#2a2217");
+        static final Color C_2F6FB5 = Color.web("#2f6fb5");
+        static final Color C_4A4A52 = Color.web("#4a4a52");
+        static final Color C_4FA36B = Color.web("#4fa36b");
+        static final Color C_5AD0FF = Color.web("#5ad0ff");
+        static final Color C_6A6A70 = Color.web("#6a6a70");
+        static final Color C_7A2020 = Color.web("#7a2020");
+        static final Color C_7A3FA0 = Color.web("#7a3fa0");
+        static final Color C_7FD8FF = Color.web("#7fd8ff");
+        static final Color C_8A6A3A = Color.web("#8a6a3a");
+        static final Color C_8FA0C8 = Color.web("#8fa0c8");
+        static final Color C_9FD0FF = Color.web("#9fd0ff");
+        static final Color C_B02A2A = Color.web("#b02a2a");
+        static final Color C_B89A60 = Color.web("#b89a60");
+        static final Color C_DCD0FF = Color.web("#dcd0ff");
+        static final Color C_F4A259 = Color.web("#f4a259");
+        static final Color C_FFF6D8 = Color.web("#fff6d8");
     }
 }

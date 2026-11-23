@@ -120,7 +120,7 @@ final class PurchasesPane extends VBox {
         StringBuilder text = new StringBuilder();
         if (!e.montant().equals("—")) {
             text.append("Payé ").append(e.montant()).append(' ').append(e.paye().toLowerCase(Locale.FRANCE));
-            if (!Double.isNaN(e.part()) && e.part() >= 0.0005) text.append(String.format(Locale.FRANCE, " (%.1f %% de la réserve)", 100 * e.part()));
+            if (!Double.isNaN(e.part()) && e.part() >= 0.0005) text.append(String.format(Locale.ROOT, " (%.1f %% de la réserve)", 100 * e.part()));
             text.append("  ·  ");
         }
         text.append(e.poids());

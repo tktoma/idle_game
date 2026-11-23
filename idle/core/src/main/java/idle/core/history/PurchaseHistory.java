@@ -108,7 +108,7 @@ public final class PurchaseHistory {
     /** « jusqu'à la prochaine fusion (la Persistance en garde 25 %) » : jusqu'où tient l'achat. */
     static String tenueTexte(Game game, Achats.Tenue tenue) {
         if (tenue == Achats.Tenue.FUSION && game.fusionKeepShare() > 0) {
-            return tenue.label() + String.format(Locale.FRANCE, " (la Persistance en garde %.0f %%)", 100 * game.fusionKeepShare());
+            return tenue.label() + String.format(Locale.ROOT, " (la Persistance en garde %.0f %%)", 100 * game.fusionKeepShare());
         }
         return tenue.label();
     }
@@ -149,7 +149,7 @@ public final class PurchaseHistory {
 
     /** « 1,250 » ou « 10^4.20 » : un facteur, écrit en clair ou en puissance de dix. */
     public static String facteur(double log10) {
-        if (Math.abs(log10) < 3) return String.format(Locale.FRANCE, "%.3f", Math.pow(10, log10));
+        if (Math.abs(log10) < 3) return String.format(Locale.ROOT, "%.3f", Math.pow(10, log10));
         return String.format(Locale.ROOT, "10^%.2f", log10);
     }
 }

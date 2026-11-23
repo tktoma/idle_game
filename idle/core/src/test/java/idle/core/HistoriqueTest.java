@@ -173,6 +173,6 @@ class HistoriqueTest {
         assertNull(pace.step());
         assertTrue(Double.isNaN(pace.secondsLeft()));
         assertEquals("10^4.20", PurchaseHistory.facteur(4.2));
-        assertEquals("1,250", PurchaseHistory.facteur(Math.log10(1.25)));
+        assertEquals("1.250", PurchaseHistory.facteur(Math.log10(1.25)));
     }
 }

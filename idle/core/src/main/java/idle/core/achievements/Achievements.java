@@ -98,8 +98,8 @@ public final class Achievements {
             // ----- Jusqu'aux automatismes (1 h à 5 h, heures d'avant le tempo) -----
             Achievement.feat(BULK_PURCHASE, "Achat en gros", "25 niveaux d'un clic",
                     "Acheter 25 niveaux d'une amélioration d'un seul clic.", Achievement.Bonus.GENERATOR_COST, 0.02),
-            Achievement.feat(BUY_EVERYTHING, "Razzia", "« Tout acheter » : 20 niveaux",
-                    "Acheter au moins 20 niveaux d'un coup avec « tout acheter ».", Achievement.Bonus.GENERATOR_COST, 0.02),
+            Achievement.feat(BUY_EVERYTHING, "Razzia", "Tout acheter : 20 niveaux",
+                    "Acheter au moins 20 niveaux d'un coup avec le raccourci « Tout acheter avec les particules » (touche M au départ).", Achievement.Bonus.GENERATOR_COST, 0.02),
             Achievement.step("step_unlock", "Trente atomes", "30 atomes créés",
                     "Créer assez d'atomes pour ouvrir l'automatisation et le tableau périodique.",
                     game -> game.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS)),
@@ -306,8 +306,8 @@ public final class Achievements {
             // ----- Jusqu'à la fin de la partie : quelques petits bonus, comme avant -----
             Achievement.step("late_void", "Écume", "Le vide ouvert", "Ouvrir le vide dans le collisionneur.",
                     Game::isVoidUnlocked),
-            Achievement.feat("late_void_hole", "Horizon", "Le trou noir du vide",
-                    "Former un trou noir le vide ouvert : son onglet s'ouvre.",
+            Achievement.feat("late_void_hole", "Horizon des événements", "Le trou noir du vide",
+                    "Ouvrir le trou noir du vide.",
                     Achievement.Bonus.EXPANSION, 0.02, Game::isVoidHoleOpen),
             Achievement.step("late_bubble", "Bourgeon", "1 bulle de l'arbre",
                     "Acheter une première bulle de l'arbre de la graine.",

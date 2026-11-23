@@ -158,7 +158,7 @@ public final class DimensionAutomationPane extends VBox {
             return "Il achète tant que la ressource suffit, jusqu'au plus haut niveau s'il y en a un, en gardant de quoi payer "
                     + "l'automatisme suivant de la dimension.";
         }
-        String tiers = " Cinq paliers sur cette carte, du plus lent au plus rapide (5 s, 2 s, 1 s, 0,5 s, sans attente), achetés "
+        String tiers = " Cinq paliers sur cette carte, du plus lent au plus rapide (5 s, 2 s, 1 s, 0.5 s, sans attente), achetés "
                 + "l'un après l'autre : le plus rapide joue, et aucune bulle ni la matière noire ne change sa cadence.";
         return switch (automation.dimension()) {
             case 2 -> "Dès que vous lâchez les touches, il reprend la main, fenêtre ouverte ou non." + tiers;

@@ -36,6 +36,7 @@ final class UiTestStage implements UiTestPlan.Driver {
             app.hideStartButton();
             app.dimensionWindow.close();
             app.toasts.clear();
+            app.testSpeedLog = Double.NaN;
             long combination = run.combinationOf(step);
             for (SkinVisual visual : SkinVisual.values()) app.game.chooseSkin(visual, run.skin(combination, visual));
             // Le thème et la notation : ceux d'origine (Sombre, Scientifique) s'ils ne sont pas croisés (0.252).
@@ -152,4 +153,7 @@ final class UiTestStage implements UiTestPlan.Driver {
 
     @Override
     public void startButton() { app.showStartButton(); }
+
+    @Override
+    public void particleSpeed(double log) { app.testSpeedLog = log; }
 }

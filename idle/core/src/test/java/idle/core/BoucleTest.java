@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.GameLoop.LoopHit;
 import idle.core.GameLoop.LoopUpgrade;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

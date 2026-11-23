@@ -4,8 +4,6 @@ import idle.core.Absence;
 import idle.core.Enums;
 import idle.core.Game;
 import idle.core.Resource;
-import idle.core.state.GameStats;
-import idle.core.save.SaveCodec;
 import idle.core.upgrades.Upgrade;
 import idle.ui.atoms.AtomView;
 import idle.ui.atoms.AtomsPage;
@@ -17,7 +15,6 @@ import idle.ui.common.Breakdown;
 import idle.ui.common.BurstView;
 import idle.ui.common.BuyAmountRow;
 import idle.ui.common.Card;
-import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.StableHeight;
 import idle.ui.common.TabIcon;
@@ -94,119 +91,11 @@ public abstract class GameAppBase extends Application {
     abstract void open(Tab tab);
     abstract void selectTab(Tab tab);
     abstract void celebrateNewAtom();
-
     /** Ce que font, pour le panneau de test, les outils qui touchent à l'affichage et au son. */
-    TestTools.Hooks testHooks() {
-        return new TestTools.Hooks() {
-            @Override
-            public void explosion() { playExplosion(false); }
+    abstract TestTools.Hooks testHooks();
+    /** Ce que la page des réglages demande pour la sauvegarde. */
+    abstract SettingsPage.Saves saveActions();
 
-            @Override
-            public void bigBang() { playBigBang(); }
-
-            @Override
-            public boolean birth() {
-                if (game.universes() <= 0) return false;
-                dimensionWindow.close();
-                selectTab(Tab.UNIVERSE);
-                universePage.playBirth();
-                return true;
-            }
-
-            @Override
-            public boolean launch() {
-                if (game.universes() <= 0) return false;
-                dimensionWindow.close();
-                selectTab(Tab.UNIVERSE);
-                universePage.launchView().play(null);
-                return true;
-            }
-
-            @Override
-            public boolean curtain() {
-                idle.core.universe.Skin chosen = game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION);
-                if (chosen != null) GameAppBase.this.curtain.play(chosen);
-                return chosen != null;
-            }
-
-            @Override
-            public boolean finale() {
-                if (!game.isDimensionsUnlocked()) return false;
-                dimensionWindow.close();
-                selectTab(Tab.UNIVERSE);
-                universePage.playFinale();
-                return true;
-            }
-
-            @Override
-            public void fusion() {
-                selectTab(Tab.PARTICLES);
-                soundWithAnimation(Sound.Cue.ATOM);
-                generators.fuse(() -> { });
-            }
-
-            @Override
-            public void newAtom() {
-                selectTab(Tab.ATOMS);
-                celebrateNewAtom();
-                if (settings.sound()) sound.click(Sound.Cue.NEW_ATOM, settings.volume());
-            }
-
-            @Override
-            public void sound(Sound.Cue cue) {
-                if (cue == Sound.Cue.BEAT) sound.beat(Math.max(1, settings.volume()));
-                else sound.preview(cue, Math.max(1, settings.volume()));
-            }
-
-            @Override
-            public void particle(int stage) { sound.particle(stage, Math.max(1, settings.volume())); }
-
-            @Override
-            public void gesture(int dimension) { sound.gesture(dimension, Math.max(1, settings.volume())); }
-
-            @Override
-            public void clicker(int stack) { sound.clicker(stack, Math.max(1, settings.volume())); }
-
-            @Override
-            public void gain(int dimension) { sound.gain(dimension, Math.max(1, settings.volume())); }
-
-            @Override
-            public void piano(int note) { sound.piano(note, Math.max(1, settings.volume())); }
-
-            @Override
-            public void season(int season) { sound.season(season, Math.max(1, settings.volume())); }
-
-            @Override
-            public boolean toggleHum(TestTools.TestHum hum) {
-                if (!forcedHums.remove(hum)) forcedHums.add(hum);
-                return forcedHums.contains(hum);
-            }
-
-            @Override
-            public void unlockCosmetics() {
-                for (Cosmetic cosmetic : Cosmetic.values()) settings.unlock(cosmetic);
-                settingsPage.refresh();
-            }
-
-            @Override
-            public void lockCosmetics() {
-                settings.lockCosmetics();
-                applyAppearance();
-                settingsPage.refresh();
-            }
-
-            @Override
-            public void toggleCosmetic(Cosmetic cosmetic) {
-                if (settings.hasCosmetic(cosmetic)) settings.lock(cosmetic);
-                else settings.unlock(cosmetic);
-                applyAppearance();
-                settingsPage.refresh();
-            }
-
-            @Override
-            public void newGame() { resetGame(); }
-        };
-    }
     /**
      * Vrai si un clic sur {@code target} doit rendre le clavier au jeu : le joueur écrivait dans un champ, et clique
      * ailleurs que dans ce champ, sa rangée, ou un autre champ.
@@ -242,6 +131,11 @@ public abstract class GameAppBase extends Application {
     static final double FUSE_WIDTH = 380;
     /** Nombre maximal de générateurs dessinés ; les suivants produisent sans être affichés. */
     static final int MAX_VISIBLE_GENERATORS = 30;
+    /**
+     * Version 0.286, pour le profil test UI seul : la vitesse des particules que voient les générateurs, en ordre de
+     * grandeur, à la place de celle de la partie (la charge maximale) ; {@code NaN}, celle de la partie.
+     */
+    double testSpeedLog = Double.NaN;
 
     /** Taille et marges des onglets du haut, selon la largeur de la fenêtre ; leur allure vient de leur rôle ({@link #tabStyle}). */
     static final String WIDE_TAB = " -fx-font-size: 14px; -fx-padding: 9 10;";
@@ -391,7 +285,7 @@ public abstract class GameAppBase extends Application {
     final StatsPage statsPage = new StatsPage(game, purchaseHistory, pace);
     /** Le profil : l'image importée se copie dans le dossier des données, connu seulement au lancement. */
     final ProfilePage profilePage = new ProfilePage(game, () -> store.enabled() ? store.folder() : null);
-    final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
+    final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, saveActions());
     final idle.ui.pages.SkinsPage skinsPage = new idle.ui.pages.SkinsPage(game);
     final ScrollPane skinsScroll = new ScrollPane(skinsPage);
     final ScrollPane settingsScroll = new ScrollPane(settingsPage);
@@ -1063,137 +957,6 @@ public abstract class GameAppBase extends Application {
         stage.setOnCloseRequest(event -> closing());
         stage.show();
         if (uiTestPanel != null) uiTestPanel.begin();
-    }
-
-    /** Ce que la page des réglages demande pour la sauvegarde : chaque geste rend la phrase qui dit ce qu'il a donné. */
-    private final class SaveActions implements SettingsPage.Saves {
-        @Override
-        public String status() { return store.status(); }
-
-        @Override
-        public String saveNow() {
-            save();
-            return store.problem().isEmpty() ? (store.enabled() ? "Partie sauvegardée." : "Jeu lancé sans sauvegarde.")
-                    : "La sauvegarde a échoué : " + store.problem();
-        }
-
-        @Override
-        public String copyExport() {
-            String text = store.export(game);
-            return copy(text) ? "Partie copiée dans le presse-papiers (" + Format.whole(text.length()) + " caractères)."
-                    : "Le presse-papiers n'est pas accessible.";
-        }
-
-        @Override
-        public String pasteImport() {
-            String text;
-            try {
-                text = Clipboard.getSystemClipboard().getString();
-            } catch (RuntimeException unavailable) {
-                return "Le presse-papiers n'est pas accessible.";
-            }
-            try {
-                int dropped = store.importText(game, text);
-                afterLoad();
-                return "Partie importée : " + Format.duration(game.state().timePlayed()) + " de jeu."
-                        + (dropped > 0 ? " " + dropped + " chose(s) que ce jeu ne connaît pas ont été écartées." : "");
-            } catch (SaveCodec.Unreadable unreadable) {
-                return "Rien n'a changé. " + unreadable.getMessage();
-            }
-        }
-
-        @Override
-        public String previewImport() {
-            String text;
-            try {
-                text = Clipboard.getSystemClipboard().getString();
-            } catch (RuntimeException unavailable) {
-                return "Rien à importer : le presse-papiers n'est pas accessible.";
-            }
-            try {
-                SaveCodec.Preview preview = SaveCodec.preview(text);
-                String newer = !preview.meta().gameVersion().isEmpty() && SaveStore.compareVersions(preview.meta().gameVersion(), Version.CURRENT) > 0
-                        ? " Elle vient d'une version plus récente du jeu : ce qu'il ne connaît pas sera écarté." : "";
-                return "Dans le presse-papiers : " + SaveStore.describe(preview) + "." + newer
-                        + " Cliquer encore pour remplacer la partie en cours.";
-            } catch (SaveCodec.Unreadable unreadable) {
-                return "Rien à importer. " + unreadable.getMessage();
-            }
-        }
-
-        @Override
-        public int checkpointSlots() { return SaveStore.MAX_CHECKPOINTS; }
-
-        @Override
-        public String checkpointLine(int slot) {
-            SaveStore.Checkpoint point = store.checkpoint(slot);
-            if (point.used()) return SaveStore.describe(point.preview());
-            return point.problem().isEmpty() ? "vide" : "illisible : " + point.problem();
-        }
-
-        @Override
-        public boolean checkpointUsed(int slot) { return store.checkpoint(slot).used(); }
-
-        @Override
-        public String saveCheckpoint(int slot, String name) {
-            if (!store.enabled()) return "Jeu lancé sans sauvegarde : aucun point ne s'écrit.";
-            return store.saveCheckpoint(game, slot, name) ? "Point " + slot + " enregistré." : "Le point n'a pas pu s'écrire : " + store.checkpointProblem();
-        }
-
-        @Override
-        public String loadCheckpoint(int slot) {
-            try {
-                int dropped = store.loadCheckpoint(game, slot);
-                afterLoad();
-                return "Partie reprise : " + Format.duration(game.state().timePlayed()) + " de jeu."
-                        + " La partie d'avant est mise de côté (« Avant la dernière reprise ») : la reprendre les échange de nouveau."
-                        + (dropped > 0 ? " " + dropped + " chose(s) que ce jeu ne connaît pas ont été écartées." : "");
-            } catch (SaveCodec.Unreadable unreadable) {
-                return "Rien n'a changé. " + unreadable.getMessage();
-            }
-        }
-
-        @Override
-        public String deleteCheckpoint(int slot) {
-            if (store.deleteCheckpoint(slot)) return "Point effacé.";
-            return store.checkpointProblem().isEmpty() ? "Rien à effacer." : "Le point n'a pas pu s'effacer : " + store.checkpointProblem();
-        }
-
-        @Override
-        public String records() {
-            int known = 0;
-            for (GameStats.Step step : GameStats.Step.values()) {
-                if (!Double.isNaN(game.recordOf(step))) known++;
-            }
-            if (known == 0) return "Aucun record pour l'instant : le premier s'inscrit à la première fusion.";
-            GameStats.Step next = game.nextStep();
-            return known + (known > 1 ? " étapes ont un record" : " étape a un record")
-                    + (next == null || Double.isNaN(game.recordOf(next)) ? "."
-                    : ". Prochaine : " + next.label() + ", " + Format.duration(game.recordOf(next)) + ".");
-        }
-
-        @Override
-        public void clearRecords() {
-            game.clearRecords();
-            store.save(game);
-        }
-
-        @Override
-        public String copyBugReport() {
-            return copy(BugReport.of(game, store, new BugReport.Session(randomSeed,
-                    tabName(selectedTab == Tab.SETTINGS ? gameTab : selectedTab), testProfile))) ? "Rapport de bug copié dans le presse-papiers : il n'y a plus qu'à le coller."
-                    : "Le presse-papiers n'est pas accessible.";
-        }
-
-        private boolean copy(String text) {
-            try {
-                ClipboardContent content = new ClipboardContent();
-                content.putString(text);
-                return Clipboard.getSystemClipboard().setContent(content);
-            } catch (RuntimeException unavailable) {
-                return false;
-            }
-        }
     }
 
     /**

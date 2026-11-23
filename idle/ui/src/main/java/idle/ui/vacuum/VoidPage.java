@@ -4,7 +4,7 @@ import idle.core.Game;
 import idle.core.universe.SkinVisual;
 import idle.ui.Readiness;
 import idle.ui.universe.UniversePage;
-import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.GameUniverseBase.VoidUpgrade;
 import idle.core.math.BigNum;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
@@ -291,13 +291,13 @@ public final class VoidPage extends VBox {
         return switch (upgrade) {
             case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond." + price;
             case RATE -> "Le rythme le plus haut des paires : " + Math.round(Game.VOID_BASE_RATE) + " par seconde, ×"
-                    + String.format(Locale.FRANCE, "%.2f", Game.VOID_RATE_STEP) + " par niveau, " + upgrade.max() + " niveaux. La part "
+                    + String.format(Locale.ROOT, "%.2f", Game.VOID_RATE_STEP) + " par niveau, " + upgrade.max() + " niveaux. La part "
                     + "du collisionneur et celle de l'espace libre le bornent aussi." + price;
-            case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0,85 par niveau, " + upgrade.max()
+            case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0.85 par niveau, " + upgrade.max()
                     + " niveaux : la même part de collisionneur paie plus de paires." + price;
-            case SPACE -> "Une paire tient un cinquième de seconde d'expansion tant qu'elle vit, ×0,85 par niveau, " + upgrade.max()
+            case SPACE -> "Une paire tient un cinquième de seconde d'expansion tant qu'elle vit, ×0.85 par niveau, " + upgrade.max()
                     + " niveaux : la même part d'espace libre tient plus de paires." + price;
-            case DECAY -> "La fonte, 0,2 % par seconde, ×0,9 par niveau, " + upgrade.max() + " niveaux : l'équilibre monte d'autant." + price;
+            case DECAY -> "La fonte, 0.2 % par seconde, ×0.9 par niveau, " + upgrade.max() + " niveaux : l'équilibre monte d'autant." + price;
             case LIGHTEN -> "Les molécules et la matière que demandent les astres, l'amas et l'univers baissent de "
                     + percent(Game.VOID_LIGHTEN_STEP) + " par niveau, arrondies au-dessus, jamais sous 1 ; " + upgrade.max()
                     + " niveaux, −" + percent(Game.VOID_LIGHTEN_STEP * upgrade.max()) + " au plus. La galaxie demande les astres : "
@@ -349,12 +349,12 @@ public final class VoidPage extends VBox {
     private static String decimal(double value) {
         if (value >= 1000) return Format.count(BigNum.of(value));
         return value >= 100 ? String.valueOf(Math.round(value))
-                : String.format(Locale.FRANCE, value >= 10 ? "%.1f" : "%.2f", value);
+                : String.format(Locale.ROOT, value >= 10 ? "%.1f" : "%.2f", value);
     }
 
-    /** « 7 % », « 0,2 % » : une part, en pour cent, sans zéros inutiles. */
+    /** « 7 % », « 0.2 % » : une part, en pour cent, sans zéros inutiles. */
     private static String percent(double rate) {
-        return String.format(Locale.FRANCE, "%.3f", rate * 100).replaceAll("0+$", "").replaceAll(",$", "") + " %";
+        return String.format(Locale.ROOT, "%.3f", rate * 100).replaceAll("0+$", "").replaceAll("\\.$", "") + " %";
     }
 
     /** Une image de l'écume : les paires de la partie, figées si les animations de l'univers sont coupées. */

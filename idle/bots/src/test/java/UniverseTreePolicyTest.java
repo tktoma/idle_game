@@ -3,7 +3,7 @@ import idle.core.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.*;
 import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;

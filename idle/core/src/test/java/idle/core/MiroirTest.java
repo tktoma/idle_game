@@ -14,7 +14,7 @@ import idle.core.GameMirror.MirrorCell;
 import idle.core.GameMirror.MirrorPhase;
 import idle.core.GameMirror.MirrorUpgrade;
 import idle.core.GameMirror.Season;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import idle.core.save.SaveCodec;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

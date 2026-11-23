@@ -11,7 +11,7 @@ import javafx.scene.shape.StrokeLineCap;
  * Les skins du dessin d'un système solaire ({@link SkinVisual#SYSTEM}, {@link SystemView}) :
  * le fond, les orbites, l'étoile et les planètes.
  * <ul>
- *   <li>« Orrery » ({@link Skin#SYSTEM_ORRERY}) : un fond de bois sombre, des orbites en cercles de laiton,
+ *   <li>« Planétaire mécanique » ({@link Skin#SYSTEM_ORRERY}) : un fond de bois sombre, des orbites en cercles de laiton,
  *       chaque planète au bout d'une tige de laiton qui part de l'étoile, un socle à engrenage en bas ;</li>
  *   <li>« Dessin d'enfant » ({@link Skin#SYSTEM_CRAYON}) : une feuille de cahier quadrillée, des orbites
  *       au crayon de couleur qui tremblent, un Soleil à rayons jaunes autour de l'étoile ;</li>
@@ -191,7 +191,7 @@ final class SystemSkinArt {
         g.setLineCap(StrokeLineCap.SQUARE);
     }
 
-    /** L'étoile dans ce skin : dans l'orrery et le dessin d'enfant, l'astre lui-même, avec ses rayons de crayon ; au radar, le centre de l'écran. */
+    /** L'étoile dans ce skin : dans le planétaire et le dessin d'enfant, l'astre lui-même, avec ses rayons de crayon ; au radar, le centre de l'écran. */
     static void star(GraphicsContext g, Skin skin, Body star, double x, double y, Skin bodySkin, double time) {
         switch (skin) {
             case SYSTEM_CRAYON -> {
@@ -224,7 +224,7 @@ final class SystemSkinArt {
 
     /**
      * Une planète (ou une lune, {@code radius} plus petit) dans ce skin, centrée en ({@code x}, {@code y}) ;
-     * {@code starX} et {@code cy} sont le centre de l'étoile. L'orrery pose d'abord sa tige depuis l'étoile ; le
+     * {@code starX} et {@code cy} sont le centre de l'étoile. Le planétaire pose d'abord sa tige depuis l'étoile ; le
      * radar la remplace par un écho, plus vif juste après le passage du faisceau.
      */
     static void planet(GraphicsContext g, Skin skin, Body body, double x, double y, double radius, double starX, double cy, Skin bodySkin,

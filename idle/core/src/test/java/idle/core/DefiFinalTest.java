@@ -5,7 +5,7 @@ import idle.core.profile.Title;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.save.SaveCodec;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +41,8 @@ class DefiFinalTest {
         assertTrue(game.isFinalChallengeOpen());
         assertFalse(TreeBubble.ROOTS.effect().contains("à venir"));
         for (int d = 1; d <= 9; d++) assertTrue(Game.finalGoal(d) > 0, "un palier par dimension");
-        assertEquals(1e7, Game.finalGoal(10), 0);
+        double facteurAttendu = 0.53;
+        assertEquals(facteurAttendu, Game.finalGoal(10) / 1e7, 0.001, "Le palier du mélange est ajusté par le facteur");
     }
 
     @Test

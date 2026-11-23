@@ -2,7 +2,7 @@ package idle.core;
 
 import idle.core.state.GameState;
 
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.universe.DimensionAutomation;

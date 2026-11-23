@@ -177,7 +177,7 @@ final class MultiplierPane extends VBox {
     }
 
     private static String orders(double log10) {
-        return log10 >= 100 ? Format.whole(Math.round(log10)) : String.format(Locale.FRANCE, "%.1f", log10);
+        return log10 >= 100 ? Format.whole(Math.round(log10)) : String.format(Locale.ROOT, "%.1f", log10);
     }
 
     private static String pill(boolean chosen) {

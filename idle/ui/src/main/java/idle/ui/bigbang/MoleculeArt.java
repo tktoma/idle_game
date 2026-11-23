@@ -40,7 +40,7 @@ import javafx.scene.text.*;
  * connaît pas les liaisons doubles : elles sont toutes simples), avec aux sommets la lettre du symbole en police à
  * chasse fixe, blanche à ombre sombre, dès {@link #LETTERS_FROM} pixels de rayon, et un petit point en dessous. «
  * Perles » ({@link Skin#MOLECULE_PEARLS}) fait de chaque atome une perle nacrée (couleur très éclaircie, reflet blanc
- * décalé, bord irisé de deux teintes voisines) sur une légère ombre portée, reliée par un fil d'un pixel. « Lego »
+ * décalé, bord irisé de deux teintes voisines) sur une légère ombre portée, reliée par un fil d'un pixel. « Briques »
  * ({@link Skin#MOLECULE_BRICKS}) pose à chaque atome une brique carrée vue de trois quarts, face avant de la couleur
  * saturée, dessus plus clair avec deux tenons, côté droit plus sombre, cernée de noir ; les briques ne tournent pas et
  * se touchent, la plus liée au centre, dessinées de l'arrière-plan vers l'avant. Les dégradés et couleurs dérivées sont
@@ -69,7 +69,7 @@ final class MoleculeArt {
 
     /** Boules pleines : ce par quoi le rayon d'un atome est multiplié, un rayon de van der Waals approché. */
     static final double FILLING = 1.6;
-    /** Boules pleines et Lego : ce dont le dessin peut déborder du cercle demandé, au plus (1.15 = 15 %). */
+    /** Boules pleines et Briques : ce dont le dessin peut déborder du cercle demandé, au plus (1.15 = 15 %). */
     static final double OVERFLOW = 1.15;
     /** Traits : à partir de ce rayon demandé, en pixels, les sommets portent leur lettre plutôt qu'un point. */
     static final double LETTERS_FROM = 14;
@@ -79,11 +79,11 @@ final class MoleculeArt {
     /** Perles : le fil qui relie les perles, et l'ombre sous chacune. */
     private static final Color THREAD = Color.web("#d8d2c4");
     private static final Color PEARL_SHADOW = Color.rgb(0, 0, 0, 0.22);
-    /** Lego : la profondeur des faces du dessus et de droite, en part du côté de la face avant. */
+    /** Briques : la profondeur des faces du dessus et de droite, en part du côté de la face avant. */
     private static final double BRICK_DEPTH = 0.35;
-    /** Lego : le côté d'une brique, en pas du pavage, pour un atome de ce rayon (bornée à un pas : les voisines se touchent). */
+    /** Briques : le côté d'une brique, en pas du pavage, pour un atome de ce rayon (bornée à un pas : les voisines se touchent). */
     private static final double BRICK_SIDE_PER_RADIUS = 2.8;
-    /** Lego : où sont les deux tenons sur la largeur du dessus. */
+    /** Briques : où sont les deux tenons sur la largeur du dessus. */
     private static final double[] STUDS = {0.3, 0.7};
 
     /** Les couleurs des modèles moléculaires, pour les éléments qu'on y croise le plus. */
@@ -324,7 +324,7 @@ final class MoleculeArt {
         }
 
         /**
-         * Lego : une brique par atome, vue de trois quarts et sans rotation, dessinées de l'arrière-plan
+         * Briques : une brique par atome, vue de trois quarts et sans rotation, dessinées de l'arrière-plan
          * (en haut à gauche) vers l'avant (en bas à droite), ce qui dit la face qui en cache une autre.
          */
         private void drawBricks(GraphicsContext g, double cx, double cy, double scale, double cos, double sin) {

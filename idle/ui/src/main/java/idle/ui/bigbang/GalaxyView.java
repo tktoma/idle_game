@@ -12,7 +12,7 @@ import javafx.scene.paint.*;
 import javafx.scene.text.*;
 
 /**
- * L'image de la sous-page « Univers » : ce que devient tout ce que le joueur a créé, à la plus grande échelle qu'il a
+ * L'image de la sous-page « Cosmos » : ce que devient tout ce que le joueur a créé, à la plus grande échelle qu'il a
  * formée ({@link Game#cosmosFormed()}). D'abord sa galaxie ; puis l'amas de galaxies, la sienne au milieu des autres ;
  * enfin l'univers, une toile de filaments où son amas n'est plus qu'un nœud.
  *

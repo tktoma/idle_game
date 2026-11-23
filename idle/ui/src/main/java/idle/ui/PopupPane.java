@@ -195,7 +195,7 @@ final class PopupPane extends Overlay {
                 gated(act1, "second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +" + Math.round(Game.REGIME_GAIN * 100) + "\u00a0% de cadence "
                         + "pendant " + (int) Game.REGIME_SECONDS + " s, puis " + (int) Game.REGIME_REST_SECONDS + " s de repos. Il se relance toujours à la main.", blue, game::isRegimeUnlocked),
                 gated(act1, "second:synergy", one, "Synergie des rangs", "Dès le dixième générateur, chacun produit un peu plus, "
-                        + "jusqu'à +" + String.format(Locale.FRANCE, "%.1f", Game.SYNERGY_MAX * 100) + "\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
+                        + "jusqu'à +" + String.format(Locale.ROOT, "%.1f", Game.SYNERGY_MAX * 100) + "\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
                 gated(act1, "second:perfect", one, "Prime de cycle parfait", "Trois fusions de suite sans buter sur le plafond "
                         + "d'atomes : +" + Math.round(Game.PERFECT_GAIN * 100) + "\u00a0% de particules pendant une minute.", gold, game::isPerfectCycleUnlocked),
                 gated(act1, "second:free", one, "Éléments gratuits", "Tous les dix éléments découverts, un élément gratuit : dans "

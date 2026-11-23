@@ -166,7 +166,7 @@ final class UiTestRun {
     /** La combinaison mesurée est finie : sa mesure part au fichier et compte pour la plus lente. */
     private void closeCombination() {
         if (frames > 0 && measuring >= 0) {
-            Fps fps = new Fps(measuring, run.group.name(), run.mode.label, run.describeCombination(measuring), statesSeen.size(), worstState,
+            Fps fps = new Fps(measuring, run.group.name(), run.modeLabel(), run.describeCombination(measuring), statesSeen.size(), worstState,
                     frames, measured, frames / measured, 1 / worst, worst * 1000, work / frames * 1000, setupWorst * 1000);
             if (fpsLog.size() < MAX_FPS) fpsLog.add(fps);
             lastFps = fps;
@@ -240,13 +240,13 @@ final class UiTestRun {
         }
         if (seconds < 365 * 86_400.0) return Math.round(seconds / 86_400) + " j";
         double years = seconds / (365 * 86_400.0);
-        return years < 1e6 ? Math.round(years) + " ans" : String.format(Locale.FRANCE, "%.1e ans", years);
+        return years < 1e6 ? Math.round(years) + " ans" : String.format(Locale.ROOT, "%.1e ans", years);
     }
 
     /** Le rapport des erreurs, à copier. */
     String report() {
         StringBuilder text = new StringBuilder("Profil test UI · ").append(Version.CURRENT).append(" · ").append(run.group.name())
-                .append(" · ").append(run.mode.label).append(" · ").append(errorCount).append(errorCount > 1 ? " erreurs" : " erreur");
+                .append(" · ").append(run.modeLabel()).append(" · ").append(errorCount).append(errorCount > 1 ? " erreurs" : " erreur");
         if (errorCount > errors.size()) text.append(" (les ").append(errors.size()).append(" premières)");
         text.append('\n');
         for (Error error : errors) text.append(error.line()).append('\n');

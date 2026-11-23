@@ -67,7 +67,7 @@ public final class Photo {
             if (log10 < 6) {
                 double v = Math.pow(10, log10);
                 if (Math.abs(v - Math.rint(v)) < 1e-6 * Math.max(1, v)) v = Math.rint(v);
-                return sign + (v >= 100 || v == Math.rint(v) ? String.format(Locale.FRANCE, "%,.0f", v) : String.format(Locale.FRANCE, "%.2f", v));
+                return sign + (v >= 100 || v == Math.rint(v) ? String.format(Locale.FRANCE, "%,.0f", v) : String.format(Locale.ROOT, "%.2f", v));
             }
             double exponent = Math.floor(log10);
             return sign + String.format(Locale.ROOT, "%.2fe%.0f", Math.pow(10, log10 - exponent), exponent);

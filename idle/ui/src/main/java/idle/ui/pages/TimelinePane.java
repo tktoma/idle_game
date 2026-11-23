@@ -95,7 +95,7 @@ final class TimelinePane extends VBox {
     static String span(double seconds) { return Double.isFinite(seconds) && seconds >= 0 ? at(seconds) : "inconnue"; }
 
     /** « 4,1 % » : une part, avec une décimale. */
-    static String share(double part) { return String.format(Locale.FRANCE, "%.1f %%", 100 * part); }
+    static String share(double part) { return String.format(Locale.ROOT, "%.1f %%", 100 * part); }
 
     /** Dessine les univers dans ce skin ; {@code null}, ou un skin d'un autre visuel, remet le Classique ; un changement redessine tout de suite. */
     void setSkin(idle.core.universe.Skin chosen) {

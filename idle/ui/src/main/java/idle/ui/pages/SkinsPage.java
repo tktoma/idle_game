@@ -166,6 +166,14 @@ public final class SkinsPage extends VBox {
     /** La barre des sous-onglets : la fenêtre la range en haut ou dans la page. */
     public FlowPane subTabs() { return subTabs; }
 
+    /** Le mode détails d'une épreuve (version 0.291) : comment elle se joue, s'arrête et se rejoue. */
+    private static String trialDetail(Trial trial) {
+        return "Une seule épreuve à la fois : un clic la commence, un clic sur la carte en cours l'abandonne sans rien coûter. "
+                + (trial.seconds() > 0 ? "Le temps écoulé sans atteindre le but, elle échoue et se retente. "
+                        : "Elle dure jusqu'à son but, ou jusqu'à l'abandon. ")
+                + "Réussie, elle débloque le skin « " + trial.skin().label() + " » et peut se rejouer.";
+    }
+
     /** Ce qu'une épreuve demande pour s'ouvrir. */
     static String requirement(Trial trial) {
         return switch (trial) {
@@ -203,7 +211,8 @@ public final class SkinsPage extends VBox {
                 + " s au plus, il donne le skin « " + Skin.FUSION_FLASH.label() + " ».");
         boolean prismDone = game.hasPrismResearch();
         prism.show(prismDone ? Card.State.DONE : game.canBuyPrismResearch() ? Card.State.READY : Card.State.WAITING, "",
-                prismDone ? "faite" : "", "Fusion prismatique", "Une recherche facultative : le skin « Prisme » de la fusion", "",
+                prismDone ? "faite" : "", "Fusion prismatique", "Une recherche facultative : le skin « Prisme » de la fusion",
+                "Un seul achat, en particules, qui ne change rien au jeu : il débloque le skin « Prisme » de la fusion des particules.",
                 prismDone ? "" : Format.big(Game.PRISM_COST) + " particules", "");
         int tiers = game.denseTiers();
         boolean denseOpen = game.isDenseResearchUnlocked();
@@ -211,7 +220,10 @@ public final class SkinsPage extends VBox {
                         : game.canBuyDenseTier() ? Card.State.READY : tiers > 0 ? Card.State.STARTED : Card.State.WAITING, "",
                 tiers + " / " + Game.DENSE_COSTS.length, "Noyau dense",
                 denseOpen ? "Quatre paliers : deux skins d'atome, deux du tableau"
-                        : "S'ouvre à " + Format.big(Game.DENSE_UNLOCK_ATOMS) + " atomes créés", "",
+                        : "S'ouvre à " + Format.big(Game.DENSE_UNLOCK_ATOMS) + " atomes créés",
+                "Chaque palier se paie en atomes et débloque un skin, dans l'ordre : « " + Skin.ATOM_DENSE.label() + " » (l'atome), « "
+                        + Skin.TABLE_LEAD.label() + " » (le tableau), « " + Skin.ATOM_STELLAR.label() + " » (l'atome), « "
+                        + Skin.TABLE_GOLD.label() + " » (le tableau). La recherche ne change rien au jeu.",
                 tiers >= Game.DENSE_COSTS.length || !denseOpen ? "" : Format.big(Game.DENSE_COSTS[tiers]) + " atomes", "");
         Trial running = game.activeTrial();
         for (Map.Entry<Trial, Card> entry : trials.entrySet()) {
@@ -235,7 +247,7 @@ public final class SkinsPage extends VBox {
                 state = done ? Card.State.DONE : Card.State.WAITING;
                 price = running != null ? "Une autre est en cours" : "Un seul générateur pour commencer";
             }
-            entry.getValue().show(state, "", mark, trial.label(), trial.rule(), "", price, "Skin « " + trial.skin().label() + " »");
+            entry.getValue().show(state, "", mark, trial.label(), trial.rule(), trialDetail(trial), price, "Skin « " + trial.skin().label() + " »");
         }
         // Les sous-onglets : une catégorie sans skin montré reste cachée ; celle qu'on regardait revient à la collection.
         if (selected != null && !SkinShelf.shown(game, selected)) selected = null;

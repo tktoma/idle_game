@@ -7,7 +7,7 @@ import java.util.Locale;
  * Les cinq skins des notifications, à côté de {@link ToastPane} pour le garder lisible. Le liseré de
  * couleur du classique (celle de l'onglet dont la nouvelle parle) reste un repère sur chacun :
  * <ul>
- * <li>« Post-it » : un carré jaune un peu de travers, écriture sombre, le liseré en haut comme une bande collante ;</li>
+ * <li>« Pense-bête » : un carré jaune un peu de travers, écriture sombre, le liseré en haut comme une bande collante ;</li>
  * <li>« Télégramme » : papier beige, lettres à machine en capitales, le texte se termine par « STOP » ;</li>
  * <li>« Bulle de BD » : blanc cerné de noir, très arrondi, lettres grasses ;</li>
  * <li>« Ticket de caisse » : papier blanc étroit, lettres à machine, bords crantés en pointillé ;</li>
@@ -24,7 +24,7 @@ final class ToastSkinStyles {
     static String style(Skin skin, String color) {
         if (skin == null) return ToastPane.STYLE + color + ";";
         return switch (skin) {
-            case TOAST_POSTIT -> BASE + " -fx-text-fill: #3a3010; -fx-font-family: 'Serif'; -fx-background-color: #fff176;"
+            case TOAST_STICKY_NOTE -> BASE + " -fx-text-fill: #3a3010; -fx-font-family: 'Serif'; -fx-background-color: #fff176;"
                     + " -fx-background-radius: 0; -fx-border-radius: 0; -fx-border-width: 6 0 0 0; -fx-border-color: " + color + "88;";
             case TOAST_TELEGRAM -> BASE + " -fx-text-fill: #2a2318; -fx-font-family: 'Monospaced'; -fx-background-color: #efe6c8;"
                     + " -fx-background-radius: 0; -fx-border-radius: 0; -fx-border-width: 1 1 1 6; -fx-border-color: #8a7a5a #8a7a5a #8a7a5a " + color + ";";
@@ -48,7 +48,7 @@ final class ToastSkinStyles {
     }
 
     /** L'inclinaison du message, en degrés : le post-it est collé un peu de travers. */
-    static double rotation(Skin skin) { return skin == Skin.TOAST_POSTIT ? -1.5 : 0; }
+    static double rotation(Skin skin) { return skin == Skin.TOAST_STICKY_NOTE ? -1.5 : 0; }
 
     /** La largeur maximale d'un message : le ticket de caisse est étroit. */
     static double maxWidth(Skin skin) { return skin == Skin.TOAST_RECEIPT ? 300 : 440; }

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.GameUniverseBase.VoidUpgrade;
 import idle.core.bigbang.BangChallenge;
 import idle.core.math.BigNum;
 import idle.core.sky.*;

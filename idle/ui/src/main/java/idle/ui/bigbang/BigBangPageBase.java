@@ -370,7 +370,7 @@ public abstract class BigBangPageBase extends VBox {
     /** La page des astres défile d'un bloc : le ciel, puis toutes les familles d'astres. */
     final ScrollPane bodiesScroll;
     /** Sous-page « Univers » : la galaxie, l'amas de galaxies, l'univers. */
-    final Button galaxyTab = new Button("Univers");
+    final Button galaxyTab = new Button("Cosmos");
     /** Les paliers de Big Bang : rangé à côté des améliorations, mais numéroté après la galaxie ({@link #select(int)}). */
     final Button milestonesTab = new Button("Paliers");
     final Button probesTab = new Button("Sondes");

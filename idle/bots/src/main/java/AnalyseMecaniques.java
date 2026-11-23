@@ -20,6 +20,9 @@ final class AnalyseMecaniques {
         list.add(sans("cometes", "Les comètes : plus attrapées"));
         list.add(sans("anomalies", "Les anomalies du ciel : plus attrapées"));
         list.add(sans("impulsions", "Les impulsions d'espace : plus déclenchées"));
+        list.add(sans("calme", "Le calme du Big Bang : plus d'attente sans achat quand seules les particules manquent (0.294)"));
+        list.add(sans("epreuves", "Les épreuves de l'onglet Skins : plus tentées (0.294)"));
+        list.add(sans("rond", "Le rond de croissance de la graine : plus cueilli (0.294)"));
         list.add(sans("appui_m", "La touche M tenue : un achat « max » par décision au lieu d'un toutes les secondes (sans effet sur un profil qui ne la tient pas, comme le Régulier)"));
         return list;
     }

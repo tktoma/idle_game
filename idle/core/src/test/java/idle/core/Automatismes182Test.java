@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.GameUniverse.SeedUpgrade;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.SeedUpgrade;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;
 import org.junit.jupiter.api.Test;

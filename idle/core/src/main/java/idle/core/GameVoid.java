@@ -3,8 +3,8 @@ package idle.core;
 import idle.core.state.GameState;
 import idle.core.collider.Hadron;
 
-import idle.core.GameUniverse.TreeBubble;
-import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.GameUniverseBase.TreeBubble;
+import idle.core.GameUniverseBase.VoidUpgrade;
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;

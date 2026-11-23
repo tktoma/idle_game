@@ -30,7 +30,7 @@ final class AtomSkinArt {
     private static final Color LEAD = Color.web("#0a0a0c");
     /** Les verres du vitrail : bleu roi, rubis, émeraude, ambre, violet, cyan. */
     private static final Color[] GLASS = {Color.web("#2a4fcf"), Color.web("#c62a3a"), Color.web("#2a9a5a"),
-        Color.web("#e2a52a"), Color.web("#7a3ab8"), Color.web("#2aa5c6")};
+        Webs.C_E2A52A, Webs.C_7A3AB8, Webs.C_2AA5C6};
 
     private AtomSkinArt() {
     }
@@ -215,7 +215,7 @@ final class AtomSkinArt {
 
     /** Le noyau en nuage : une grappe de points dorés, serrée, avec un cœur plein. */
     private static void cloudNucleus(GraphicsContext g, double cx, double cy, double nucleus, double clock, double fade) {
-        g.setFill(Color.web("#ffd27f"));
+        g.setFill(Webs.C_FFD27F);
         for (int k = 0; k < 40; k++) {
             double dist = nucleus * 1.3 * Math.pow(AtomModelView.noise(k * 2 + 900), 0.7);
             double a = 2 * Math.PI * AtomModelView.noise(k * 2 + 901) - clock * 0.2;
@@ -237,7 +237,7 @@ final class AtomSkinArt {
             px[p] = f.x(radius * Math.cos(t), radius * Math.sin(t) * ringTilt);
             py[p] = f.y(radius * Math.cos(t), radius * Math.sin(t) * ringTilt);
         }
-        g.setStroke(Color.web("#d8e4f0"));
+        g.setStroke(Webs.C_D8E4F0);
         g.setLineWidth(Math.max(2, radius * 0.045));
         g.setGlobalAlpha(0.14 * fade);
         g.strokePolyline(px, py, 49);
@@ -248,7 +248,7 @@ final class AtomSkinArt {
 
     /** Un caillou de glace sur son anneau : gris bleuté, plus vif devant la planète que derrière. */
     private static void rock(GraphicsContext g, double x, double y, double r, boolean front, double fade) {
-        g.setFill(front ? Color.web("#e8f0f8") : Color.web("#9aa8b8"));
+        g.setFill(front ? Webs.C_E8F0F8 : Webs.C_9AA8B8);
         g.setGlobalAlpha(fade * (front ? 1 : 0.6));
         g.fillOval(x - r, y - r * 0.8, r * 2, r * 1.6);
     }
@@ -257,10 +257,10 @@ final class AtomSkinArt {
     private static void planet(GraphicsContext g, double cx, double cy, double nucleus, double clock, double fade) {
         g.setGlobalAlpha(fade);
         g.setFill(new RadialGradient(0, 0, cx - nucleus * 0.35, cy - nucleus * 0.35, nucleus * 1.3, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#f0c890")), new Stop(0.6, Color.web("#c98a4a")), new Stop(1, Color.web("#5a3418"))));
+                new Stop(0, Webs.C_F0C890), new Stop(0.6, Webs.C_C98A4A), new Stop(1, Webs.C_5A3418)));
         g.fillOval(cx - nucleus, cy - nucleus, nucleus * 2, nucleus * 2);
         // Des bandes nuageuses qui dérivent lentement, chacune à sa latitude.
-        g.setStroke(Color.web("#7a4a22"));
+        g.setStroke(Webs.C_7A4A22);
         g.setLineCap(StrokeLineCap.ROUND);
         for (int k = -2; k <= 2; k++) {
             double y = cy + nucleus * 0.32 * k + nucleus * 0.08 * Math.sin(clock * 0.3 + k);
@@ -339,10 +339,10 @@ final class AtomSkinArt {
 
     /** Un électron en bille d'acier : gris sombre, un reflet blanc. */
     private static void bearing(GraphicsContext g, double x, double y, double r, double fade) {
-        g.setFill(Color.web("#3a3f48"));
+        g.setFill(Webs.C_3A3F48);
         g.setGlobalAlpha(fade);
         g.fillOval(x - r, y - r, r * 2, r * 2);
-        g.setStroke(Color.web("#9aa0a8"));
+        g.setStroke(Webs.C_9AA0A8);
         g.setLineWidth(0.8);
         g.strokeOval(x - r, y - r, r * 2, r * 2);
         g.setFill(Color.WHITE);
@@ -428,8 +428,25 @@ final class AtomSkinArt {
             g.strokePolygon(px, py, 12);
         }
         double heart = nucleus * 0.22;
-        g.setFill(Color.web("#ffd27f"));
+        g.setFill(Webs.C_FFD27F);
         g.setGlobalAlpha(fade);
         g.fillOval(f.x(0, 0) - heart, f.y(0, 0) - heart, heart * 2, heart * 2);
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_2AA5C6 = Color.web("#2aa5c6");
+        static final Color C_3A3F48 = Color.web("#3a3f48");
+        static final Color C_5A3418 = Color.web("#5a3418");
+        static final Color C_7A3AB8 = Color.web("#7a3ab8");
+        static final Color C_7A4A22 = Color.web("#7a4a22");
+        static final Color C_9AA0A8 = Color.web("#9aa0a8");
+        static final Color C_9AA8B8 = Color.web("#9aa8b8");
+        static final Color C_C98A4A = Color.web("#c98a4a");
+        static final Color C_D8E4F0 = Color.web("#d8e4f0");
+        static final Color C_E2A52A = Color.web("#e2a52a");
+        static final Color C_E8F0F8 = Color.web("#e8f0f8");
+        static final Color C_F0C890 = Color.web("#f0c890");
+        static final Color C_FFD27F = Color.web("#ffd27f");
     }
 }

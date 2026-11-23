@@ -22,7 +22,7 @@ import javafx.util.Duration;
  * montre que ce qui agit. Rien n'est calculé ici que {@link Game} n'expose déjà.
  *
  * <p>Les bulles ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochaine remise à jour :
- * « Parchemin » (papier brun clair, encre brune, police à empattements, bord sombre), « Post-it » (jaune pâle
+ * « Parchemin » (papier brun clair, encre brune, police à empattements, bord sombre), « Pense-bête » (jaune pâle
  * {@code #f9eeda}, sans bord, une ombre portée, un peu penché par l'italique), « Terminal » (noir, texte vert à chasse
  * fixe, bord vert, coins carrés).
  */
@@ -68,7 +68,7 @@ public final class Breakdown {
             case TOOLTIP_PARCHMENT -> "-fx-font-size: 12px; -fx-font-family: serif; -fx-padding: 9 12; -fx-text-fill: #3a2a14;"
                     + " -fx-background-color: #d8c49a; -fx-background-radius: 2; -fx-border-radius: 2; -fx-border-color: #8a6a3a;"
                     + " -fx-border-width: 1.5;";
-            case TOOLTIP_POSTIT -> "-fx-font-size: 12px; -fx-font-style: italic; -fx-padding: 10 12; -fx-text-fill: #2a2218;"
+            case TOOLTIP_STICKY_NOTE -> "-fx-font-size: 12px; -fx-font-style: italic; -fx-padding: 10 12; -fx-text-fill: #2a2218;"
                     + " -fx-background-color: #f9eeda; -fx-background-radius: 0; -fx-border-color: transparent;"
                     + " -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 10, 0.2, 3, 4);";
             case TOOLTIP_TERMINAL -> "-fx-font-size: 12px; -fx-font-family: Monospaced; -fx-padding: 8 10; -fx-text-fill: #6dff8f;"

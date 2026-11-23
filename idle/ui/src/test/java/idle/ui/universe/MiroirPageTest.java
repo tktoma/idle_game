@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameUniverse.SeedUpgrade;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.SeedUpgrade;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
 import idle.ui.Version;

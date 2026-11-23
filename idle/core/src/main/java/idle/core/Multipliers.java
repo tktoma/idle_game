@@ -199,7 +199,7 @@ public final class Multipliers {
         if (value.sign() > 0) add(factors, aspect, label, value.log10());
     }
 
-    private static String exponent(double power) { return String.format(Locale.FRANCE, "%.3f", power); }
+    private static String exponent(double power) { return String.format(Locale.ROOT, "%.3f", power); }
 
     private static double log(double value) { return value > 0 ? Math.log10(value) : 0; }
 
@@ -367,7 +367,7 @@ public final class Multipliers {
 
     /** Les segments de la ligne : {@link Game#lineShardsPerSecond()}, facteur par facteur. */
     private static void lineShards(Game game, List<Factor> factors) {
-        add(factors, Aspect.BASE, "Un dixième d'éclat par trait, un aller en " + String.format(Locale.FRANCE, "%.1f", Game.LINE_HALF_TRIP) + " s", log(Game.LINE_SHARD / Game.LINE_HALF_TRIP));
+        add(factors, Aspect.BASE, "Un dixième d'éclat par trait, un aller en " + String.format(Locale.ROOT, "%.1f", Game.LINE_HALF_TRIP) + " s", log(Game.LINE_SHARD / Game.LINE_HALF_TRIP));
         add(factors, Aspect.UPGRADES, game.lineTicks() - 1 + " traits touchés par aller", log(game.lineTicks() - 1));
         add(factors, Aspect.UPGRADES, "Éclats par trait : " + game.state().lineYieldLevel() + " niveaux", log(1 + game.state().lineYieldLevel()));
         hadron(game, factors, Hadron.OMEGA);

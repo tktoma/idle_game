@@ -151,7 +151,7 @@ public final class DarkUpgrades {
                     BigNum.of(5, 6), 1, 1, "dark_relics",
                     new DarkEffect.KeepUpgradesOnExplosion()),
             // Bifurcation « noyau » (0.070) : +40 atomes par fusion, ou deux éléments de plus à chaque synthèse.
-            new DarkUpgrade("dark_dense_core", "Noyau dense", DarkUpgrade.Branch.ATOMS,
+            new DarkUpgrade("dark_dense_core", "Noyau compact", DarkUpgrade.Branch.ATOMS,
                     BigNum.of(1, 9), 1, 1, "dark_memory",
                     new DarkEffect.AddAtomsPerFusion(40), "noyau"),
             new DarkUpgrade("dark_double_synthesis", "Synthèse double", DarkUpgrade.Branch.ATOMS,
@@ -170,7 +170,7 @@ public final class DarkUpgrades {
             // Croissance ×2 par niveau, cinq niveaux : à 1 nm, 1 mm, 1 km, un million de km, puis 1e15 m.
             // Limité à cinq niveaux (×32 en tout) : sans limite, chaque niveau amènerait le suivant deux
             // fois plus vite, et la taille s'emballerait.
-            new DarkUpgrade("dark_inflation", "Inflation", DarkUpgrade.Branch.SIZE, BigNum.of(1, -9), 1e6, 5, null,
+            new DarkUpgrade("dark_inflation", "Inflation sombre", DarkUpgrade.Branch.SIZE, BigNum.of(1, -9), 1e6, 5, null,
                     new DarkEffect.MultiplyExpansion(2)),
             // Un clic verrouille l'appui. À atteindre : 1 micromètre.
             new DarkUpgrade("dark_lock", "Verrou", DarkUpgrade.Branch.SIZE, BigNum.of(1, -6), 1, 1, "dark_inflation",
@@ -197,7 +197,7 @@ public final class DarkUpgrades {
                     SizeScale.LIGHT_YEAR.multiply(1e10), 1, 1, "dark_condensation",
                     new DarkEffect.UncapAtoms()),
             // Bifurcation « horizon » (0.069) : croissance ×10, ou atomes +50 % par matière noire gagnée. À atteindre : 10²⁵ années-lumière.
-            new DarkUpgrade("dark_gravity", "Gravité", DarkUpgrade.Branch.SIZE,
+            new DarkUpgrade("dark_gravity", "Puits de gravité", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e25), 1, 1, "dark_overflow",
                     new DarkEffect.MultiplyExpansion(10), "horizon"),
             new DarkUpgrade("dark_harvest", "Moisson", DarkUpgrade.Branch.SIZE,

@@ -1,7 +1,7 @@
 import idle.core.Game;
-import idle.core.GameUniverse.LineUpgrade;
-import idle.core.GameUniverse.SeedUpgrade;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.LineUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.*;
 import idle.core.universe.DimensionAutomation;
 import java.util.*;

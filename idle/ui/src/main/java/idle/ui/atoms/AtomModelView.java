@@ -85,7 +85,7 @@ final class AtomModelView extends Canvas {
     Skin skin() { return skin; }
 
     private static final Color[] PLANETS = {Color.web("#7fc8ff"), Color.web("#ff9f6b"), Color.web("#9be7a8"),
-            Color.web("#e2c48f"), Color.web("#c9a6ff"), Color.web("#ff7a9a")};
+            Webs.C_E2C48F, Webs.C_C9A6FF, Webs.C_FF7A9A};
 
     /** @param size côté de la vue au départ, en pixels */
     AtomModelView(double size) { super(size, size); }
@@ -237,7 +237,7 @@ final class AtomModelView extends Canvas {
             remaining -= onShell;
             double radius = innerRadius + (outerRadius - innerRadius) * (shell + 1) / shells;
 
-            g.setStroke(skin == Skin.ATOM_STELLAR ? Color.web("#ffcf6b") : skin == Skin.ATOM_DENSE ? Color.web("#7fd0ff") : SHELL);
+            g.setStroke(skin == Skin.ATOM_STELLAR ? Webs.C_FFCF6B : skin == Skin.ATOM_DENSE ? Webs.C_7FD0FF : SHELL);
             g.setLineWidth(1);
             g.setGlobalAlpha((skin == Skin.ATOM_STELLAR ? 0.18 : 0.3) * fade);
             if (skin == Skin.ATOM_DENSE) {
@@ -246,7 +246,7 @@ final class AtomModelView extends Canvas {
                 for (int p = 0; p < dots; p++) {
                     double t = 2 * Math.PI * p / dots + clock * 0.05;
                     double ux = radius * Math.cos(t), uy = radius * Math.sin(t);
-                    g.setFill(Color.web("#7fd0ff"));
+                    g.setFill(Webs.C_7FD0FF);
                     g.fillOval(cx + a * ux + b * uy - 0.8, cy + b * ux + d * uy - 0.8, 1.6, 1.6);
                 }
             } else if (flat) {
@@ -287,12 +287,12 @@ final class AtomModelView extends Canvas {
                     for (int k = 3; k >= 1; k--) {
                         double back = angle - direction * k * 0.06;
                         double bx = radius * Math.cos(back), by = radius * Math.sin(back);
-                        g.setFill(Color.web("#7fd0ff"));
+                        g.setFill(Webs.C_7FD0FF);
                         g.setGlobalAlpha(fade * 0.25 * (4 - k) / 3);
                         double r = orbRadius * (1 - 0.2 * k);
                         g.fillOval(cx + a * bx + b * by - r, cy + b * bx + d * by - r, r * 2, r * 2);
                     }
-                    g.setFill(Color.web("#d8f1ff"));
+                    g.setFill(Webs.C_D8F1FF);
                     g.setGlobalAlpha(fade);
                     g.fillOval(x - orbRadius, y - orbRadius, orbRadius * 2, orbRadius * 2);
                 } else if (skin == Skin.ATOM_STELLAR) {
@@ -303,12 +303,12 @@ final class AtomModelView extends Canvas {
                     g.fillOval(x - r, y - r, r * 2, r * 2);
                     double away = Math.max(1e-9, Math.hypot(x - cx, y - cy));
                     double sx = (x - cx) / away * r * 0.45, sy = (y - cy) / away * r * 0.45;
-                    g.setFill(Color.web("#0b0e14"));
+                    g.setFill(Webs.C_0B0E14);
                     g.setGlobalAlpha(fade * 0.55);
                     g.fillOval(x + sx - r * 0.8, y + sy - r * 0.8, r * 1.6, r * 1.6);
                     if ((i + shell) % 5 == 0) {
                         // Quelques-unes ont un anneau.
-                        g.setStroke(Color.web("#e2c48f"));
+                        g.setStroke(Webs.C_E2C48F);
                         g.setGlobalAlpha(fade * 0.8);
                         g.strokeLine(x - r * 1.8, y + r * 0.5, x + r * 1.8, y - r * 0.5);
                     }
@@ -328,7 +328,7 @@ final class AtomModelView extends Canvas {
                 double r = nucleus * 0.95 * Math.sqrt(k / (double) nucleons);
                 double t = k * 2.39996 + clock * 0.2;
                 double x = cx + r * Math.cos(t), y = cy + r * Math.sin(t) * (flat ? 1 : 0.9);
-                g.setFill(k % 2 == 0 ? Color.web("#ff6b5b") : Color.web("#c9ced6"));
+                g.setFill(k % 2 == 0 ? Webs.C_FF6B5B : Webs.C_C9CED6);
                 g.setGlobalAlpha(fade);
                 g.fillOval(x - ball, y - ball, ball * 2, ball * 2);
                 g.setFill(Color.WHITE);
@@ -340,7 +340,7 @@ final class AtomModelView extends Canvas {
         if (skin == Skin.ATOM_STELLAR) {
             // Le noyau stellaire : un soleil, sa couronne de rayons qui tournent et ses éruptions.
             int rays = 14;
-            g.setStroke(Color.web("#ffb23f"));
+            g.setStroke(Webs.C_FFB23F);
             g.setLineWidth(Math.max(1, size * 0.004));
             for (int k = 0; k < rays; k++) {
                 double t = clock * 0.3 + 2 * Math.PI * k / rays;
@@ -349,14 +349,14 @@ final class AtomModelView extends Canvas {
                 g.strokeLine(cx + nucleus * 1.05 * Math.cos(t), cy + nucleus * 1.05 * Math.sin(t),
                         cx + length * Math.cos(t), cy + length * Math.sin(t));
             }
-            g.setFill(Color.web("#ff8a2a"));
+            g.setFill(Webs.C_FF8A2A);
             g.setGlobalAlpha(0.25 * fade);
             double corona = nucleus * 1.45;
             g.fillOval(cx - corona, cy - corona, corona * 2, corona * 2);
-            g.setFill(Color.web("#ffd27f"));
+            g.setFill(Webs.C_FFD27F);
             g.setGlobalAlpha(fade);
             g.fillOval(cx - nucleus, cy - nucleus, nucleus * 2, nucleus * 2);
-            g.setFill(Color.web("#fff6d8"));
+            g.setFill(Webs.C_FFF6D8);
             g.fillOval(cx - nucleus * 0.55, cy - nucleus * 0.55, nucleus * 1.1, nucleus * 1.1);
             return;
         }
@@ -387,5 +387,22 @@ final class AtomModelView extends Canvas {
             shells++;
         }
         return shells;
+    }
+
+    /** Les couleurs écrites en clair dans le dessin, lues une fois (version 0.295 : avant, relues à chaque image). */
+    private static final class Webs {
+        static final Color C_0B0E14 = Color.web("#0b0e14");
+        static final Color C_7FD0FF = Color.web("#7fd0ff");
+        static final Color C_C9A6FF = Color.web("#c9a6ff");
+        static final Color C_C9CED6 = Color.web("#c9ced6");
+        static final Color C_D8F1FF = Color.web("#d8f1ff");
+        static final Color C_E2C48F = Color.web("#e2c48f");
+        static final Color C_FF6B5B = Color.web("#ff6b5b");
+        static final Color C_FF7A9A = Color.web("#ff7a9a");
+        static final Color C_FF8A2A = Color.web("#ff8a2a");
+        static final Color C_FFB23F = Color.web("#ffb23f");
+        static final Color C_FFCF6B = Color.web("#ffcf6b");
+        static final Color C_FFD27F = Color.web("#ffd27f");
+        static final Color C_FFF6D8 = Color.web("#fff6d8");
     }
 }

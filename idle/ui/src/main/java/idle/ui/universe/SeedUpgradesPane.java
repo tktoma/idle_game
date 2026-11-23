@@ -1,9 +1,11 @@
 package idle.ui.universe;
 
+import idle.ui.common.Detail;
+
 import idle.core.Game;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
-import idle.core.GameUniverse.SeedUpgrade;
+import idle.core.GameUniverseBase.SeedUpgrade;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -204,7 +206,7 @@ public final class SeedUpgradesPane extends VBox {
     public int branch() { return branch; }
 
     private static String percent(double share) {
-        return String.format(Locale.ROOT, "%.0f %%", share * 100).replace('.', ',');
+        return String.format(Locale.ROOT, "%.0f %%", share * 100);
     }
 
     /** Ce que fait le niveau suivant de cette amélioration. */
@@ -251,6 +253,17 @@ public final class SeedUpgradesPane extends VBox {
             case ROOT_BUBBLE -> level > 0 ? "Bulle des racines : ouverte, sous la graine"
                     : "Bulle des racines : ouvre la bulle des racines, sous la graine, et avec elle le défi final";
         };
+    }
+
+    /**
+     * Le mode détails d'une carte (version 0.291) : son niveau sur le maximum, ce qui la paie, et qu'elle reste d'un
+     * univers à l'autre (seul « Recommencer de zéro » remet la graine au début).
+     */
+    private String detail(SeedUpgrade upgrade) {
+        return ". Niveau " + game.seedUpgradeLevel(upgrade) + " sur " + upgrade.max() + ", payé en "
+                + Game.dimensionResourceName(upgrade.dimension()) + " (dimension " + upgrade.dimension() + ")"
+                + (upgrade.chrono() ? ", une fois l'étage du chrono acheté" : "")
+                + " ; les niveaux restent d'un univers à l'autre";
     }
 
     /** « au printemps », « en été », « en automne », « en hiver ». */
@@ -310,7 +323,7 @@ public final class SeedUpgradesPane extends VBox {
         for (SeedUpgrade upgrade : SeedUpgrade.values()) {
             if (upgrade.dimension() != branch) continue;
             Button button = buttons.get(upgrade);
-            fill(button, describe(upgrade), price(upgrade), state(upgrade));
+            fill(button, describe(upgrade) + (Detail.shown() ? detail(upgrade) : ""), price(upgrade), state(upgrade));
             shown.add(button);
         }
         if (!cards.getChildren().equals(shown)) cards.getChildren().setAll(shown);

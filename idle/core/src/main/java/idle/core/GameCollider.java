@@ -189,7 +189,7 @@ public abstract class GameCollider extends GameDarkTree {
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
     public double colliderGeneratorOutput(ColliderGenerator generator) {
-        // L'épreuve « Un seul générateur » : la chaîne s'arrête, seul le premier produit.
+        // L'épreuve « Chaîne arrêtée » : la chaîne s'arrête, seul le premier produit.
         if (generator.previous() != null && inTrial(Trial.LONE_COLLIDER)) return 0;
         return state.colliderGenerators(generator) * generator.power() * colliderOutputMultiplier(generator);
     }
