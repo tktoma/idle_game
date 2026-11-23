@@ -1,5 +1,5 @@
 import idle.core.Game;
-import idle.core.GameUniverseBase;
+import idle.core.GameUniverse.TreeBubble;
 import idle.core.achievements.Achievement;
 import idle.core.achievements.Achievements;
 import idle.core.bigbang.SpaceUpgrade;
@@ -80,9 +80,9 @@ final class AnalyseNoms {
         String[] seed = new String[Game.SeedUpgrade.values().length];
         for (Game.SeedUpgrade upgrade : Game.SeedUpgrade.values()) seed[upgrade.ordinal()] = upgrade.label();
         rang("seedUpgrade", "Graine", seed);
-        // Les niveaux de bulles dans l'arbre ne sont plus des énumérations mais un tableau dans GameState
-        int[] treeBubbleLevels = new int[0];
-        rang("treeBubbleLevel", "Bulle", treeBubbleLevels);
+        String[] bubbles = new String[TreeBubble.values().length];
+        for (TreeBubble bubble : TreeBubble.values()) bubbles[bubble.ordinal()] = bubble.label();
+        rang("treeBubbleLevel", "Bulle", bubbles);
 
         for (Upgrade u : Upgrades.DEFAULT) CHOSES.put(u.id(), u.name());
         for (Automation a : Automations.DEFAULT) CHOSES.put(a.id(), a.name());
@@ -139,7 +139,7 @@ final class AnalyseNoms {
     /** Les bulles de l'arbre achetées, lues dans le champ de bits de la sauvegarde. */
     static java.util.List<String> bulles(long avant, long apres) {
         java.util.List<String> out = new java.util.ArrayList<>();
-        for (GameUniverseBase.TreeBubble bubble : GameUniverseBase.TreeBubble.values()) {
+        for (TreeBubble bubble : TreeBubble.values()) {
             long bit = 1L << bubble.ordinal();
             if ((apres & bit) != 0 && (avant & bit) == 0) out.add(bubble.label());
         }
