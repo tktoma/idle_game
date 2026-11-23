@@ -187,6 +187,35 @@ public final class DimensionsView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
+    private static final Font NAME_FONT = Font.font(12), PROGRESS_FONT = Font.font(11);
+    /** La hauteur d'une ligne de l'avancée. */
+    private static final double TEXT_LINE = 13;
+    private static final Text MEASURE = new Text();
+
+    /** La largeur d'un texte dans cette police. */
+    private static double width(String text, Font font) {
+        MEASURE.setFont(font);
+        MEASURE.setText(text);
+        return MEASURE.getLayoutBounds().getWidth();
+    }
+
+    /** L'abscisse d'ancrage {@code x} décalée pour qu'un texte de largeur {@code w}, ainsi aligné, tienne dans la carte. */
+    private double inside(double x, double w, TextAlignment align) {
+        double left = align == TextAlignment.LEFT ? x : align == TextAlignment.RIGHT ? x - w : x - w / 2;
+        double shift = Math.max(4 - left, Math.min(0, getWidth() - 4 - (left + w)));
+        return x + shift;
+    }
+
+    /** L'avancée en une ligne, ou en deux si elle est trop large pour un quart de la carte (coupée à « / » ou après « : »). */
+    String[] lines(String text) {
+        if (width(text, PROGRESS_FONT) <= getWidth() * 0.25) return new String[] {text};
+        int cut = text.indexOf(" / ");
+        if (cut > 0) return new String[] {text.substring(0, cut) + " /", text.substring(cut + 3)};
+        cut = text.indexOf(": ");
+        if (cut > 0) return new String[] {text.substring(0, cut + 1), text.substring(cut + 2)};
+        return new String[] {text};
+    }
+
     private double cx() { return getWidth() / 2; }
 
     private double cy() { return getHeight() / 2; }
@@ -321,17 +350,29 @@ public final class DimensionsView extends Canvas {
             double lx = cx() + (x - cx()) * out, ly = cy() + (y - cy()) * out + 4;
             g.setFont(Font.font(12));
             g.setFill(open ? ON : OFF);
-            g.fillText(open ? Dimension.of(number).label() : "Dimension " + number, lx, ly);
+            String name = open ? Dimension.of(number).label() : "Dimension " + number;
+            g.fillText(name, inside(lx, width(name, NAME_FONT), TextAlignment.CENTER), Math.max(14, Math.min(getHeight() - 4, ly)));
             if (open && finalOpen && progressText[number] != null) {
                 // L'avancée, sous le nom ; en haut de la carte, au-dessus de lui, pour ne pas toucher le point. Sur les
-                // côtés, à mi-hauteur, elle part du point vers l'extérieur.
+                // côtés, à mi-hauteur, elle part du point vers l'extérieur. Version 0.296 : une avancée trop longue (les
+                // notations en toutes lettres) passe sur deux lignes, et rien ne sort plus de la carte ; sans place
+                // au-dessus (en haut) ou au-dessous (en bas), elle passe de l'autre côté du point, vers le centre.
                 double side = x - cx();
+                String[] lines = lines(progressText[number]);
+                double block = TEXT_LINE * lines.length;
                 boolean aside = Math.abs(y - cy()) < radius() * 0.5;
-                g.setTextAlign(!aside ? TextAlignment.CENTER : side > 0 ? TextAlignment.LEFT : TextAlignment.RIGHT);
-                double px = aside ? x + Math.signum(side) * dot * 1.5 : lx, py = aside ? y + dot + 14 : y < cy() ? ly - 14 : ly + 14;
-                g.setFont(Font.font(11));
+                double py = aside ? y + dot + 14 : y < cy() ? ly - 14 - (block - TEXT_LINE) : ly + 14;
+                if (!aside && y < cy() && py - TEXT_LINE < 0) py = y + dot + 14;               // en haut : sous le point
+                else if (!aside && y > cy() && py + block - TEXT_LINE > getHeight() - 2) py = y - dot - 6 - (block - TEXT_LINE); // en bas : au-dessus
+                TextAlignment align = !aside ? TextAlignment.CENTER : side > 0 ? TextAlignment.LEFT : TextAlignment.RIGHT;
+                g.setTextAlign(align);
+                g.setFont(PROGRESS_FONT);
                 g.setFill(reached[number] ? MARK : Color.web("#c8d4ea"));
-                g.fillText(progressText[number], px, py);
+                double px = aside ? x + Math.signum(side) * dot * 1.5 : lx;
+                py = Math.max(TEXT_LINE, Math.min(getHeight() - 4 - (block - TEXT_LINE), py));
+                for (int i = 0; i < lines.length; i++) {
+                    g.fillText(lines[i], inside(px, width(lines[i], PROGRESS_FONT), align), py + i * TEXT_LINE);
+                }
                 g.setTextAlign(TextAlignment.CENTER);
             }
         }

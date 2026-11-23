@@ -49,7 +49,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                 + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
         long created = game.moleculesCreated();
         moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
-        expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.Kind.COMET, Readiness.of(game).comet()));
+        expansionTab.setText(tabName("Expansion de la matière", "Expansion") + Readiness.dot(Readiness.Kind.COMET, Readiness.of(game).comet()));
         // Le point dit qu'un palier ouvert peut se payer.
         boolean canPay = false;
         for (BigBangMilestone milestone : game.bigBangMilestones()) canPay |= game.canBuyBigBangMilestone(milestone);
@@ -61,7 +61,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         statesTab.setManaged(states);
         int formed = game.substancesFormed();
         Readiness ready = Readiness.of(game);
-        statesTab.setText((formed > 0 ? "États de la matière (" + formed + ")" : "États de la matière") + Readiness.dot(Readiness.Kind.SKY, ready.states()));
+        statesTab.setText((formed > 0 ? tabName("États de la matière", "États") + " (" + formed + ")" : tabName("États de la matière", "États")) + Readiness.dot(Readiness.Kind.SKY, ready.states()));
         if (selected == 3 && !states) select(0);
         boolean assemblies = game.isAssembliesUnlocked();
         assembliesTab.setVisible(assemblies);
@@ -92,10 +92,11 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         systemsTab.setVisible(systems);
         systemsTab.setManaged(systems);
         int complete = game.solarSystemsComplete();
-        systemsTab.setText("Systèmes solaires (" + complete + "/" + Game.SYSTEMS_FOR_GALAXY + ")"
+        systemsTab.setText(tabName("Systèmes solaires", "Systèmes") + " (" + complete + "/" + Game.SYSTEMS_FOR_GALAXY + ")"
                 + Readiness.dot(Readiness.Kind.SYSTEMS, systems && complete < Game.SYSTEMS_FOR_GALAXY && !game.freeForSystems(Body.Tier.PLANET).isEmpty()
                         && (!game.state().solarSystems().isEmpty() || !game.freeForSystems(Body.Tier.STAR).isEmpty())));
         if (selected == 9 && !systems) select(0);
+        fitTabs(subTabs().getWidth());
         // La liste de courses accompagne les trois sous-pages où l'on forme quelque chose.
         if (selected >= 4 && selected <= 6) {
             shoppingPane.refresh();

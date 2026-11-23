@@ -36,8 +36,8 @@ class SaveTest {
             "assembliesSeen", "bodiesSeen", "moleculeLog",
             // Vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
             "momentsUndated",
-            // Le compte des skins débloqués : version et valeur en cache (recalculé à chaque changement).
-            "skinsVersion", "skinsCountVersion", "skinsCountUnlocked", "skinsCountCounted", "cachedSkinsCount");
+            // Le compte des skins débloqués, gardé tant qu'ils ne changent pas.
+            "skinsVersion", "skinsCountVersion", "skinsCountUnlocked", "skinsCountCounted");
 
     // ------------------------------------------------------------------
     // Une partie où tout a bougé
@@ -508,9 +508,7 @@ class SaveTest {
     class Sauvegarde {
         @Test
         void laPartieDEssaiASortiChaqueChampDeSaValeurDeDepart() {
-            List<String> found = untouched("partie", richState(), new GameState());
-            // cachedSkinsCount est un champ dérivé (transient), il a une valeur après initialisation mais n'est pas sauvegardé.
-            assertEquals(List.of(), found.stream().noneMatch(s -> s.contains("cachedSkinsCount")) ? List.of() : found,
+            assertEquals(List.of(), untouched("partie", richState(), new GameState()),
                     "ces champs ont encore leur valeur de départ dans richState() : un oubli dans la sauvegarde ne se verrait pas");
         }
 

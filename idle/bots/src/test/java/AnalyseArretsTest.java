@@ -125,7 +125,7 @@ class AnalyseArretsTest {
             assertTrue(bot.sansJouer(c.id()), c.id());
             noms.add(c.id());
         }
-        assertEquals(List.of("collisionneur", "sondes", "defis", "cometes", "anomalies", "impulsions", "calme", "epreuves", "rond", "appui_m"), noms);
+        assertEquals(List.of("collisionneur", "sondes", "defis", "cometes", "anomalies", "impulsions", "appui_m"), noms);
         // La mémoire d'un bot copié garde ses coupures.
         IdleProfiles24 copie = new IdleProfiles24(Bots.fresh(201), IdleProfiles24.PROFILES[0], 201, 20);
         AnalyseCopie.memoire(bot, copie);

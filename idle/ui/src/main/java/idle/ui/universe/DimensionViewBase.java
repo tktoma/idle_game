@@ -453,7 +453,8 @@ public abstract class DimensionViewBase extends Canvas {
     // ------------------------------------------------------------------
 
     /** Le premier cercle (dehors) et le dernier possible (dedans), relatifs au plus petit côté de la vue. */
-    static final double LOOP_OUTER = 0.42, LOOP_INNER = 0.1;
+    // Version 0.296 : 0.45 et 0.09 (avant 0.42 et 0.1) : à sept cercles, l'écart passe de 25.6 à 28.8 px sur une vue de 480 px.
+    static final double LOOP_OUTER = 0.45, LOOP_INNER = 0.09;
 
     /** Les couleurs des trois parts d'une zone : le bord « mauvais », le « bien », le centre « excellent ». */
     public static final Color LOOP_BAD = Color.web("#b0566e"), LOOP_GOOD = Color.web("#ff9eb5"), LOOP_EXCELLENT = Color.web("#fff1c9");

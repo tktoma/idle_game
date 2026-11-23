@@ -122,7 +122,12 @@ public final class ElementText {
         Double key = value;
         String known = NUMBERS.get(key);
         if (known != null) return known;
-        String text = String.format(Locale.ROOT, "%.2f", value);
+        // Version 0.296 : arrondi au plus proche sur le nombre tel qu'on l'écrirait (0.455 → 0.46), et non sur sa
+        // valeur binaire, qui tombe souvent juste en dessous (0.45499999… s'affichait 0.45).
+        String text = Double.isFinite(value)
+                ? new java.math.BigDecimal(value).round(new java.math.MathContext(12)).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+                : String.format(Locale.ROOT, "%.2f", value);
+        if (text.startsWith("-") && text.matches("-0\\.0*")) text = text.substring(1);
         // Les zéros de la fin, puis le point s'il ne reste rien derrière.
         int end = text.length();
         while (end > 0 && text.charAt(end - 1) == '0') end--;

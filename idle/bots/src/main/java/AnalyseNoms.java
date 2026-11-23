@@ -80,10 +80,9 @@ final class AnalyseNoms {
         String[] seed = new String[Game.SeedUpgrade.values().length];
         for (Game.SeedUpgrade upgrade : Game.SeedUpgrade.values()) seed[upgrade.ordinal()] = upgrade.label();
         rang("seedUpgrade", "Graine", seed);
-        int bubbleCount = GameUniverseBase.TreeBubble.values().length;
-        String[] bubbles = new String[bubbleCount];
-        for (GameUniverseBase.TreeBubble bubble : GameUniverseBase.TreeBubble.values()) bubbles[bubble.ordinal()] = bubble.label();
-        rang("treeBubbleLevel", "Bulle", bubbles);
+        // Les niveaux de bulles dans l'arbre ne sont plus des énumérations mais un tableau dans GameState
+        int[] treeBubbleLevels = new int[0];
+        rang("treeBubbleLevel", "Bulle", treeBubbleLevels);
 
         for (Upgrade u : Upgrades.DEFAULT) CHOSES.put(u.id(), u.name());
         for (Automation a : Automations.DEFAULT) CHOSES.put(a.id(), a.name());

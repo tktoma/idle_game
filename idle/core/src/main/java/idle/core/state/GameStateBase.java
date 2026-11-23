@@ -174,13 +174,11 @@ public abstract class GameStateBase {
     boolean skinsOpen = false;
     final Set<String> unlockedSkins = new TreeSet<>();
     /**
-     * Change à chaque fois que {@link #unlockedSkins} change ; le compte est gardé en cache tant qu'il ne bouge pas.
-     * (Optimisation : recalcul uniquement quand la version change).
+     * Change à chaque fois que {@link #unlockedSkins} change ; le compte des skins débloqués (relu à chaque
+     * fusion et à chaque calcul de production, par le bonus des skins) se garde tant qu'il ne bouge pas. Pas sauvegardé.
      */
     int skinsVersion = 0;
     private int skinsCountVersion = -1, skinsCountUnlocked, skinsCountCounted;
-    /** Valeur en cache du nombre de skins débloqués. Non sauvegardé : recalcule à chaque changement. */
-    private transient volatile int cachedSkinsCount;
 
     /**
      * Un nombre qui change à chaque fois que les skins débloqués changent. L'interface ne repasse les deux
@@ -190,7 +188,7 @@ public abstract class GameStateBase {
 
     /** Le nombre de skins débloqués, libres compris, et celui des skins non libres débloqués (sans plafond). */
     public final int skinsUnlockedCount(boolean counted) {
-        if (skinsCountVersion != skinsVersion || cachedSkinsCount == Integer.MIN_VALUE) {
+        if (skinsCountVersion != skinsVersion) {
             int unlocked = 0, nonFree = 0;
             for (Skin skin : Skin.values()) {
                 boolean has = skin.isFree() || unlockedSkins.contains(skin.id());
@@ -199,10 +197,9 @@ public abstract class GameStateBase {
             }
             skinsCountUnlocked = unlocked;
             skinsCountCounted = nonFree;
-            cachedSkinsCount = counted ? skinsCountCounted : skinsCountUnlocked;
             skinsCountVersion = skinsVersion;
         }
-        return cachedSkinsCount;
+        return counted ? skinsCountCounted : skinsCountUnlocked;
     }
     final Map<String, String> chosenSkins = new TreeMap<>();
     boolean regimeOpen = false;

@@ -89,16 +89,16 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         milestonesScroll.setVisible(index == 7);
         probesScroll.setVisible(index == 8);
         systemsScroll.setVisible(index == 9);
-        systemsTab.setStyle(SubTabs.style(index == 9, GameApp.BIG_BANG_COLOR));
-        probesTab.setStyle(SubTabs.style(index == 8, GameApp.BIG_BANG_COLOR));
-        moleculesTab.setStyle(SubTabs.style(index == 0, GameApp.BIG_BANG_COLOR));
-        expansionTab.setStyle(SubTabs.style(index == EXPANSION, GameApp.BIG_BANG_COLOR));
-        upgradesTab.setStyle(SubTabs.style(index == 2, GameApp.BIG_BANG_COLOR));
-        statesTab.setStyle(SubTabs.style(index == 3, GameApp.BIG_BANG_COLOR));
-        assembliesTab.setStyle(SubTabs.style(index == 4, GameApp.BIG_BANG_COLOR));
-        bodiesTab.setStyle(SubTabs.style(index == 5, GameApp.BIG_BANG_COLOR));
-        galaxyTab.setStyle(SubTabs.style(index == 6, GameApp.BIG_BANG_COLOR));
-        milestonesTab.setStyle(SubTabs.style(index == 7, GameApp.BIG_BANG_COLOR));
+        systemsTab.setStyle(SubTabs.style(tabBase, index == 9, GameApp.BIG_BANG_COLOR));
+        probesTab.setStyle(SubTabs.style(tabBase, index == 8, GameApp.BIG_BANG_COLOR));
+        moleculesTab.setStyle(SubTabs.style(tabBase, index == 0, GameApp.BIG_BANG_COLOR));
+        expansionTab.setStyle(SubTabs.style(tabBase, index == EXPANSION, GameApp.BIG_BANG_COLOR));
+        upgradesTab.setStyle(SubTabs.style(tabBase, index == 2, GameApp.BIG_BANG_COLOR));
+        statesTab.setStyle(SubTabs.style(tabBase, index == 3, GameApp.BIG_BANG_COLOR));
+        assembliesTab.setStyle(SubTabs.style(tabBase, index == 4, GameApp.BIG_BANG_COLOR));
+        bodiesTab.setStyle(SubTabs.style(tabBase, index == 5, GameApp.BIG_BANG_COLOR));
+        galaxyTab.setStyle(SubTabs.style(tabBase, index == 6, GameApp.BIG_BANG_COLOR));
+        milestonesTab.setStyle(SubTabs.style(tabBase, index == 7, GameApp.BIG_BANG_COLOR));
     }
 
     /** Les sondes : pour les vérifications et le raccourci. */

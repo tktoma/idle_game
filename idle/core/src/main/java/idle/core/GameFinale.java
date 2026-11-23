@@ -40,15 +40,12 @@ public abstract class GameFinale extends GameMix {
     }
 
     /**
-     * Les paliers, de la ligne au mélange : ajustés pour que le défi final prenne 15-20 min avec le Speedrunner.
-     * Basé sur l'analyse des seuils actuels et une cible de 20 min (au lieu de ~28 min).
-     * Facteur d'échelle appliqué : 0.53 (÷1.89) pour ramener les temps dans la fourchette cible.
+     * Les paliers, de la ligne au mélange : cent fois le seuil de chaque dimension, et dix millions de fragments pour le
+     * mélange (choix arbitraires, à régler une fois mesurés).
      */
     private static final double[] FINAL_GOALS = {
-        100 * LINE_THRESHOLD * 0.53, 100 * PLANE_THRESHOLD * 0.53, 100 * VOLUME_THRESHOLD * 0.53,
-        100 * DURATION_THRESHOLD * 0.53, 100 * LOOP_THRESHOLD * 0.53,
-        100 * BRANE_THRESHOLD * 0.53, 100 * CLICKER_THRESHOLD * 0.53, 100 * GRID_THRESHOLD * 0.53,
-        100 * MIRROR_THRESHOLD * 0.53, 1e7 * 0.53};
+        100 * LINE_THRESHOLD, 100 * PLANE_THRESHOLD, 100 * VOLUME_THRESHOLD, 100 * DURATION_THRESHOLD, 100 * LOOP_THRESHOLD,
+        100 * BRANE_THRESHOLD, 100 * CLICKER_THRESHOLD, 100 * GRID_THRESHOLD, 100 * MIRROR_THRESHOLD, 1e7};
 
     /** Vrai une fois la bulle des racines achetée : les paliers s'affichent. */
     public boolean isFinalChallengeOpen() { return isTreeBubbleBought(TreeBubble.ROOTS); }

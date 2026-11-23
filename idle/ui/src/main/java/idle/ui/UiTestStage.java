@@ -97,7 +97,8 @@ final class UiTestStage implements UiTestPlan.Driver {
     @Override
     public boolean subTab(String label) {
         for (Button button : subTabButtons()) {
-            if (button.getText() != null && button.getText().startsWith(label)) {
+            if (button.getText() != null && (button.getText().startsWith(label)
+                    || button.getUserData() instanceof String name && name.startsWith(label))) {
                 button.fire();
                 return true;
             }

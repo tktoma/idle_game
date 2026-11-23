@@ -21,6 +21,20 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = joined(List.of(
+            new Note("0.296", "L'interface relue de près", List.of(
+                    "Mélange, étape 4 : l'aide de la charge donne le vrai plafond (×2.5 après un niveau de « Charge », et ainsi "
+                            + "de suite) au lieu de toujours dire ×2.",
+                    "Carte des dimensions : les noms et les progressions ne sortent plus de la carte ; trop longs, ils passent sur "
+                            + "deux lignes, et la progression d'un point du haut ou du bas se place du côté où il reste de la place.",
+                    "Boucle : les cercles s'étalent un peu plus (à sept cercles, 28.8 px d'écart au lieu de 25.6 sur une vue de 480 px).",
+                    "Graine : la saison et l'effet du rond de croissance restent dans la vue sur un petit écran ; trop longue, la "
+                            + "ligne de la saison passe sur deux lignes.",
+                    "Les nombres à deux décimales s'arrondissent comme on l'attend : 0.455 s'affiche 0.46 (avant 0.45).",
+                    "Big Bang : les sous-onglets se resserrent, puis prennent un nom court (Expansion, États, Systèmes ; le nom "
+                            + "entier en bulle d'aide), pour tenir sur une ligne dès 1 100 px de large.",
+                    "Fenêtre des dimensions : la vue garde au moins 35 % de la hauteur (200 px au moins) ; ce qui ne tient pas "
+                            + "dessous défile. En 820 × 600, la vue du mélange tombait à 18 px de haut, celles de la grille et "
+                            + "du miroir à 120 px ; à la taille par défaut, rien ne change.")),
             new Note("0.295", "Moins de dessin caché", List.of(
                     "La fenêtre d'une dimension recouvre tout le jeu : tant qu'elle est ouverte, ce qu'elle cache (le fond animé, "
                             + "les icônes des onglets, l'onglet en cours, la carte des dimensions ou la graine) ne se redessine "

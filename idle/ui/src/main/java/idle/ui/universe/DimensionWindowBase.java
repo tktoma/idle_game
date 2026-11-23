@@ -686,13 +686,38 @@ public abstract class DimensionWindowBase extends BorderPane {
         mixPane = new VBox(8, mixShards, mixThreshold, mixInfo, mixHint, mixDetail, mixRow);
         mixPane.setAlignment(Pos.CENTER);
         mixPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(bottom = new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane, mixPane));
+        bottom = new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane, mixPane);
+        // Version 0.296 : dans une petite fenêtre, le bas défile plutôt que d'écraser la vue (le mélange tombait à 18 px
+        // de haut en 820 × 600). Il ne défile pas au clavier : les flèches mènent le point du mélange et du plan.
+        ScrollPane scroll = bottomScroll = new ScrollPane(bottom);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setFocusTraversable(false);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-padding: 0;");
+        setBottom(scroll);
+        heightProperty().addListener((obs, was, now) -> fitBottom());
         restyle();
         setVisible(false);
     }
 
     /** Le bas de la fenêtre : les commandes de chaque dimension, puis la bande du profil de test s'il y en a une. */
     VBox bottom;
+
+    /** Ce qui fait défiler le bas quand il ne tient pas. */
+    ScrollPane bottomScroll;
+
+    /** La vue garde au moins cette part de la hauteur de la fenêtre, et jamais moins de {@link #MIN_VIEW} pixels. */
+    static final double VIEW_SHARE = 0.35, MIN_VIEW = 200;
+
+    /** Le bas prend ce qu'il veut, sauf la place gardée pour la vue (et l'étape du mélange au-dessus) : au-delà, il défile. */
+    void fitBottom() {
+        if (bottomScroll == null) return;
+        double top = getTop() == null ? 0 : getTop().prefHeight(getWidth());
+        double stage = mixStageBox.isManaged() ? mixStageBox.prefHeight(getWidth()) : 0;
+        double view = Math.max(MIN_VIEW, getHeight() * VIEW_SHARE);
+        double room = getHeight() - getInsets().getTop() - getInsets().getBottom() - top - stage - view;
+        bottomScroll.setMaxHeight(Math.max(80, room));
+    }
 
     /** La bande du profil de test, tout en bas de la fenêtre : elle suit la dimension ouverte. */
     public void setTestBar(Node bar) { bottom.getChildren().add(bar); }
@@ -756,6 +781,7 @@ public abstract class DimensionWindowBase extends BorderPane {
         mixPane.setManaged(mix);
         mixStageBox.setVisible(mix);
         mixStageBox.setManaged(mix);
+        fitBottom();
         if (mix) refreshMix();
         boolean mirror = view.dimension() == Dimension.MIRROR && game.isMirrorOpen();
         mirrorPane.setVisible(mirror);
@@ -850,7 +876,11 @@ public abstract class DimensionWindowBase extends BorderPane {
     }
 
     /** Ce qu'on fait à cette étape du mélange : ce qui vient d'y être mêlé d'abord. */
-    static String mixHintFor(int stage) {
+    /**
+     * L'aide de l'étape {@code stage} du mélange. {@code chargeTop} : le plafond de la charge (×2, plus 0.5 par niveau de
+     * « Charge ») ; version 0.296 : l'aide disait toujours « ×2 », même la charge améliorée.
+     */
+    static String mixHintFor(int stage, double chargeTop) {
         return switch (stage) {
             case 1 -> "La boule va et vient sur la ligne : chaque graduation qu'elle passe donne des fragments. Achetez des "
                     + "graduations et réduisez le malus.";
@@ -859,7 +889,8 @@ public abstract class DimensionWindowBase extends BorderPane {
             case 3 -> "Les éclats sont à des profondeurs (les violets au fond) : la molette, ou A et E, font plonger le point "
                     + "ou le remontent ; il ramasse ceux qu'entoure un anneau.";
             case 4 -> "Tenez le bouton droit (ou la barre d'espace) : ce que vous ramassez va dans la charge, qui grandit "
-                    + "jusqu'à ×2 en 8 s ; relâchez pour la verser.";
+                    + "jusqu'à " + Format.multiplier(chargeTop) + " en "
+                    + ElementText.number(Game.MIX_CHARGE_SECONDS) + " s ; relâchez pour la verser.";
             case 5 -> "Relâchez la charge quand le point du cercle, à gauche, est dans sa zone : au centre, ×3.";
             case 6 -> "Chaque relâchement lance une onde depuis le point : elle ramasse les éclats qu'elle touche, davantage "
                     + "après un rebond sur les bords.";

@@ -11,6 +11,16 @@ import javafx.scene.canvas.*;
 
 /** Une partie de {@link SeedView} (découpée en 0.293 pour rester sous 1 000 lignes) : le dessin de toute la vue, l'étagère et l'arrosoir. */
 public abstract class SeedViewDraw extends SeedViewCan {
+    private static final javafx.scene.text.Font SEASON_FONT = javafx.scene.text.Font.font(12);
+    private static final javafx.scene.text.Text MEASURE = new javafx.scene.text.Text();
+
+    /** La largeur d'un texte dans cette police. */
+    static double textWidth(String text, javafx.scene.text.Font font) {
+        MEASURE.setFont(font);
+        MEASURE.setText(text);
+        return MEASURE.getLayoutBounds().getWidth();
+    }
+
     public SeedViewDraw() {
         super();
     }
@@ -299,11 +309,22 @@ public abstract class SeedViewDraw extends SeedViewCan {
             if (seasonSkin != null) {
                 SeedSkinArt.season(g, textX, textY - 30, 14, this.season, seasonLeft / Game.SEASON_SECONDS, seasonSkin);
             }
-            g.setFont(Font.font(12));
+            g.setFont(SEASON_FONT);
             g.setTextAlign(TextAlignment.CENTER);
             g.setGlobalAlpha(0.95);
             g.setFill(SEASON_COLORS[this.season.ordinal()]);
-            g.fillText(season, textX, textY);
+            // Version 0.296 : la ligne ne sort plus de la vue ; trop large pour elle, elle passe sur deux lignes, le
+            // chrono en dessous.
+            int cut = season.indexOf(" · ");
+            if (cut > 0 && textWidth(season, SEASON_FONT) > w * 0.35) {
+                String first = season.substring(0, cut), second = season.substring(cut + 3);
+                double wide = Math.max(textWidth(first, SEASON_FONT), textWidth(second, SEASON_FONT));
+                double at = Math.min(textX, w - 6 - wide / 2);
+                g.fillText(first, at, textY - 15);
+                g.fillText(second, at, textY);
+            } else {
+                g.fillText(season, Math.min(textX, w - 6 - textWidth(season, SEASON_FONT) / 2), textY);
+            }
             g.setGlobalAlpha(1);
         }
         // L'effet du rond de croissance, au-dessus de l'étagère : l'arrosage va plus vite.
@@ -313,7 +334,7 @@ public abstract class SeedViewDraw extends SeedViewCan {
             g.setTextAlign(TextAlignment.CENTER);
             g.setGlobalAlpha(0.85 + 0.15 * Math.sin(time * 4));
             g.setFill(BLOOM);
-            g.fillText(boost, Math.min(w - plank * 0.6, x), high - thick - 10);
+            g.fillText(boost, Math.min(Math.min(w - plank * 0.6, x), w - 6 - textWidth(boost, Font.font(13)) / 2), high - thick - 10);
             g.setGlobalAlpha(1);
         }
         // Le fil du bois.

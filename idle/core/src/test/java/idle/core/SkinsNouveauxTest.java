@@ -569,13 +569,10 @@ class SkinsNouveauxTest {
             counted++;
             assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9, "après " + skin);
         }
-        // Compter les skins gratuits réels et s'adapter
-        int freeCounted = 0;
-        for (Skin s : Skin.values()) if (s.isFree()) freeCounted++;
-        
-        assertEquals(Skin.values().length - freeCounted, game.skinsCounted(), "skins comptés (%d gratuits exclus)".formatted(freeCounted));
-        assertEquals(1 + Skin.BONUS * game.skinsCounted(), game.skinBoost(), 1e-9);
+        assertTrue(counted > 100, "plus de cent skins comptés : l'ancien plafond est passé");
+        assertEquals(counted, game.skinsCounted());
         assertEquals(Skin.values().length, game.skinsUnlocked());
+        assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9);
         assertTrue(game.skinBoost() > 3, "au-delà des ×3 de l'ancien plafond");
     }
 

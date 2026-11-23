@@ -1,5 +1,7 @@
 package idle.ui.bigbang;
 
+import idle.ui.common.SubTabs;
+
 import idle.core.Game;
 import idle.core.universe.CycleChoice;
 import java.util.function.BooleanSupplier;
@@ -83,6 +85,15 @@ public abstract class BigBangPageBase extends VBox {
         }
         subTabs = new FlowPane(0, 0, moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab);
         subTabs.setAlignment(Pos.CENTER);
+        expansionTab.setUserData("Expansion de la matière");
+        statesTab.setUserData("États de la matière");
+        systemsTab.setUserData("Systèmes solaires");
+        for (Button tab : new Button[] {expansionTab, statesTab, systemsTab}) {
+            tab.setTooltip(new javafx.scene.control.Tooltip((String) tab.getUserData()));
+        }
+        // Version 0.296 : dix sous-onglets passaient sur deux lignes dans une fenêtre étroite (ou avec les onglets à
+        // gauche). Ils se resserrent d'abord, puis passent en plus petit, pour tenir sur une ligne.
+        subTabs.widthProperty().addListener((obs, old, width) -> fitTabs(width.doubleValue()));
 
         // Les molécules (allégées en 0.178) : une phrase, la recherche et ses filtres, le prochain pas, les rayons du
         // catalogue, l'impulsion, le meilleur achat et le tri, puis les cartes du rayon choisi.
@@ -385,6 +396,55 @@ public abstract class BigBangPageBase extends VBox {
     /** Le sous-onglet « Astres » : le ciel et les corps qu'on y forme. */
     public static final int BODIES = 5;
     int selected = 0;
+    /** Le style de base des sous-onglets : large, resserré ou petit, selon la place ({@link #fitTabs}). */
+    String tabBase = SubTabs.STYLE;
+    /** Vrai quand les noms longs des sous-onglets se raccourcissent, faute de place (version 0.296). */
+    boolean shortTabs;
+
+    /** Le nom d'un sous-onglet : {@code full}, ou {@code brief} quand la place manque. */
+    String tabName(String full, String brief) { return shortTabs ? brief : full; }
+
+    /** Le texte d'un sous-onglet avec son nom entier (celui des trois noms longs est gardé dans ses données). */
+    static String full(Button tab) {
+        return tab.getUserData() instanceof String name && !tab.getText().startsWith(name) ? name + tab.getText().substring(tab.getText().indexOf(' ') < 0 ? tab.getText().length() : tab.getText().indexOf(' ')) : tab.getText();
+    }
+
+    /** Ce que {@link #fitTabs} a mesuré la dernière fois : la largeur et les sous-onglets affichés. */
+    private String fitted = "";
+    static final String TIGHT_TAB = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-cursor: hand;"
+            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
+
+    /** Choisit le style des sous-onglets qui tient sur une ligne de {@code width} pixels. */
+    void fitTabs(double width) {
+        Button[] tabs = {moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab};
+        StringBuilder shown = new StringBuilder().append(width);
+        for (Button tab : tabs) if (tab.isManaged()) shown.append('|').append(full(tab));
+        if (shown.toString().equals(fitted)) return;
+        fitted = shown.toString();
+        javafx.scene.text.Text measure = new javafx.scene.text.Text();
+        double text13 = 0;
+        int count = 0;
+        for (Button tab : tabs) {
+            if (!tab.isManaged()) continue;
+            count++;
+            measure.setText(full(tab));
+            measure.setFont(javafx.scene.text.Font.font(13));
+            text13 += measure.getLayoutBounds().getWidth();
+        }
+        String base = text13 + count * 40 <= width - 4 ? SubTabs.STYLE
+                : text13 + count * 32 <= width - 4 ? SubTabs.NARROW_STYLE : TIGHT_TAB;
+        // Même petits, trop larges : les trois noms longs se raccourcissent (« Expansion », « États », « Systèmes »),
+        // leur nom entier en bulle d'aide. Mesuré sur les noms entiers, pour ne pas basculer d'une image à l'autre.
+        boolean shorter = base == TIGHT_TAB && text13 * 12 / 13 + count * 16 > width - 4 && width > 0;
+        if (shorter != shortTabs) {
+            shortTabs = shorter;
+            fitted = "";
+        }
+        if (!base.equals(tabBase)) {
+            tabBase = base;
+            select(selected);
+        }
+    }
 
     // Sous-page « Molécules »
     private final VBox moleculesPane = new VBox(10);

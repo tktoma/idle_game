@@ -134,7 +134,7 @@ public abstract class GameMix extends GameMirror {
     public static final double MIX_CURSOR_SPEED = 0.3, MIX_CURSOR_STEP = 0.15, MIX_REACH_RADIUS = 0.05;
     /** La profondeur : le point ramasse à 0,15 près, +0,05 par niveau ; il plonge d'une profondeur entière par seconde. */
     public static final double MIX_DEPTH_TOLERANCE = 0.15, MIX_DEPTH_STEP = 0.05, MIX_DIVE_SPEED = 1;
-    /** La charge : jusqu'à ×2 en 8 s tenues, +0,5 par niveau. */
+    /** La charge : jusqu'à ×2 en 8 s tenues, +0.5 par niveau. */
     public static final double MIX_CHARGE_SECONDS = 8, MIX_CHARGE_STEP = 0.5;
     /** Le rythme : un tour en 4 s ; zone de 0,08 tour de demi-largeur, +15 % par niveau. */
     public static final double MIX_RING_TURNS = 0.25, MIX_RING_HALF = 0.08, MIX_RING_STEP = 0.15;

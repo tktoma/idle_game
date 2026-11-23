@@ -541,7 +541,7 @@ public abstract class DimensionWindowRefresh extends DimensionWindowBase {
         mixHint.setText((game.isDimensionAutoPlayed(10)
                 ? "Mélange automatique : " + cadence(10) + ", il mène le point vers l'éclat le plus proche, plonge à sa profondeur, tient et relâche "
                         + "la charge en rythme, clique et passe seul à l'étape suivante. Vous pouvez jouer avec lui. "
-                : "") + mixHintFor(stage));
+                : "") + mixHintFor(stage, 1 + 1 + Game.MIX_CHARGE_STEP * game.mixLevel(Game.MixUpgrade.CHARGE)));
         StringBuilder levels = new StringBuilder().append(Detail.shown()).append('/').append(stage);
         for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) levels.append('/').append(game.mixLevel(upgrade));
         if (changed(mixDetail, levels.toString())) {
