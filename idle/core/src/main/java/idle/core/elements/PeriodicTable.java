@@ -1,7 +1,6 @@
 package idle.core.elements;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Le tableau périodique : les 118 éléments, rangés par numéro atomique, chacun avec son effet.
@@ -268,17 +267,18 @@ public final class PeriodicTable {
     /** Les éléments d'une famille, par numéro atomique croissant. */
     public static List<Element> elements(ElementCategory category) {
         if (category == null) return List.of();
-        // Le tableau ne change pas : chaque famille n'est triée qu'une fois, puis rendue telle quelle.
-        List<Element> family = FAMILIES.get(category);
-        if (family == null) {
-            family = ELEMENTS.stream().filter(element -> element.category() == category).toList();
-            FAMILIES.put(category, family);
-        }
-        return family;
+        // Le tableau ne change pas : chaque famille est triée une fois, au premier usage, puis rendue telle quelle
+        // (0.298 : un tableau par rang de famille, au lieu d'une table partagée lue à chaque calcul des ensembles).
+        return Index.FAMILIES.get(category.ordinal());
     }
 
-    private static final Map<ElementCategory, List<Element>> FAMILIES = new ConcurrentHashMap<>();
-    private static final Map<Integer, List<Element>> ROWS = new ConcurrentHashMap<>();
+    /** Les familles et les périodes, construites une fois, au premier usage (après {@link #ELEMENTS}). */
+    private static final class Index {
+        static final List<List<Element>> FAMILIES = java.util.Arrays.stream(ElementCategory.values())
+                .map(category -> ELEMENTS.stream().filter(element -> element.category() == category).toList()).toList();
+        static final List<List<Element>> ROWS = java.util.stream.IntStream.rangeClosed(1, PERIODS)
+                .mapToObj(period -> ELEMENTS.stream().filter(element -> period(element.number()) == period).toList()).toList();
+    }
 
     /** Nombre de périodes (de lignes) du tableau. */
     public static final int PERIODS = 7;
@@ -301,12 +301,7 @@ public final class PeriodicTable {
     /** Les éléments d'une période (de 1 à 7), par numéro atomique croissant. */
     public static List<Element> elementsOfPeriod(int period) {
         if (period < 1 || period > PERIODS) throw new IllegalArgumentException("Période inconnue : " + period);
-        List<Element> row = ROWS.get(period);
-        if (row == null) {
-            row = ELEMENTS.stream().filter(element -> period(element.number()) == period).toList();
-            ROWS.put(period, row);
-        }
-        return row;
+        return Index.ROWS.get(period - 1);
     }
 
     private PeriodicTable() {}

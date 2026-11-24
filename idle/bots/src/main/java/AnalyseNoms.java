@@ -1,5 +1,5 @@
 import idle.core.Game;
-import idle.core.GameUniverse.TreeBubble;
+import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.achievements.Achievement;
 import idle.core.achievements.Achievements;
 import idle.core.bigbang.SpaceUpgrade;

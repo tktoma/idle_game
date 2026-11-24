@@ -237,6 +237,7 @@ class SaveTest {
         state.setMixStageEarned(321.5);
         // La fin de la partie.
         state.setGameFinished(true);
+        state.setSettleHeld(1234.5);
         // Les hadrons.
         state.setHadronsOpen(true);
         state.setHadronsPrice(2.5e9);

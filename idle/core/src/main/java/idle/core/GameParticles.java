@@ -129,8 +129,9 @@ public abstract class GameParticles extends GameProduction {
                     * Math.sqrt(state.timeSinceFusion() / 60)).pow(level);
             case Effect.Overload overload -> BigNum.of(overload.perLevel()).pow(level);
             // Additif, pas exponentiel : chaque niveau ajoute la même part par autre générateur.
+            // Borné au plafond de la 0.299 : une ancienne sauvegarde peut en porter bien plus, jusqu'à la fusion suivante.
             case Effect.MultiplyByGenerators coupling ->
-                    BigNum.of(1 + coupling.perGenerator() * level * (inTrial(Trial.LONE_GENERATOR)
+                    BigNum.of(1 + coupling.perGenerator() * Math.min(level, upgrade.maxLevel()) * (inTrial(Trial.LONE_GENERATOR)
                             ? 2 * (generatorsPerAtom() - 1) : Math.max(0, generators - 1)));
             // Les paliers de vitesse sont comptés à part : ils tiennent compte des niveaux offerts.
             case Effect.MultiplySpeed speed -> BigNum.ONE;
@@ -330,9 +331,27 @@ public abstract class GameParticles extends GameProduction {
         return costAt(upgrade, state.levelOf(upgrade.id()));
     }
 
+    /**
+     * Le prix de catalogue d'un niveau ({@link Upgrade#costAt(int)}), gardé : les mêmes niveaux se rachètent à chaque
+     * fusion, et la puissance se recalculait à chaque fois (0.298). Le prix d'un niveau ne change jamais ; au-delà de
+     * {@link #COST_CACHE_LEVELS} niveaux, il se calcule sans être gardé.
+     */
+    private BigNum baseCostAt(Upgrade upgrade, int level) {
+        if (level < 0 || level >= COST_CACHE_LEVELS) return upgrade.costAt(level);
+        BigNum[] costs = baseCosts.computeIfAbsent(upgrade, u -> new BigNum[COST_CACHE_LEVELS]);
+        BigNum cost = costs[level];
+        if (cost == null) costs[level] = cost = upgrade.costAt(level);
+        return cost;
+    }
+
+    private static final int COST_CACHE_LEVELS = 4096;
+
+    /** Les prix de catalogue déjà calculés, par amélioration (le catalogue ne change pas pendant une partie). */
+    private final Map<Upgrade, BigNum[]> baseCosts = new IdentityHashMap<>();
+
     /** Coût du niveau acheté quand on en possède {@code level}, toutes réductions comprises. */
     BigNum costAt(Upgrade upgrade, int level) {
-        BigNum cost = upgrade.costAt(level);
+        BigNum cost = baseCostAt(upgrade, level);
         // La vitesse s'essouffle : au-delà de SPEED_SCALING_FROM niveaux, chaque niveau coûte de plus en plus.
         if (upgrade.effect() instanceof Effect.MultiplySpeed && level > SPEED_SCALING_FROM) {
             double over = level - SPEED_SCALING_FROM;

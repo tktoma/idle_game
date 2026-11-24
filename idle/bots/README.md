@@ -48,6 +48,7 @@ python run.py batch --tier rapide --workers 2
 ```
 
 - Les résultats vont dans `sorties/`, que git ignore.
+- Depuis la 0.296, des scripts à la racine du projet enveloppent les mesures courantes : `measure-univers` (un univers depuis son jalon), `compare-versions` (deux versions depuis la même sauvegarde), `profile` (Java Flight Recorder, ou `-Pjfr=chemin.jfr` sur n'importe quel outil Gradle des bots) et `run-all-bots` (toutes les campagnes). La référence de l'équilibrage est décrite dans le `README.md` de la racine.
 - `TEST_RAPIDE.sh` et `TEST_RAPIDE.ps1` font une vérification rapide du kit.
 - Depuis la 0.182, les bots mettent le chrono à fond dès son étage acheté (`UniverseTreePolicy.line`) ; les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (`isDimensionAutomationOpen`), la bulle du sommet ne fait plus que les rendre moitié prix : le bot les achète toujours dès que `canBuyDimensionAutomation` le permet.
 - Depuis la 0.181, le premier univers demande moins à ses Big Bangs (10⁸⁵ ⁰⁰⁰ particules et 42 000 matières noires pour le premier, 10³⁰ ⁰⁰⁰ particules et 10¹¹ atomes pour les suivants, élan ×1,6 après le premier Big Bang) : rien à régler dans les bots, les politiques lisent `bigBangParticles()`, `bigBangAtoms()` et `bigBangDarkMatter()`. Mesuré en rejouant l'acte 2 du Speedrunner (graine 201) depuis sa première explosion : premier Big Bang à 7:55:45 au lieu de 9:30:15, dernier Big Bang préparé à 13:36:50 au lieu de 16:22:05.

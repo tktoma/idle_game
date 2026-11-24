@@ -21,6 +21,50 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = joined(List.of(
+            new Note("0.299", "Fin de partie et fins d'univers", List.of(
+                    "Défi final : le palier du mélange passe de 10 millions à 3 millions de fragments. Le bot analyste "
+                            + "(Speedrunner, une décision toutes les 5 s) finit la partie 17 minutes après le onzième univers (28 "
+                            + "avant) ; le Speedrunner au pas de 20 s en 19, le Régulier en 25.",
+                    "Amas de galaxies et univers : la matière rassemblée demandée baisse de 35 % (39 / 3.9 / 8.9 millions pour "
+                            + "l'amas, 156 / 15.6 / 35.75 millions pour l'univers) ; les sortes ne changent pas. La galaxie demande "
+                            + "toujours les 35 astres : avec 20, mesuré, elle venait plus tôt mais l'amas manquait de l'espace des "
+                            + "derniers astres, et l'univers 1 durait 4 heures de plus.",
+                    "Couplage : mille niveaux au plus (×181 avec les dix générateurs). L'automatisme sans délai en achetait des "
+                            + "centaines de millions par univers à la fin, un par un, pour quelques ordres de grandeur sur des "
+                            + "centaines de millions.",
+                    "Skins : ils s'étalent davantage. Avec ceux qu'une action fait gagner, 50 sont possibles en jouant "
+                            + "l'univers 3 et 100 en jouant l'univers 6 (77 et 173 avant), puis le reste plus vite jusqu'au onzième.",
+                    "Nouvelle bulle de l'arbre, le rassemblement (née avec l'arbre mûr, sous la bulle de l'arbuste du milieu, "
+                            + "32 100 d'énergie du vide) : dans le sous-onglet Cosmos, un bouton à tenir pendant que l'amas ou "
+                            + "l'univers se rassemble ; chaque seconde tenue en vaut quatre. Tous les bots la jouent, sauf le "
+                            + "Speedrunner, la référence.",
+                    "Mesuré sur les onze univers (Speedrunner, graine 201) : 90 h 06 de jeu (91 h 04 avec le seul couplage "
+                            + "plafonné et les skins étalés, 88 h 50 en 0.298) ; univers 1 en 24 h 18 (24 h 58 en 0.298).")),
+            new Note("0.298", "Un moteur plus rapide, au résultat près", List.of(
+                    "Rien ne change en jeu : les parties sont identiques, sauvegarde comprise, seulement calculées plus vite.",
+                    "Mesuré sur la partie de référence (Speedrunner, graine 201), trois tranches rejouées depuis leurs jalons : "
+                            + "321 s de calcul avant, 252 s après (−21 %) ; l'univers 9 seul, 143 s → 105 s (−27 %).",
+                    "Ce qui a changé : le tirage d'un élément lit la famille préférée une fois (et non une fois par famille) et "
+                            + "ne parcourt plus que les éléments de chance ; l'automatisme de l'arbre calcule la production d'une "
+                            + "seconde une fois par passage, et pas du tout quand les particules en main suffisent ; les caches de "
+                            + "l'arbre se lisent sans hachage et ne calculent le niveau effectif que des cases concernées ; les prix "
+                            + "de catalogue, les familles du tableau et les identifiants des défis d'univers sont gardés.",
+                    "Déjà en place, vérifié : les caches de l'arbre ne se vident qu'à un changement de niveau (pas à chaque fusion), "
+                            + "le compte des skins n'est refait qu'à un skin débloqué.")),
+            new Note("0.297", "Des outils et des garde-fous", List.of(
+                    "Rien ne change en jeu.",
+                    "Nouveaux scripts à la racine du projet (.sh et .bat) : test-interface (les tests de l'interface, avec un écran "
+                            + "virtuel sous Linux s'il en faut un), run-all-bots (toutes les campagnes des bots), measure-univers "
+                            + "(un univers mesuré par le bot analyste depuis son jalon, avec ou sans une amélioration), "
+                            + "compare-versions (deux versions jouées depuis la même sauvegarde, palier par palier) et profile "
+                            + "(une partie enregistrée par Java Flight Recorder). Tous les outils des bots acceptent -Pjfr=fichier.jfr.",
+                    "Un README à la racine : construire, lancer, tester, et la configuration exacte du bot de référence de "
+                            + "l'équilibrage (le bot analyste : Speedrunner, une décision toutes les 5 s, graine 201).",
+                    "Nouveau test : une partie rejouée donne la même sauvegarde, et le moteur ne parcourt aucun ensemble dont "
+                            + "l'ordre change d'un lancement à l'autre (le défaut corrigé en 0.162 ne peut pas revenir). Relu : "
+                            + "tous les ensembles non ordonnés du moteur ne servent qu'à des recherches.",
+                    "Nouveau test : l'historique des versions est complet. La note de la 0.133 y manquait ; elle est "
+                            + "reconstituée depuis la documentation des bots.")),
             new Note("0.296", "L'interface relue de près", List.of(
                     "Mélange, étape 4 : l'aide de la charge donne le vrai plafond (×2.5 après un niveau de « Charge », et ainsi "
                             + "de suite) au lieu de toujours dire ×2.",

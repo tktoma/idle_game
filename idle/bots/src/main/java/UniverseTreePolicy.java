@@ -221,6 +221,28 @@ final class UniverseTreePolicy {
         this.random = random;
     }
 
+    /** Vrai pour le profil de référence (le Speedrunner) : ni la bulle du rassemblement ni le clic tenu (0.299). */
+    boolean reference;
+
+    /** La part du temps où le joueur le plus attentif tient le clic du rassemblement : il fait aussi autre chose. */
+    static final double HOLD_SHARE = 0.5;
+
+    /** Les mécaniques coupées du profil (celles de {@link RobotCosmosPlanner#sansMecaniques}). */
+    java.util.Set<String> off = java.util.Set.of();
+
+    /** Les secondes de rassemblement gagnées en tenant le clic : pour le bilan. */
+    double settleHeld;
+
+    /**
+     * Version 0.299 : le rassemblement accéléré. Un joueur tient le clic sur l'amas ou l'univers qui se rassemble la
+     * moitié de son temps de jeu ({@link #HOLD_SHARE}), moins s'il est moins attentif ({@link Style#care()}) ; « rassemblement » dans les mécaniques
+     * coupées du profil l'en empêche (pour mesurer ce qu'elle apporte).
+     */
+    void holdSettle(Game game, double dt) {
+        if (reference || dt <= 0 || !game.canHoldSettle() || off.contains("rassemblement")) return;
+        settleHeld += game.holdSettle(dt * HOLD_SHARE * Math.min(1, style.care()));
+    }
+
     Style style() { return style; }
 
     static boolean disabled() { return Boolean.getBoolean("idle.sansArbre"); }
@@ -292,6 +314,7 @@ final class UniverseTreePolicy {
      * ({@link #occasionalHandSeconds}). Rien si la politique est coupée ou avant l'univers 1 formé.
      */
     void tick(Game game, double dt) {
+        holdSettle(game, dt);
         boolean present = style.care() >= 1;
         if (!watering(game) || dt <= 0 || !present && !(occasionalHandSeconds > 0)) {
             game.playDimensionByHand(0, 0);
@@ -449,10 +472,16 @@ final class UniverseTreePolicy {
     }
 
     /** La bulle ouverte la moins chère qu'on peut payer, hors de celles de {@link #skipped}. */
-    static TreeBubble cheapestBubble(Game game) {
+    static TreeBubble cheapestBubble(Game game) { return cheapestBubble(game, false); }
+
+    /**
+     * La même, pour la référence ({@code reference}) qui ne prend pas la bulle du rassemblement (0.299) : le Speedrunner
+     * ne joue pas les mécaniques ajoutées, ses mesures restent comparables.
+     */
+    static TreeBubble cheapestBubble(Game game, boolean reference) {
         TreeBubble best = null;
         for (TreeBubble bubble : TreeBubble.values()) {
-            if (skipped(game, bubble) || !game.canBuyTreeBubble(bubble)) continue;
+            if (skipped(game, bubble) || reference && bubble == TreeBubble.GATHER || !game.canBuyTreeBubble(bubble)) continue;
             if (best == null || game.treeBubbleCost(bubble) < game.treeBubbleCost(best)) best = bubble;
         }
         return best;
@@ -466,9 +495,9 @@ final class UniverseTreePolicy {
             if ((forcedPlan != null ? forcedPlan : style.plan()) == Plan.BEST) {
                 // L'ordre de l'expert fini, les bulles qui restent (celle des racines), la moins chère d'abord.
                 Step next = nextBest(game);
-                choice = next == null ? (allBestDone(game) ? cheapestBubble(game) : null) : next.bubble();
+                choice = next == null ? (allBestDone(game) ? cheapestBubble(game, reference) : null) : next.bubble();
             } else {
-                choice = cheapestBubble(game);
+                choice = cheapestBubble(game, reference);
             }
             if (choice == null || !game.buyTreeBubble(choice)) break;
             bubbles++;

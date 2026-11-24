@@ -592,8 +592,8 @@ public enum Skin {
 
     /**
      * Le nombre d'univers formés qu'il faut au moins pour débloquer ce skin, en plus de sa condition
-     * propre. Les skins payants se répartissent à parts égales entre le deuxième univers (un univers formé) et le onzième
-     * ({@link #LAST_SKIN_UNIVERSE}), une trentaine par univers, et ceux d'un même visuel viennent dans l'ordre où ils sont
+     * propre. Les skins payants se répartissent entre le deuxième univers (un univers formé) et le onzième
+     * ({@link #LAST_SKIN_UNIVERSE}), peu au début et davantage à la fin ({@link #paidShareAfter()}, 0.299), et ceux d'un même visuel viennent dans l'ordre où ils sont
      * déclarés : le premier skin d'un visuel vient aux univers 2 à 4, le dernier vers la fin. Un skin gagné par une action
      * ({@link #isWon()}) vient dès le deuxième univers ; un skin libre n'attend rien (0).
      */
@@ -618,8 +618,28 @@ public enum Skin {
             paid.addAll(ofVisual);
         }
         paid.sort(Comparator.comparingDouble(rank::get));   // tri stable : à rang égal, l'ordre des visuels
-        for (int i = 0; i < paid.size(); i++) out[paid.get(i).ordinal()] = 1 + i * LAST_SKIN_UNIVERSE / paid.size();
+        for (int i = 0; i < paid.size(); i++) out[paid.get(i).ordinal()] = universeOfRank(i, paid.size());
         return out;
+    }
+
+    /**
+     * Version 0.299 : la part des skins payants ouverte après f univers formés (f = 1 à {@link #LAST_SKIN_UNIVERSE}).
+     * Avec les 13 skins gagnés par une action, cela fait 50 skins possibles en jouant l'univers 3 et 100 en jouant
+     * l'univers 6 (avant : 77 et 173, une part égale par univers), puis le reste plus vite jusqu'au onzième.
+     */
+    static double[] paidShareAfter() {
+        // Une méthode et non un champ : la table sert pendant l'initialisation de l'énumération, avant ses champs.
+        return new double[] {20 / 319.0, 37 / 319.0, 54 / 319.0, 70 / 319.0, 87 / 319.0,
+            133 / 319.0, 180 / 319.0, 226 / 319.0, 273 / 319.0, 1};
+    }
+
+    /** Le nombre d'univers formés qu'attend le skin payant de rang {@code i} (0 : le premier) parmi {@code count}. */
+    static int universeOfRank(int i, int count) {
+        double[] shares = paidShareAfter();
+        for (int f = 1; f <= LAST_SKIN_UNIVERSE; f++) {
+            if (i < Math.round(shares[f - 1] * count)) return f;
+        }
+        return LAST_SKIN_UNIVERSE;
     }
 
     /** Version 0.214 : les skins par identifiant ; l'interface en cherche une dizaine à chaque image. */

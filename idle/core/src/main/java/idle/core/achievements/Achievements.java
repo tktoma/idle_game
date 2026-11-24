@@ -350,7 +350,14 @@ public final class Achievements {
 
     /** L'identifiant du succès qui fait compter ce défi de Big Bang pour les bonus d'univers. */
     public static String universeBangId(BangChallenge challenge) {
-        return "univ_bang_" + challenge.name().toLowerCase(Locale.ROOT);
+        // Construits une fois (0.298) : lus à chaque calcul de la production, ils étaient recomposés, et rehachés, à chaque fois.
+        return UniverseBangIds.IDS[challenge.ordinal()];
+    }
+
+    /** À part : le catalogue s'en sert pendant sa propre construction, avant les champs déclarés plus bas. */
+    private static final class UniverseBangIds {
+        static final String[] IDS = java.util.Arrays.stream(BangChallenge.values())
+                .map(challenge -> "univ_bang_" + challenge.name().toLowerCase(Locale.ROOT)).toArray(String[]::new);
     }
 
     /** Le succès d'un défi de Big Bang réussi une fois un univers formé : ses bonus d'univers comptent tant qu'il est réussi. */

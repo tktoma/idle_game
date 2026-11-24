@@ -323,6 +323,12 @@ public abstract class GameStateBase {
     public static final int MIX_UPGRADES = 11;
     /** Vrai une fois les dix paliers du défi final atteints : la partie est finie. */
     boolean gameFinished = false;
+
+    /**
+     * Version 0.299 : les secondes de rassemblement gagnées en tenant le clic (bulle « rassemblement accéléré ») sur
+     * l'échelle du cosmos qui attend son délai. Remises à zéro à chaque échelle formée et à chaque univers.
+     */
+    double settleHeld = 0;
     final int[] mixLevels = new int[MIX_UPGRADES];
     /**
      * Les améliorations de la graine, dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,

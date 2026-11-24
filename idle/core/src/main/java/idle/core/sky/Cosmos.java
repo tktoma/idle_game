@@ -28,9 +28,11 @@ public enum Cosmos {
     // l'amas, les six septièmes pour l'univers. La matière demandée vaut 60 % de celle de la 0.177 (100 / 10 / 23 et
     // 400 / 40 / 92 millions) : sans les collections de rayon, qui triplaient l'espace à la fin du premier univers, la
     // formation de l'univers 1 attendait la matière 5 h 19 après l'amas au lieu de 4 h 04 (mesuré, graine 201).
+    // Version 0.299 : la matière demandée baisse de 35 % (60 / 6 / 13,75 et 240 / 24 / 55 millions avant), les sortes ne
+    // changent pas : l'amas et l'univers viennent plus vite après la galaxie (note de la 0.299).
     GALAXY("Galaxie", "la galaxie", 4, matter(0, 0, 0), matter(0, 0, 0)),
-    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2, matter(60_000_000, 6_000_000, 13_750_000), matter(12, 10, 26)),
-    UNIVERSE("Univers", "l'univers", 2, matter(240_000_000, 24_000_000, 55_000_000), matter(15, 13, 34));
+    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2, matter(39_000_000, 3_900_000, 8_937_500), matter(12, 10, 26)),
+    UNIVERSE("Univers", "l'univers", 2, matter(156_000_000, 15_600_000, 35_750_000), matter(15, 13, 34));
 
     private final String label;
     private final String phrase;

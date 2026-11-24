@@ -598,7 +598,11 @@ public abstract class GameUniverseBase extends GameAtoms {
         HEART(11, "Bulle de l'arbre-monde, au cœur", 69_300, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 69_300, 1,
-                "Les automatismes des dimensions à moitié prix (ils s'ouvrent par les paliers de la graine et les univers)", 10, 11, 17);
+                "Les automatismes des dimensions à moitié prix (ils s'ouvrent par les paliers de la graine et les univers)", 10, 11, 17),
+        // Version 0.299 : le rassemblement accéléré, née avec l'arbre mûr (univers 8 à 11), dessinée sous la bulle de
+        // l'arbuste du milieu, à laquelle elle est reliée : du temps actif contre l'attente de l'amas et de l'univers.
+        GATHER(8, "Bulle du rassemblement", 32_100, 1,
+                "Tenir le clic sur l'amas ou l'univers qui se rassemble : chaque seconde tenue en vaut quatre", 4);
 
         /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2,5 (version 0.166 ; ×2 avant). */
         public static final double LEVEL_GROWTH = 2.5;

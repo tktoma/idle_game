@@ -138,6 +138,11 @@ public abstract class GameStateCollider extends GameStateColliderBase {
 
     public void setGameFinished(boolean finished) { gameFinished = finished; }
 
+    /** Les secondes de rassemblement gagnées en tenant le clic, sur l'échelle du cosmos en attente (0.299). */
+    public double settleHeld() { return settleHeld; }
+
+    public void setSettleHeld(double seconds) { settleHeld = Math.max(0, seconds); }
+
     /** L'étape du mélange : le nombre de dimensions mêlées, de 1 à 9. */
     public int mixStage() { return mixStage; }
 

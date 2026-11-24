@@ -217,6 +217,7 @@ public final class GameState extends GameStateResets {
         data.put("mixShardsEarned", mixShardsEarned);
         data.put("mixStage", mixStage);
         data.put("gameFinished", gameFinished);
+        data.put("settleHeld", settleHeld);
         data.put("mixStageEarned", mixStageEarned);
         for (int i = 0; i < MIX_UPGRADES; i++) data.put("mixStageLevel" + i, mixLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
@@ -543,6 +544,8 @@ public final class GameState extends GameStateResets {
         setMixStage(data.whole("mixStage", 1));
         // La fin de la partie ; absente d'avant, elle n'est pas encore venue.
         setGameFinished(data.flag("gameFinished", false));
+        // Le rassemblement tenu (0.299) ; absent d'avant, rien n'a été tenu.
+        setSettleHeld(data.real("settleHeld", 0));
         setMixStageEarned(data.real("mixStageEarned", 0));
         for (int i = 0; i < MIX_UPGRADES; i++) setMixLevel(i, data.whole("mixStageLevel" + i, 0));
         // Les améliorations de la graine et le chrono : absents d'avant, ils partent de zéro.

@@ -323,12 +323,19 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Nombre de paliers atteints qui donnent ce bonus. */
     public int landmarksReached(SizeScale.Bonus bonus) {
-        int reached = landmarksReached();
-        int count = 0;
-        for (int index = 0; index < reached; index++) {
-            if (SizeScale.bonusOf(index) == bonus) count++;
-        }
-        return count;
+        return landmarksOf(landmarksReached(), bonus);
+    }
+
+    private static final int BONUS_KINDS = SizeScale.Bonus.values().length;
+
+    /**
+     * Parmi les {@code reached} premiers paliers, ceux qui donnent ce bonus. Les bonus tournent dans l'ordre de leur
+     * sorte (le palier n donne la sorte n mod k) : le compte se calcule sans boucle (0.298 ; avant, un appel à
+     * {@link SizeScale#bonusOf} par palier, à chaque calcul de la production).
+     */
+    static int landmarksOf(int reached, SizeScale.Bonus bonus) {
+        int first = bonus.ordinal();
+        return reached <= first ? 0 : (reached - first + BONUS_KINDS - 1) / BONUS_KINDS;
     }
 
     /** Ce que les paliers de taille multiplient dans les particules de chaque création. */
@@ -706,6 +713,18 @@ public abstract class GameDarkMatter extends GameParticles {
      */
     private boolean buyCheapestDarkUpgrade() {
         if (inChallenge()) return false;
+        darkScanning = true;
+        darkScanBalance = null;
+        try {
+            return scanDarkUpgrades();
+        } finally {
+            darkScanning = false;
+            darkScanBalance = null;
+        }
+    }
+
+    /** Le passage de {@link #buyCheapestDarkUpgrade()} : au plus un achat, qui le termine. */
+    private boolean scanDarkUpgrades() {
         for (DarkUpgrade upgrade : darkUpgrades.values()) {
             // Le premier niveau de Noyaux sombres, que tous les autres achats en matière noire attendent.
             boolean key = upgrade.id().equals(KEY_DARK_UPGRADE) && state.darkLevelOf(upgrade.id()) == 0;

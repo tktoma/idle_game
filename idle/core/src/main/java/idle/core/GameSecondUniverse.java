@@ -186,8 +186,10 @@ public abstract class GameSecondUniverse extends GameChrono {
     }
 
     /** Ce par quoi la préférence multiplie les chances de sa famille : +5 % par tirage au hasard, ×2 au plus. */
-    public double preferenceMultiplier(ElementCategory category) {
-        ElementCategory preferred = preferredFamily();
+    public double preferenceMultiplier(ElementCategory category) { return preferenceMultiplier(category, preferredFamily()); }
+
+    /** Le même multiplicateur, la famille préférée ({@code null} : aucune) déjà lue. */
+    double preferenceMultiplier(ElementCategory category, ElementCategory preferred) {
         if (preferred == null || preferred != category) return 1;
         return 1 + PREFERENCE_STEP * Math.min(PREFERENCE_MAX_DRAWS, state.preferenceDraws());
     }

@@ -39,13 +39,18 @@ public abstract class GameFinale extends GameMix {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
 
+    /** Le palier du mélange, en fragments gagnés en tout (voir {@link #FINAL_GOALS}). */
+    public static final double MIX_FINAL_GOAL = 3e6;
+
     /**
-     * Les paliers, de la ligne au mélange : cent fois le seuil de chaque dimension, et dix millions de fragments pour le
-     * mélange (choix arbitraires, à régler une fois mesurés).
+     * Les paliers, de la ligne au mélange : cent fois le seuil de chaque dimension, et trois millions de fragments pour le
+     * mélange. Version 0.299 : le mélange réglé sur le bot analyste (Speedrunner, une décision toutes les 5 s, graine
+     * 201) : les neuf premiers paliers sont déjà atteints quand le onzième univers se forme, et le dernier, celui du
+     * mélange, vient 17 minutes plus tard (28 minutes avec dix millions de fragments, de la 0.169 à la 0.298).
      */
     private static final double[] FINAL_GOALS = {
         100 * LINE_THRESHOLD, 100 * PLANE_THRESHOLD, 100 * VOLUME_THRESHOLD, 100 * DURATION_THRESHOLD, 100 * LOOP_THRESHOLD,
-        100 * BRANE_THRESHOLD, 100 * CLICKER_THRESHOLD, 100 * GRID_THRESHOLD, 100 * MIRROR_THRESHOLD, 1e7};
+        100 * BRANE_THRESHOLD, 100 * CLICKER_THRESHOLD, 100 * GRID_THRESHOLD, 100 * MIRROR_THRESHOLD, MIX_FINAL_GOAL};
 
     /** Vrai une fois la bulle des racines achetée : les paliers s'affichent. */
     public boolean isFinalChallengeOpen() { return isTreeBubbleBought(TreeBubble.ROOTS); }

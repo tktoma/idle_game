@@ -277,7 +277,38 @@ public abstract class GameChrono extends GameSeed {
         // La date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
         double since = state.stats().reachedThisUniverseAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
         if (Double.isNaN(since)) return 0;
-        return Math.max(0, since + COSMOS_SETTLE_SECONDS * settleShare() - state.timePlayed());
+        return Math.max(0, since + COSMOS_SETTLE_SECONDS * settleShare() - state.timePlayed() - state.settleHeld());
+    }
+
+    // ------------------------------------------------------------------
+    // Le rassemblement accéléré (version 0.299)
+    // ------------------------------------------------------------------
+
+    /** Chaque seconde de clic tenu sur l'échelle qui se rassemble en vaut celle-ci de plus : quatre en tout. */
+    public static final double SETTLE_HOLD_EXTRA = 3;
+
+    /** L'échelle du cosmos dont le délai court en ce moment (l'amas ou l'univers), ou {@code null}. */
+    public Cosmos settlingCosmos() {
+        for (Cosmos scale : Cosmos.values()) {
+            if (!hasCosmos(scale) && cosmosSettleRemaining(scale) > 0) return scale;
+        }
+        return null;
+    }
+
+    /** Vrai quand tenir le clic avance le rassemblement : la bulle achetée et un délai qui court. */
+    public boolean canHoldSettle() { return isTreeBubbleBought(TreeBubble.GATHER) && settlingCosmos() != null; }
+
+    /**
+     * Le joueur tient le clic {@code seconds} secondes sur l'échelle qui se rassemble : son délai avance de
+     * {@link #SETTLE_HOLD_EXTRA} fois ce temps en plus du temps qui passe, sans aller au-delà de ce qui reste.
+     *
+     * @return les secondes de délai gagnées
+     */
+    public double holdSettle(double seconds) {
+        if (seconds <= 0 || !canHoldSettle()) return 0;
+        double gain = Math.min(seconds * SETTLE_HOLD_EXTRA, cosmosSettleRemaining(settlingCosmos()));
+        state.setSettleHeld(state.settleHeld() + gain);
+        return gain;
     }
 
     /** Nombre de sortes de molécules rassemblées dans cet état : la variété que demandent l'amas de galaxies et l'univers ({@link Cosmos#sorts()}). */
@@ -357,6 +388,8 @@ public abstract class GameChrono extends GameSeed {
     public boolean formCosmos(Cosmos scale) {
         if (!canFormCosmos(scale)) return false;
         state.setCosmosLevel(scale.ordinal() + 1);
+        // Le rassemblement tenu servait à cette échelle : la suivante repart de zéro.
+        state.setSettleHeld(0);
         noteStep(switch (scale) {
             case GALAXY -> GameStats.Step.GALAXY;
             case CLUSTER -> GameStats.Step.CLUSTER;

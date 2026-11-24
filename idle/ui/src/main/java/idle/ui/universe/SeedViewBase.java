@@ -603,7 +603,9 @@ public abstract class SeedViewBase extends Canvas {
             {-436, 480}, {436, 480},
             {-336, 638}, {336, 638},
             {-626, 582}, {-500, 295}, {626, 582}, {500, 295},
-            {0, -158}, {0, 574}, {0, 725}};
+            {0, -158}, {0, 574}, {0, 725},
+            // Version 0.299 : le rassemblement accéléré, sous la bulle de l'arbuste du milieu, au-dessus de la graine.
+            {0, 228}};
 
     /** La place des racines dans le schéma : la bulle tout en bas, sous la graine, à l'aura dorée. */
     static final int ROOTS_PLACE = 16;

@@ -323,17 +323,32 @@ public abstract class GamePlans extends GameCollider {
         return switch (branch) {
             // Une seconde de production vaut des particules en main : sans cela, une fusion automatique
             // rapide, qui remet les particules à zéro vingt fois par seconde, rendrait la branche inachetable.
-            case PARTICLES -> state.particles().max(productionPerSecond());
+            case PARTICLES -> {
+                // Version 0.298 : pendant un passage de l'automatisme de l'arbre (rien n'est acheté avant la fin du
+                // passage), la production d'une seconde se calcule une fois au lieu d'une par case examinée.
+                if (darkScanBalance != null) yield darkScanBalance;
+                BigNum balance = state.particles().max(productionPerSecond());
+                if (darkScanning) darkScanBalance = balance;
+                yield balance;
+            }
             case ATOMS -> state.atoms();
             case SIZE -> state.darkMatterSize();
             case DARK_MATTER -> state.darkMatter();
         };
     }
 
+    /** Vrai pendant un passage de l'automatisme de l'arbre ; la balance des particules y est gardée jusqu'au premier achat. */
+    boolean darkScanning;
+    BigNum darkScanBalance;
+
     public boolean canBuyDark(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
-        return isDarkAvailable(darkUpgradeId) && !isDarkMaxed(darkUpgradeId)
-                && darkBalance(dark.branch()).gte(darkCostOf(darkUpgradeId));
+        if (!isDarkAvailable(darkUpgradeId) || isDarkMaxed(darkUpgradeId)) return false;
+        BigNum cost = darkCostOf(darkUpgradeId);
+        // Les particules en main suffisent souvent : la production d'une seconde ne se calcule que sinon (0.298 ; même
+        // réponse, puisque la balance est le plus grand des deux).
+        if (dark.branch() == DarkUpgrade.Branch.PARTICLES && state.particles().gte(cost)) return true;
+        return darkBalance(dark.branch()).gte(cost);
     }
 
     /**
@@ -346,6 +361,8 @@ public abstract class GamePlans extends GameCollider {
         if (!canBuyDark(darkUpgradeId)) return false;
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
         BigNum cost = darkCostOf(darkUpgradeId);
+        darkScanBalance = null;
+        darkScanning = false;
         switch (dark.branch()) {
             case PARTICLES -> {
                 state.setParticles(state.particles().subtract(cost).max(BigNum.ZERO));
@@ -447,8 +464,11 @@ public abstract class GamePlans extends GameCollider {
         double total = this.<Double>darkMemo(key, () -> {
             double sum = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
+                // Une case d'une autre sorte rend 0 : ajouter 0 ne change rien, son niveau effectif ne se calcule pas (0.298).
+                double per = perUnit.applyAsDouble(dark.effect());
+                if (per == 0) continue;
                 int level = effectLevel(dark);
-                if (level > 0) sum += perUnit.applyAsDouble(dark.effect()) * level;
+                if (level > 0) sum += per * level;
             }
             return sum;
         });
@@ -500,8 +520,8 @@ public abstract class GamePlans extends GameCollider {
     /** Les cases possédées dont l'effet sur les particules suit la matière noire ou sa taille : peu nombreuses, parcourues à chaque calcul. */
     List<DarkUpgrade> darkScaled() {
         return darkMemo("scaledParticles", () -> darkUpgrades.values().stream()
-                .filter(dark -> effectLevel(dark) > 0
-                        && (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter || dark.effect() instanceof DarkEffect.ParticlesByLightYears))
+                .filter(dark -> (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter || dark.effect() instanceof DarkEffect.ParticlesByLightYears)
+                        && effectLevel(dark) > 0)
                 .toList());
     }
 }

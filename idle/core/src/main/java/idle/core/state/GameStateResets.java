@@ -310,6 +310,7 @@ public abstract class GameStateResets extends GameStateCollider {
         mixShardsEarned = 0;
         mixStage = 1;
         gameFinished = false;
+        settleHeld = 0;
         mixStageEarned = 0;
         Arrays.fill(mixLevels, 0);
         Arrays.fill(seedUpgradeLevels, 0);

@@ -740,9 +740,11 @@ class SkinsNouveauxTest {
         game.tick(1);
         assertSkin(game, Skin.TREE_SPRING, true, "onze univers");
         // Les bulles : les paliers différents pour la fantaisie, le nombre acheté pour les bulles et leurs liens.
-        assertEquals(19, GameUniverse.TreeBubble.values().length, "les skins des bulles comptent sur dix-neuf bulles");
-        assertEquals(Skin.TREE_BUBBLE_COUNTS[Skin.TREE_BUBBLE_COUNTS.length - 1], GameUniverse.TreeBubble.values().length);
-        assertEquals(Skin.BUBBLE_LINK_COUNTS[Skin.BUBBLE_LINK_COUNTS.length - 1], GameUniverse.TreeBubble.values().length);
+        // Dix-neuf bulles, et celle du rassemblement depuis la 0.299 : les derniers skins des bulles en demandent toujours
+        // dix-neuf, n'importe lesquelles ; la vingtième n'en ouvre pas.
+        assertEquals(20, GameUniverse.TreeBubble.values().length);
+        assertEquals(19, Skin.TREE_BUBBLE_COUNTS[Skin.TREE_BUBBLE_COUNTS.length - 1]);
+        assertEquals(19, Skin.BUBBLE_LINK_COUNTS[Skin.BUBBLE_LINK_COUNTS.length - 1]);
         int bought = 0;
         for (GameUniverse.TreeBubble bubble : GameUniverse.TreeBubble.values()) {
             game.state().setTreeBubbleBought(bubble.ordinal(), true);

@@ -38,6 +38,7 @@ public abstract class GameAutomationBuy extends GamePlans {
     public abstract ElementCategory preferredFamily();
 
     public abstract double preferenceMultiplier(ElementCategory category);
+    abstract double preferenceMultiplier(ElementCategory category, ElementCategory preferred);
 
     /** Met à jour ce que donnent les molécules (dont {@link GameBase#elementUncaps}), défini plus bas dans la chaîne. */
     abstract void refreshMoleculeBonuses();
@@ -382,7 +383,9 @@ public abstract class GameAutomationBuy extends GamePlans {
      * celui des générateurs prend d'un coup tous ceux que les particules permettent ({@link #buysInBulk(Automation)}).
      */
     boolean bulkBuy(Automation automation) {
-        int most = buysInBulk(automation) ? MAX_GENERATORS_PER_ACTION : automationBatch(automation.id());
+        // L'automatisme est déjà en main : son lot se lit sans le rechercher dans le catalogue (0.298).
+        int most = buysInBulk(automation) ? MAX_GENERATORS_PER_ACTION
+                : 1 << Math.min(AUTOMATION_BATCH_LEVELS, state.automationBatchLevel(automation.id()));
         Upgrade upgrade = upgrades.get(automation.upgradeId());
         if (most <= 1) return buy(upgrade.id());
         if (!(upgrade.effect() instanceof Effect.AddGenerator) || upgrade.resource() != Resource.PARTICLES || !state.started()) {
@@ -500,6 +503,10 @@ public abstract class GameAutomationBuy extends GamePlans {
     /** Les familles, dans l'ordre de l'énumération, chacune par numéro atomique croissant : lues à chaque tirage. */
     static final List<List<Element>> FAMILIES = Arrays.stream(ElementCategory.values())
             .map(PeriodicTable::elements).toList();
+
+    /** Les numéros atomiques de chaque famille, dans le même ordre que {@link #FAMILIES} : pour les boucles du tirage (0.298). */
+    static final int[][] FAMILY_NUMBERS = FAMILIES.stream()
+            .map(family -> family.stream().mapToInt(Element::number).toArray()).toArray(int[][]::new);
 
     /** Le plus grand multiplicateur que les éléments peuvent donner : de quoi rester calculable. */
     public static final double ELEMENT_MULTIPLIER_CAP = 1e300;

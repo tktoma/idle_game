@@ -33,19 +33,29 @@ class SkinsEtalesTest {
                 }
             }
             if (paid.isEmpty()) continue;
-            assertTrue(paid.get(0).minUniverses() >= 1 && paid.get(0).minUniverses() <= 3,
-                    "le premier skin du visuel vient aux univers 2 à 4 : " + visual + " " + paid.get(0).minUniverses());
+            // Version 0.299 : les premiers skins de chaque visuel passent d'abord ; avec cent skins possibles à l'univers 6,
+            // le premier de chaque visuel vient entre l'univers 2 et l'univers 6 (2 à 4 avant).
+            assertTrue(paid.get(0).minUniverses() >= 1 && paid.get(0).minUniverses() <= 5,
+                    "le premier skin du visuel vient aux univers 2 à 6 : " + visual + " " + paid.get(0).minUniverses());
             assertTrue(paid.get(paid.size() - 1).minUniverses() <= Skin.LAST_SKIN_UNIVERSE, "au plus le onzième : " + visual);
             for (int k = 1; k < paid.size(); k++) {
                 assertTrue(paid.get(k).minUniverses() >= paid.get(k - 1).minUniverses(), "dans l'ordre : " + paid.get(k));
             }
             for (Skin skin : paid) parUnivers[skin.minUniverses()]++;
         }
-        // Chaque univers formé, du premier au dixième, ouvre à peu près autant de skins : la collection dure jusqu'au bout.
+        // Version 0.299 : peu de skins au début, davantage à la fin. Avec les skins gagnés par une action, 50 possibles en
+        // jouant l'univers 3, 100 en jouant l'univers 6, tous en jouant l'univers 11 ; chaque univers en ouvre au moins un.
         int total = Skin.values().length - freeSkins() - wonSkins();
+        int[] cumul = new int[Skin.LAST_SKIN_UNIVERSE + 1];
         for (int u = 1; u <= Skin.LAST_SKIN_UNIVERSE; u++) {
-            assertTrue(Math.abs(parUnivers[u] - total / (double) Skin.LAST_SKIN_UNIVERSE) <= 1,
-                    "un dixième des skins attendent " + u + " univers formés : " + parUnivers[u] + " sur " + total);
+            cumul[u] = cumul[u - 1] + parUnivers[u];
+            assertTrue(parUnivers[u] > 0, "l'univers " + (u + 1) + " ouvre des skins");
+        }
+        assertEquals(50, cumul[2] + wonSkins(), "en jouant l'univers 3");
+        assertEquals(100, cumul[5] + wonSkins(), "en jouant l'univers 6");
+        assertEquals(total, cumul[Skin.LAST_SKIN_UNIVERSE]);
+        for (int u = 6; u <= Skin.LAST_SKIN_UNIVERSE; u++) {
+            assertTrue(parUnivers[u] > parUnivers[u - 5], "plus de skins à la fin qu'au début : univers " + (u + 1));
         }
         assertEquals(0, parUnivers[0]);
         // Moins de cent skins possibles avant le quatrième univers : le bonus monte au fil de la partie, pas d'un coup au deuxième.

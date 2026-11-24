@@ -240,3 +240,12 @@ tasks.register<JavaExec>("durables") {
     maxHeapSize = "2500m"
     args = listOf(providers.gradleProperty("sortie").orElse("sorties/durables").get(), providers.gradleProperty("ids").orElse("").get())
 }
+
+// Version 0.296 : -Pjfr=chemin.jfr enregistre un profil Java Flight Recorder de n'importe quel outil ci-dessus (le chemin
+// part de ce dossier). C'est ce que fait profile.sh, à la racine du projet :
+//   ./gradlew :bots:analyste -Punivers=1 -Petsi=false -Pdossier=sorties/profil -Pjfr=sorties/profil/partie.jfr
+tasks.withType<JavaExec>().configureEach {
+    providers.gradleProperty("jfr").orNull?.let {
+        jvmArgs("-XX:StartFlightRecording=filename=$it,settings=profile,dumponexit=true")
+    }
+}

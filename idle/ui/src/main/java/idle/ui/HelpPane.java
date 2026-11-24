@@ -381,7 +381,9 @@ final class HelpPane extends Overlay {
                 + "achetée entre-temps en garde sa part (le collisionneur, le vide, les hadrons…). Celle de l'arbuste, à "
                 + "gauche, ouvre le collisionneur dès le début de l'univers et lui donne 20 % d'énergie et de hadrons de plus "
                 + "par univers formé après le premier : chaque univers remplit plus vite l'énergie du trou noir supermassif. Trois "
-                + "se rachètent cinq fois, 2.5 fois plus cher à chaque niveau ; celle des racines ouvre le défi final, "
+                + "se rachètent cinq fois, 2.5 fois plus cher à chaque niveau ; celle du rassemblement, née avec l'arbre mûr sous "
+                + "l'arbuste du milieu, fait apparaître dans le sous-onglet Cosmos un bouton à tenir pendant que l'amas ou l'univers se "
+                + "rassemble : chaque seconde tenue en vaut " + (int) (1 + Game.SETTLE_HOLD_EXTRA) + " ; celle des racines ouvre le défi final, "
                 + "et le jalon des racines dans les paliers des hadrons. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
@@ -480,7 +482,7 @@ final class HelpPane extends Overlay {
                         + "de la graine, payée en fragments, ouvre la bulle des racines." : "")
                 // Le défi final, que la bulle des racines ouvre.
                 + (game.isFinalChallengeOpen() ? " La bulle des racines ouvre le défi final : un palier à atteindre dans "
-                        + "chaque dimension, en ressource gagnée en tout (cent fois son seuil, dix millions de fragments pour "
+                        + "chaque dimension, en ressource gagnée en tout (cent fois son seuil, trois millions de fragments pour "
                         + "le mélange). Sur la carte des dimensions, chaque point se remplit de vert vers son palier, en "
                         + "puissances de dix, et devient tout vert une fois le palier atteint ; le seuil y devient un anneau "
                         + "vert autour du point. Les dix paliers atteints, la partie est finie : les traits de la carte "

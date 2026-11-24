@@ -86,8 +86,9 @@ public final class ElementBonuses {
      */
     public static double[] luckAndDoubleDraw(int[] counts, double elementStrength) {
         double luck = 0, doubleDraw = 0;
-        int last = Math.min(counts.length, PeriodicTable.ELEMENTS.size() + 1);
-        for (int number = 1; number < last; number++) {
+        // Version 0.298 : seuls les éléments de chance ou de double tirage, dans le même ordre (la somme est identique).
+        for (int number : LUCK_OR_DRAW_ELEMENTS) {
+            if (number >= counts.length) break;
             int count = counts[number];
             if (count <= 0) continue;
             ElementEffect effect = PeriodicTable.element(number).effect();
@@ -102,6 +103,11 @@ public final class ElementBonuses {
         }
         return new double[] {1 + luck, doubleDraw};
     }
+
+    /** Les numéros atomiques des éléments dont l'effet est la chance ou le double tirage, par numéro croissant. */
+    private static final int[] LUCK_OR_DRAW_ELEMENTS = PeriodicTable.ELEMENTS.stream()
+            .filter(e -> e.effect() instanceof ElementEffect.Luck || e.effect() instanceof ElementEffect.DoubleDraw)
+            .mapToInt(Element::number).sorted().toArray();
 
     /** Les ensembles dont l'effet est la chance ou le double tirage, dans l'ordre du catalogue. */
     private static final List<ElementSet> LUCK_OR_DRAW_SETS = ElementSets.DEFAULT.stream()

@@ -123,10 +123,10 @@ class Catalogue178Test {
             assertTrue(Cosmos.UNIVERSE.sorts().get(state) > Cosmos.CLUSTER.sorts().get(state), state.name());
             assertTrue(Cosmos.UNIVERSE.matter().get(state) > Cosmos.CLUSTER.matter().get(state), state.name());
         }
-        assertEquals(Map.of(Molecule.State.GAS, 60_000_000, Molecule.State.LIQUID, 6_000_000, Molecule.State.CRYSTAL, 13_750_000),
+        assertEquals(Map.of(Molecule.State.GAS, 39_000_000, Molecule.State.LIQUID, 3_900_000, Molecule.State.CRYSTAL, 8_937_500),
                 Cosmos.CLUSTER.matter());
         assertEquals(Map.of(Molecule.State.GAS, 12, Molecule.State.LIQUID, 10, Molecule.State.CRYSTAL, 26), Cosmos.CLUSTER.sorts());
-        assertEquals(Map.of(Molecule.State.GAS, 240_000_000, Molecule.State.LIQUID, 24_000_000, Molecule.State.CRYSTAL, 55_000_000),
+        assertEquals(Map.of(Molecule.State.GAS, 156_000_000, Molecule.State.LIQUID, 15_600_000, Molecule.State.CRYSTAL, 35_750_000),
                 Cosmos.UNIVERSE.matter());
         assertEquals(Map.of(Molecule.State.GAS, 15, Molecule.State.LIQUID, 13, Molecule.State.CRYSTAL, 34), Cosmos.UNIVERSE.sorts());
     }

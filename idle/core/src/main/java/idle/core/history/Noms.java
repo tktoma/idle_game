@@ -55,7 +55,7 @@ public final class Noms {
             {"lineYieldLevel", "Ligne : densité"}, {"lineTicksLevel", "Ligne : graduations"}, {"lineSpeedLevel", "Ligne : élan"},
             {"lineBallsLevel", "Ligne : boules"}, {"lineCountLevel", "Ligne : lignes"}, {"tableWeightLevel", "Poids du tableau"},
             {"synthesisCount", "Synthèses"}, {"hadronsOpen", "Hadrons ouverts"}, {"voidOpen", "Vide ouvert"}, {"seedWaterings", "Arrosages de la graine"},
-            {"mixStage", "Étape du mélange"}, {"mirrorWins", "Réussites du miroir"}, {"gameFinished", "Fin de la partie"},
+            {"mixStage", "Étape du mélange"}, {"mirrorWins", "Réussites du miroir"}, {"gameFinished", "Fin de la partie"}, {"settleHeld", "Rassemblement tenu"},
             {"chronoStored", "Temps gardé par le chrono"}, {"extraUniverses", "Univers formés en plus"}, {"universeFormed", "Univers formé"},
         };
         for (String[] c : cles) CLES.put(c[0], c[1]);

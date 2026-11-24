@@ -127,17 +127,24 @@ public abstract class GameDarkTree extends GameSystems {
     // Les effets de l'arbre qui ne dépendent que de ses niveaux : calculés une fois par version des
     // niveaux. Sans ce cache, chaque appel parcourait tout l'arbre, des milliers de fois par seconde
     // de jeu une fois les automatismes rapides : c'était le gros du temps du rattrapage d'absence.
-    private final Map<Object, Object> darkMemo = new HashMap<>();
-    private long darkMemoVersion = Long.MIN_VALUE;
+    // Version 0.298 : par identité. Les clés sont des chaînes écrites dans le code (une seule instance chacune) et des
+    // classes d'effets : la même clé est toujours le même objet, et la recherche ne calcule plus de hachage de chaîne.
+    private final Map<Object, Object> darkMemo = new IdentityHashMap<>();
+    private int darkMemoVersion = Integer.MIN_VALUE, darkMemoChallenges;
+    private String darkMemoActive;
 
     @SuppressWarnings("unchecked")
     <T> T darkMemo(Object key, Supplier<T> compute) {
         // Depuis la version 0.070, les défis et leurs récompenses changent ce que valent les cases : ils comptent aussi.
-        long stamp = state.darkVersion() * 1_000_003L + state.challengesVersion() * 31L
-                + (state.activeChallenge() == null ? 0 : state.activeChallenge().hashCode());
-        if (darkMemoVersion != stamp) {
+        // Version 0.298 : les trois versions se comparent une à une (avant, un nombre mêlé, avec le hachage du défi en
+        // cours, à chaque appel) ; un défi changé se voit à sa référence : au pire, le cache se vide une fois de trop.
+        int dark = state.darkVersion(), challenges = state.challengesVersion();
+        String active = state.activeChallenge();
+        if (darkMemoVersion != dark || darkMemoChallenges != challenges || darkMemoActive != active) {
             darkMemo.clear();
-            darkMemoVersion = stamp;
+            darkMemoVersion = dark;
+            darkMemoChallenges = challenges;
+            darkMemoActive = active;
         }
         Object value = darkMemo.get(key);
         if (value == null) {
@@ -177,8 +184,10 @@ public abstract class GameDarkTree extends GameSystems {
         BigNum result = this.<BigNum>darkMemo("baseParticles", () -> {
             BigNum base = BigNum.ONE;
             for (DarkUpgrade dark : darkUpgrades.values()) {
+                // La sorte d'effet d'abord : le niveau effectif (défis, styles) ne se calcule que pour les bonnes cases (0.298).
+                if (!(dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply)) continue;
                 int level = effectLevel(dark);
-                if (level > 0 && dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply) {
+                if (level > 0) {
                     base = base.multiply(BigNum.of(multiply.perLevel()).pow(level));
                 }
             }
@@ -215,8 +224,9 @@ public abstract class GameDarkTree extends GameSystems {
         return darkMemo("autoExpansion", () -> {
             double share = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (!(dark.effect() instanceof DarkEffect.AutoExpansion auto)) continue;
                 int level = effectLevel(dark);
-                if (dark.effect() instanceof DarkEffect.AutoExpansion auto && level > 0) {
+                if (level > 0) {
                     share += auto.share() * Math.pow(auto.growth(), level - 1);
                 }
             }

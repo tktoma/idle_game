@@ -260,9 +260,11 @@ public abstract class GameAtoms extends GameAutomationBuy {
         ElementCategory[] categories = ElementCategory.values();
         double[] weights = new double[categories.length];
         double total = 0;
+        // La famille préférée se lit une fois par tirage (0.298 ; avant, une fois par famille).
+        ElementCategory preferred = preferredFamily();
         for (int i = 0; i < categories.length; i++) {
             if (!uniqueOnly || categories[i].unique()) {
-                weights[i] = drawWeight(categories[i]);
+                weights[i] = drawWeight(categories[i], preferred);
                 total += weights[i];
             }
         }
@@ -346,17 +348,22 @@ public abstract class GameAtoms extends GameAutomationBuy {
     /** Vrai si un élément de la famille peut encore sortir : son nombre d'exemplaires est sous son maximum. */
     boolean anyAvailable(ElementCategory category) {
         refreshMoleculeBonuses();
-        int cap = maxCopiesOf(category);
-        for (Element element : FAMILIES.get(category.ordinal())) {
-            if (state.elementCount(element.number()) < capOf(element, cap)) return true;
+        // Le même test que capOf, sans passer par chaque élément : une famille unique plafonne à 1 (0.298).
+        boolean unique = category.unique();
+        int cap = unique ? 1 : maxCopiesOf(category);
+        for (int number : FAMILY_NUMBERS[category.ordinal()]) {
+            if (state.elementCount(number) < (unique ? 1 : cap + elementUncaps[number])) return true;
         }
         return false;
     }
 
     /** Poids d'une famille dans le tirage : sa chance de base, augmentée si elle est rare, nulle si elle est épuisée. */
-    double drawWeight(ElementCategory category) {
+    double drawWeight(ElementCategory category) { return drawWeight(category, preferredFamily()); }
+
+    /** Le même poids, la famille préférée ({@code null} : aucune) déjà lue. */
+    double drawWeight(ElementCategory category, ElementCategory preferred) {
         if (!anyAvailable(category)) return 0;
-        return category.chance() * (category.rare() ? luckAndDoubleDraw()[0] : 1) * preferenceMultiplier(category);
+        return category.chance() * (category.rare() ? luckAndDoubleDraw()[0] : 1) * preferenceMultiplier(category, preferred);
     }
 
     /** Probabilité actuelle qu'une synthèse tombe dans cette famille, chance et familles épuisées comprises. */

@@ -137,17 +137,17 @@ class LisibiliteTest {
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
             // L'amas de galaxies demande sa matière dans les trois états, et de la variété dans chacun.
-            assertEquals(Map.of(Molecule.State.GAS, 60_000_000, Molecule.State.LIQUID, 6_000_000,
-                    Molecule.State.CRYSTAL, 13_750_000), list.matter());
+            assertEquals(Map.of(Molecule.State.GAS, 39_000_000, Molecule.State.LIQUID, 3_900_000,
+                    Molecule.State.CRYSTAL, 8_937_500), list.matter());
             assertEquals(Map.of(Molecule.State.GAS, 12, Molecule.State.LIQUID, 10, Molecule.State.CRYSTAL, 26), list.sorts());
             // Chaque unité de matière compte pour la plus petite molécule de son état (le dihydrogène à 400, l'eau à 200,
             // l'hydrure de lithium à 40), chaque sorte pour ses trois premières molécules et son lieu (six fois la plus
-            // petite) : 25 750 047 040 en tout (version 0.179 : 60 % de la matière d'avant).
-            assertEquals(2.575004704e10, game.shoppingSpace().toDouble(), 1);
-            // Sans espace libre, il faut attendre toute cette place : 7 160,4 unités par seconde, soit 41 jours et demi.
+            // petite) : 16 737 547 040 en tout (version 0.299 : la matière baisse de 35 % ; 25 750 047 040 de la 0.179 à la 0.298).
+            assertEquals(1.673754704e10, game.shoppingSpace().toDouble(), 1);
+            // Sans espace libre, il faut attendre toute cette place : 7 160,4 unités par seconde, soit 27 jours.
             game.state().setSpace(game.usedSpace());
             assertEquals(7_160.4, game.spacePerSecond().toDouble(), 1e-6);
-            assertEquals(3_596_174.38, game.secondsUntilShopping(), 0.01);
+            assertEquals(1.673754704e10 / 7_160.4, game.secondsUntilShopping(), 0.01);
         }
     }
 

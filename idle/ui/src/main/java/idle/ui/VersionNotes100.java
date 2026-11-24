@@ -871,6 +871,14 @@ final class VersionNotes100 {
                             + "valeur, et temps au plus (+2 s par niveau, jusqu'à 46 s).",
                     "Le seuil de la durée, cent éclats gagnés, ouvre le palier 5 de la graine, donc l'univers 5.",
                     "L'aide (H), page « Dimensions », explique la durée.")),
+            new Version.Note("0.133", "Les bots jouent le troisième univers", List.of(
+                    "Rien ne change en jeu. Les bots enchaînent trois univers (--univers 3) ; une nouvelle sauvegarde de "
+                            + "référence part de l'univers 3 (le deuxième univers formé par le Speedrunner, graine 201).",
+                    "Le vide est joué par tous les bots, chacun à sa façon : ouvert dès qu'il est payable, une part laissée au "
+                            + "vide (50 % pour ceux qui la règlent, mesurée la meilleure : 14 h 22 contre 14 h 55 à 25 %), ses "
+                            + "achats, et le trou noir nourri une fois les huit Big Bangs faits.",
+                    "Les univers 1 et 2 restent exactement ceux d'avant. (Note reconstituée en 0.296 depuis la documentation des "
+                            + "bots : elle manquait à l'historique.)")),
             new Version.Note("0.132", "Le vide raccourcit le troisième acte", List.of(
                     "Nouvelle amélioration du vide, « Rassemblement plus court » : −16 % par niveau du délai de deux heures de "
                             + "l'amas de galaxies et de l'univers, cinq niveaux, jusqu'à −80 %.",

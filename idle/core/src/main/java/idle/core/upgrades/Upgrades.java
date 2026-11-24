@@ -50,6 +50,9 @@ public final class Upgrades {
     /** Nombre maximal de générateurs, le premier compris. */
     public static final int MAX_GENERATORS = 10;
 
+    /** Le plafond du couplage (0.299) : au-delà, les achats ne rapportaient presque rien et coûtaient du calcul. */
+    public static final int COUPLING_MAX_LEVEL = 1000;
+
     /** Écart entre deux paliers de « Vitesse de création », en niveaux. */
     public static final int SPEED_MILESTONE_EVERY = 25;
 
@@ -68,7 +71,10 @@ public final class Upgrades {
                     new Effect.MultiplySpeed(1.10, SPEED_MILESTONE_EVERY, 2)),
             // Chaque niveau : +2 % de particules par autre générateur. Sans effet avec un seul générateur, +18 % par
             // niveau avec les dix : il vaut mieux l'acheter tard dans la partie. Coûts : 60, 90, 135, 203, 304, 456…
-            new Upgrade("coupling", "Couplage", Resource.PARTICLES, BigNum.of(60), 1.5, Upgrade.NO_LIMIT,
+            // Version 0.299 : mille niveaux au plus (×181 avec les dix générateurs). Sans plafond, l'automatisme sans délai
+            // en rachetait des centaines de millions après chaque fusion des derniers univers, un par un, pour sept ordres
+            // de grandeur sur une production de centaines de millions d'ordres : du calcul pour rien.
+            new Upgrade("coupling", "Couplage", Resource.PARTICLES, BigNum.of(60), 1.5, COUPLING_MAX_LEVEL,
                     new Effect.MultiplyByGenerators(0.02)),
             // Chaque niveau ajoute un générateur ; le premier est offert au démarrage, d'où le « - 1 ». Coûts : 20, 46,
             // 106, 244, 560, 1 288, 2 961, 6 810, 15 663. Durée : ×2.2 ≈ 34 min au total, ×2.3 ≈ 37 min, ×2.4 ≈ 41 min.

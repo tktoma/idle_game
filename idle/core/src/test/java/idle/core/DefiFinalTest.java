@@ -41,7 +41,7 @@ class DefiFinalTest {
         assertTrue(game.isFinalChallengeOpen());
         assertFalse(TreeBubble.ROOTS.effect().contains("à venir"));
         for (int d = 1; d <= 9; d++) assertTrue(Game.finalGoal(d) > 0, "un palier par dimension");
-        assertEquals(1e7, Game.finalGoal(10), 0);
+        assertEquals(3e6, Game.finalGoal(10), 0, "réglé en 0.299 : le dernier palier 17 min après le onzième univers");
     }
 
     @Test

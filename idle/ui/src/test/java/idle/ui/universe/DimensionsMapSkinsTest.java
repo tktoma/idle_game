@@ -124,11 +124,12 @@ class DimensionsMapSkinsTest {
             Game game = new Game(7L);
             game.start();
             game.testFormUniverse();
-            for (int k = 0; k < 5; k++) assertTrue(game.testAddUniverse());
+            // Version 0.299 : les skins s'étalent davantage, les menhirs attendent sept univers formés (six avant).
+            while (game.universes() < Skin.MAP_MENHIRS.minUniverses()) assertTrue(game.testAddUniverse());
             game.state().setSkinsOpen(true);
             game.tick(1);
             game.tick(1);
-            assertTrue(game.hasSkin(Skin.MAP_MENHIRS) && !game.hasSkin(Skin.MAP_TOWER), "six dimensions : les menhirs, pas la tour");
+            assertTrue(game.hasSkin(Skin.MAP_MENHIRS) && !game.hasSkin(Skin.MAP_TOWER), "sept univers : les menhirs, pas la tour");
             assertTrue(game.chooseSkin(SkinVisual.DIMENSIONS_MAP, Skin.MAP_MENHIRS));
             assertTrue(game.chooseSkin(SkinVisual.DIMENSION_PALETTE, Skin.DIM_PALETTE_RAINBOW));
             UniversePage page = new UniversePage(game);
@@ -139,7 +140,7 @@ class DimensionsMapSkinsTest {
             page.layout();
             for (int k = 0; k < 5; k++) page.frame(0.05, true);
             assertEquals(Skin.DIM_PALETTE_RAINBOW, DimensionPalette.skin());
-            assertEquals(6, page.dimensionsView().unlocked());
+            assertEquals(Skin.MAP_MENHIRS.minUniverses(), page.dimensionsView().unlocked());
             DimensionPalette.setSkin(null);
             return null;
         });

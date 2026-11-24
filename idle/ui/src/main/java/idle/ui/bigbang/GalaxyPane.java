@@ -39,6 +39,9 @@ public final class GalaxyPane extends VBox {
     private final Map<Cosmos, Card> cards = new EnumMap<>(Cosmos.class);
     private final TileGrid grid = new TileGrid(230, 3, 8);
     private final Button look = new Button("Voir la galaxie dans l'expansion de la matière");
+    /** Version 0.299 : le rassemblement accéléré (bulle de l'arbre), tenu au clic. */
+    private final Button hold = new Button();
+    private boolean holding;
 
     /**
      * @param changed ce qu'il faut refaire quand la galaxie vient d'être formée : rafraîchir toute la page
@@ -79,10 +82,16 @@ public final class GalaxyPane extends VBox {
                 + " -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;");
         look.setFocusTraversable(false);
         look.setOnAction(event -> show.run());
+        hold.setStyle(look.getStyle());
+        hold.setFocusTraversable(false);
+        hold.setOnMousePressed(event -> holding = true);
+        hold.setOnMouseReleased(event -> holding = false);
+        hold.setOnMouseExited(event -> holding = false);
 
         getChildren().add(intro);
         getChildren().add(viewPane);
         getChildren().add(grid);
+        getChildren().add(hold);
         getChildren().add(look);
     }
 
@@ -103,8 +112,18 @@ public final class GalaxyPane extends VBox {
     /** La carte d'une échelle du cosmos : pour les vérifications. */
     public Card card(Cosmos scale) { return cards.get(scale); }
 
-    /** Fait avancer l'image de la galaxie. */
-    void frame(double elapsed) { view.frame(elapsed); }
+    /** Fait avancer l'image de la galaxie, et le rassemblement si le bouton est tenu. */
+    void frame(double elapsed) {
+        view.frame(elapsed);
+        if (holding && !game.canHoldSettle()) holding = false;
+        if (holding) game.holdSettle(elapsed);
+    }
+
+    /** Vrai pendant que le joueur tient le bouton du rassemblement : pour les vérifications. */
+    public boolean holding() { return holding; }
+
+    /** Le bouton du rassemblement accéléré : pour les vérifications. */
+    public Button holdButton() { return hold; }
 
     /** Recopie l'état du jeu dans les trois cartes. */
     void refresh() {
@@ -114,6 +133,14 @@ public final class GalaxyPane extends VBox {
                 + "attire d'autant plus qu'il est gros, et la galaxie a tout multiplié par mille. ");
         scale(Cosmos.UNIVERSE, "Tout ce qui existe : des amas de galaxies le long de filaments, et du vide entre eux. Il faut l'amas de "
                 + "galaxies, et dix fois plus de matière encore. C'est la dernière échelle du jeu. ");
+        // Le rassemblement accéléré : visible tant qu'un délai court et que la bulle est achetée.
+        boolean canHold = game.canHoldSettle();
+        hold.setVisible(canHold);
+        hold.setManaged(canHold);
+        if (canHold) {
+            hold.setText((holding ? "Rassemblement accéléré… " : "Tenir pour accélérer le rassemblement de ")
+                    + game.settlingCosmos().phrase() + " (encore " + minutes(game.cosmosSettleRemaining(game.settlingCosmos())) + ")");
+        }
         boolean formed = game.hasGalaxy();
         look.setVisible(formed);
         look.setManaged(formed);

@@ -38,7 +38,8 @@ class BullesArbreTest {
                 "puis deux sur le feuillage");
         assertEquals(6, at(6, 0).treeBubblesShown().size(), "puis trois à la cime");
         // Les schémas des paliers 7 à 11.
-        int[] counts = {1, 3, 6, 8, 10, 12, 16, 19};
+        // Version 0.299 : la bulle du rassemblement naît au palier 8 (une de plus à partir de là).
+        int[] counts = {1, 3, 6, 8, 11, 13, 17, 20};
         for (int stage = 4; stage <= 11; stage++) {
             assertEquals(counts[stage - 4], at(stage, 0).treeBubblesShown().size(), "palier " + stage);
         }
@@ -53,9 +54,10 @@ class BullesArbreTest {
      */
     @Test
     void lesPrixEtLesNomsDesDixNeufBulles() {
-        assertEquals(19, TreeBubble.values().length);
+        assertEquals(20, TreeBubble.values().length, "dix-neuf, et la bulle du rassemblement depuis la 0.299");
         Map<Integer, Double> parPalier = new TreeMap<>();
-        for (TreeBubble bubble : TreeBubble.values()) parPalier.merge(bubble.stage() == 5 ? 4 : bubble.stage() == 10 ? 9 : bubble.stage(), bubble.cost(), Double::sum);
+        // La bulle du rassemblement (0.299) est à part : facultative, elle ne compte pas dans le prix d'un palier.
+        for (TreeBubble bubble : TreeBubble.values()) if (bubble != TreeBubble.GATHER) parPalier.merge(bubble.stage() == 5 ? 4 : bubble.stage() == 10 ? 9 : bubble.stage(), bubble.cost(), Double::sum);
         assertEquals(26_000, parPalier.get(4), 1e-9, "la graine et le bonsaï naissent ensemble");
         for (int stage : new int[] {6, 7, 8, 9}) assertEquals(64_200, parPalier.get(stage), 300, "palier " + stage);
         assertEquals(207_900, parPalier.get(11), 1e-9, "l'arbre-monde et ses racines");
@@ -71,6 +73,8 @@ class BullesArbreTest {
         assertEquals("Bulle des racines", TreeBubble.ROOTS.label());
         assertEquals("Bulle de l'arbre-monde, au cœur", TreeBubble.HEART.label());
         assertEquals("Bulle de l'arbre-monde, au sommet", TreeBubble.SUMMIT.label());
+        assertEquals("Bulle du rassemblement", TreeBubble.GATHER.label());
+        assertEquals(TreeBubble.MATURE_LEFT.cost(), TreeBubble.GATHER.cost(), 0, "au prix des bulles de son palier");
         // Chaque nom dit son palier ; d'un palier au suivant, le prix total ne baisse jamais.
         double previous = 0;
         for (double total : parPalier.values()) {

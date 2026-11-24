@@ -183,6 +183,7 @@ this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (prof
 // L'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
 // avec leur sens de l'organisation, et suivent l'ordre de l'expert s'ils suivent l'ordre d'achat du modèle.
 this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^ (profile.id*9173L) ^ 0x7ee1L));
+tree.reference=profile.id==1;tree.off=sansMecaniques;
 // Un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
 this.tree.occasionalHandSeconds=profile.actionEverySeconds();
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
