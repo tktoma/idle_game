@@ -17,7 +17,8 @@ import java.util.List;
  * <li><b>particules</b> : se paie avec les particules de la partie en cours ;</li>
  * <li><b>atomes</b> : se paie avec les atomes disponibles. Tant que le plafond d'atomes n'est pas levé, rien ne peut
  * coûter plus de 118 atomes ;</li>
- * <li><b>taille</b> : se débloque en faisant grossir la matière noire, sans rien dépenser.</li>
+ * <li><b>taille</b> : se paie en taille de la matière noire, qui rétrécit du prix (version 0.307 ; avant, il suffisait
+ * de l'atteindre).</li>
  * </ul>
  *
  * <p>Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires gagnées : seuls les prix rythment
@@ -39,9 +40,9 @@ import java.util.List;
  *
  * <p>Réglage vérifié par simulation (robot qui choisit bien) : deuxième acte de 5 h avec toutes les voies de présence,
  * 5 h 30 avec toutes celles d'absence. Les cases du bas de chaque branche s'étalent jusqu'à la fin de l'acte :
- * Singularité en trente niveaux, Réacteur en huit, Horizon en dix. Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules
- * depuis la version 0.125 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en
- * ordres de grandeur).
+ * Singularité en trente niveaux, Réacteur en huit, Horizon en dix. Le premier Big Bang demandait 10¹⁹⁰⁰⁰⁰ particules
+ * de la version 0.125 à la 0.306, et les prix en particules de l'arbre avaient suivi (×0,435 en ordres de grandeur) ;
+ * depuis la 0.307, il en demande 10⁴⁰⁰⁰⁰ au premier univers et 10⁴⁵⁰⁰⁰ aux suivants ({@link Game#BIG_BANG_PARTICLES}).
  */
 public final class DarkUpgrades {
     public static final List<DarkUpgrade> DEFAULT = List.of(
@@ -97,27 +98,19 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_singularity", "Singularité", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 3480), 3.16e130, 30, DarkUpgrade.FORK_PREFIX + "elan",
                     new DarkEffect.MultiplyBaseParticles(100)),
-            // Le seuil du Big Bang : six cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰
-            // particules (0.124), pendant la montée vers le premier Big Bang : la fin du deuxième acte a encore
-            // des étapes, une toutes les vingt à trente minutes. Chacune demande la précédente ; elles donnent
-            // particules ×10³⁰⁰ ou +1 matière noire par explosion.
+            // Le seuil du Big Bang : des cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰ particules (0.124),
+            // pendant la montée vers le premier Big Bang : la fin du deuxième acte a encore des étapes. Elles donnent
+            // particules ×10³⁰⁰ ou +1 matière noire par explosion. Version 0.319 : elles étaient six ici, achetées en
+            // quelques minutes ; « Seuil » et « Point zéro » passent au bout de la branche des atomes, « Fluctuation
+            // primordiale » au bout de celle de la taille, avec les mêmes effets.
             new DarkUpgrade("dark_protostars", "Proto-étoiles", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 6090), 1, 1, "dark_singularity",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
             new DarkUpgrade("dark_primordial", "Nuage primordial", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 7830), 1, 1, "dark_protostars",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
-            new DarkUpgrade("dark_threshold_bang", "Seuil", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 9570), 1, 1, "dark_primordial",
-                    new DarkEffect.AddDarkMatterPerExplosion(1)),
-            new DarkUpgrade("dark_point_zero", "Point zéro", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 11310), 1, 1, "dark_threshold_bang",
-                    new DarkEffect.MultiplyBaseParticles(1e300)),
-            new DarkUpgrade("dark_fluctuation", "Fluctuation primordiale", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 13050), 1, 1, "dark_point_zero",
-                    new DarkEffect.AddDarkMatterPerExplosion(1)),
             new DarkUpgrade("dark_eve", "Veille du Big Bang", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 14790), 1, 1, "dark_fluctuation",
+                    BigNum.of(1, 14790), 1, 1, "dark_primordial",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
 
             // ----- Atomes -----
@@ -165,64 +158,84 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_reactor", "Réacteur", DarkUpgrade.Branch.ATOMS,
                     BigNum.of(1, 11), 10, 8, "dark_isotopes",
                     new DarkEffect.AddAtomsPerFusion(5)),
+            // Version 0.319 : deux cases du seuil du Big Bang, venues de la branche des particules (où elles demandaient
+            // 10⁹⁵⁷⁰ et 10¹¹³¹⁰ particules) : elles se paient en atomes, à la fin du deuxième acte, pendant les
+            // niveaux du Réacteur.
+            new DarkUpgrade("dark_threshold_bang", "Seuil", DarkUpgrade.Branch.ATOMS,
+                    BigNum.of(1, 12), 1, 1, "dark_reactor",
+                    new DarkEffect.AddDarkMatterPerExplosion(1)),
+            new DarkUpgrade("dark_point_zero", "Point zéro", DarkUpgrade.Branch.ATOMS,
+                    BigNum.of(1, 13), 1, 1, "dark_threshold_bang",
+                    new DarkEffect.MultiplyBaseParticles(1e300)),
 
             // ----- Taille de la matière noire -----
-            // Croissance ×2 par niveau, cinq niveaux : à 1 nm, 1 mm, 1 km, un million de km, puis 1e15 m.
+            // Version 0.307 : chaque case se paie en taille (la matière noire rétrécit de son prix), et les prix suivent
+            // l'échelle des grandeurs, du nanomètre à l'univers observable, au lieu de monter jusqu'à 10¹³³ années-lumière.
+            // Les multiplicateurs de croissance sont plus doux (Croissance soutenue et Puits de gravité ×3 au lieu de ×10,
+            // Horizon ×1,5 par niveau au lieu de ×2) : avec les anciens, la taille s'emballait.
+            // Croissance ×2 par niveau, cinq niveaux : 1 nm, 1 µm, 1 mm, 1 m, puis 1 km.
             // Limité à cinq niveaux (×32 en tout) : sans limite, chaque niveau amènerait le suivant deux
             // fois plus vite, et la taille s'emballerait.
-            new DarkUpgrade("dark_inflation", "Inflation sombre", DarkUpgrade.Branch.SIZE, BigNum.of(1, -9), 1e6, 5, null,
+            new DarkUpgrade("dark_inflation", "Inflation sombre", DarkUpgrade.Branch.SIZE, BigNum.of(1, -9), 1e3, 5, null,
                     new DarkEffect.MultiplyExpansion(2)),
-            // Un clic verrouille l'appui. À atteindre : 1 micromètre.
+            // Un clic verrouille l'appui. Prix : 1 micromètre (une bactérie).
             new DarkUpgrade("dark_lock", "Verrou", DarkUpgrade.Branch.SIZE, BigNum.of(1, -6), 1, 1, "dark_inflation",
                     new DarkEffect.HoldLock()),
-            // Chaque fusion vaut 0,2 s d'appui. À atteindre : 1 mètre.
-            new DarkUpgrade("dark_wave", "Onde de fusion", DarkUpgrade.Branch.SIZE, BigNum.ONE, 1, 1, "dark_lock",
+            // Chaque fusion vaut 0,2 s d'appui. Prix : 7 cm (une balle de tennis).
+            new DarkUpgrade("dark_wave", "Onde de fusion", DarkUpgrade.Branch.SIZE, BigNum.of(6.7, -2), 1, 1, "dark_lock",
                     new DarkEffect.FusionPulse(0.2)),
-            // Bifurcation « croissance » (0.069) : croissance ×10, ou 2 s d'appui à chaque fusion. À atteindre : 10 mètres.
+            // Bifurcation « croissance » (0.069) : croissance ×3 (×10 avant la 0.307), ou 2 s d'appui à chaque fusion. Prix : 1,7 m (un être humain).
             new DarkUpgrade("dark_steady", "Croissance soutenue", DarkUpgrade.Branch.SIZE,
-                    BigNum.of(10), 1, 1, "dark_wave",
-                    new DarkEffect.MultiplyExpansion(10), "croissance"),
-            new DarkUpgrade("dark_echo", "Onde amplifiée", DarkUpgrade.Branch.SIZE, BigNum.of(10), 1, 1, "dark_wave",
+                    BigNum.of(1.7), 1, 1, "dark_wave",
+                    new DarkEffect.MultiplyExpansion(3), "croissance"),
+            new DarkUpgrade("dark_echo", "Onde amplifiée", DarkUpgrade.Branch.SIZE, BigNum.of(1.7), 1, 1, "dark_wave",
                     new DarkEffect.FusionPulse(2), "croissance"),
-            // Grossit seule : 0,1 %, puis 1 %, puis 10 % de la vitesse d'appui. À atteindre : 1, 100, 10 000 années-lumière.
+            // Grossit seule : 0,1 %, puis 1 %, puis 10 % de la vitesse d'appui. Prix : 30 m (une baleine bleue), 3 km, 300 km.
             new DarkUpgrade("dark_spontaneous", "Expansion spontanée", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR, 100, 3, DarkUpgrade.FORK_PREFIX + "croissance",
+                    BigNum.of(30), 100, 3, DarkUpgrade.FORK_PREFIX + "croissance",
                     new DarkEffect.AutoExpansion(0.001, 10)),
-            // +1 matière noire par explosion et par niveau, dix niveaux. À atteindre : 1 000 années-lumière, puis ×1 000.
+            // +1 matière noire par explosion et par niveau, dix niveaux. Prix : 330 m (la tour Eiffel), puis ×3.
             new DarkUpgrade("dark_condensation", "Condensation", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e3), 1e3, 10, "dark_spontaneous",
+                    BigNum.of(330), 3, 10, "dark_spontaneous",
                     new DarkEffect.AddDarkMatterPerExplosion(1)),
-            // Plus de plafond d'atomes. À atteindre : 10¹⁰ années-lumière.
+            // Plus de plafond d'atomes. Prix : 8 849 m (le mont Everest).
             new DarkUpgrade("dark_overflow", "Débordement", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e10), 1, 1, "dark_condensation",
+                    BigNum.of(8849), 1, 1, "dark_condensation",
                     new DarkEffect.UncapAtoms()),
-            // Bifurcation « horizon » (0.069) : croissance ×10, ou atomes +50 % par matière noire gagnée. À atteindre : 10²⁵ années-lumière.
+            // Bifurcation « horizon » (0.069) : croissance ×3 (×10 avant la 0.307), ou atomes +50 % par matière noire gagnée.
+            // Prix : 3 470 km (la Lune).
             new DarkUpgrade("dark_gravity", "Puits de gravité", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e25), 1, 1, "dark_overflow",
-                    new DarkEffect.MultiplyExpansion(10), "horizon"),
+                    BigNum.of(3.47, 6), 1, 1, "dark_overflow",
+                    new DarkEffect.MultiplyExpansion(3), "horizon"),
             new DarkUpgrade("dark_harvest", "Moisson", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e25), 1, 1, "dark_overflow",
+                    BigNum.of(3.47, 6), 1, 1, "dark_overflow",
                     new DarkEffect.AtomsByDarkMatter(0.5), "horizon"),
-            // Le bout de la branche (0.069) : croissance ×2 par niveau, dix niveaux. À atteindre : 10¹⁰⁰ années-lumière, puis ×100 000.
+            // Le bout de la branche (0.069) : croissance ×1,5 par niveau (×2 avant la 0.307), dix niveaux. Prix : 1,4 million de km
+            // (le Soleil), puis ×3.
             new DarkUpgrade("dark_horizon", "Horizon", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e100), 1e5, 10, DarkUpgrade.FORK_PREFIX + "horizon",
-                    new DarkEffect.MultiplyExpansion(2)),
+                    BigNum.of(1.39, 9), 3, 10, DarkUpgrade.FORK_PREFIX + "horizon",
+                    new DarkEffect.MultiplyExpansion(1.5)),
             // Bifurcation « abîme » (0.070), tout au bout : particules × la taille en années-lumière, ou atomes +100 % par
-            // matière noire gagnée. À atteindre : 10¹²⁵ années-lumière.
+            // matière noire gagnée. Prix : 1,5 année-lumière (le nuage de Oort).
             new DarkUpgrade("dark_abyss", "Abîme", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e125), 1, 1, "dark_horizon",
+                    BigNum.of(1.5, 16), 1, 1, "dark_horizon",
                     new DarkEffect.ParticlesByLightYears(1), "abime"),
             new DarkUpgrade("dark_deep_harvest", "Moisson profonde", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e125), 1, 1, "dark_horizon",
+                    BigNum.of(1.5, 16), 1, 1, "dark_horizon",
                     new DarkEffect.AtomsByDarkMatter(1), "abime"),
             // Après l'abîme : deux cases de taille pour la fin du deuxième acte. +1 matière noire par
-            // explosion, puis la croissance ×2. À atteindre : 10¹²⁹, puis 10¹³³ années-lumière.
+            // explosion, puis la croissance ×2. Prix : la Voie lactée, puis l'univers observable.
             new DarkUpgrade("dark_background", "Fond diffus", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(BigNum.of(1, 129)), 1, 1, DarkUpgrade.FORK_PREFIX + "abime",
+                    BigNum.of(9.5, 20), 1, 1, DarkUpgrade.FORK_PREFIX + "abime",
                     new DarkEffect.AddDarkMatterPerExplosion(1)),
             new DarkUpgrade("dark_planck_wall", "Mur de Planck", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(BigNum.of(1, 133)), 1, 1, "dark_background",
+                    BigNum.of(8.8, 26), 1, 1, "dark_background",
                     new DarkEffect.MultiplyExpansion(2)),
+            // Version 0.319 : une case du seuil du Big Bang, venue de la branche des particules (10¹³⁰⁵⁰ particules) :
+            // +1 matière noire par explosion. Prix : trente mille fois l'univers observable, 3·10³¹ m.
+            new DarkUpgrade("dark_fluctuation", "Fluctuation primordiale", DarkUpgrade.Branch.SIZE,
+                    BigNum.of(3, 31), 1, 1, "dark_planck_wall",
+                    new DarkEffect.AddDarkMatterPerExplosion(1)),
 
             // ----- Liaisons (0.070) -----
             // Entre deux branches : chacune s'ouvre dès que l'une de ses deux voies voisines est prise
@@ -285,16 +298,15 @@ public final class DarkUpgrades {
                     new DarkEffect.SynthesisByDarkMatter(0.1)),
             // 5 atomes comptés comme créés au départ de chaque partie, par matière noire gagnée : à
             // 6 matières noires, l'automatisation et le tableau périodique sont ouverts d'entrée.
+            // Depuis la version 0.307, autant d'atomes en main après chaque explosion (jusqu'au plafond d'atomes) :
+            // seuls, les atomes comptés ne changeaient presque rien pour un joueur rapide.
             new DarkUpgrade("dark_shop_start", "Départ lancé", DarkUpgrade.Branch.DARK_MATTER, BigNum.of(2), 1, 1, null,
                     new DarkEffect.HeadStartByDarkMatter(5)),
             // Ouvre la synthèse ciblée. Elle coûte cher en synthèses : elle n'a d'intérêt que lorsque
-            // les atomes ne manquent plus, donc après la première explosion.
+            // les atomes ne manquent plus, et surtout pour les recettes du ciel, après le premier Big Bang.
             new DarkUpgrade("dark_shop_target", "Synthèse ciblée", DarkUpgrade.Branch.DARK_MATTER,
                     BigNum.of(2), 1, 1, null,
-                    new DarkEffect.TargetedSynthesis()),
-            // Ouvre l'achat par dix et « max » des améliorations en atomes : un confort, pour une matière noire.
-            new DarkUpgrade("dark_shop_bulk", "Achat groupé", DarkUpgrade.Branch.DARK_MATTER, BigNum.ONE, 1, 1, null,
-                    new DarkEffect.BulkAtomUpgrades()));
+                    new DarkEffect.TargetedSynthesis()));
 
     private DarkUpgrades() {}
 }

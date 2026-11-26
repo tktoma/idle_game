@@ -53,16 +53,18 @@ class HadronsBonusPageTest {
             HadronsPage page = page(game);
             assertEquals(HadronsPage.bonusText(Hadron.PROTON, 0, 15), page.bonusText(Hadron.PROTON));
             assertTrue(page.bonusText(Hadron.J_PSI).startsWith("Prix des améliorations du collisionneur : ÷1 → ÷"), page.bonusText(Hadron.J_PSI));
-            assertEquals("Gluons : 0   |   paliers atteints : 0 / 5", page.gluonsLine().getText());
-            assertFalse(page.effectNote().getText().contains("pas encore d'effet"), page.effectNote().getText());
-            assertTrue(page.effectNote().getText().contains("log₁₀(1 + n)"), page.effectNote().getText());
+            // Version 0.311 : les gluons au centre du bandeau, les paliers dessous.
+            assertEquals("0", page.head().value().getText());
+            assertEquals("paliers atteints : 0 / 5", page.head().sub().getText());
+            assertFalse(page.effectText().contains("pas encore d'effet"), page.effectText());
+            assertTrue(page.effectText().contains("log₁₀(1 + n)"), page.effectText());
             page.bindOneButton(Hadron.PROTON).fire();
             assertTrue(page.bonusText(Hadron.PROTON).startsWith("Atomes par fusion : ×1.08 → ×1.12"), page.bonusText(Hadron.PROTON));
             assertEquals(game.hadronBoost(Hadron.PROTON), 1 + Game.HADRON_BOOST_STEP * Math.log10(2), 1e-12);
             page.bindAllButton(Hadron.PROTON).fire();
             // L'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée.
             long protons = (long) Math.floor(15 * game.crossingGain() + 1e-9);
-            assertTrue(page.gluonsLine().getText().startsWith("Gluons : " + protons * 3 + " "), page.gluonsLine().getText());
+            assertEquals(String.valueOf(protons * 3), page.head().value().getText());
             assertFalse(page.bonusText(Hadron.PROTON).contains("Lier tout"), "plus rien à lier : " + page.bonusText(Hadron.PROTON));
             return null;
         });
@@ -88,7 +90,7 @@ class HadronsBonusPageTest {
             assertEquals(Card.State.DONE, first.state());
             assertTrue(first.text().contains("atteint") && !first.text().contains("Il manque"), first.text());
             assertEquals(1, page.gaugeShare(GluonMilestone.UPGRADES), 1e-9);
-            assertTrue(page.gluonsLine().getText().endsWith("paliers atteints : 1 / 5"), page.gluonsLine().getText());
+            assertEquals("paliers atteints : 1 / 5", page.head().sub().getText());
             assertEquals(Card.State.STARTED, page.milestoneCard(GluonMilestone.AUTOMATIONS).state());
             return null;
         });

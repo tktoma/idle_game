@@ -58,6 +58,17 @@ public final class Settings extends SettingsBase {
     /** Vrai si ce thème ou cette notation à débloquer l'est déjà. */
     public boolean hasCosmetic(Cosmetic cosmetic) { return cosmetics.contains(cosmetic); }
 
+    /**
+     * Le souvenir de ce que le joueur a vu (version 0.318) : il s'écrit dans les réglages à chaque étape nouvelle. Le même
+     * objet à chaque appel.
+     */
+    public Seen.Memory seen() {
+        if (seenMemory == null) seenMemory = new Seen.Memory(seen, () -> save(SEEN, joined(seen)));
+        return seenMemory;
+    }
+
+    private Seen.Memory seenMemory;
+
     /** Vrai si ce thème peut être choisi : offert, ou débloqué. */
     public boolean isOpen(Theme theme) { return theme.unlock() == null || cosmetics.contains(theme.unlock()); }
 
@@ -278,7 +289,7 @@ public final class Settings extends SettingsBase {
         save(DOTS_OFF, joined(dotsOff));
     }
 
-    /** Vrai si l'objectif du moment est rappelé sous les onglets. */
+    /** Vrai si l'objectif du moment est rappelé en haut à gauche du bandeau. */
     public boolean showGoal() { return showGoal; }
 
     public void setShowGoal(boolean showGoal) {

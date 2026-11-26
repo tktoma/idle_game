@@ -337,6 +337,29 @@ class BruitagesTest {
         NiveauxTest.auNiveau(Sound.GAME_END_STEREO, 2, Sound.RARE_DB, "la fin de la partie");
     }
 
+    /**
+     * Version 0.303 : au lancement, la sortie audio est réveillée par un dixième de seconde de silence, avant tout son ;
+     * il ne prend la place d'aucun son, et les six particules qui suivent partent toutes.
+     */
+    @Test
+    void laSortieEstReveilleeAvantLaPremiereParticule() throws InterruptedException {
+        List<Sound.Pcm> sent = Collections.synchronizedList(new ArrayList<>());
+        Sound sound = new Sound();
+        sound.sink = sent::add;
+        sound.warmUp();
+        for (int k = 0; k < Sound.MAX_PARTICLE_VOICES; k++) assertTrue(sound.particle(0, 100), "particule " + k);
+        sound.player.shutdown();
+        assertTrue(sound.player.awaitTermination(5, TimeUnit.SECONDS));
+        assertEquals(1 + Sound.MAX_PARTICLE_VOICES, sent.size());
+        Sound.Pcm silence = sent.get(0);
+        assertEquals(Sound.WARM_UP_SAMPLES * 2, silence.bytes().length, "d'abord le silence");
+        assertFalse(silence.stereo());
+        for (byte b : silence.bytes()) assertEquals(0, b, "muet");
+        assertEquals(Sound.PARTICLE_STAGES[0].length * 2, sent.get(1).bytes().length, "puis la première particule");
+        assertEquals(0, sound.lost(), "rien de perdu");
+        assertTrue(Sound.RETRY_MILLIS > 0 && Sound.RETRY_MILLIS < 100, "un nouvel essai assez tôt pour rester à l'heure");
+    }
+
     /** Version 0.271 : un palier du défi final prend le son du joueur, en mono, au niveau des rares. */
     @Test
     void lePalierDuDefiFinalALeSonDuJoueur() throws InterruptedException {

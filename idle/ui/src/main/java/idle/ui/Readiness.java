@@ -26,9 +26,9 @@ public final class Readiness {
      * s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.
      */
     public enum Kind {
-        TREE("Arbre de matière noire", "Une case de l'arbre payable, ou le Big Bang possible."),
+        TREE("Arbre de matière noire", "Une case de l'arbre payable, ou le grand pas suivant possible."),
         CHALLENGES("Défis de matière noire", "Un défi ouvert, jamais réussi, quand aucun n'est en cours."),
-        COLLIDER("Collisionneur", "Le quark top, une amélioration payable, le vide ou les hadrons à ouvrir."),
+        COLLIDER("Collisionneur", "Le quark top, une amélioration payable, ou de quoi ouvrir la suite."),
         MILESTONES("Paliers du Big Bang", "Un palier ouvert qui peut se payer."),
         SKY("Ciel à former", "Une sorte à rassembler, un assemblage, un astre ou une échelle du cosmos à former."),
         COMET("Comète", "Une comète dans l'expansion : la seule pastille qui s'éteint seule."),

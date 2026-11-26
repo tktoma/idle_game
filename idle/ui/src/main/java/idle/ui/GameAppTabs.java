@@ -155,8 +155,8 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * Un clic sur le bouton d'explosion. Avec la confirmation des réglages, le premier clic arme
-     * le bouton et c'est le second, dans les secondes qui suivent, qui déclenche l'explosion.
+     * Un clic sur la pastille de l'explosion (la barre violette jusqu'à la 0.308). Avec la confirmation des réglages, le
+     * premier clic l'arme et c'est le second, dans les secondes qui suivent, qui déclenche l'explosion.
      */
     void requestExplosion() {
         if (!game.canExplode() || exploding) return;
@@ -289,8 +289,8 @@ public abstract class GameAppTabs extends GameAppWindow {
                 dock.page().getChildren().remove(dock.bar());
                 subTabHolder.getChildren().add(dock.bar());
             }
-            // La colonne des onglets descend du haut au bas de la fenêtre : ni le bouton d'explosion ni la
-            // barre du haut ne la font bouger.
+            // La colonne des onglets descend du haut au bas de la fenêtre : ni le défi en cours ni le bandeau
+            // ne la font bouger.
             root.setTop(null);
             root.setCenter(null);
             mainColumn.setTop(topBox);
@@ -326,7 +326,11 @@ public abstract class GameAppTabs extends GameAppWindow {
             dock.bar().setManaged(shown);
             any |= shown;
         }
-        // Sans sous-onglets, la barre garde sa place et montre le nom de l'onglet.
+        // Sans sous-onglets, la barre garde sa place et montre le nom de l'onglet. Version 0.309 : l'onglet Particules a son
+        // nom dans le bandeau, devant le compteur ; la barre s'efface.
+        boolean own = selectedTab == Tab.PARTICLES;
+        subTabHolder.setVisible(!own);
+        subTabHolder.setManaged(!own);
         tabTitle.setVisible(!any);
         tabTitle.setText(tabName(selectedTab));
         tabTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + tabColor(selectedTab) + ";");

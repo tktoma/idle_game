@@ -17,6 +17,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.probes.ProbesPane;
 import java.util.ArrayList;
@@ -42,11 +43,12 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
     /** Recopie l'état du jeu dans les textes. */
     public void refresh() {
         int count = game.bigBangs();
-        countLabel.setText(count + (count > 1 ? " Big Bangs" : " Big Bang"));
+        head.set(String.valueOf(count), "");
         refreshCycle();
         refreshMoleculePictures();
-        sinceLabel.setText("Partie en cours depuis " + Format.duration(game.stats().runTime())
-                + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
+        // Version 0.315 : la durée de la partie n'est plus une ligne de la page ; elle passe au survol du nombre de Big Bangs.
+        Labels.tip(head.value(), "Partie en cours depuis " + Format.duration(game.stats().runTime())
+                + ". Le prochain Big Bang se déclenche au bout de l'arbre de matière noire.");
         long created = game.moleculesCreated();
         moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
         expansionTab.setText(tabName("Expansion de la matière", "Expansion") + Readiness.dot(Readiness.Kind.COMET, Readiness.of(game).comet()));
@@ -81,6 +83,8 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         galaxyTab.setManaged(galaxy);
         galaxyTab.setText((game.cosmosFormed() == 0 ? "Cosmos" : game.nextCosmos() == null ? "Cosmos (formé)"
                 : "Cosmos (" + game.cosmosFormed() + "/" + Cosmos.values().length + ")") + Readiness.dot(Readiness.Kind.SKY, ready.cosmos()));
+        // Version 0.316 : le texte d'en-tête du Cosmos, au survol de son sous-onglet.
+        Labels.tip(galaxyTab, galaxyPane.introText());
         if (selected == 6 && !galaxy) select(0);
         boolean probes = game.isProbesUnlocked();
         probesTab.setVisible(probes);
@@ -122,7 +126,8 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
     private void refreshMilestones() {
         int count = game.bigBangs();
         BigBangMilestone next = game.nextBigBangMilestone();
-        milestonesIntro.setText(next == null
+        // Version 0.315 : l'explication des paliers passe au survol de leur sous-onglet.
+        Labels.tip(milestonesTab, next == null
                 ? "Les " + game.bigBangMilestones().size() + " paliers sont acquis. Un Big Bang de plus ajoute encore "
                         + ElementText.number(Game.SPACE_PER_SECOND) + " unité d'espace par seconde, rien d'autre."
                 : "Chaque Big Bang déclenché, jusqu'au huitième, ouvre un gros bonus pour de bon, parfois plusieurs (" + count
@@ -243,7 +248,8 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
     }
 
     private void refreshUpgrades() {
-        upgradesIntro.setText("Une amélioration est acquise d'elle-même quand l'expansion a créé assez d'espace ("
+        // Version 0.315 : l'explication des améliorations passe au survol de leur sous-onglet.
+        Labels.tip(upgradesTab, "Une amélioration est acquise d'elle-même quand l'expansion a créé assez d'espace ("
                 + Format.count(game.state().space()) + " en ce moment). Elle ne coûte rien, et il n'y a rien à cliquer."
                 + Detail.only(" C'est l'espace gagné depuis le premier Big Bang qui compte, pas celui qui reste libre : "
                         + "remplir l'espace de molécules et de leurs lieux de rassemblement ne retarde aucune amélioration. Les "

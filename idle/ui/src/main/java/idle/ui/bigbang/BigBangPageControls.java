@@ -11,6 +11,7 @@ import idle.ui.Readiness;
 import idle.ui.common.Card;
 import idle.ui.common.ElementText;
 import idle.ui.common.FilterBar;
+import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
@@ -350,11 +351,15 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         cycleRow.setManaged(open);
         if (!open) return;
         CycleChoice chosen = game.cycleChoice();
-        cycleTitle.setText(chosen == null ? "Choix du cycle, jusqu'au prochain Big Bang :" : "Choix du cycle : " + chosen.effect());
+        // Version 0.315 : le titre seul ; ce que donne le choix fait, et sa durée, au survol.
+        cycleTitle.setText("Choix du cycle :");
+        Labels.tip(cycleTitle, chosen == null ? "Un seul choix, jusqu'au prochain Big Bang."
+                : chosen.label() + " : " + chosen.effect() + " Jusqu'au prochain Big Bang.");
         cycleButtons.forEach((choice, button) -> {
             boolean on = choice == chosen;
             button.setDisable(chosen != null && !on);
             button.setText(choice.label() + (chosen == null ? " : " + choice.effect() : ""));
+            Labels.tip(button, chosen == null ? "" : choice.effect());
             button.setStyle("-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
                     + (on ? " -fx-text-fill: #10151f; -fx-background-color: " + GameApp.BIG_BANG_COLOR + ";"
                             : " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;"));

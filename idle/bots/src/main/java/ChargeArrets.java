@@ -30,7 +30,7 @@ final class ChargeArrets {
             ajoute(plan, "amas", "auto_molecules");
         }
         if (tout || quoi.equals("ameliorations")) {
-            ajoute(plan, "Big Bang 1", "coupling,atom_double,atom_mass,atom_discount,atom_bulk");
+            ajoute(plan, "Big Bang 1", "coupling,atom_double,atom_mass,atom_discount");
             ajoute(plan, "Big Bang 5", "speed,generator,atom_yield,atom_boost,atom_keep,atom_patience,atom_overload");
         }
         if (tout || quoi.equals("mecaniques")) {

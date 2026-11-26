@@ -46,3 +46,6 @@ bots/sorties/
 
 ### Plantages de la JVM ###
 hs_err_pid*.log
+
+### Fichiers compilés hors de Gradle (0.300) : jamais dans les sources ###
+*.class

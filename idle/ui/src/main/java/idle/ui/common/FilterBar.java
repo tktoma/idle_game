@@ -103,6 +103,30 @@ public final class FilterBar extends VBox {
         getChildren().add(field);
     }
 
+    /**
+     * Range les pastilles à droite du champ (version 0.315) : leurs rangées l'une sous l'autre, le champ à leur
+     * gauche ; dans une fenêtre trop étroite, elles passent sous le champ. À appeler une fois les rangées ajoutées.
+     */
+    public void besideField() {
+        VBox rows = new VBox(5);
+        rows.setAlignment(Pos.CENTER_LEFT);
+        for (Node node : List.copyOf(getChildren())) {
+            if (node == field) continue;
+            getChildren().remove(node);
+            if (node instanceof FlowPane row) {
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPrefWrapLength(600);
+            }
+            rows.getChildren().add(node);
+        }
+        getChildren().remove(field);
+        field.setPrefWidth(300);
+        FlowPane line = new FlowPane(16, 6, field, rows);
+        line.setAlignment(Pos.CENTER);
+        line.setMaxWidth(980);
+        getChildren().add(line);
+    }
+
     /** Ajoute une rangée de pastilles : la première montre tout, les autres un type chacune. */
     public <T> Group<T> group(String everything, Map<T, String> choices) {
         FlowPane row = new FlowPane(5, 5);

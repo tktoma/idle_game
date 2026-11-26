@@ -1,7 +1,6 @@
 package idle.ui.vacuum;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import javafx.scene.control.Label;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,9 +83,12 @@ class VoidPageTest {
             game.tick(10);
             VoidPage page = new VoidPage(game);
             page.refresh();
-            Label energy = page.energyLabel();
-            assertTrue(energy.getText().contains("Énergie du vide"));
-            assertTrue(energy.getText().contains("équilibre : 250"), energy.getText());
+            // Version 0.311 : l'énergie du vide au centre du bandeau ; depuis la 0.317, le gain, les paires et la fonte
+            // dessous, l'équilibre au survol du nombre.
+            assertTrue(!page.head().value().getText().isEmpty());
+            String below = page.head().sub().getText();
+            assertTrue(below.contains("énergie du vide /s") && below.contains("paire") && below.contains("fonte"), below);
+            assertTrue(page.head().value().getTooltip().getText().startsWith("Équilibre : 250"), page.head().value().getTooltip().getText());
             assertEquals(25, page.share().getValue(), 1e-9);
             page.share().setValue(50);
             assertEquals(0.5, game.state().voidShare(), 1e-12, "le curseur règle la part");
@@ -213,7 +215,7 @@ class VoidPageTest {
             assertTrue(page.voidCumulLabel().isVisible());
             assertTrue(page.voidCumulLabel().getText().contains("1234") || page.voidCumulLabel().getText().contains("1 234"),
                     page.voidCumulLabel().getText());
-            assertTrue(page.voidCumulLabel().getText().contains("univers 3"));
+            assertTrue(page.voidCumulLabel().getTooltip().getText().contains("univers 3"), "le détail par univers, au survol");
             Game fresh = third();
             UniversePage none = new UniversePage(fresh);
             none.refresh();

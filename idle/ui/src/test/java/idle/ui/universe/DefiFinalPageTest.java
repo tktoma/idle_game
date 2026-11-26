@@ -86,6 +86,25 @@ class DefiFinalPageTest {
         });
     }
 
+    /** Version 0.312 : les univers dans le bandeau, la carte des dimensions seule, sans sa ligne d'infos. */
+    @Test
+    void lesUniversSontDansLeBandeauEtLaCarteEstSeule() {
+        FxTestSupport.fx(() -> {
+            Game game = tenth();
+            UniversePage page = page(game);
+            assertEquals(String.valueOf(game.universes()), page.head().value().getText());
+            // Version 0.317 : la ligne du dessous passe au survol du nombre.
+            assertEquals("", page.head().sub().getText());
+            assertTrue(page.head().value().getTooltip().getText().contains("matière noire"), page.head().value().getTooltip().getText());
+            page.select(UniversePage.MAIN);
+            assertFalse(page.bare(), "la sous-page Univers garde le bandeau");
+            page.select(1);
+            assertTrue(page.bare(), "la carte des dimensions est seule");
+            assertFalse(page.dimensionsLineVisible(), "sans sa ligne d'infos");
+            return null;
+        });
+    }
+
     @Test
     void lesDixPaliersJouentLaFinPuisLEcranDeFin() {
         FxTestSupport.fx(() -> {

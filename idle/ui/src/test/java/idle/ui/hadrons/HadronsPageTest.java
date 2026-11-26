@@ -90,7 +90,7 @@ class HadronsPageTest {
             assertEquals("u  haut : 30", page.quarkText(Quark.UP));
             assertEquals("b  beau : 30", page.quarkText(Quark.BOTTOM));
             assertEquals("", page.quarkText(Quark.TOP), "le top ne se garde pas");
-            assertTrue(page.effectNote().getText().contains("Chaque sorte renforce une grandeur"), page.effectNote().getText());
+            assertTrue(page.effectText().contains("Chaque sorte renforce une grandeur"), page.effectText());
             Card proton = page.card(Hadron.PROTON);
             assertEquals(Card.State.READY, proton.state());
             for (String part : new String[] {"Proton", "u u d", "2 u + 1 d", "0 possédé", Hadron.PROTON.detail()}) {
@@ -127,8 +127,8 @@ class HadronsPageTest {
         FxTestSupport.fx(() -> {
             Game game = open();
             HadronsPage page = page(game);
-            assertTrue(page.exoticNote().isVisible());
-            assertTrue(page.exoticNote().getText().contains("La bulle du cœur de l'arbre-monde les ouvre"), page.exoticNote().getText());
+            assertFalse(page.exoticText().isEmpty());
+            assertTrue(page.exoticText().contains("La bulle du cœur de l'arbre-monde les ouvre"), page.exoticText());
             assertFalse(page.exoticGrid().isVisible());
             assertFalse(page.exoticGrid().isManaged());
             assertTrue(page.bindOneButton(Hadron.OMEGA).isDisable(), "fermées : rien ne se lie");
@@ -138,7 +138,7 @@ class HadronsPageTest {
             page.refresh();
             assertTrue(game.isExoticHadronsUnlocked());
             assertTrue(page.exoticGrid().isVisible());
-            assertFalse(page.exoticNote().isVisible());
+            assertTrue(page.exoticText().isEmpty());
             assertEquals(Card.State.READY, page.card(Hadron.OMEGA).state());
             assertEquals("Lier tout (10)", page.bindAllButton(Hadron.OMEGA).getText());
             page.bindOneButton(Hadron.OMEGA).fire();

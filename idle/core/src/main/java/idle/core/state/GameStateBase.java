@@ -67,6 +67,7 @@ public abstract class GameStateBase {
     BigNum darkMatter = BigNum.ZERO;
     BigNum darkMatterSpent = BigNum.ZERO;
     BigNum darkMatterSize = Game.DARK_MATTER_START_SIZE;
+    BigNum darkMatterReach = Game.DARK_MATTER_START_SIZE;
     int explosions = 0;
     int tableWeightLevel = 0;
     final Map<String, Integer> darkUpgradeLevels = new HashMap<>();
@@ -669,6 +670,20 @@ public abstract class GameStateBase {
     public void setDarkMatterSize(BigNum darkMatterSize) {
         if (darkMatterSize.sign() <= 0) throw new IllegalArgumentException("La taille de la matière noire doit être positive");
         this.darkMatterSize = darkMatterSize;
+        if (darkMatterSize.gt(darkMatterReach)) darkMatterReach = darkMatterSize;
+    }
+
+    /**
+     * La plus grande taille atteinte depuis la dernière remise à zéro (version 0.307) : depuis que les cases de taille
+     * de l'arbre consomment la taille, c'est elle, et non la taille du moment, qui compte pour les paliers de taille et
+     * les effets « par année-lumière ». Dépenser de la taille ne fait donc perdre aucun palier.
+     */
+    public BigNum darkMatterReach() { return darkMatterReach; }
+
+    /** Remet la taille et la taille atteinte au même point (remise à zéro, relecture d'une sauvegarde). */
+    public void resetDarkMatterReach(BigNum reach) {
+        if (reach.sign() <= 0) throw new IllegalArgumentException("La taille atteinte doit être positive");
+        darkMatterReach = reach.max(darkMatterSize);
     }
 
     /** Nombre d'explosions déclenchées depuis le début du jeu. */

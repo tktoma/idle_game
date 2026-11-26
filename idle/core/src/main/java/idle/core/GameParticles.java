@@ -139,7 +139,6 @@ public abstract class GameParticles extends GameProduction {
             case Effect.StrengthenSpeed strengthen -> BigNum.ONE;
             case Effect.DiscountGenerators discount -> BigNum.ONE;
             case Effect.KeepUpgradesOnFusion keep -> BigNum.ONE;
-            case Effect.BulkAtomBuy bulk -> BigNum.ONE;
             case Effect.MultiplyAtomsByProduction byProduction -> BigNum.ONE;
         };
     }

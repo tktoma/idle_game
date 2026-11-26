@@ -10,6 +10,7 @@ import idle.ui.GameApp;
 import idle.ui.Goals;
 import idle.ui.Notice;
 import idle.ui.Readiness;
+import idle.ui.Seen;
 import idle.ui.Settings;
 import idle.ui.Shortcuts;
 import idle.ui.SoundKind;
@@ -18,6 +19,7 @@ import idle.ui.common.Detail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.geometry.*;
@@ -33,6 +35,9 @@ public abstract class SettingsPageBlocks extends VBox {
     abstract public void refresh();
     abstract public void select(Section section);
     abstract void block(String name, String explanation);
+    /** Un réglage dont l'explication change avec ce que le joueur a vu (version 0.318). */
+    abstract void block(String name, Supplier<String> explanation);
+    abstract String soundsText();
     abstract void changeMusicVolume(int step);
     abstract void changeVolume(int step);
     abstract void note(Label label);
@@ -351,6 +356,28 @@ public abstract class SettingsPageBlocks extends VBox {
     /** Les explications des réglages : elles ne s'affichent qu'en mode détails. */
     final List<Label> explanations = new ArrayList<>();
 
+    /**
+     * Version 0.318 : ce qui ne se montre qu'une fois vu (un bloc entier, un bouton, une rangée de touches), et les
+     * explications qui se récrivent avec ce que le joueur a vu.
+     */
+    final Map<javafx.scene.Node, Seen> gated = new LinkedHashMap<>();
+    final Map<Label, Supplier<String>> texts = new LinkedHashMap<>();
+    /** Le sous-onglet où vont les blocs, et le bloc en cours, où vont ses boutons. */
+    VBox sectionBox;
+    VBox group;
+
+    /** Le bloc en cours ne se montre qu'une fois cette étape vue. */
+    void gate(Seen step) { if (step != null) gated.put(group, step); }
+
+    /** Cet élément ne se montre qu'une fois cette étape vue ; {@code null} : toujours. */
+    void gate(javafx.scene.Node node, Seen step) { if (step != null) gated.put(node, step); }
+
+    /** Vrai si le joueur a vu cette étape. */
+    boolean seen(Seen step) { return settings.seen().has(step); }
+
+    /** Ce texte, si le joueur a vu cette étape ; sinon rien. */
+    String when(Seen step, String text) { return seen(step) ? text : ""; }
+
     final Button pauseButton = new Button();
 
     final Button resetButton = new Button();
@@ -473,9 +500,9 @@ public abstract class SettingsPageBlocks extends VBox {
         allRow.setAlignment(Pos.CENTER);
         target.getChildren().add(allRow);
 
-        block("Objectif du moment", "Une ligne sous les onglets rappelle le prochain grand pas de la partie. Chacun de ses "
-                + "morceaux se cache à part : l'objectif, le temps qu'il demande, le prochain Big Bang, le troisième acte, et "
-                + "le chrono, l'avance ou le retard sur le record de la prochaine étape.");
+        block("Objectif du moment", () -> "En haut à gauche, quelques mots par ligne rappellent le prochain grand pas de la partie (le texte complet au survol). "
+                + "Chacun de ces morceaux se cache à part : l'objectif, le temps qu'il demande, " + when(Seen.EXPLOSION, "le prochain Big Bang, ")
+                + when(Seen.BIG_BANG, "le troisième acte, ") + "et le chrono, l'avance ou le retard sur le record de la prochaine étape.");
         goalButton.setOnAction(event -> {
             settings.setShowGoal(!settings.showGoal());
             refresh();
@@ -484,18 +511,20 @@ public abstract class SettingsPageBlocks extends VBox {
         target.getChildren().add(categoryRow(Goals.Part.values(), Goals.Part::label,
                 part -> settings.setGoalPart(part, !settings.goalPartChosen(part)), goalPartButtons));
 
-        block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
-                + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée. Les "
-                + "états de la matière ont aussi le leur, toujours écrits : ∴ gaz, ≈ liquides, ◆ cristaux.");
+        block("Signes d'état", () -> "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
+                + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée."
+                + when(Seen.BIG_BANG, " Les états de la matière ont aussi le leur, toujours écrits : ∴ gaz, ≈ liquides, ◆ cristaux."));
         signsButton.setOnAction(event -> {
             settings.setStateSigns(!settings.stateSigns());
             refresh();
         });
         target.getChildren().add(signsButton);
 
-        block("Pastilles des onglets", "Un ● au bout du nom d'un onglet ou d'un sous-onglet dit que quelque chose y attend : "
-                + "une case de l'arbre, un défi, un astre à former, une comète… Chaque sorte se cache à part ; cachée, elle "
-                + "ne s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.");
+        block("Pastilles des onglets", () -> "Un ● au bout du nom d'un onglet ou d'un sous-onglet dit que quelque chose y attend"
+                + (seen(Seen.BIG_BANG) ? " : une case de l'arbre, un défi, un astre à former, une comète…"
+                        : seen(Seen.EXPLOSION) ? " : une case de l'arbre, un défi…" : ".")
+                + " Chaque sorte se cache à part ; cachée, elle ne s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.");
+        gate(Seen.EXPLOSION);
         target.getChildren().add(categoryRow(Readiness.Kind.values(), Readiness.Kind::label,
                 kind -> settings.setDot(kind, !settings.dot(kind)), dotButtons));
 
@@ -527,8 +556,8 @@ public abstract class SettingsPageBlocks extends VBox {
 
         use(Section.EFFECTS);
         block("Effets visuels",
-                "Le grand interrupteur les coupe tous ; sinon, chacun se règle à part. Sans l'éclair, l'explosion a lieu "
-                        + "tout de suite : à préférer si les flashs vous gênent.");
+                () -> "Le grand interrupteur les coupe tous ; sinon, chacun se règle à part."
+                        + when(Seen.EXPLOSION, " Sans l'éclair, l'explosion a lieu tout de suite : à préférer si les flashs vous gênent."));
         effectsButton.setOnAction(event -> {
             settings.setEffects(!settings.effects());
             refresh();
@@ -540,30 +569,7 @@ public abstract class SettingsPageBlocks extends VBox {
                 effect -> settings.setEffect(effect, !settings.effectChosen(effect)), effectButtons, true);
         target.getChildren().add(effectRow);
 
-        block("Sons et musique",
-                "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, univers formé, fin de la "
-                        + "partie, palier du défi final, défi qui s'ouvre et défi réussi, skin débloqué, palier de vitesse, matière "
-                        + "noire, comète, jalon ; les autres annonces ont un son commun, plus léger. Un achat (et chaque carte de "
-                        + "récompense d'une sonde), un interrupteur et chaque geste dans le mini-jeu d'une dimension ont aussi le leur, "
-                        + "plus discret, comme les bruitages de ce qui se passe sous vos yeux : une particule récupérée (plus grave à "
-                        + "chaque palier de vitesse), une fusion, un atome créé (sur le grand atome de l'onglet Atomes), une collision "
-                        + "réussie (sur Collisionneur › Énergie), des hadrons (deux à la fois au plus), une sonde lancée, la graine "
-                        + "(l'eau de l'arrosoir qu'on tient, le tuyau qui arrose, l'orage et le beau temps quand on la voit, un "
-                        + "rond de croissance cueilli, une saison qui commence), un point gagné dans une dimension, la membrane de la brane (sa "
-                        + "corde se tend avec la tirée, puis part d'autant plus fort), l'appui de la durée (une note qui monte "
-                        + "jusqu'au plus long appui), le piano du miroir, chaque éclat ramassé du mélange, le tic-tac du chrono tant qu'il "
-                        + "accélère le jeu, un clic, un changement d'onglet. Des fonds en boucle accompagnent certaines vues : le grondement de la matière noire "
-                        + "qui grossit et le collisionneur (sur Énergie) accélèrent avec elles ; l'expansion de la matière a le sien, et les "
-                        + "paires du vide (sur Le vide › Paires) le leur, plus fort à mesure que le trou noir se remplit. Chaque sorte de "
-                        + "son se garde ou se coupe à part, en bas de ce bloc. La "
-                        + "fusion, l'explosion et le Big Bang partent avec leur animation ; ce que le jeu fait seul (une fusion "
-                        + "ou une explosion automatiques, un palier de vitesse atteint par l'achat automatique, un automatisme offert, un élément "
-                        + "de la synthèse automatique) reste muet, sauf si « Sons des automatismes » est activé. Aucun son n'attend "
-                        + "avant de revenir : seul le nombre de sons joués en même temps est borné. Changer le volume fait entendre un essai. Le métronome de la boucle, qui se branche "
-                        + "dans sa fenêtre, suit ce réglage et ce volume. La musique, composée par le jeu pendant qu'on joue, suit "
-                        + "la partie : chaque étape d'un univers a la sienne (l'aube, l'élan, les Big Bangs, les astres, l'amas, la "
-                        + "formation), un défi la resserre, une dimension ouverte a son arpège, et chaque univers change de tonalité. "
-                        + "Elle a son interrupteur et son volume.");
+        block("Sons et musique", this::soundsText);
         soundButton.setOnAction(event -> {
             settings.setSound(!settings.sound());
             if (settings.sound()) soundTest.run();
@@ -633,9 +639,11 @@ public abstract class SettingsPageBlocks extends VBox {
         target.getChildren().add(pauseButton);
 
         block("Confirmations",
-                "L'explosion, le Big Bang et les défis remettent la partie à zéro. Avec la confirmation, il faut cliquer "
+                () -> (seen(Seen.BIG_BANG) ? "L'explosion, le Big Bang et les défis remettent" : "L'explosion et les défis remettent")
+                        + " la partie à zéro. Avec la confirmation, il faut cliquer "
                         + "deux fois : le premier clic arme, le second, dans les cinq secondes, déclenche. Chacune se "
                         + "règle à part.");
+        gate(Seen.EXPLOSION);
         confirmButton.setOnAction(event -> {
             settings.setConfirmExplosion(!settings.confirmExplosion());
             refresh();
@@ -652,9 +660,10 @@ public abstract class SettingsPageBlocks extends VBox {
         confirmRow.setAlignment(Pos.CENTER);
         target.getChildren().add(confirmRow);
 
-        block("Temps hors ligne", "Au retour, une part du temps passé jeu fermé est rejouée : 10 % avant la première "
-                + "explosion, 40 % ensuite, 70 % après le premier Big Bang, 100 % une fois l'univers formé (vingt-quatre "
-                + "heures d'absence au plus). Coupé, le jeu reprend là où il en était, sans rien rattraper.");
+        block("Temps hors ligne", () -> "Au retour, une part du temps passé jeu fermé est rejouée : 10 %"
+                + (seen(Seen.EXPLOSION) ? " avant la première explosion, 40 % ensuite" : " pour commencer, davantage avec l'avancée")
+                + when(Seen.BIG_BANG, ", 70 % après le premier Big Bang") + when(Seen.UNIVERSE, ", 100 % une fois l'univers formé")
+                + " (vingt-quatre heures d'absence au plus). Coupé, le jeu reprend là où il en était, sans rien rattraper.");
         offlineButton.setOnAction(event -> {
             settings.setOffline(!settings.offline());
             refresh();
@@ -731,6 +740,7 @@ public abstract class SettingsPageBlocks extends VBox {
                 + "ou de sa touche, jusqu'à sept. Elles ne servent que fenêtre de la boucle ouverte : une touche peut être "
                 + "à la fois celle d'un cercle et celle d'un raccourci, qui attend que la fenêtre se ferme. Deux cercles ne "
                 + "peuvent pas partager une touche, ni prendre la touche de détail.");
+        gate(Seen.dimension(5));
         VBox loopKeyList = new VBox(4);
         loopKeyList.setAlignment(Pos.CENTER);
         for (int ring = 0; ring < Game.MAX_RINGS; ring++) {
@@ -811,8 +821,9 @@ public abstract class SettingsPageBlocks extends VBox {
         target.getChildren().add(saveRow);
         note(saveNote);
 
-        block("Points de reprise", "Jusqu'à " + saves.checkpointSlots() + " parties gardées à part, chacune sous un nom : "
-                + "avant un Big Bang risqué, avant de former l'univers… Reprendre un point remplace la partie en cours, mais "
+        block("Points de reprise", () -> "Jusqu'à " + saves.checkpointSlots() + " parties gardées à part, chacune sous un nom : "
+                + (seen(Seen.GALAXY) ? "avant un Big Bang risqué, avant de former l'univers…" : seen(Seen.BIG_BANG) ? "avant un Big Bang risqué…"
+                        : "avant un essai risqué…") + " Reprendre un point remplace la partie en cours, mais "
                 + "celle-ci est d'abord mise de côté, dans « Avant la dernière reprise » : une reprise par erreur se défait "
                 + "(seule la dernière partie quittée y reste). "
                 + "Chaque geste demande un second clic.");
@@ -848,8 +859,10 @@ public abstract class SettingsPageBlocks extends VBox {
         note(checkpointNote);
 
         use(Section.GAME);
-        block("Records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
-                + "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte. Le chrono de la "
+        block("Records", () -> "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
+                + (seen(Seen.BIG_BANG) ? "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte."
+                        : seen(Seen.EXPLOSION) ? "première fusion, première explosion, et celles qui suivent." : "la première fusion, et celles qui suivent.")
+                + " Le chrono de la "
                 + "ligne d'objectif (il se règle dans « Notifications et signes ») dit l'avance ou le retard sur le record de "
                 + "la prochaine étape. Les records traversent la remise à zéro du jeu : c'est à la partie suivante qu'ils servent.");
         clearRecordsButton.setStyle(OFF_STYLE);
@@ -863,8 +876,8 @@ public abstract class SettingsPageBlocks extends VBox {
         target.getChildren().add(recordsRow);
         note(recordsLabel);
 
-        block("Événements du ciel", "Après le premier Big Bang, de petites anomalies traversent parfois l'expansion, "
-                + "en plus des comètes : un vent de particules, une fenêtre d'exploration pour les sondes en vol. Elles "
+        block("Événements du ciel", () -> "Après le premier Big Bang, de petites anomalies traversent parfois l'expansion, "
+                + "en plus des comètes : un vent de particules" + when(Seen.PROBES, ", une fenêtre d'exploration pour les sondes en vol") + ". Elles "
                 + "restent quelques minutes ; les saisir donne un petit coup de pouce passager, les manquer ne coûte rien, "
                 + "et rien ne s'achète ni ne se débloque avec elles. Masquées, elles passent sans se montrer.");
         skyEventsButton.setOnAction(event -> {
@@ -872,10 +885,12 @@ public abstract class SettingsPageBlocks extends VBox {
             refresh();
         });
         target.getChildren().add(skyEventsButton);
+        gate(Seen.BIG_BANG);
 
         use(Section.SAVE);
         block("Recommencer de zéro",
-                "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
+                () -> "Efface toute la partie : particules, atomes, tableau périodique, " + when(Seen.EXPLOSION, "matière noire, arbre ")
+                        + "et statistiques, "
                         + "sauvegarde comprise, et les réglages de jeu (coupure des automatismes, ordres d'achat, seuil de "
                         + "fusion, verrou de l'appui, favoris). Les réglages de cette page et les records "
                         + "sont gardés. C'est définitif : exportez d'abord "
@@ -909,6 +924,8 @@ public abstract class SettingsPageBlocks extends VBox {
             refresh();
         });
         target.getChildren().add(notesButton);
+        // Les notes de version racontent toute la suite du jeu : elles attendent le premier univers formé.
+        gate(notesButton, Seen.UNIVERSE);
         note(notesLabel);
         notesLabel.setTextAlignment(TextAlignment.LEFT);
 

@@ -54,7 +54,6 @@ public final class BodiesPane extends VBox {
     private final Game game;
     private final Runnable changed;
     private final SkyView sky;
-    private final Label intro = new Label();
     /** Le geste groupé, une fois acquis : former d'un clic tous les astres prêts. */
     private final javafx.scene.control.Button formAll = new javafx.scene.control.Button();
     private final Map<Body.Tier, Label> tierTitles = new EnumMap<>(Body.Tier.class);
@@ -84,7 +83,6 @@ public final class BodiesPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 0, 0));
 
-        Labels.note(intro, 760);
 
         CanvasPane skyPane = CanvasPane.filling(sky);
         skyPane.setMinHeight(SKY_HEIGHT);
@@ -151,7 +149,6 @@ public final class BodiesPane extends VBox {
         planBox.setStyle("-fx-padding: 8 12; -fx-background-color: #10161f; -fx-background-radius: 8; -fx-border-radius: 8;"
                 + " -fx-border-color: " + GameApp.BIG_BANG_COLOR + "55;");
         planBox.getChildren().addAll(planTitle, planMissing, planDone);
-        getChildren().add(intro);
         getChildren().add(maturationBox);
         getChildren().add(planBox);
         getChildren().add(formAll);
@@ -221,7 +218,8 @@ public final class BodiesPane extends VBox {
             title.setVisible(counts[0] > 0);
             title.setManaged(counts[0] > 0);
         }
-        intro.setText((formedAll == 0
+        // Version 0.316 : l'explication n'est plus un paragraphe en tête de page ; elle passe au survol de la maturation.
+        Labels.tip(maturationTitle, (formedAll == 0
                 ? "Un astre est fait de ses assemblages, avec assez de matière rassemblée et de molécules autour : d'abord un amas de roches."
                 : "Un astre est fait de ses assemblages et part d'astres plus petits : amas de roches, comètes, astéroïdes, lunes, "
                         + "planètes, puis étoiles, étoiles mortes et trous noirs.")

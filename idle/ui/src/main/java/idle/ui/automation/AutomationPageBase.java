@@ -1,5 +1,6 @@
 package idle.ui.automation;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.molecules.Molecule;
 import idle.core.collider.ColliderUpgrade;
@@ -62,12 +63,14 @@ public abstract class AutomationPageBase extends VBox {
     /** Vrai dans la partie secondaire : les anciens onglets sont cachés, la page ne montre que les dimensions. */
     boolean oldTabsHidden;
 
-    final Label balanceLabel = new Label();
+    /**
+     * Le titre de l'onglet, au centre du bandeau (version 0.315 ; les atomes y étaient depuis la 0.311, le titre en tête
+     * de la page avant).
+     */
+    final ResourceHead head = ResourceHead.title("Automatismes", "#9be7a8");
 
     /** Coupe ou relance tous les automatismes d'un geste, et le dit tant qu'ils sont coupés. */
     final Button pauseButton = new Button();
-
-    final Label pauseNote = new Label(PAUSE_NOTE);
 
     /** Version 0.126 : la coupure générale tient d'une remise à zéro à l'autre, comme les autres réglages. */
     static final String PAUSE_NOTE = "Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand "
@@ -107,6 +110,9 @@ public abstract class AutomationPageBase extends VBox {
 
     final HBox reserveRow = new HBox(8, lessReserve, reserveLabel, moreReserve);
 
+    /** La largeur d'une ligne d'automatisme à trois cartes : la plus large, 520 + 250 + 200 et deux écarts. */
+    static final double ROW_WIDTH = 986;
+
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
 
@@ -120,8 +126,6 @@ public abstract class AutomationPageBase extends VBox {
     // Les automates du collisionneur, son déclencheur automatique, et le tuyau d'arrosage de la graine.
     final Label colliderTitle = new Label("Automates du collisionneur");
 
-    final Label colliderHint = new Label();
-
     final Map<ColliderUpgrade, Card> colliderCards = new EnumMap<>(ColliderUpgrade.class);
 
     final TileGrid colliderGrid = new TileGrid(230, 4, 8);
@@ -129,9 +133,10 @@ public abstract class AutomationPageBase extends VBox {
     /** Coupe ou relance d'un geste tous les automates du collisionneur achetés. */
     final Button colliderPauseButton = new Button();
 
-    final Label catchLine = new Label();
+    /** Ce que disaient les lignes du déclencheur et du tuyau (version 0.315 : au survol du titre des automates). */
+    String catchText = "";
 
-    final Label hoseLine = new Label();
+    String hoseText = "";
 
     // Les automatismes de matière noire.
     final Label darkTitle = new Label("Automatismes de matière noire");
@@ -159,12 +164,13 @@ public abstract class AutomationPageBase extends VBox {
     /** Les parts d'espace proposées à la réserve de la création automatique. */
     static final double[] SPACE_RESERVES = {0, 0.10, 0.25, 0.50, 0.75, 0.90};
 
-    /** Les amas confiés à la création automatique : une ligne qui les nomme, et une pastille par amas qui le retire. */
-    final Label entrustedTitle = new Label();
-
+    /**
+     * Les amas confiés à la création automatique : une pastille par amas, qui le retire d'un clic. Depuis la version
+     * 0.315, plus de phrase au-dessus : la règle est au survol des pastilles, et rien ne s'affiche sans amas confié.
+     */
     final FlowPane entrustedRow = new FlowPane(6, 6);
 
-    final VBox entrustedBox = new VBox(6, entrustedTitle, entrustedRow);
+    final VBox entrustedBox = new VBox(6, entrustedRow);
 
     final Map<String, Button> entrustedChips = new LinkedHashMap<>();
 
@@ -192,24 +198,17 @@ public abstract class AutomationPageBase extends VBox {
         ordinary.setAlignment(Pos.TOP_CENTER);
         ordinary.setPadding(new Insets(24));
 
-        Label title = new Label("Automatismes");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
         ordinaryHint.setText("Chaque automatisme s'achète une fois, en atomes, puis s'active ou se coupe d'un clic. "
                 + "Il agit à intervalles réguliers : accélérez sa cadence en atomes jusqu'à son maximum ; "
                 + "au-delà, seuls les éléments du tableau périodique réduisent encore le délai.");
         wrapped(ordinaryHint, HINT_STYLE);
-        balanceLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffd27f;");
         pauseButton.setFocusTraversable(false);
         pauseButton.setOnAction(event -> {
             game.setAutomationPaused(!game.isAutomationPaused());
             refresh();
         });
-        wrapped(pauseNote, "-fx-font-size: 13px; -fx-text-fill: #ffb4a8;");
-        ordinary.getChildren().add(title);
         ordinary.getChildren().add(pauseButton);
-        ordinary.getChildren().add(pauseNote);
         ordinary.getChildren().add(ordinaryHint);
-        ordinary.getChildren().add(balanceLabel);
 
         // Une ligne par automatisme du catalogue : en ajouter un dans core suffit à le faire apparaître.
         for (Automation automation : game.automations()) {
@@ -250,7 +249,10 @@ public abstract class AutomationPageBase extends VBox {
                 batches.put(automation, batch);
                 row.getChildren().add(batch);
             }
-            row.setAlignment(Pos.CENTER);
+            // Version 0.315 : toutes les lignes ont la largeur de celles à trois cartes, et partent de la gauche : la
+            // fusion et la synthèse, sans achat en lot, s'alignent sur les autres au lieu de se centrer.
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setMaxWidth(ROW_WIDTH);
             row.setFillHeight(true);     // les deux cartes ont la même hauteur, quelle qu'elle soit
             rows.put(automation, row);
             ordinary.getChildren().add(row);
@@ -377,9 +379,6 @@ public abstract class AutomationPageBase extends VBox {
         });
         ordinary.getChildren().add(spaceReserveRow);
         // Les plafonds par état : une liste par état de la matière, trois depuis la 0.178.
-        capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
-        capsTitle.setWrapText(true);
-        capsTitle.setMaxWidth(760);
         capsRow.setAlignment(Pos.CENTER);
         capsRow.setMaxWidth(780);
         for (Molecule.State matter : Molecule.State.values()) {
@@ -400,13 +399,11 @@ public abstract class AutomationPageBase extends VBox {
             one.setAlignment(Pos.CENTER);
             capsRow.getChildren().add(one);
         }
-        VBox caps = new VBox(6, capsTitle, capsRow);
+        VBox caps = new VBox(6, capsRow);
         caps.setAlignment(Pos.CENTER);
         capsBox = caps;
         ordinary.getChildren().add(caps);
         // Les amas confiés : nommés ici, retirés d'un clic ; ils se confient dans les États de la matière du Big Bang.
-        wrapped(entrustedTitle, "-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
-        entrustedTitle.setMaxWidth(760);
         entrustedRow.setAlignment(Pos.CENTER);
         entrustedRow.setMaxWidth(780);
         entrustedBox.setAlignment(Pos.CENTER);
@@ -415,8 +412,6 @@ public abstract class AutomationPageBase extends VBox {
         // Les automates du collisionneur : une carte chacun, qui l'achète puis le met en pause ou le relance.
         colliderTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
                 + ColliderPane.COLOR + ";");
-        wrapped(colliderHint, HINT_STYLE);
-        colliderHint.setMaxWidth(760);
         for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
             if (!upgrade.isPausable()) continue;
             Card card = new Card(ColliderPane.COLOR);
@@ -434,11 +429,7 @@ public abstract class AutomationPageBase extends VBox {
             game.setColliderAutomationsPaused(!game.anyColliderAutomationPaused());
             refresh();
         });
-        wrapped(catchLine, "-fx-font-size: 13px; -fx-text-fill: " + ColliderPane.COLOR + ";");
-        catchLine.setMaxWidth(760);
-        wrapped(hoseLine, "-fx-font-size: 13px; -fx-text-fill: #e6d27a;");
-        hoseLine.setMaxWidth(760);
-        ordinary.getChildren().addAll(colliderTitle, colliderHint, colliderPauseButton, colliderGrid, catchLine, hoseLine);
+        ordinary.getChildren().addAll(colliderTitle, colliderPauseButton, colliderGrid);
 
         // Chaque sous-page défile quand la fenêtre est trop basse pour toutes ses cartes ; la barre reste en haut.
         dimensions = new DimensionAutomationPane(game);
@@ -523,8 +514,6 @@ public abstract class AutomationPageBase extends VBox {
         for (String choice : CAP_CHOICES) if (Math.abs(capOf(choice) - cap) < Math.abs(capOf(best) - cap)) best = choice;
         return best;
     }
-
-    final Label capsTitle = new Label();
 
     final FlowPane capsRow = new FlowPane(14, 6);
 

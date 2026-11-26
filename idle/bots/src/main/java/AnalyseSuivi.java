@@ -42,6 +42,8 @@ final class AnalyseSuivi {
 
     private final Map<String, double[]> enCours = new LinkedHashMap<>();
     private final Map<BigBangCondition, Double> rempliesDepuis = new EnumMap<>(BigBangCondition.class);
+    /** Les conditions du Big Bang en cours, telles qu'au dernier pas suivi (le ciel n'en fait pas toujours partie). */
+    private List<BigBangCondition> conditionsSuivies = List.of();
     /** Les relevés : temps, ressource gagnée de chaque dimension (1 à 10), arrosages de la graine. */
     private final ArrayDeque<double[]> releves = new ArrayDeque<>();
     private final List<Attente> attentes = new ArrayList<>();
@@ -110,7 +112,8 @@ final class AnalyseSuivi {
             rempliesDepuis.clear();
             return;
         }
-        for (BigBangCondition c : g.bigBangConditions()) {
+        conditionsSuivies = g.bigBangConditions();
+        for (BigBangCondition c : conditionsSuivies) {
             if (g.isBigBangConditionMet(c)) rempliesDepuis.putIfAbsent(c, t);
             else rempliesDepuis.remove(c);
         }
@@ -122,6 +125,16 @@ final class AnalyseSuivi {
      */
     String derniereCondition(Game g) {
         if (rempliesDepuis.isEmpty()) return "";
+        // Version 0.307 : une condition remplie au pas même du Big Bang n'était pas encore notée, et l'analyste désignait
+        // comme dernière l'avant-dernière (les particules du premier Big Bang passaient inaperçues) : elle compte
+        // maintenant, remplie à cet instant.
+        double maintenant = g.state().timePlayed();
+        for (BigBangCondition c : conditionsSuivies) rempliesDepuis.putIfAbsent(c, maintenant);
+        // Version 0.307 : le moment où chaque condition s'est remplie, en secondes de jeu, pour régler l'attente du
+        // Big Bang (la dernière condition, seule à manquer, devrait faire attendre une vingtaine de minutes).
+        StringBuilder quand = new StringBuilder("CONDITIONS_BB,bb=" + g.bigBangs() + ",t=" + Math.round(g.state().timePlayed()));
+        for (Map.Entry<BigBangCondition, Double> e : rempliesDepuis.entrySet()) quand.append(',').append(e.getKey().name()).append('=').append(Math.round(e.getValue()));
+        System.out.println(quand);
         BigBangCondition derniere = null;
         double t = Double.NEGATIVE_INFINITY, avant = Double.NEGATIVE_INFINITY;
         for (Map.Entry<BigBangCondition, Double> e : rempliesDepuis.entrySet()) {

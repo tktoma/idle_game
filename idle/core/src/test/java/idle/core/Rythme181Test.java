@@ -17,11 +17,11 @@ class Rythme181Test {
     @Test
     void lePremierUniversDemandeMoinsQueLesSuivantsPourSesBigBangs() {
         Game game = GameTestSupport.realGame();
-        assertEquals(85_000, game.bigBangParticles().log10(), 1e-9, "premier Big Bang du premier univers");
+        assertEquals(40_000, game.bigBangParticles().log10(), 1e-9, "premier Big Bang du premier univers (0.307 : 85 000 avant)");
         assertEquals(1e11, game.bigBangAtoms().toDouble(), 1, "atomes du premier univers");
-        assertEquals(42_000, game.bigBangDarkMatter().toDouble(), 1e-9, "réserve du tout premier Big Bang");
+        assertEquals(10_000, game.bigBangDarkMatter().toDouble(), 1e-9, "réserve du tout premier Big Bang");
         game.state().setBigBangs(3);
-        assertEquals(30_000, game.bigBangParticles().log10(), 1e-9, "Big Bangs suivants du premier univers");
+        assertEquals(16_000, game.bigBangParticles().log10(), 1e-9, "Big Bangs suivants du premier univers (0.307 : 30 000 avant)");
         assertEquals(1e11, game.bigBangAtoms().toDouble(), 1);
         assertEquals(500, game.bigBangDarkMatter().toDouble(), 1e-9);
         // Un univers formé : les seuils d'avant.
@@ -29,7 +29,7 @@ class Rythme181Test {
         assertEquals(50_000, game.bigBangParticles().log10(), 1e-9, "Big Bangs suivants des univers d'après");
         assertEquals(1e12, game.bigBangAtoms().toDouble(), 1);
         game.state().setBigBangs(0);
-        assertEquals(190_000, game.bigBangParticles().log10(), 1e-9, "premier Big Bang des univers d'après");
+        assertEquals(45_000, game.bigBangParticles().log10(), 1e-9, "premier Big Bang des univers d'après (0.307 : 190 000 avant)");
         assertEquals(500, game.bigBangDarkMatter().toDouble(), 1e-9);
         // Les constantes se tiennent : moins au premier univers, dans le même ordre.
         assertTrue(Game.FIRST_UNIVERSE_BIG_BANG_PARTICLES.lt(Game.BIG_BANG_PARTICLES));
@@ -44,7 +44,7 @@ class Rythme181Test {
         Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
         game.state().setActiveBangChallenge(BangChallenge.RAISED.name());
-        assertEquals(30_000 * 1.5, game.bigBangParticles().log10(), 1e-6, "la barre haute : une fois et demie les ordres de grandeur");
+        assertEquals(16_000 * 1.5, game.bigBangParticles().log10(), 1e-6, "la barre haute : une fois et demie les ordres de grandeur");
         assertEquals(1e13, game.bigBangAtoms().toDouble(), 1, "cent fois les atomes");
         assertEquals(1000, game.bigBangDarkMatter().toDouble(), 1e-9, "deux fois la réserve ordinaire");
     }

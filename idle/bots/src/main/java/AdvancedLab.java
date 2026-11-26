@@ -24,7 +24,25 @@ public class AdvancedLab extends RobotCosmosPlanner {
   final ArrayList<String> rows =new ArrayList<>();
   final ArrayList<String> events =new ArrayList<>();
   double wall=0, lastMilestone=0, maxStall=0, idleMinutes=0;
-  int acts=0, meaningful=0, failed=0, extras=0, caught=0, pulses=0, collisionRuns=0, probeRuns=0;
+  int acts=0, meaningful=0, failed=0, extras=0, caught=0, pulses=0, collisionRuns=0, probeRuns=0, blooms=0, trialsStarted=0;
+  /** Les épreuves déjà tentées dans l'univers en cours : une seule tentative chacune. */
+  final java.util.EnumSet<idle.core.universe.Trial> triedTrials=java.util.EnumSet.noneOf(idle.core.universe.Trial.class);
+  int triedTrialsUniverse=-1;
+  /**
+   * Commence une épreuve pas encore tentée dans cet univers, s'il n'y en a aucune en cours : les mêmes règles que les
+   * profils ({@link IdleProfiles24#trials()}), sans les épreuves qui ralentissent tout un acte ni celles du collisionneur
+   * sans le déclencheur automatique au plus haut.
+   */
+  void trialsV2(){
+    if(g.universes()!=triedTrialsUniverse){triedTrials.clear();triedTrialsUniverse=g.universes();}
+    if(g.activeTrial()!=null)return;
+    for(idle.core.universe.Trial t:idle.core.universe.Trial.values()){
+      if(triedTrials.contains(t) || g.isTrialCompleted(t) || !g.canStartTrial(t) || IdleProfiles24.costly(t))continue;
+      if(t.isCollider() && g.colliderUpgradeLevel(idle.core.collider.ColliderUpgrade.AUTO_CATCH)<3)continue;
+      triedTrials.add(t);
+      if(g.startTrial(t)){trialsStarted++;return;}
+    }
+  }
   int prevB,prevA,prevT,prevS,prevC,prevBl,prevExpl;
   double reachedGalaxy=Double.NaN,reachedCluster=Double.NaN,reachedUniverse=Double.NaN,reachedB8=Double.NaN;
   AdvancedLab(Game g,double dt,String mode,long seed){
@@ -66,6 +84,10 @@ public class AdvancedLab extends RobotCosmosPlanner {
     if(!mode.equals("SANS_COMETES") && g.isCometVisible() && g.catchComet())caught++;
     // Les anomalies du ciel, comme les comètes (sauf dans le mode qui les ignore).
     if(!mode.equals("SANS_COMETES"))catchSkyEvent();
+    // Version 0.301 : le rond de croissance de la graine et les épreuves des skins (mécaniques de la 0.294), que les 24 profils
+    // jouent déjà ; le débutant ne tente pas les épreuves, le mode sans comètes ne cueille pas le rond (un geste du ciel).
+    if(!mode.equals("SANS_COMETES") && g.isBloomVisible() && g.catchBloom())blooms++;
+    if(!mode.equals("DEBUTANT_APPRENANT"))trialsV2();
     if(!mode.equals("SANS_IMPULSIONS") && g.isPulseUnlocked()){
       int toUse=mode.equals("DEBUTANT_APPRENANT")?Math.min(2,g.pulseCharges()):g.pulseCharges();
       for(int i=0;i<toUse;i++)if(g.pulse())pulses++;
@@ -115,7 +137,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
     Files.createDirectories(out);
     long ticks=(long)Math.ceil(horizon*3600/step);int endBB=0,endMature=0;
     for(long i=1;i<=ticks;i++){
-      wall+=step;g.tick(step);g.buyAllBigBangMilestones();
+      // Version 0.301 : le clic tenu du rassemblement accéléré, s'il a la bulle (UniverseTreePolicy.holdSettle).
+      wall+=step;tree.holdSettle(g,step);g.tick(step);g.buyAllBigBangMilestones();
       if(i%Math.max(1,(long)Math.round(20/step))==0){
         int stage=RobotCosmosPlanner.cosmosStage(g);int bb=g.bigBangs();int mature=g.bodiesMature();int kind=g.moleculeKindsCreated();long mol=g.moleculesCreated();
         endBB=bb;endMature=mature;

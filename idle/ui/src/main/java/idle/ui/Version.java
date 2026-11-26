@@ -21,6 +21,226 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = joined(List.of(
+            new Note("0.319", "Le bout de l'arbre réparti sur ses trois branches", List.of(
+                    "Arbre de matière noire : la branche des particules finissait par six cases du seuil du Big Bang, achetées "
+                            + "en quelques minutes. Trois changent de branche avec les mêmes effets : « Seuil » (+1 matière noire "
+                            + "par explosion, 10¹² atomes) et « Point zéro » (particules ×10³⁰⁰, 10¹³ atomes) au bout des atomes, "
+                            + "après le Réacteur ; « Fluctuation primordiale » (+1 matière noire par explosion, 3·10³¹ m de "
+                            + "taille) au bout de la taille, après le Mur de Planck. « Veille du Big Bang » suit maintenant le "
+                            + "Nuage primordial.",
+                    "Branches : 16 cases en particules (19 avant), 14 en atomes (12), 16 en taille (15).",
+                    "Robot Speedrunner : premier Big Bang au même moment qu'avant (10 h 28 de jeu) ; les six cases du seuil "
+                            + "s'achètent en 13 minutes au lieu de 9, dans les trois branches. Methodical et Astronomer les "
+                            + "achètent aussi dans les trois branches.",
+                    "Effet de bord : une sauvegarde qui avait déjà ces cases les garde ; celle qui avait « Seuil » sans le "
+                            + "Réacteur le garde aussi (la case du dessus ne se redemande pas).")),
+            new Note("0.318", "Rien de ce qui n'a jamais été vu", List.of(
+                    "Hors du jeu lui-même, rien ne montre ce qui n'a jamais été débloqué : les actes suivants (explosion, Big "
+                            + "Bang, univers), le collisionneur, les sondes, les systèmes solaires, les hadrons, le vide, le chrono, "
+                            + "chaque dimension, le défi final.",
+                    "Réglages : les blocs, les boutons (notifications, objectif, pastilles, effets, sons, raccourcis, "
+                            + "confirmations), les thèmes et notations fermés dont l'indice nomme une étape jamais vue, et les "
+                            + "explications se récrivent avec ce qui a été vu. Les notes de version attendent le premier univers.",
+                    "Skins : les visuels et les skins d'une chose jamais vue restent cachés, comme ceux dont la condition la "
+                            + "nomme (« 10 voyages de sonde »). Profil : les titres et avatars fermés, et les compteurs d'univers et "
+                            + "de Big Bangs. Statistiques : les records des actes jamais vus, et le nom de la prochaine sous-page. "
+                            + "Succès : ceux d'une étape jamais vue, tant qu'ils ne sont pas obtenus. Aide : les pastilles.",
+                    "Ce qui a été vu est retenu dans les réglages : une étape que la partie referme (le vide, les hadrons à "
+                            + "chaque univers ; « Recommencer de zéro ») reste montrée.",
+                    "Effet de bord : quelques libellés deviennent neutres (« Thèmes, notations et apparences », « Univers "
+                            + "formés », les descriptions de catégories qui citaient la suite).")),
+            new Note("0.317", "Hadrons, univers et vide allégés", List.of(
+                    "Hadrons : les paragraphes passent au survol (paliers : du nombre de gluons ; vue des quarks : des boutons "
+                            + "« Lier » ; quarks : de « Quarks en main » ; exotiques fermées : de leur titre).",
+                    "Univers : le bandeau ne montre plus que le nombre d'univers ; la graine, le bonus de matière noire et "
+                            + "« La partie de l'univers N est en cours… » passent au survol du nombre.",
+                    "Graine : sous « Graine d'univers : palier X sur 11 », l'énergie du vide accumulée (à la place du nom du "
+                            + "palier, qui reste dans la ligne de la graine).",
+                    "Le vide : sous le nombre, « +G énergie du vide /s | N paires /s, D s chacune | fonte : F % /s » ; "
+                            + "l'équilibre, la borne et les paires vivantes au survol. « Par paire : coûte…, tient…, donne… » ; "
+                            + "« Trou noir : masse M » seul, son effet au survol ; le paragraphe du bas au survol du nombre.",
+                    "Effet de bord : la bulle du nombre d'énergie du vide n'a son explication qu'à partir du deuxième "
+                            + "rafraîchissement de la page (une fraction de seconde).")),
+            new Note("0.316", "Le rond de fusion et quatre pages allégées", List.of(
+                    "Rond de fusion : le nombre de générateurs et la touche F rentrent dans le rond, au-dessus du titre ; le "
+                            + "texte descend d'autant, tout centré.",
+                    "Noyaux sombres : plus d'étiquette « ★ la case qui compte le plus » (la ligne de la carte le dit).",
+                    "Automatisation des dimensions : le paragraphe d'explication passe au survol du titre.",
+                    "Astres : l'explication passe au survol de la ligne Maturation. Cosmos : le paragraphe d'en-tête passe au "
+                            + "survol du sous-onglet Cosmos.",
+                    "Effet de bord : la page des astres n'a plus de texte avant la première maturation ; la bulle du "
+                            + "sous-onglet Cosmos ne se remplit qu'après une première visite de la page.")),
+            new Note("0.315", "Matière noire, automatisation et Big Bang épurés", List.of(
+                    "Matière noire : la racine de l'arbre devient un rond, sans texte (le compte est dans le bandeau, et au "
+                            + "survol). Les défis ne disent plus que « 10 / 11 réussis » ; la règle passe au survol.",
+                    "Automatisation : le bandeau affiche « Automatismes » à la place des atomes, et le titre quitte la page. La "
+                            + "note de la coupure, la règle des plafonds par état, la phrase des amas confiés, l'énergie du "
+                            + "collisionneur, le déclencheur et le tuyau d'arrosage passent au survol (du bouton, des listes, des "
+                            + "pastilles, du titre des automates). La fusion et la synthèse automatiques s'alignent à gauche "
+                            + "sur les autres lignes.",
+                    "Big Bang : « Partie en cours… » passe au survol du nombre de Big Bangs. Le choix du cycle ne reste que "
+                            + "sur les Molécules, sans son effet (au survol), avec à sa gauche « Créer le meilleur achat » et "
+                            + "l'ordre des cartes. La recherche a les états à sa droite et les usages sous les états. Plus "
+                            + "d'impulsion ni de phrase d'introduction sur les Molécules ; « Meilleur achat » nomme la molécule, "
+                            + "son rayon et son gain au survol.",
+                    "Expansion de la matière : le bandeau compte l'espace (débit et espace libre dessous), sans chrono ; le "
+                            + "détail et l'explication au survol. Améliorations et Paliers : plus de phrase d'introduction (au "
+                            + "survol de leur sous-onglet). Défis de Big Bang : le compte et, au deuxième univers, ce qu'un "
+                            + "défi donne aux astres et aux sondes ; le reste au survol.",
+                    "Sondes : trois voyages sur la première ligne, l'expédition et l'onde d'urgence centrées dessous.",
+                    "Effets de bord : sans amas confié, la page d'automatisation ne dit plus rien des amas ; le nombre d'atomes "
+                            + "n'est plus affiché dans l'onglet Automatisation ; les explications qui ne s'affichaient qu'en "
+                            + "mode détails sont toujours dans les bulles.")),
+            new Note("0.314", "La fusion en rond, un tableau périodique épuré", List.of(
+                    "Onglet Particules : la fusion devient un rond à droite des améliorations (« Fusion des générateurs », sa "
+                            + "touche et les atomes qu'elle donne), au lieu d'une large carte dessous.",
+                    "Tableau périodique : sur une ligne, le décompte (éléments, exemplaires, tirage double, éléments gratuits), la "
+                            + "carte de synthèse, un bouton « Explosion du tableau » et le dernier tirage (l'élément seul, son effet "
+                            + "au survol). Dans une fenêtre étroite, la carte et l'explosion restent côte à côte, le décompte et le "
+                            + "tirage dessous.",
+                    "Le bouton d'explosion fait comme la pastille violette, avec la même confirmation ; il garde sa place, éteint, "
+                            + "entre deux explosions.",
+                    "« Montrer les éléments utiles au prochain astre » passe à droite de la famille préférée. Les explications "
+                            + "(viser une famille, chances de la préférence, éléments gratuits) passent au survol ; « Le tableau peut "
+                            + "exploser… » et « Survolez ou cliquez un élément… » disparaissent ; « Ensembles : 17 complets » seulement.",
+                    "Effet de bord : la synthèse automatique ne se signale plus quand le tableau est complet, le bouton d'explosion "
+                            + "en tient lieu.")),
+            new Note("0.313", "La graine dans le bandeau, les pastilles partout", List.of(
+                    "Sous-page Graine d'univers : « Graine d'univers : palier 11 sur 11 » au centre du bandeau, le nom du palier "
+                            + "dessous. La grande ligne et l'explication en haut de la sous-page disparaissent.",
+                    "L'énergie du vide accumulée tient en une ligne courte : le total seul, le détail par univers et ce qu'il reste "
+                            + "à dépenser pour les bulles de l'arbre au survol.",
+                    "Corrigé : les pastilles des grands pas ne se voyaient que sur la sous-page Graine. La ligne du chrono s'étirait "
+                            + "sur toute la largeur et son fond les recouvrait ; il ne prend plus que sa place, et les pastilles passent devant.",
+                    "La ressource du centre du bandeau suit sa taille d'elle-même : elle rapetisse avec lui dans une fenêtre étroite.")),
+            new Note("0.312", "Les univers dans le bandeau, la carte des dimensions épurée", List.of(
+                    "Onglet Univers : « Univers : » et le nombre d'univers au centre du bandeau, et dessous le palier de la graine "
+                            + "et le bonus de matière noire des univers formés. Ils étaient en haut de la sous-page Univers.",
+                    "Sous-page Dimensions : la carte est seule. Le bandeau (objectifs, aide, détails), les pastilles, le chrono et "
+                            + "la ligne d'infos au-dessus de la carte se cachent ; ils reviennent sur les autres sous-pages.",
+                    "Effets de bord : sur la carte des dimensions, l'aide se rouvre par sa touche (H) mais plus d'un clic, le "
+                            + "chrono se règle depuis les autres onglets, et l'avancée du défi final ne s'écrit plus au-dessus de la "
+                            + "carte (elle reste dessinée sur la carte).")),
+            new Note("0.311", "Chaque ressource dans le bandeau", List.of(
+                    "Comme les particules et les atomes, la ressource de chaque onglet passe au centre du bandeau, son nom en "
+                            + "couleur devant le nombre : Automatisation (« Atomes : »), Matière noire (la matière gagnée et les "
+                            + "explosions dessous), Collisionneur (« Énergie : », son débit dessous), Big Bang (« Big Bangs : »), Vide "
+                            + "(« Énergie du vide : », l'équilibre dessous) et Hadrons (« Gluons : », les paliers atteints dessous).",
+                    "Les onglets sans ressource à eux (Univers, Profil, Succès, Statistiques, Réglages, Skins) gardent leur titre.",
+                    "Effets de bord : chaque page gagne la ligne de son compteur ; dans l'onglet Automatisation, les atomes "
+                            + "disponibles se lisent dans le bandeau et plus au milieu de la section des automatismes.")),
+            new Note("0.310", "L'onglet Atomes passe au bandeau", List.of(
+                    "Onglet Atomes : « Atomes : » et le nombre d'atomes au centre du bandeau (avec le plafond quand le tableau "
+                            + "s'est alourdi), et dessous ce que donnent une création et une fusion. Ils étaient en haut de la page, "
+                            + "au-dessus des sous-onglets.",
+                    "Effet de bord : la page des atomes gagne la place de ces deux lignes ; la quantité d'achat reste dans la "
+                            + "sous-page Améliorations.")),
+            new Note("0.309", "Un bandeau en haut, l'onglet Particules en premier", List.of(
+                    "En haut, un bandeau : les objectifs à gauche, une ligne courte chacun (« Objectif : le Big Bang », « Acte 3 : "
+                            + "autres assemblages », le texte complet au survol) ; l'aide et les détails à droite.",
+                    "Onglet Particules : « Particules : » et le nombre de particules au centre du bandeau, le débit dessous (« /s » et "
+                            + "« p/m ») ; la quantité, raccourcie en « Quantité : ×1 ×10 max », sous l'aide et les détails. Les autres "
+                            + "onglets passeront au bandeau un par un.",
+                    "La barre violette de l'explosion disparaît. Sous le bandeau, à gauche, une pastille de couleur s'allume pour "
+                            + "chaque grand pas possible : orange pour la fusion, violette pour l'explosion, rouge pour le Big Bang, verte "
+                            + "pour l'univers. Son nom au survol ; un clic sur la violette fait exploser le tableau (avec la même "
+                            + "confirmation), les autres mènent à l'onglet où le pas se fait.",
+                    "Le chrono tient sur une ligne : son curseur, l'accélération et le temps gardé ; la phrase entière au survol.",
+                    "Sous 860 pixels de large, le bandeau rapetisse au lieu de passer à la ligne.",
+                    "Effets de bord : ce que disait la barre de l'explosion (matière noire gagnée, défi réussi, second clic de "
+                            + "confirmation) se lit maintenant au survol de la pastille violette ; dans la disposition à gauche, la barre "
+                            + "du titre s'efface sur l'onglet Particules, la page y gagne une ligne ; « Quantité : » remplace aussi « Quantité "
+                            + "par achat : » dans l'onglet Atomes.")),
+            new Note("0.308", "Le vitrail de l'atome garde un nombre borné d'images", List.of(
+                    "Depuis la 0.303, les verrières du skin Vitrail sont peintes une fois puis gardées en image ; la borne de "
+                            + "96 images avait disparu, et le cache grandissait sans fin quand la fenêtre change de taille. "
+                            + "La plus ancienne est de nouveau oubliée au-delà de 96.",
+                    "Effet de bord : aucun en jeu ; la mémoire prise par ce skin reste bornée.")),
+            new Note("0.307", "La matière noire grandit pas à pas", List.of(
+                    "Acheter une case de taille fait maintenant rétrécir la matière noire du prix de la case, jamais sous la taille "
+                            + "d'un proton. Les paliers de taille et les effets par année-lumière suivent la plus grande taille "
+                            + "atteinte dans la partie : rien n'est perdu ni annoncé deux fois.",
+                    "La croissance est freinée : résistance de 0.1 à 0.25, élan en racine de la matière noire gagnée au lieu de "
+                            + "proportionnel, avancement en logarithme des ordres de grandeur. La taille s'étale sur le deuxième acte "
+                            + "au lieu de tout débloquer en quelques secondes.",
+                    "Les prix des cases de taille suivent l'échelle réelle, du nanomètre à l'univers observable. Croissance "
+                            + "soutenue et Puits de gravité passent de ×10 à ×3, Horizon de ×2 à ×1.5 par niveau.",
+                    "Noyaux sombres reste la case indispensable ; Synthèse sombre et Rouages sombres font gagner plusieurs "
+                            + "heures, Synthèse ciblée quelques minutes. Départ lancé donne aussi des atomes en main après chaque "
+                            + "explosion, sous le plafond d'atomes.",
+                    "L'achat groupé (atomes et boutique de matière noire) n'est plus une amélioration : l'achat par dix et « max » "
+                            + "est ouvert d'office. Une ancienne sauvegarde qui l'avait achetée se charge normalement.",
+                    "Premier Big Bang du premier univers : 10⁴⁰⁰⁰⁰ particules au lieu de 10⁸⁵⁰⁰⁰ et 10 000 matières noires au "
+                            + "lieu de 42 000 ; les suivants de cet univers : 10¹⁶⁰⁰⁰ au lieu de 10³⁰⁰⁰⁰. À partir de l'univers 2, "
+                            + "le premier Big Bang demande 10⁴⁵⁰⁰⁰ particules au lieu de 10¹⁹⁰⁰⁰⁰. Pour l'analyste, la dernière "
+                            + "attente avant le premier Big Bang passe ainsi de 2 h à environ 20 min ; les Big Bangs à astres ne "
+                            + "changent pas.",
+                    "Le délai de rassemblement de chaque univers est recalé pour garder les durées visées (20, 15, 11, 7, 6.5, "
+                            + "6, 4.5, 3, 2.5, 2 et 1.5 h).",
+                    "La molette fait défiler les onglets plus vite, et la barre de défilement à droite montre où l'on est ; on "
+                            + "peut la saisir pour se déplacer.",
+                    "Bots : ils attendent le premier Big Bang pour acheter Synthèse ciblée. Nouveau profil d'analyste qui tient "
+                            + "M et F enfoncées.",
+                    "Effets de bord : la vue de la matière noire rétrécit à chaque achat de case de taille ; une sauvegarde "
+                            + "arrêtée juste avant le premier Big Bang peut l'atteindre tout de suite avec les nouveaux seuils.")),
+            new Note("0.306", "La fusion à la main n'attend plus l'animation", List.of(
+                    "Une fusion demandée pendant le regroupement des générateurs (1.4 s) était refusée, et le bouton disparaissait "
+                            + "le temps de l'animation : quand les générateurs se reforment plus vite, on ne pouvait pas fusionner "
+                            + "plus d'une fois par animation. Le bouton reste maintenant affiché, et une fusion demandée pendant "
+                            + "l'animation se fait tout de suite dans le moteur, comme une fusion automatique.",
+                    "La première fusion, hors animation, se regroupe toujours avant de donner ses atomes.",
+                    "Effet de bord : ces fusions immédiates ne jouent ni regroupement ni son de regroupement ; le son et la fête "
+                            + "de l'atome créé restent. La fusion qui a lancé l'animation se fait toujours à sa fin, seulement si les "
+                            + "générateurs y sont de nouveau réunis.")),
+            new Note("0.305", "Bots : le profil Un clic n'est plus bloqué à l'univers 8", List.of(
+                    "Pendant la préparation du dernier Big Bang, les bots qui achètent la case sombre la moins chère sautaient "
+                            + "toutes les cases hors matière noire, y compris celles de la taille, qui ne dépensent rien. "
+                            + "Débordement (plus de plafond d'atomes) ne s'achetait donc jamais à ce moment : le profil Un clic "
+                            + "restait plus de 500 h de jeu à l'univers 8, ses atomes plafonnés vers 7 millions, loin du "
+                            + "billion du Big Bang.",
+                    "Seules les cases payées en atomes ou en particules attendent maintenant. Rien ne change dans le jeu ; "
+                            + "touche les profils Collectionneur, Optimiste passif, Acheteur en gros, Un clic, Clics au hasard, "
+                            + "Débutant et Distrait, pas le Speedrunner.")),
+            new Note("0.304", "Les premiers sons ne se perdent plus", List.of(
+                    "Le son de particule ne sonnait parfois pas, surtout au début : la sortie audio n'était prête qu'au premier "
+                            + "vrai son, et un son qu'elle refusait était perdu. Elle est maintenant réveillée dès le lancement "
+                            + "par un instant de silence, et un son refusé a droit à un nouvel essai 30 ms après.",
+                    "Effet de bord : un son refusé deux fois de suite part au plus 30 ms en retard, ou pas du tout comme avant.")),
+            new Note("0.303", "Le vitrail de l'atome ne fait plus ramer le jeu", List.of(
+                    "Le skin « Vitrail » de l'atome repeignait à chaque image le verre et le plomb du grand atome et de ses "
+                            + "40 copies : quelque 6 000 formes par image, de quoi faire tomber les images par seconde jusqu'à "
+                            + "bloquer le jeu. Ce verre ne bouge pas : il est maintenant peint une fois par atome, puis reposé.",
+                    "Mesuré en rendu logiciel, 118 orbes et 40 copies : 154 ms par image avant, 82 après (le classique : 76) ; "
+                            + "la part du dessin passe de 12.7 à 2.9 ms. Le dessin est le même, sauf l'éclat blanc des perles "
+                            + "les plus petites, invisible à cette taille.",
+                    "La première image du vitrail, ou après un changement de taille de la fenêtre, est un peu plus longue : "
+                            + "c'est là que le verre est peint.")),
+            new Note("0.302", "Temps visés univers par univers", List.of(
+                    "La chaîne du collisionneur multiplie vraiment : particules ×10 par niveau (×1.5 avant), atomes ×1.3 "
+                            + "(+10 % avant), matière noire ×1.3 (+20 % avant), espace ×1.5 (+25 % avant).",
+                    "Le délai de rassemblement avant l'amas, puis avant l'univers, ne vaut plus deux heures partout : 112, "
+                            + "146, 111, 115, 108, 115, 160, 150, 150, 146 puis 145 minutes, du 1er univers au défi final.",
+                    "L'Assise du vide a 7 niveaux au lieu de 5 (jusqu'à −70 % du délai) : les deux nouveaux coûtent 3.4 et "
+                            + "20 millions d'énergie du vide. Une sauvegarde garde ses niveaux.",
+                    "Calé sur le bot analyste Speedrunner (une décision toutes les 5 s) : 20, 15, 11, 7, 6.5, 6, 4.5, 3, 2.5, "
+                            + "2 et 1.5 h de jeu par univers (79 h) ; mesuré : 78.9 h, chaque univers à moins de 4 minutes de sa cible.",
+                    "Les bots n'ont rien de nouveau à jouer. Le Speedrunner, la référence, va plus vite (sa partie témoin "
+                            + "change). Côté musique, les phases de galaxie et d'amas durent plus ou moins selon l'univers.")),
+            new Note("0.301", "Tous les bots à jour des mécaniques récentes", List.of(
+                    "Rien ne change en jeu, ni pour le Speedrunner, la référence (sa partie témoin est identique).",
+                    "Le bot V2 (AdvancedLab, ses douze modes et le profil de test de l'interface) tente maintenant les épreuves "
+                            + "des skins et cueille le rond de croissance, comme les 24 profils depuis la 0.294 (le débutant ne "
+                            + "tente pas les épreuves, le mode sans comètes ne cueille pas le rond), et tient le clic du "
+                            + "rassemblement accéléré quand il a la bulle. Le calme du Big Bang reste aux 24 profils.",
+                    "Les façons de jouer du bot analyste (Méthodique, Chimiste, Astronome, Explorateur, Prestige) prennent la "
+                            + "bulle du rassemblement, comme leur profil ; seul le Speedrunner la laisse (avant, elles héritaient "
+                            + "du choix du Speedrunner).")),
+            new Note("0.300", "Un test des bots remis à jour", List.of(
+                    "Rien ne change en jeu.",
+                    "Le test des mécaniques qu'on peut couper chez un bot (AnalyseArretsTest) attendait encore la liste d'avant "
+                            + "la 0.294 : le calme du Big Bang, les épreuves et le rond de croissance y sont, et le rassemblement "
+                            + "accéléré de la 0.299 s'y ajoute (-Didle.sansMecaniques ou l'analyse des arrêts peuvent le couper).",
+                    "Les fichiers .class ne vont plus dans git (.gitignore) : 279 avaient été poussés dans les sources du moteur.")),
             new Note("0.299", "Fin de partie et fins d'univers", List.of(
                     "Défi final : le palier du mélange passe de 10 millions à 3 millions de fragments. Le bot analyste "
                             + "(Speedrunner, une décision toutes les 5 s) finit la partie 17 minutes après le onzième univers (28 "

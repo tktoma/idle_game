@@ -437,16 +437,16 @@ class VideTest {
     void leRassemblementPlusCourtRetireDixPourCentParNiveau() {
         Game game = open();
         assertEquals(1, game.settleShare(), 1e-12);
-        assertEquals(5, VoidUpgrade.SETTLE.max());
+        assertEquals(7, VoidUpgrade.SETTLE.max());
         assertEquals(500, game.voidCost(VoidUpgrade.SETTLE), 1e-9);
         game.state().setVoidEnergy(BigNum.of(500));
         assertTrue(game.buyVoid(VoidUpgrade.SETTLE));
         assertEquals(0.9, game.settleShare(), 1e-12);
-        assertEquals(2_100_000, 500 * Math.pow(VoidUpgrade.SETTLE.growth(), 4), 1e-6, "le cinquième niveau (version 0.171)");
-        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 5);
-        assertEquals(0.5, game.settleShare(), 1e-12, "cinq niveaux : −50 % (version 0.169)");
+        assertEquals(20_000_000, 500 * Math.pow(VoidUpgrade.SETTLE.growth(), 6), 1e-6, "le septième niveau (version 0.302)");
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 7);
+        assertEquals(0.3, game.settleShare(), 1e-12, "sept niveaux : −70 % (version 0.302)");
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 99);
-        assertEquals(0.5, game.settleShare(), 1e-12, "jamais plus de cinq niveaux comptés");
+        assertEquals(0.3, game.settleShare(), 1e-12, "jamais plus de sept niveaux comptés");
     }
 
     @Test
@@ -455,10 +455,10 @@ class VideTest {
         game.state().setTimePlayed(10_000);
         game.state().stats().noteStep(GameStats.Step.GALAXY, 10_000);
         game.state().setCosmosLevel(1);
-        assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
+        assertEquals(game.cosmosSettleSeconds(), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 3);
-        assertEquals(Game.COSMOS_SETTLE_SECONDS * (1 - 3 * Game.VOID_SETTLE_STEP), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
-        game.state().setTimePlayed(10_000 + Game.COSMOS_SETTLE_SECONDS * 0.7);
+        assertEquals(game.cosmosSettleSeconds() * (1 - 3 * Game.VOID_SETTLE_STEP), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
+        game.state().setTimePlayed(10_000 + game.cosmosSettleSeconds() * 0.7);
         assertEquals(0, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6, "−30 % : prêt à 70 % du délai");
     }
 

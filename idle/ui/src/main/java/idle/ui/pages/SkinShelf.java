@@ -1,6 +1,7 @@
 package idle.ui.pages;
 
 import idle.core.Game;
+import idle.ui.Seen;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
@@ -63,34 +64,51 @@ public final class SkinShelf {
     }
 
     /** Vrai si le skin se montre : débloqué, ou son palier atteint (son univers, et pour une dimension, la dimension ouverte). */
-    public static boolean shown(Game game, Skin skin) {
+    public static boolean shown(Game game, Skin skin) { return shown(game, skin, Seen.Memory.none()); }
+
+    /**
+     * Version 0.318 : un skin pas encore débloqué d'une chose jamais vue (le vide, les hadrons, une dimension…) reste
+     * caché, même quand la partie l'a refermée depuis : {@code seen} se souvient.
+     */
+    public static boolean shown(Game game, Skin skin, Seen.Memory seen) {
         if (game.hasSkin(skin)) return true;
         if (game.universes() < skin.minUniverses()) return false;
+        Seen step = Seen.of(skin.visual());
+        if (step != null && !seen.has(step, game)) return false;
+        for (Seen named : Seen.mentioned(skin.source())) if (!seen.has(named, game)) return false;
         int dimension = Arrays.asList(SkinVisual.DIMENSIONS).indexOf(skin.visual()) + 1;
         return dimension == 0 || game.dimensionsUnlocked() >= dimension;
     }
 
     /** Les skins qui se montrent pour ce visuel, dans l'ordre du jeu. */
-    public static List<Skin> shownSkins(Game game, SkinVisual visual) {
+    public static List<Skin> shownSkins(Game game, SkinVisual visual) { return shownSkins(game, visual, Seen.Memory.none()); }
+
+    public static List<Skin> shownSkins(Game game, SkinVisual visual, Seen.Memory seen) {
         List<Skin> skins = new ArrayList<>();
-        for (Skin skin : Skin.values()) if (skin.visual() == visual && shown(game, skin)) skins.add(skin);
+        for (Skin skin : Skin.values()) if (skin.visual() == visual && shown(game, skin, seen)) skins.add(skin);
         return skins;
     }
 
     /** Vrai si le visuel a au moins un skin qui se montre : sinon, sa section (le Classique seul) reste cachée. */
-    public static boolean shown(Game game, SkinVisual visual) { return !shownSkins(game, visual).isEmpty(); }
+    public static boolean shown(Game game, SkinVisual visual) { return shown(game, visual, Seen.Memory.none()); }
+
+    public static boolean shown(Game game, SkinVisual visual, Seen.Memory seen) { return !shownSkins(game, visual, seen).isEmpty(); }
 
     /** Vrai si la catégorie a au moins un visuel qui se montre : sinon, son sous-onglet reste caché. */
-    public static boolean shown(Game game, Category category) {
-        for (SkinVisual visual : category.visuals()) if (shown(game, visual)) return true;
+    public static boolean shown(Game game, Category category) { return shown(game, category, Seen.Memory.none()); }
+
+    public static boolean shown(Game game, Category category, Seen.Memory seen) {
+        for (SkinVisual visual : category.visuals()) if (shown(game, visual, seen)) return true;
         return false;
     }
 
     /** Les skins débloqués et les skins montrés de la catégorie : « 3 / 12 » sur son sous-onglet. */
-    public static int[] counts(Game game, Category category) {
+    public static int[] counts(Game game, Category category) { return counts(game, category, Seen.Memory.none()); }
+
+    public static int[] counts(Game game, Category category, Seen.Memory seen) {
         int unlocked = 0, shown = 0;
         for (SkinVisual visual : category.visuals()) {
-            for (Skin skin : shownSkins(game, visual)) {
+            for (Skin skin : shownSkins(game, visual, seen)) {
                 shown++;
                 if (game.hasSkin(skin)) unlocked++;
             }

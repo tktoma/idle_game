@@ -352,8 +352,11 @@ final class FirstUniversePolicy {
             double choiceShare = Double.POSITIVE_INFINITY;
             for (DarkUpgrade upgrade : game.darkUpgrades()) {
                 if (!game.canBuyDark(upgrade.id())) continue;
-                boolean darkPaid = upgrade.branch() == DarkUpgrade.Branch.DARK_MATTER || upgrade.isLink();
-                if (finalMode && !darkPaid) continue;
+                // Version 0.305 : seules les cases payées en atomes ou en particules attendent. Les cases de la taille
+                // ne dépensent rien ; les sauter bloquait Débordement (plus de plafond d'atomes), et le profil Un clic
+                // restait sans fin à l'univers 8 sous le plafond, loin des atomes du Big Bang.
+                boolean spends = upgrade.branch() == DarkUpgrade.Branch.ATOMS || upgrade.branch() == DarkUpgrade.Branch.PARTICLES;
+                if (finalMode && spends && !upgrade.isLink()) continue;
                 if (!affordableDark(game, upgrade, bank)) continue;
                 BigNum cost = game.darkCostOf(upgrade.id());
                 BigNum balance = upgrade.isLink() ? game.state().darkMatter() : game.darkBalance(upgrade.branch());
@@ -418,6 +421,10 @@ final class FirstUniversePolicy {
      */
     private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank) {
         if (!game.canBuyDark(upgrade.id())) return false;
+        // Version 0.307 : la synthèse ciblée attend le premier Big Bang, où commencent les recettes du ciel.
+        // Achetée à la première explosion, elle prenait deux matières noires quand elles manquent le plus
+        // et lançait la chasse à l'actinide visé (analyste Speedrunner, univers 1).
+        if (upgrade.effect() instanceof idle.core.darkmatter.DarkEffect.TargetedSynthesis && game.bigBangs() == 0) return false;
         if (upgrade.branch() != DarkUpgrade.Branch.DARK_MATTER && !upgrade.isLink()) return true;
         return game.state().darkMatter().subtract(game.darkCostOf(upgrade.id())).gte(game.bigBangDarkMatter()) || !bank;
     }

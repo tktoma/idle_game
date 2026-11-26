@@ -16,7 +16,7 @@ import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
-import idle.ui.common.StableHeight;
+import idle.ui.common.ResourceHead;
 import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.LinkedHashMap;
@@ -27,7 +27,8 @@ import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Atomes ». En haut, les atomes disponibles et le bonus en cours ; en dessous, deux sous-pages :
+ * Contenu de l'onglet « Atomes ». Les atomes disponibles et ce que donnent une création et une fusion sont au centre du
+ * bandeau ({@link #head()}, version 0.310 ; en haut de la page avant) ; la page a trois sous-pages :
  * <ul>
  * <li>« Atome » : le grand atome animé, qui porte une orbe par atome disponible. Dépenser un atome lui retire donc une
  * orbe ;</li>
@@ -45,10 +46,21 @@ public final class AtomsPage extends VBox {
 
     public HBox subTabs() { return subTabs; }
 
+    /** L'explosion du tableau, à droite de sa carte de synthèse : voir {@link PeriodicTablePage#setExplosion}. */
+    public void setExplosion(Runnable action, java.util.function.DoubleSupplier armed, java.util.function.Supplier<String> hint) {
+        tablePage.setExplosion(action, armed, hint);
+    }
+
+    /** Les atomes, pour le centre du bandeau. */
+    public ResourceHead head() { return head; }
+
     private final Game game;
     private final Settings settings;
-    private final Label balanceLabel = new Label();
-    private final Label bonusLabel = new Label();
+    /**
+     * Les atomes au centre du bandeau (version 0.309) : « Atomes : 1.2e30 », et dessous ce que donnent une création et une
+     * fusion. Ils étaient en haut de la page, au-dessus des sous-onglets.
+     */
+    private final ResourceHead head = new ResourceHead("Atomes", GameApp.ATOMS_COLOR);
     /** Au survol : d'où viennent les atomes d'une fusion, un facteur par ligne. */
     private final Breakdown bonusBreakdown;
 
@@ -72,7 +84,7 @@ public final class AtomsPage extends VBox {
     // Sous-page « Améliorations »
     private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
     private final TileGrid upgradeGrid = new TileGrid(200, 4, 10);
-    /** La quantité achetée à chaque clic, une fois l'achat groupé acquis : la même que pour les particules. */
+    /** La quantité achetée à chaque clic, ouverte d'office depuis la 0.307 : la même que pour les particules. */
     private final BuyAmountRow amountRow;
     /** Ses boutons : pour les vérifications. */
     private final Map<Settings.BuyAmount, Button> amountButtons;
@@ -89,7 +101,7 @@ public final class AtomsPage extends VBox {
         this.game = game;
         this.settings = settings;
         this.tablePage = new PeriodicTablePage(game);
-        this.bonusBreakdown = Breakdown.attach(bonusLabel, game, Breakdown.Of.ATOMS);
+        this.bonusBreakdown = Breakdown.attach(head.sub(), game, Breakdown.Of.ATOMS);
         this.tablePane = new ScrollPane(tablePage);
         this.amountRow = new BuyAmountRow(settings, this::refresh);
         this.amountButtons = amountRow.buttons();
@@ -98,13 +110,8 @@ public final class AtomsPage extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 24, 24));
 
-        balanceLabel.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #ffd27f;");
-        bonusLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
         orbsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
         hintLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        // Ces deux lignes changent à chaque fusion : leur hauteur reste fixe pour que les sous-onglets ne bougent pas.
-        StableHeight.of(balanceLabel);
-        StableHeight.of(bonusLabel);
 
         SubTabs.wire(false, this::select, this::refresh, atomTab, upgradesTab, tableTab);
         subTabs = new HBox(atomTab, upgradesTab, tableTab);
@@ -114,8 +121,6 @@ public final class AtomsPage extends VBox {
         VBox.setVgrow(atomHolder, Priority.ALWAYS);
         hintLabel.setWrapText(true);
         hintLabel.setTextAlignment(TextAlignment.CENTER);
-        bonusLabel.setWrapText(true);
-        bonusLabel.setTextAlignment(TextAlignment.CENTER);
 
         // Les cartes passent à la ligne selon la largeur ; si elles dépassent en hauteur, on fait défiler.
         upgradeGrid.setPadding(new Insets(4, 0, 12, 0));
@@ -140,16 +145,14 @@ public final class AtomsPage extends VBox {
         StackPane pages = new StackPane(atomPane, upgradesPane, tablePane);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        getChildren().add(balanceLabel);
-        getChildren().add(bonusLabel);
         getChildren().add(subTabs);
         getChildren().add(pages);
         select(0);
     }
 
     /** Affiche une sous-page : 0 = atome, 1 = améliorations, 2 = tableau périodique. */
-    /** Niveaux demandés à chaque clic : la quantité choisie une fois l'achat groupé acquis, un seul sinon. */
-    private int amount() { return game.isBulkAtomBuyUnlocked() ? settings.buyAmount().count() : 1; }
+    /** Niveaux demandés à chaque clic : la quantité choisie (par un, par dix ou « max » ; d'office depuis la 0.307). */
+    private int amount() { return settings.buyAmount().count(); }
 
     /** Passe à la sous-page suivante ou précédente, en boucle ; le tableau périodique seulement s'il est ouvert. */
     public void step(int direction) {
@@ -206,25 +209,17 @@ public final class AtomsPage extends VBox {
         BigNum created = game.state().totalAtoms();
         // Le plafond n'est rappelé que lorsqu'il a bougé : après une explosion, le tableau est plus lourd.
         boolean heavier = game.tableWeight().gt(BigNum.ONE) && !game.isAtomCapLifted();
-        balanceLabel.setText(Format.count(atoms) + (heavier ? " / " + Format.count(game.atomCap()) : "")
-                + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
         BigNum perFusion = game.atomsPerFusion();
-        bonusLabel.setText("Chaque création donne " + Format.amount(game.particlesPerCreation())
-                + " particules   |   chaque fusion donne " + Format.amount(perFusion)
-                + (perFusion.gt(BigNum.ONE) ? " atomes" : " atome"));
+        head.set(Format.count(atoms) + (heavier ? " / " + Format.count(game.atomCap()) : ""),
+                "+" + Format.amount(game.particlesPerCreation()) + " particules par création   |   +" + Format.amount(perFusion)
+                        + (perFusion.gt(BigNum.ONE) ? " atomes par fusion" : " atome par fusion"));
         bonusBreakdown.refresh();
 
         tableTab.setVisible(tableUnlocked);
         tableTab.setManaged(tableUnlocked);
         if (selected == 1) {
-            boolean bulk = game.isBulkAtomBuyUnlocked();
-            amountRow.setVisible(bulk);
-            amountRow.setManaged(bulk);
             amountRow.paint(settings.buyAmount(), GameApp.ATOMS_COLOR);
-            // Tant que l'achat groupé n'est pas acquis, une ligne dit où le trouver, à qui a déjà de la matière noire.
-            String hint = bulk ? Detail.only("La quantité choisie vaut aussi pour les améliorations payées en particules.")
-                    : game.isDarkMatterUnlocked() ? "L'achat par dix ou « max » s'ouvre avec « Achat groupé », dans les améliorations payées en matière noire."
-                    : "";
+            String hint = Detail.only("La quantité choisie vaut aussi pour les améliorations payées en particules.");
             amountHint.setText(hint);
             amountHint.setVisible(!hint.isEmpty());
             amountHint.setManaged(!hint.isEmpty());
@@ -273,7 +268,6 @@ public final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount -> "−" + trim((1 - game.generatorCostFactor()) * 100) + " %";
             case Effect.MultiplyAtomsByProduction byProduction -> Format.multiplier(BigNum.of(game.fusionYield()));
             case Effect.KeepUpgradesOnFusion keep -> level > 0 ? trim(game.fusionKeepShare() * 100) + " %" : "";
-            case Effect.BulkAtomBuy bulk -> "";
             default -> Format.multiplier(game.particlesMultiplier(upgrade.id(), level));
         };
     }
@@ -289,7 +283,6 @@ public final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount ->
                     "Générateurs −" + trim((1 - discount.factorPerLevel()) * 100) + " % par niveau";
             case Effect.KeepUpgradesOnFusion keep -> "La fusion garde 10, 25, 50, 75 puis 100 % de vitesse et couplage";
-            case Effect.BulkAtomBuy bulk -> "Acheter par dix, ou tout d'un coup";
             case Effect.Overload overload -> "Particules ×" + trim(overload.perLevel()) + " par niveau, sans limite";
             case Effect.MultiplyByGenerators coupling -> "Chaque générateur renforce les autres";
             case Effect.MultiplyAtomsByProduction byProduction ->
@@ -322,10 +315,6 @@ public final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount ->
                     "Générateurs " + trim((1 - discount.factorPerLevel()) * 100) + " % moins chers, à chaque niveau. "
                             + (level > 0 ? "Actuellement −" + trim((1 - game.generatorCostFactor()) * 100) + " %" : "");
-            case Effect.BulkAtomBuy bulk ->
-                    "Ouvre l'achat par dix et « max » des améliorations en atomes, comme pour celles en particules. "
-                            + "Il tient jusqu'à la prochaine explosion ; « Achat groupé » de la boutique de matière "
-                            + "noire le garde pour toujours.";
             case Effect.KeepUpgradesOnFusion keep ->
                     "La fusion garde une part des niveaux des améliorations payées en particules (vitesse, couplage) : "
                             + "10 %, 25 %, 50 %, 75 % puis 100 % selon le niveau, arrondi à l'unité inférieure. "

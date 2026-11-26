@@ -37,13 +37,21 @@ public abstract class BotAnalysteBase extends IdleProfiles24 {
     static final Profile ABSENT = new Profile(1, "Absent", "Une visite de 5 minutes toutes les heures, le jeu fermé entre deux", 5, 3600, 300,
             1, 1, 1, 1, 1, 0, "doubleplan");
 
-    /** Le profil d'un nom : speedrunner (par défaut), regulier (le Régulier des profils), absent. */
+    /**
+     * Version 0.307 : le Speedrunner qui tient les touches M (tout acheter avec les particules) et F (fusionner) du début
+     * à la fin, comme un joueur qui garde les deux doigts posés. Il garde le numéro du Speedrunner pour en garder les choix.
+     */
+    static final Profile TOUCHES_MF = new Profile(1, "Analyste M+F", "Le Speedrunner, les touches M et F tenues", 5, 0, 0,
+            1, 1, 1, 1, 1, 0, "doubleplan");
+
+    /** Le profil d'un nom : speedrunner (par défaut), regulier (le Régulier des profils), absent, mf (touches M et F tenues). */
     static Profile profil(String nom) {
         return switch (nom == null ? "" : nom.trim().toLowerCase(Locale.ROOT)) {
             case "", "speedrunner", "analyste" -> ANALYSTE;
             case "regulier", "régulier", "regular" -> IdleProfiles24.PROFILES[2];
             case "absent" -> ABSENT;
-            default -> throw new IllegalArgumentException("Profil inconnu : " + nom + " (speedrunner, regulier, absent)");
+            case "mf", "m+f" -> TOUCHES_MF;
+            default -> throw new IllegalArgumentException("Profil inconnu : " + nom + " (speedrunner, regulier, absent, mf)");
         };
     }
 
@@ -931,7 +939,7 @@ public abstract class BotAnalysteBase extends IdleProfiles24 {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
-            System.err.println("Usage : BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner|regulier|absent]");
+            System.err.println("Usage : BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner|regulier|absent|mf]");
             System.exit(2);
         }
         Path dossier = Path.of(args[0]);
@@ -952,6 +960,7 @@ public abstract class BotAnalysteBase extends IdleProfiles24 {
         Game game = Bots.game(state, graine, sans);
         if (depart == null) game.start();
         BotAnalyste bot = new BotAnalyste(game, profile, graine, pas, dossier, estimation);
+        bot.holdsFuse = profile == TOUCHES_MF;
         bot.jusquALaFin = univers.equalsIgnoreCase("fin");
         bot.sans = sans;
         bot.targetUniverses = bot.jusquALaFin ? Integer.MAX_VALUE : Integer.parseInt(univers);

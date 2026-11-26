@@ -20,6 +20,8 @@ public abstract class GamePlans extends GameCollider {
     // Ce que fournissent les parties suivantes.
     abstract boolean ruled(Challenge.Rule rule);
     public abstract BigNum productionPerSecond();
+    /** Le plafond d'atomes du moment ({@link GameAtoms#atomCap()}). */
+    public abstract BigNum atomCap();
 
     // ------------------------------------------------------------------
     // Les plans de l'arbre et des systèmes solaires
@@ -352,8 +354,10 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Achète un niveau d'une amélioration de matière noire. Les particules, les atomes et la matière noire sont
-     * dépensés ; une taille à atteindre ne coûte rien, la matière noire ne rétrécit pas.
+     * Achète un niveau d'une amélioration de matière noire. Les particules, les atomes, la matière noire et, depuis la
+     * version 0.307, la taille sont dépensés : la matière noire rétrécit du prix de la case (jamais sous sa taille de
+     * départ), et doit regrossir pour la suivante. Avant, une taille à atteindre ne coûtait rien : toute la branche
+     * tombait en quelques secondes une fois la taille lancée. Les paliers de taille suivent la taille atteinte.
      *
      * @return {@code true} si l'achat a eu lieu
      */
@@ -372,7 +376,7 @@ public abstract class GamePlans extends GameCollider {
                 state.setAtoms(state.atoms().subtract(cost).max(BigNum.ZERO));
                 state.stats().addAtomsSpent(cost);
             }
-            case SIZE -> { /* un seuil, pas un prix */ }
+            case SIZE -> state.setDarkMatterSize(state.darkMatterSize().subtract(cost).max(Game.DARK_MATTER_START_SIZE));
             case DARK_MATTER -> {
                 // Dépensée, mais toujours comptée comme gagnée : rien de ce qu'elle ouvre ne se referme.
                 state.setDarkMatter(state.darkMatter().subtract(cost).max(BigNum.ZERO));
@@ -499,6 +503,18 @@ public abstract class GamePlans extends GameCollider {
         double atoms = Math.floor(darkMatterScaling("headStart",
                 effect -> effect instanceof DarkEffect.HeadStartByDarkMatter by ? by.perUnit() : 0));
         return BigNum.of(atoms).min(UNLOCK_TOTAL_ATOMS);
+    }
+
+    /**
+     * Atomes en main au départ de chaque partie après une explosion, grâce au départ lancé (version 0.307) : autant
+     * que d'atomes comptés comme créés, sans le plafond de {@link #UNLOCK_TOTAL_ATOMS}, mais jamais plus que le plafond
+     * d'atomes du moment ({@link #atomCap()}). Rien pendant un défi.
+     */
+    public BigNum darkHeadStartHand() {
+        if (inChallenge()) return BigNum.ZERO;
+        double atoms = Math.floor(darkMatterScaling("headStart",
+                effect -> effect instanceof DarkEffect.HeadStartByDarkMatter by ? by.perUnit() : 0));
+        return BigNum.of(atoms).min(atomCap());
     }
 
     /** Porte le compte des atomes créés au niveau du départ lancé, s'il est en dessous. */

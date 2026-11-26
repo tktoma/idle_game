@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import idle.ui.Seen;
 import idle.ui.Settings;
 import idle.ui.Shortcuts;
 import idle.ui.common.Detail;
@@ -43,7 +44,10 @@ public final class SettingsPage extends SettingsPageBlocks {
     }
 
     /** Les blocs qui suivent vont dans ce sous-onglet. */
-    void use(Section section) { target = sections.get(section); }
+    void use(Section section) {
+        sectionBox = sections.get(section);
+        target = sectionBox;
+    }
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
     public FlowPane subTabs() { return subTabs; }
@@ -62,13 +66,21 @@ public final class SettingsPage extends SettingsPageBlocks {
     public Section selected() { return selected; }
 
     /** Titre et explication d'un réglage ; l'explication n'apparaît qu'en mode détails. */
-    void block(String name, String explanation) {
+    void block(String name, String explanation) { block(name, () -> explanation); }
+
+    /** Version 0.318 : chaque bloc a sa boîte, qui se cache d'un coup ; son explication se récrit à chaque affichage. */
+    void block(String name, Supplier<String> explanation) {
+        group = new VBox(10);
+        group.setAlignment(Pos.TOP_CENTER);
+        sectionBox.getChildren().add(group);
+        target = group;
         Label header = new Label(name);
         header.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 14 0 0 0; -fx-text-fill: " + SETTINGS_COLOR + ";");
         target.getChildren().add(header);
-        Label text = new Label(explanation);
+        Label text = new Label(explanation.get());
         note(text);
         explanations.add(text);
+        texts.put(text, explanation);
     }
 
     void changeVolume(int step) {
@@ -149,6 +161,134 @@ public final class SettingsPage extends SettingsPageBlocks {
             capturingRing = -1;
             captureProblem = "";
         }
+    }
+
+    /**
+     * Version 0.318 : cache ce qui parle d'une étape jamais vue (blocs, boutons, touches, thèmes et notations fermés
+     * dont l'indice la nomme), et récrit les explications.
+     */
+    private void spoilers() {
+        noticeButtons.forEach((kind, button) -> gate(button, Seen.of(kind)));
+        goalPartButtons.forEach((part, button) -> gate(button, Seen.of(part)));
+        dotButtons.forEach((kind, button) -> gate(button, Seen.of(kind)));
+        effectButtons.forEach((effect, button) -> gate(button, of(effect)));
+        soundKindButtons.forEach((kind, button) -> gate(button, Seen.of(kind)));
+        keyButtons.forEach((action, button) -> gate(button.getParent(), of(action)));
+        gate(confirmButton, Seen.EXPLOSION);
+        gate(confirmChallengeButton, Seen.EXPLOSION);
+        gate(confirmBigBangButton, Seen.BIG_BANG);
+        themeButtons.forEach((theme, button) -> {
+            boolean hidden = !settings.isOpen(theme) && Seen.of(theme.unlock()) != null && !seen(Seen.of(theme.unlock()));
+            button.setVisible(!hidden);
+            button.setManaged(!hidden);
+        });
+        notationButtons.forEach((notation, button) -> {
+            boolean hidden = !settings.isOpen(notation) && Seen.of(notation.unlock()) != null && !seen(Seen.of(notation.unlock()));
+            button.setVisible(!hidden);
+            button.setManaged(!hidden);
+        });
+        gated.forEach((node, step) -> {
+            boolean shown = seen(step);
+            node.setVisible(shown);
+            node.setManaged(shown);
+        });
+        texts.forEach((label, text) -> {
+            String now = text.get();
+            if (!now.equals(label.getText())) label.setText(now);
+        });
+    }
+
+    /**
+     * Ce qu'un raccourci clavier demande d'avoir vu (version 0.318) ; ici et pas dans {@link Seen}, qui se passe de
+     * JavaFX.
+     */
+    public static Seen of(Shortcuts.Action action) {
+        return switch (action) {
+            case EXPLODE -> Seen.EXPLOSION;
+            case BIG_BANG, PULSE -> Seen.BIG_BANG;
+            case CLAIM -> Seen.PROBES;
+            default -> null;
+        };
+    }
+
+    /** Un effet visuel. */
+    public static Seen of(Settings.Effect effect) {
+        return switch (effect) {
+            case FLASH, DARK_MATTER_MOTION, DARK_FALL -> Seen.EXPLOSION;
+            case COLLIDER_MOTION, COLLIDER_SPARKS -> Seen.COLLIDER;
+            case BIG_BANG_MOTION -> Seen.BIG_BANG;
+            case UNIVERSE_MOTION -> Seen.UNIVERSE;
+            default -> null;
+        };
+    }
+
+    /** Les titres des blocs montrés, tous sous-onglets confondus : pour les vérifications. */
+    public java.util.List<String> shownBlocks() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (VBox box : sections.values()) {
+            for (javafx.scene.Node node : box.getChildren()) {
+                if (node instanceof VBox block && block.isManaged() && !block.getChildren().isEmpty()
+                        && block.getChildren().get(0) instanceof Label header) names.add(header.getText());
+            }
+        }
+        return names;
+    }
+
+    /** L'explication d'un bloc, telle qu'elle s'écrit maintenant : pour les vérifications. */
+    public String explanation(String block) {
+        for (VBox box : sections.values()) {
+            for (javafx.scene.Node node : box.getChildren()) {
+                if (node instanceof VBox group && group.getChildren().size() > 1 && group.getChildren().get(0) instanceof Label header
+                        && header.getText().equals(block) && group.getChildren().get(1) instanceof Label text) return texts.get(text).get();
+            }
+        }
+        return "";
+    }
+
+    /** L'explication des sons : seulement ce que le joueur a déjà entendu. */
+    String soundsText() {
+        StringBuilder graine = new StringBuilder("l'eau de l'arrosoir qu'on tient");
+        if (seen(Seen.HOSE)) graine.append(", le tuyau qui arrose");
+        if (seen(Seen.WEATHER)) graine.append(", l'orage et le beau temps quand on la voit, une saison qui commence");
+        if (seen(Seen.BLOOM)) graine.append(", un rond de croissance cueilli");
+        StringBuilder games = new StringBuilder();
+        if (seen(Seen.dimension(6))) games.append(", la membrane de la brane (sa corde se tend avec la tirée, puis part d'autant plus fort)");
+        if (seen(Seen.dimension(4))) games.append(", l'appui de la durée (une note qui monte jusqu'au plus long appui)");
+        if (seen(Seen.dimension(9))) games.append(", le piano du miroir");
+        if (seen(Seen.dimension(10))) games.append(", chaque éclat ramassé du mélange");
+        java.util.List<String> loops = new java.util.ArrayList<>();
+        if (seen(Seen.EXPLOSION)) loops.add("le grondement de la matière noire qui grossit");
+        if (seen(Seen.COLLIDER)) loops.add("le collisionneur (sur Énergie)");
+        if (seen(Seen.BIG_BANG)) loops.add("l'expansion de la matière");
+        if (seen(Seen.VOID)) loops.add("les paires du vide (sur Le vide › Paires), plus fort à mesure que le trou noir se remplit");
+        return "Un son accompagne les grands moments : succès, élément nouveau" + when(Seen.EXPLOSION, ", explosion")
+                + when(Seen.BIG_BANG, ", Big Bang") + when(Seen.UNIVERSE, ", univers formé")
+                + when(Seen.FINAL, ", fin de la partie, palier du défi final") + when(Seen.EXPLOSION, ", défi qui s'ouvre et défi réussi")
+                + when(Seen.UNIVERSE, ", skin débloqué") + ", palier de vitesse" + when(Seen.EXPLOSION, ", matière noire")
+                + when(Seen.BIG_BANG, ", comète") + ", jalon ; les autres annonces ont un son commun, plus léger. Un achat"
+                + when(Seen.PROBES, " (et chaque carte de récompense d'une sonde)") + ", un interrupteur"
+                + when(Seen.UNIVERSE, " et chaque geste dans le mini-jeu d'une dimension")
+                + " ont aussi le leur, plus discret, comme les bruitages de ce qui se passe sous vos yeux : une particule "
+                + "récupérée (plus grave à chaque palier de vitesse), une fusion, un atome créé (sur le grand atome de l'onglet Atomes)"
+                + when(Seen.COLLIDER, ", une collision réussie (sur Collisionneur › Énergie)")
+                + when(Seen.HADRONS, ", des hadrons (deux à la fois au plus)") + when(Seen.PROBES, ", une sonde lancée")
+                + when(Seen.UNIVERSE, ", la graine (" + graine + "), un point gagné dans une dimension") + games
+                + when(Seen.CHRONO, ", le tic-tac du chrono tant qu'il accélère le jeu") + ", un clic, un changement d'onglet."
+                + (loops.isEmpty() ? "" : " Des fonds en boucle accompagnent certaines vues : " + String.join(" ; ", loops) + ".")
+                + " Chaque sorte de son se garde ou se coupe à part, en bas de ce bloc. "
+                + (seen(Seen.BIG_BANG) ? "La fusion, l'explosion et le Big Bang partent avec leur animation"
+                        : seen(Seen.EXPLOSION) ? "La fusion et l'explosion partent avec leur animation" : "La fusion part avec son animation")
+                + " ; ce que le jeu fait seul (une fusion"
+                + when(Seen.EXPLOSION, " ou une explosion") + " automatiques, un palier de vitesse atteint par l'achat automatique, "
+                + "un automatisme offert, un élément de la synthèse automatique) reste muet, sauf si « Sons des automatismes » est "
+                + "activé. Aucun son n'attend avant de revenir : seul le nombre de sons joués en même temps est borné. Changer le "
+                + "volume fait entendre un essai."
+                + when(Seen.dimension(5), " Le métronome de la boucle, qui se branche dans sa fenêtre, suit ce réglage et ce volume.")
+                + " La musique, composée par le jeu pendant qu'on joue, suit la partie : "
+                + (seen(Seen.UNIVERSE) ? "chaque étape d'un univers a la sienne (l'aube, l'élan, les Big Bangs, les astres, l'amas, la "
+                        + "formation), un défi la resserre, une dimension ouverte a son arpège, et chaque univers change de tonalité"
+                        : "chaque étape a la sienne" + when(Seen.EXPLOSION, ", un défi la resserre"))
+                + ". Elle a son interrupteur et son volume.";
     }
 
     void note(Label label) {
@@ -331,6 +471,8 @@ public final class SettingsPage extends SettingsPageBlocks {
         detailModeButton.setText(settings.detailToggle() ? "Un appui bascule" : "À tenir enfoncée");
         detailModeButton.setStyle(OFF_STYLE);
         show(detailKeyNote, capturingAction == null && capturingRing < 0 ? captureProblem : "");
+        // Version 0.318 : rien de ce que le joueur n'a jamais vu.
+        spoilers();
         // Les explications, comme partout : seulement en mode détails.
         for (Label explanation : explanations) {
             explanation.setVisible(Detail.shown());
@@ -356,8 +498,8 @@ public final class SettingsPage extends SettingsPageBlocks {
         }
         show(checkpointNote, checkpointMessage);
         toggle(notesButton, notesShown, "Cacher les notes de version", "Notes de version");
-        notesLabel.setVisible(notesShown);
-        notesLabel.setManaged(notesShown);
+        notesLabel.setVisible(notesShown && seen(Seen.UNIVERSE));
+        notesLabel.setManaged(notesShown && seen(Seen.UNIVERSE));
     }
 
     /** Un bouton de point de reprise : son texte, armé ou non, et s'il sert à quelque chose. */

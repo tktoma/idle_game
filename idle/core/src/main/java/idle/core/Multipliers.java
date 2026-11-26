@@ -298,7 +298,7 @@ public final class Multipliers {
 
     private static void darkGrowth(Game game, List<Factor> factors) {
         add(factors, Aspect.BASE, "Élan de base", log(Game.DARK_MATTER_GROWTH_PER_UNIT));
-        add(factors, Aspect.DARK_MATTER, "Matière noire gagnée", log(game.darkMatterUnits()));
+        add(factors, Aspect.DARK_MATTER, "Matière noire gagnée (racine carrée)", 0.5 * log(game.darkMatterUnits()));
         add(factors, Aspect.PROGRESS, "Production et atomes de la partie", log(game.darkMatterProgressFactor()));
         add(factors, Aspect.DARK_MATTER, "Arbre : expansion", Math.min(100, game.darkExpansionMultiplier().log10()));
         add(factors, Aspect.DARK_MATTER, "Paliers de taille", log(game.landmarkExpansionMultiplier()));

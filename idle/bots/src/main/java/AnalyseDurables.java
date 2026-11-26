@@ -21,7 +21,7 @@ final class AnalyseDurables {
 
     /** Les améliorations payées en atomes : la fusion les garde. */
     static final List<String> DURABLES = List.of("atom_double", "atom_mass", "atom_patience", "atom_boost", "atom_discount", "atom_keep",
-            "atom_overload", "atom_yield", "atom_bulk");
+            "atom_overload", "atom_yield");
 
     /** Version 0.168 : les cases de l'arbre de matière noire les plus achetées dans l'univers 1 (Speedrunner 0.167). */
     static final List<String> ARBRE = List.of("dark_nucleus", "dark_singularity", "dark_seeds", "dark_priming", "dark_shop_cadence",

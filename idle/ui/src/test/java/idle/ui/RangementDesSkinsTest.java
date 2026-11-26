@@ -43,7 +43,11 @@ class RangementDesSkinsTest {
             boolean palier = game.universes() >= skin.minUniverses();
             int dimension = java.util.Arrays.asList(SkinVisual.DIMENSIONS).indexOf(skin.visual()) + 1;
             boolean open = dimension == 0 || game.dimensionsUnlocked() >= dimension;
-            assertEquals(game.hasSkin(skin) || palier && open, SkinShelf.shown(game, skin), skin.name());
+            // Version 0.318 : ni ce que la partie n'a jamais montré (le vide, les sondes…), ni ce que sa condition nomme.
+            Seen.Memory memory = Seen.Memory.none();
+            boolean seen = (Seen.of(skin.visual()) == null || memory.has(Seen.of(skin.visual()), game))
+                    && Seen.mentioned(skin.source()).stream().allMatch(step -> memory.has(step, game));
+            assertEquals(game.hasSkin(skin) || palier && open && seen, SkinShelf.shown(game, skin), skin.name());
         }
         Skin later = null;
         for (Skin skin : Skin.values()) if (later == null && !game.hasSkin(skin) && skin.minUniverses() > game.universes()) later = skin;
@@ -64,7 +68,8 @@ class RangementDesSkinsTest {
             assertFalse(SkinShelf.shown(game, line), "la dixième dimension fermée : son skin reste caché");
         }
         new TestActions(game).openDimension(Game.MAX_DIMENSIONS);
-        if (game.universes() >= line.minUniverses()) assertTrue(SkinShelf.shown(game, line), "la dimension ouverte : il se montre");
+        boolean named = Seen.mentioned(line.source()).stream().allMatch(step -> step.in(game));
+        if (game.universes() >= line.minUniverses() && named) assertTrue(SkinShelf.shown(game, line), "la dimension ouverte : il se montre");
     }
 
     @Test

@@ -75,9 +75,10 @@ class RythmeTest {
             game.start();
             assertEquals(1, game.darkMatterProgressFactor(), 1e-12);       // un générateur de départ : rien encore
             game.state().setLevel("tenfold", 1);                           // 2,5 fois le tempo
-            assertEquals(1 + Math.log10(2.5), game.darkMatterProgressFactor(), 1e-9);
+            // 1 + 3 × log10(1 + ordres de grandeur) depuis la 0.307.
+            assertEquals(1 + 3 * Math.log10(1 + Math.log10(2.5)), game.darkMatterProgressFactor(), 1e-9);
             game.state().setLevel("tenfold", 13);                          // douze ordres de grandeur de plus
-            assertEquals(13 + Math.log10(2.5), game.darkMatterProgressFactor(), 1e-9);
+            assertEquals(1 + 3 * Math.log10(13 + Math.log10(2.5)), game.darkMatterProgressFactor(), 1e-9);
         }
 
         @Test

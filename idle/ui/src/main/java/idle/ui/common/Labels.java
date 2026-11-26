@@ -24,6 +24,28 @@ public final class Labels {
         label.setTextAlignment(TextAlignment.CENTER);
     }
 
+    /**
+     * Une bulle de survol qui passe à la ligne (version 0.315) : elle reçoit les explications retirées des pages.
+     * Vide, elle ne s'affiche pas.
+     */
+    public static Tooltip tip(String text) {
+        Tooltip tip = new Tooltip(text);
+        tip.setWrapText(true);
+        tip.setMaxWidth(460);
+        return tip;
+    }
+
+    /** Pose ou met à jour la bulle de {@code control} ; un texte vide la retire. */
+    public static void tip(Control control, String text) {
+        if (text == null || text.isEmpty()) {
+            if (control.getTooltip() != null) control.setTooltip(null);
+        } else if (control.getTooltip() == null) {
+            control.setTooltip(tip(text));
+        } else if (!text.equals(control.getTooltip().getText())) {
+            control.getTooltip().setText(text);
+        }
+    }
+
     /** Une zone qui défile en hauteur seulement, sans fond propre. */
     public static void transparent(ScrollPane scroll) {
         scroll.setFitToWidth(true);

@@ -35,6 +35,27 @@ class JeuArbreTest extends GameTestSupport {
         // ----- L'arbre lui-même -----
 
         @Test
+        void leSeuilDuBigBangSeRepartitSurLesTroisBranches() {
+            // Version 0.319 : les six cases du seuil, achetées en quelques minutes au bout des particules, se répartissent.
+            java.util.Map<String, DarkUpgrade.Branch> expected = java.util.Map.of(
+                    "dark_protostars", DarkUpgrade.Branch.PARTICLES, "dark_primordial", DarkUpgrade.Branch.PARTICLES,
+                    "dark_eve", DarkUpgrade.Branch.PARTICLES, "dark_threshold_bang", DarkUpgrade.Branch.ATOMS,
+                    "dark_point_zero", DarkUpgrade.Branch.ATOMS, "dark_fluctuation", DarkUpgrade.Branch.SIZE);
+            int found = 0;
+            for (DarkUpgrade dark : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
+                if (!expected.containsKey(dark.id())) continue;
+                assertEquals(expected.get(dark.id()), dark.branch(), dark.id());
+                found++;
+            }
+            assertEquals(6, found);
+            Game game = new Game(1L);
+            assertEquals("dark_primordial", game.darkUpgrade("dark_eve").requires());
+            assertEquals("dark_reactor", game.darkUpgrade("dark_threshold_bang").requires());
+            assertEquals("dark_threshold_bang", game.darkUpgrade("dark_point_zero").requires());
+            assertEquals("dark_planck_wall", game.darkUpgrade("dark_fluctuation").requires());
+        }
+
+        @Test
         void troisBranchesDontChaqueCaseDemandeCelleDuDessus() {
             Map<DarkUpgrade.Branch, Integer> count = new EnumMap<>(DarkUpgrade.Branch.class);
             Map<DarkUpgrade.Branch, String> previous = new EnumMap<>(DarkUpgrade.Branch.class);
@@ -58,15 +79,16 @@ class JeuArbreTest extends GameTestSupport {
                 assertEquals(previous.get(dark.branch()), dark.requires());   // la case du dessus
                 previous.put(dark.branch(), dark.id());
             }
-            assertEquals(19, count.get(DarkUpgrade.Branch.PARTICLES).intValue());   // + six cases du seuil du Big Bang (0.97)
-            assertEquals(12, count.get(DarkUpgrade.Branch.ATOMS).intValue());
-            assertEquals(15, count.get(DarkUpgrade.Branch.SIZE).intValue());        // + Fond diffus et Mur de Planck (0.97)
-            assertEquals(6, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
+            // + six cases du seuil du Big Bang (0.97) ; depuis la 0.319, deux vont aux atomes et une à la taille.
+            assertEquals(16, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
+            assertEquals(14, count.get(DarkUpgrade.Branch.ATOMS).intValue());
+            assertEquals(16, count.get(DarkUpgrade.Branch.SIZE).intValue());        // + Fond diffus et Mur de Planck (0.97), Fluctuation (0.319)
+            assertEquals(5, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());   // six avant la 0.307 (Achat groupé retiré)
             assertEquals(7, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::fork).filter(Objects::nonNull).distinct().count());
             assertEquals(10, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isLink).count());   // six liaisons, quatre accords
             assertEquals(4, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isAccord).count());
-            assertEquals(62, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
-            assertEquals(62, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
+            assertEquals(61, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());   // 62 avant la 0.307   // 54 avant les huit cases du seuil du Big Bang (0.97)
+            assertEquals(61, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
         }
 
         @Test
@@ -123,15 +145,23 @@ class JeuArbreTest extends GameTestSupport {
             assertFalse(game.buyDark("dark_nucleus"));
         }
 
+        /** Version 0.307 : la taille se paie ; avant, c'était un seuil, et la matière noire ne rétrécissait pas. */
         @Test
-        void laTailleEstUnSeuilPasUnPrix() {
+        void laTailleSePaieEtLesPaliersRestent() {
             Game game = darkGame();
             assertFalse(game.canBuyDark("dark_inflation"));   // un proton, il faut 1 nanomètre
             game.state().setDarkMatterSize(BigNum.of(2, -9));
+            int landmarks = game.landmarksReached();
             assertTrue(game.buyDark("dark_inflation"));
-            assertValue(2e-9, game.state().darkMatterSize()); // la matière noire n'a pas rétréci
-            assertValue(1e-3, game.darkCostOf("dark_inflation"));
+            assertValue(1e-9, game.state().darkMatterSize()); // elle a rétréci du prix
+            assertValue(2e-9, game.state().darkMatterReach()); // la plus grande taille atteinte reste
+            assertEquals(landmarks, game.landmarksReached(), "les paliers atteints restent");
+            assertValue(1e-6, game.darkCostOf("dark_inflation"));   // ×1 000 par niveau
             assertFalse(game.canBuyDark("dark_inflation"));
+            // Jamais sous la taille de départ.
+            game.state().setDarkMatterSize(BigNum.of(1, -6));
+            assertTrue(game.buyDark("dark_inflation"));
+            assertValue(Game.DARK_MATTER_START_SIZE.toDouble(), game.state().darkMatterSize());
         }
 
         @Test
@@ -608,7 +638,8 @@ class JeuArbreTest extends GameTestSupport {
             give(game, "dark_inflation", 5);
             assertEquals(32 * unit, game.darkMatterMomentum(), 1e-12);
             game.growDarkMatter(1);
-            assertValue(START * Math.pow(1 + 0.1 * 32 * unit, 10), game.state().darkMatterSize());
+            double r = Game.DARK_MATTER_RESISTANCE;
+            assertValue(START * Math.pow(1 + r * 32 * unit, 1 / r), game.state().darkMatterSize());
         }
 
         @Test

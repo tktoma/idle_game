@@ -149,13 +149,13 @@ public abstract class GameBase {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le premier Big Bang : 10¹⁹⁰⁰⁰⁰ depuis la version 0.125 (10¹⁶⁵³⁰ en 0.124,
-     * 10³⁸⁰⁰⁰ de la 0.097 à la 0.123). Réglé sur le bot « Speedrunner » parti de zéro (idle/bots,
-     * FreshUniverseAudit, profil 1) : une fois les dix défis faits, ses explosions s'enchaînent, la matière noire
-     * gagnée monte d'environ 40 000 par heure et la production de quelque 20 000 ordres de grandeur par heure ;
-     * ce seuil fait durer le deuxième acte six heures.
+     * Particules à avoir en main pour le premier Big Bang des univers suivants : 10⁴⁵⁰⁰⁰ depuis la version 0.307
+     * (10¹⁹⁰⁰⁰⁰ de la 0.125 à la 0.306). Réglé sur l'univers 2 de l'analyste Speedrunner (graine 201) : ses défis sont
+     * faits vers 22 h 45 de jeu et le reste des conditions vers 22 h 55 ; avec 10¹⁹⁰⁰⁰⁰, il attendait ensuite deux
+     * heures les seules particules, avec ce seuil une vingtaine de minutes. Les univers 3 et suivants gardent le même
+     * seuil.
      */
-    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 190000);
+    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 45000);
 
     /**
      * Particules des Big Bangs suivants, au troisième acte : 10⁵⁰⁰⁰⁰ depuis la version 0.125 (10¹³⁰⁵ en 0.124,
@@ -165,18 +165,20 @@ public abstract class GameBase {
     public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 50000);
 
     /**
-     * Particules du tout premier Big Bang de la partie : celui de l'acte 2 du premier univers. Avec
-     * 10¹⁹⁰⁰⁰⁰ et la réserve de 120 000 de matière noire, l'acte 2 du Speedrunner (graine 201) durait 5 h 43 en 0.179 ;
-     * la cible est quatre heures. Les univers suivants gardent {@link #BIG_BANG_PARTICLES}.
+     * Particules du tout premier Big Bang de la partie : celui de l'acte 2 du premier univers. 10⁴⁰⁰⁰⁰ depuis la
+     * version 0.307 (10⁸⁵⁰⁰⁰ avant) : avec la croissance plus lente de la matière noire, le Speedrunner (graine 201) y
+     * arrive toujours vers 7 h 30, et sa dernière attente, sur les particules, dure une vingtaine de minutes. Les
+     * univers suivants gardent {@link #BIG_BANG_PARTICLES}.
      */
-    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES = BigNum.of(1, 85000);
+    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES = BigNum.of(1, 40000);
 
     /**
-     * Particules des Big Bangs suivants du premier univers : 10³⁰⁰⁰⁰. Après chaque Big Bang, la production
+     * Particules des Big Bangs suivants du premier univers : 10¹⁶⁰⁰⁰ depuis la version 0.307 (10³⁰⁰⁰⁰ avant, pour un
+     * premier Big Bang à 10⁸⁵⁰⁰⁰). Après chaque Big Bang, la production
      * repart de zéro et met une heure à repasser de 10¹⁸⁰⁰⁰ à 10³⁰⁰⁰⁰ ; c'est elle qui faisait durer les Big Bangs 2 à 4
      * du Speedrunner (30, 65 et 88 minutes). Les univers suivants gardent {@link #BIG_BANG_PARTICLES_LATER}.
      */
-    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES_LATER = BigNum.of(1, 30000);
+    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES_LATER = BigNum.of(1, 16000);
 
     /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants, moins encore au premier univers. */
     public BigNum bigBangParticles() {
@@ -297,15 +299,16 @@ public abstract class GameBase {
      * La réserve du tout premier Big Bang de la partie : celui de l'acte 2 du premier univers. Avec 500,
      * quatre conditions sur cinq étaient réunies vers 5 h et le joueur attendait ensuite 4 h les seules particules ; avec
      * cette réserve, qui se remplit d'environ 43 000 à l'heure à ce moment, la dernière attente est d'environ une heure,
-     * sans changer l'heure du Big Bang.
+     * sans changer l'heure du Big Bang. 10 000 depuis la version 0.307 (42 000 avant) : la matière noire gagnée
+     * grossit moins vite, et la réserve est réunie un quart d'heure avant les particules.
      */
-    public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(42_000);
+    public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(10_000);
 
     /**
      * La matière noire en réserve que demande le Big Bang : plus pour le tout premier, et plus pendant la barre haute.
      */
     public BigNum bigBangDarkMatter() {
-        BigNum need = !state.universeFormed() && state.bigBangs() == 0 ? FIRST_BIG_BANG_DARK_MATTER : BIG_BANG_DARK_MATTER;
+        BigNum need = state.bigBangs() == 0 && !state.universeFormed() ? FIRST_BIG_BANG_DARK_MATTER : BIG_BANG_DARK_MATTER;
         return raisedBar() ? need.multiply(BangChallenge.RAISED_DARK_MATTER) : need;
     }
 
@@ -491,20 +494,31 @@ public abstract class GameBase {
     public static final BigNum DARK_MATTER_START_SIZE = BigNum.of(1, -15);
 
     /**
-     * Élan que chaque unité de matière noire donne à la croissance de sa taille, par seconde
-     * d'appui, avant le facteur d'avancement (0.003 = +0,3 % par seconde tant qu'elle a la taille
-     * d'un proton). Voir {@link #darkMatterGrowthPerSecond()}. Réglé pour des parties d'un jour (avant le tempo ; quelques heures depuis) :
-     * l'année-lumière est atteinte vers la cinquième explosion.
+     * Élan que la matière noire donne à la croissance de sa taille, par seconde d'appui et par racine carrée de la
+     * matière noire gagnée, avant le facteur d'avancement (0,1 = +10 % par seconde tant qu'elle a la taille d'un proton,
+     * avec une matière noire). Voir {@link #darkMatterGrowthPerSecond()}. Version 0.307 : 0,003 par matière noire
+     * avant ; la matière noire comptée entière montait jusqu'à 10⁵ à la fin du deuxième acte et emballait la taille. Avec
+     * la racine, la branche de taille de l'arbre s'étale sur le deuxième acte du premier univers (Speedrunner, graine 201) :
+     * les premiers paliers dans le quart d'heure, Débordement (le mont Everest) vers une heure, l'univers observable vers
+     * la fin.
      */
-    public static final double DARK_MATTER_GROWTH_PER_UNIT = 0.003;
+    public static final double DARK_MATTER_GROWTH_PER_UNIT = 0.1;
 
     /**
      * Résistance de la matière noire à sa propre croissance : la vitesse est divisée par sa taille (comptée en protons)
-     * élevée à cette puissance. Avec 0,1, elle est divisée par deux chaque fois que la taille est multipliée par mille.
-     * C'est ce qui étale la croissance, du proton à l'univers, sur toute la durée du jeu : doubler l'élan (matière
-     * noire, arbre, avancement) ou le temps d'appui fait gagner trois ordres de grandeur, pas davantage.
+     * élevée à cette puissance. Avec 0,25 (version 0.307 ; 0,1 avant), elle est divisée par dix chaque fois que la taille
+     * est multipliée par dix mille : doubler l'élan (matière noire, arbre, avancement) ou le temps d'appui fait gagner
+     * 1,2 ordre de grandeur (trois avec 0,1). Avec 0,1 et un élan qui montait jusqu'à 10²², la taille passait de 0,1 mm à
+     * 10²⁹ m en cinq minutes après la première explosion, puis jusqu'à 10²⁵⁰ m : les paliers et toute la branche de
+     * taille tombaient d'un coup. Elle s'étale maintenant, du proton à l'univers observable, sur le deuxième acte.
      */
-    public static final double DARK_MATTER_RESISTANCE = 0.1;
+    public static final double DARK_MATTER_RESISTANCE = 0.25;
+
+    /**
+     * Le poids de l'avancement de la partie dans l'élan de la matière noire (version 0.307) : voir
+     * {@link #darkMatterProgressFactor()}.
+     */
+    public static final double DARK_MATTER_PROGRESS_WEIGHT = 3;
 
     /** Au-delà de ce nombre de particules par tick, on ne les compte plus une par une. */
     static final long WHOLE_PARTICLES_MAX_EXPONENT = 15;

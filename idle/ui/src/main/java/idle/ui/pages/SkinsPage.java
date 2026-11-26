@@ -1,6 +1,7 @@
 package idle.ui.pages;
 
 import idle.core.Game;
+import idle.ui.Seen;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import idle.core.universe.Trial;
@@ -36,6 +37,8 @@ public final class SkinsPage extends VBox {
     public static final String COLOR = "#ff9fd6";
 
     private final Game game;
+    /** Ce que le joueur a déjà vu : les skins d'une chose jamais vue restent cachés (version 0.318). */
+    private Seen.Memory seen = Seen.Memory.none();
     private final Label summary = new Label();
     /** Version 0.209 : la carte de la collection, en tête : skins débloqués, puis le bonus cumulé. */
     private final Card collection = new Card(COLOR);
@@ -154,6 +157,9 @@ public final class SkinsPage extends VBox {
         select(null);
     }
 
+    /** Le souvenir de ce que le joueur a vu, gardé dans les réglages. */
+    public void setSeen(Seen.Memory memory) { this.seen = memory; }
+
     /** Affiche une catégorie ({@code null} : la collection). */
     public void select(SkinShelf.Category category) {
         selected = category;
@@ -250,16 +256,16 @@ public final class SkinsPage extends VBox {
             entry.getValue().show(state, "", mark, trial.label(), trial.rule(), trialDetail(trial), price, "Skin « " + trial.skin().label() + " »");
         }
         // Les sous-onglets : une catégorie sans skin montré reste cachée ; celle qu'on regardait revient à la collection.
-        if (selected != null && !SkinShelf.shown(game, selected)) selected = null;
+        if (selected != null && !SkinShelf.shown(game, selected, seen)) selected = null;
         collectionTab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, selected == null, COLOR));
         collectionPage.setVisible(selected == null);
         collectionPage.setManaged(selected == null);
         for (SkinShelf.Category category : SkinShelf.Category.values()) {
-            boolean open = SkinShelf.shown(game, category);
+            boolean open = SkinShelf.shown(game, category, seen);
             Button tab = categoryTabs.get(category);
             tab.setVisible(open);
             tab.setManaged(open);
-            int[] counts = SkinShelf.counts(game, category);
+            int[] counts = SkinShelf.counts(game, category, seen);
             tab.setText(category.label() + " (" + counts[0] + "/" + counts[1] + ")");
             tab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, category == selected, COLOR));
             VBox page = categoryPages.get(category);
@@ -267,11 +273,11 @@ public final class SkinsPage extends VBox {
             page.setManaged(category == selected);
         }
         for (SkinVisual visual : SkinVisual.values()) {
-            boolean open = SkinShelf.shown(game, visual);
+            boolean open = SkinShelf.shown(game, visual, seen);
             sections.get(visual).setVisible(open);
             sections.get(visual).setManaged(open);
         }
-        for (Map.Entry<Skin, Card> entry : cards.entrySet()) grids.get(entry.getKey().visual()).show(entry.getValue(), SkinShelf.shown(game, entry.getKey()));
+        for (Map.Entry<Skin, Card> entry : cards.entrySet()) grids.get(entry.getKey().visual()).show(entry.getValue(), SkinShelf.shown(game, entry.getKey(), seen));
         for (SkinVisual visual : SkinVisual.values()) {
             boolean chosen = game.chosenSkin(visual) == null;
             classics.get(visual).show(chosen ? Card.State.ON : Card.State.READY, "", chosen ? "choisi" : "", "Classique",

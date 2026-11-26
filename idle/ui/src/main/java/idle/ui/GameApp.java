@@ -8,13 +8,13 @@ import idle.ui.universe.UniversePage;
 import idle.ui.vacuum.VoidPage;
 import idle.core.bigbang.BangChallenge;
 import idle.core.darkmatter.Challenge;
-import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.upgrades.*;
 import idle.ui.automation.AutomationPage;
 import idle.ui.collider.ColliderPage;
 import idle.ui.common.*;
 import idle.ui.darkmatter.ChallengesPane;
+import java.util.List;
 import java.util.Locale;
 import javafx.scene.input.KeyCode;
 
@@ -31,8 +31,8 @@ import javafx.scene.input.KeyCode;
  * AutomationPage}) dès qu'un automatisme est débloqué. Le jeu continue de tourner quel que soit l'onglet affiché, sauf
  * en pause.
  *
- * <p>Quand les 118 éléments du tableau périodique sont découverts, un bouton apparaît au-dessus des onglets : il
- * déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet « Matière noire » ({@link
+ * <p>Quand les 118 éléments du tableau périodique sont découverts, une pastille violette s'allume sous le bandeau
+ * ({@link StepDots}, une barre violette au-dessus des onglets jusqu'à la 0.308) : un clic déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet « Matière noire » ({@link
  * DarkMatterPage}). Au bout de son arbre, le Big Bang efface tout de nouveau et fait apparaître l'onglet « Big Bang »
  * ({@link BigBangPage}).
  *
@@ -40,7 +40,7 @@ import javafx.scene.input.KeyCode;
  * ({@link TestPanel}, à droite, {@value TestPanel#KEY_NAME}) et une bande en bas de chaque fenêtre de dimension
  * ({@link DimensionTestBar}) : la vitesse du jeu, l'avance rapide, les bots, les sons, les animations, les paliers.
  *
- * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum » (réglage sous le compteur), au
+ * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum » (réglage en haut à droite, sous l'aide), au
  * clic ou au clavier : voir {@link #onKey(KeyCode)}. Chacune est une {@link Card} : son niveau, sa touche, ce qu'elle
  * rapporte en quelques mots, son prix et le temps qu'il reste à attendre.
  *
@@ -92,6 +92,8 @@ public final class GameApp extends GameAppTabs {
 
     /** Recopie l'état du jeu dans les composants. */
     void refresh() {
+        // Version 0.318 : ce que la partie montre est retenu, pour ne rien dévoiler ailleurs de ce qui n'a jamais été vu.
+        settings.seen().note(game);
         // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
         // Avec l'onglet « Big Bang » ils sont au moins huit (douze au plus) : la fenêtre de 800 px ne suffit plus aux noms entiers.
         boolean bigBang = game.isBigBangUnlocked();
@@ -127,19 +129,31 @@ public final class GameApp extends GameAppTabs {
             dimensionTestBar.refresh();
         }
 
+        // Le bandeau : au centre et sous l'aide, ce que l'onglet affiché y met. Les onglets y passent un par un (0.309) :
+        // pour l'instant, les particules, leur débit et la quantité par achat.
+        boolean particlesHeader = selectedTab == Tab.PARTICLES && game.isStarted();
+        header.setCenter(particlesHeader ? particlesHead : headOf(selectedTab));
+        // Version 0.312 : la carte des dimensions seule, sans le bandeau, ses objectifs, ses pastilles ni le chrono.
+        boolean bare = selectedTab == Tab.UNIVERSE && universePage.bare();
+        if (header.isVisible() == bare) {
+            for (javafx.scene.Node node : new javafx.scene.Node[] {header, steps}) {
+                node.setVisible(!bare);
+                node.setManaged(!bare);
+            }
+        }
+        header.setExtra(particlesHeader ? amountRow : null);
         // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.
         if (selectedTab == Tab.PARTICLES) {
             BigNum particles = game.state().particles();
-            particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
             // La production se calcule une fois pour les trois textes (toute la formule à chaque appel).
             BigNum production = game.productionPerSecond();
             double rate = Math.min(production.toDouble(), 1e9);
             String perSecond = rate <= 0 ? "Aucun générateur" : rate < 1
                     ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
-                    : "+" + Format.big(production) + " particules par seconde";
+                    : "+" + Format.big(production) + " /s";
             int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
-            productionLabel.setText(perSecond + "   |   " + Format.perMinute(production) + " p/m"
+            particlesHead.set(Format.count(particles), perSecond + "   |   " + Format.perMinute(production) + " p/m"
                     + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
             productionBreakdown.refresh();
             refreshSecondUniverse();
@@ -158,9 +172,7 @@ public final class GameApp extends GameAppTabs {
             BigNum gain = game.atomsPerFusion();
             fuseCard.show(capped ? Card.State.WAITING : Card.State.READY, String.valueOf(game.generatorCount()),
                     settings.shortcuts() && settings.key(Shortcuts.Action.FUSE) != null ? Shortcuts.name(settings.key(Shortcuts.Action.FUSE)) : "",
-                    game.generatorCount() > game.generatorsPerAtom()
-                            ? "Fusionner " + game.generatorCount() + " générateurs"
-                            : "Fusionner les " + game.generatorsPerAtom() + " générateurs",
+                    "Fusion des générateurs",
                     capped ? "Maximum de " + Format.count(game.atomCap()) + " atomes atteint"
                             : "+" + Format.amount(gain) + (gain.gt(BigNum.ONE) ? " atomes" : " atome"),
                     capped ? "Dépensez des atomes" + (table ? " ou synthétisez un élément" : "") + " pour fusionner de nouveau."
@@ -172,7 +184,8 @@ public final class GameApp extends GameAppTabs {
                                                     + " % de leurs niveaux (Persistance)."
                                             : "Les améliorations payées en particules aussi."),
                     "", "");
-            fuseCard.setVisible(game.hasAllGenerators() && !generators.isFusing());
+            // Version 0.306 : le bouton reste là pendant l'animation ; une fusion demandée alors se fait tout de suite.
+            fuseCard.setVisible(game.hasAllGenerators());
         }
 
         // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
@@ -240,7 +253,9 @@ public final class GameApp extends GameAppTabs {
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
         // Le chrono hors de la Graine : partout sauf sur la sous-page Graine, où il est déjà. Version 0.203 :
         // une ligne sous l'objectif, et la même dans l'en-tête de la fenêtre d'une dimension quand elle est ouverte.
-        chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == UniversePage.SEED);
+        // Version 0.315 : ni sur l'Expansion du Big Bang, toute à sa vue.
+        chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == UniversePage.SEED
+                || selectedTab == Tab.BIG_BANG && bigBangPage.hidesChrono());
         dimensionChrono.refresh(!dimensionWindow.isVisible());
 
         // La fuite : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
@@ -317,44 +332,22 @@ public final class GameApp extends GameAppTabs {
             return;
         }
 
-        // Le bouton d'explosion s'allume quand les 118 éléments sont découverts. Après la première explosion,
-        // il garde sa place, éteint, entre deux explosions : sans cela, quand les explosions s'enchaînent,
-        // toute la fenêtre montait et descendait à chaque fois, et les clics tombaient à côté.
+        // Les pastilles des grands pas possibles, sous le bandeau (version 0.309) : elles remplacent la barre de l'explosion.
         Challenge challenge = game.activeChallenge();
         boolean canExplode = game.canExplode() && !exploding;
-        boolean keepPlace = game.isDarkMatterUnlocked() && game.isStarted() && !canExplode;
-        if (keepPlace) {
-            int missing = PeriodicTable.ELEMENTS.size() - game.discoveredElements();
-            explosionButton.setText(exploding ? "Explosion…"
-                    : "Prochaine explosion : encore " + missing + (missing > 1 ? " éléments à découvrir" : " élément à découvrir"));
-        }
-        // Son texte n'est composé que lorsqu'il se voit.
-        if (canExplode) {
-            explosionButton.setText(explosionArmed > 0
-                    ? "Cliquer encore pour confirmer l'explosion : tout repart de zéro (" + (int) Math.ceil(explosionArmed) + " s)"
-                    : game.isChallengeReplay()
-                    ? "Terminer le défi « " + challenge.name() + " » en " + Format.duration(game.stats().runTime())
-                            + Detail.only(". Déjà réussi, il ne compte que pour son temps : ni matière noire, ni tableau plus lourd.")
-                    : "Faire exploser le tableau : +" + Format.darkMatter(game.nextExplosionDarkMatter()) + " matière noire"
-                            + (game.earnsSpeedPrime() ? " (prime de vitesse : encore " + Format.wait(Math.max(1, game.speedPrimeLeft())) + ")" : "")
-                            + (challenge == null ? "" : ", défi « " + challenge.name() + " » réussi")
-                            + NextReset.explosionSuffix(game)
-                            + Detail.only(". Tout repart de zéro : particules, atomes, éléments. "
-                                    + (game.state().tableWeightLevel() < Game.TABLE_WEIGHT_MAX_LEVEL
-                                            ? "Le tableau suivant sera " + ElementText.number(Game.TABLE_WEIGHT_GROWTH)
-                                                    + " fois plus lourd : plafond d'atomes et prix maximal d'une synthèse. "
-                                            : "Le tableau a atteint sa masse maximale : il ne s'alourdira plus. ")
-                                    + "Rien n'oblige à attendre les exemplaires manquants : ils renforcent les éléments, "
-                                    + "pas l'explosion."));
-        }
+        stepDots.show(StepDots.Step.FUSION, game.canFuse() && !phase, "");
+        stepDots.show(StepDots.Step.EXPLOSION, canExplode && !phase, canExplode ? explosionHint(challenge) : "");
+        stepDots.show(StepDots.Step.BIG_BANG, game.canBigBang() && !phase, "");
+        stepDots.show(StepDots.Step.UNIVERSE, game.canFormCosmos(Cosmos.UNIVERSE), "");
         // Le thème clair suit la taille de la fenêtre.
         themeFilter.fit();
-        // L'objectif du moment, sous les onglets. Caché, il laisse sa place vide : le rappel reste à droite.
+        // Les objectifs du moment, en haut à gauche du bandeau, une ligne courte chacun (le texte complet au survol).
         boolean goal = settings.showGoal() && game.isStarted();
-        goalLabel.setText(!goal ? "" : phase ? (settings.goalPart(Goals.Part.GOAL) ? "Quatrième acte : l'univers. " + game.universes()
+        header.setGoals(!goal ? List.of() : phase ? (settings.goalPart(Goals.Part.GOAL) ? List.of(new Goals.Line(
+                "Acte 4 : " + game.universes() + " univers", "Quatrième acte : l'univers. " + game.universes()
                 + " univers" + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked()
                         + (game.dimensionsUnlocked() > 1 ? " dimensions sur " : " dimension sur ") + Game.MAX_DIMENSIONS : "")
-                + ". La suite viendra." : "") : goalLine());
+                + ". La suite viendra.")) : List.of()) : Goals.lines(game, settings::goalPart, pace));
         String detailKey = Detail.keyName(settings.detailKey());
         detailHint.setText(Detail.shown()
                 ? (settings.detailToggle() ? detailKey + " : cacher les détails" : "Détails affichés")
@@ -382,9 +375,6 @@ public final class GameApp extends GameAppTabs {
                     : lowerFirst(bangChallenge.brief()) + ", jusqu'au prochain Big Bang");
             challengeLabel.setText(constraint + (constraint.isEmpty() || ordinary.isEmpty() ? "" : "\n") + ordinary);
         }
-        explosionButton.setVisible((canExplode || keepPlace) && !phase);
-        explosionButton.setManaged((canExplode || keepPlace) && !phase);
-        explosionButton.setDisable(!canExplode);
     }
 
     /**
@@ -477,7 +467,4 @@ public final class GameApp extends GameAppTabs {
                 + (help == null ? "" : Shortcuts.name(help) + " ouvre l'aide et la liste complète. ")
                 + "Les touches des cartes achètent la quantité choisie, depuis n'importe quel onglet.";
     }
-
-    /** La ligne d'objectif, morceau par morceau : ceux que les réglages montrent. */
-    String goalLine() { return Goals.line(game, settings::goalPart, pace); }
 }

@@ -190,7 +190,7 @@ public abstract class SettingsBase {
      * effets les coupe tous ; sinon, chacun suit son propre réglage.
      */
     public enum Effect {
-        FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion, et l'animation du Big Bang"),
+        FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion, et les grandes animations qui suivent"),
         AMBIENT("Fond animé", "la poussière qui dérive derrière les générateurs"),
         PARTICLE_SPEED("Allure des générateurs", "les paliers de vitesse : couleur du noyau, anneaux, traînées, couronne et arcs"),
         PARTICLE_CREATION("Création de particules", "les poussières, et l'onde qui se resserre sur le noyau à chaque particule"),
@@ -201,7 +201,7 @@ public abstract class SettingsBase {
         DARK_FALL("Chute de matière noire", "la spirale de matière qui tombe dans la matière noire"),
         COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille, la liaison des hadrons ; les faisceaux restent, ils servent à viser"),
         COLLIDER_SPARKS("Étincelles du collisionneur", "les gerbes au détecteur à chaque croisement"),
-        BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent"),
+        BIG_BANG_MOTION("Animations du Big Bang", "l'espace et le ciel qui tournent"),
         UNIVERSE_MOTION("Animations de l'univers", "la toile de l'univers qui tourne et sa naissance"),
         CLICK_RING("Rond au clic", "un rond qui s'élargit et s'efface là où l'on clique, pour voir chaque clic");
 
@@ -359,6 +359,9 @@ public abstract class SettingsBase {
 
     static final String COSMETICS = "cosmetics";
 
+    /** Ce que le joueur a déjà vu de la partie (version 0.318) : {@link Seen}. */
+    static final String SEEN = "seen";
+
     static final String VOLUME = "volume";
 
     /** La musique de fond : son interrupteur et son volume, à part des sons. */
@@ -477,6 +480,9 @@ public abstract class SettingsBase {
     /** Les thèmes et notations débloqués. */
     final EnumSet<Cosmetic> cosmetics = EnumSet.noneOf(Cosmetic.class);
 
+    /** Ce que le joueur a déjà vu de la partie, gardé même quand elle le referme ou repart de zéro. */
+    final EnumSet<Seen> seen = EnumSet.noneOf(Seen.class);
+
     int volume = DEFAULT_VOLUME;
 
     boolean music = true;
@@ -554,6 +560,7 @@ public abstract class SettingsBase {
                 settings.goalPartsOff.addAll(names(Goals.Part.class, store.get(GOAL_PARTS_OFF, "")));
                 settings.dotsOff.addAll(names(Readiness.Kind.class, store.get(DOTS_OFF, "")));
                 settings.cosmetics.addAll(names(Cosmetic.class, store.get(COSMETICS, "")));
+                settings.seen.addAll(names(Seen.class, store.get(SEEN, "")));
             } catch (RuntimeException unreadable) {
                 // on garde les valeurs par défaut
             }

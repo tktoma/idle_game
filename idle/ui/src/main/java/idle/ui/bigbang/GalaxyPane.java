@@ -12,7 +12,6 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
-import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
@@ -35,7 +34,8 @@ public final class GalaxyPane extends VBox {
 
     private final Game game;
     private final GalaxyView view;
-    private final Label intro = new Label();
+    /** Ce que disait le paragraphe d'en-tête, au survol du sous-onglet Cosmos depuis la version 0.316. */
+    private String introText = "";
     private final Map<Cosmos, Card> cards = new EnumMap<>(Cosmos.class);
     private final TileGrid grid = new TileGrid(230, 3, 8);
     private final Button look = new Button("Voir la galaxie dans l'expansion de la matière");
@@ -54,7 +54,6 @@ public final class GalaxyPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 0, 0));
 
-        Labels.note(intro, 760);
 
         CanvasPane viewPane = CanvasPane.filling(view);
         viewPane.setMinHeight(VIEW_HEIGHT);
@@ -88,7 +87,6 @@ public final class GalaxyPane extends VBox {
         hold.setOnMouseReleased(event -> holding = false);
         hold.setOnMouseExited(event -> holding = false);
 
-        getChildren().add(intro);
         getChildren().add(viewPane);
         getChildren().add(grid);
         getChildren().add(hold);
@@ -147,7 +145,8 @@ public final class GalaxyPane extends VBox {
         look.setText("Voir " + (game.cosmosFormed() >= 3 ? "l'univers" : game.cosmosFormed() == 2 ? "l'amas de galaxies" : "la galaxie")
                 + " dans l'expansion de la matière");
         Cosmos next = game.nextCosmos();
-        intro.setText(next == null
+        // Version 0.316 : plus de paragraphe en tête de page ; le texte passe au survol du sous-onglet Cosmos.
+        introText = (next == null
                 ? "L'univers est formé : votre amas de galaxies n'est plus qu'un nœud de sa toile. C'est la fin du chemin."
                 : next == Cosmos.UNIVERSE
                 ? "L'amas de galaxies est formé : votre galaxie, au milieu des autres. Il ne reste que l'univers."
@@ -243,7 +242,7 @@ public final class GalaxyPane extends VBox {
                         + "tout par " + ElementText.number(scale.factor()) + ". Il demande de la quantité, état par état, et de la variété : un nombre de "
                         + "sortes rassemblées dans chaque état, chacune comptant dès qu'elle est rassemblée. Chaque état réuni est un jalon : "
                         + "toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " %, dix jalons en tout pour l'amas et l'univers. "
-                        + "Il faut aussi laisser à " + scale.previous().phrase() + " " + minutes(Game.COSMOS_SETTLE_SECONDS * game.settleShare())
+                        + "Il faut aussi laisser à " + scale.previous().phrase() + " " + minutes(game.cosmosSettleSeconds() * game.settleShare())
                         + " pour se rassembler, à compter de sa formation.",
                 formed ? "" : ready ? "Former " + scale.phrase() : !open ? "Après " + scale.previous().phrase()
                         : met == all && settle > 0 ? "Encore " + minutes(settle) + " de rassemblement"
@@ -255,4 +254,7 @@ public final class GalaxyPane extends VBox {
         long total = (long) Math.ceil(seconds / 60);
         return total < 60 ? total + " min" : total / 60 + " h " + String.format("%02d", total % 60);
     }
+
+    /** Le texte d'en-tête de la page, que le sous-onglet Cosmos montre au survol. */
+    public String introText() { return introText; }
 }

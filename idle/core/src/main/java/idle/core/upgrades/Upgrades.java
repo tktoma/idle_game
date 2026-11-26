@@ -130,13 +130,9 @@ public final class Upgrades {
             // la production (vitesse et ses paliers, couplage, surcharge, éléments, ensembles, succès) finit par
             // rapporter des atomes.
             new Upgrade("atom_yield", "Rendement", Resource.ATOMS, BigNum.of(40), 1, 1,
-                    new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09)),
-
-            // ----- Le confort (idée 34, version 0.047) -----
-
-            // L'achat par dix et « max » des améliorations en atomes, dès les premiers atomes : avant, il
-            // fallait attendre la première explosion et sa matière noire.
-            new Upgrade("atom_bulk", "Achat groupé", Resource.ATOMS, BigNum.of(8), 1, 1, new Effect.BulkAtomBuy()));
+                    new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09)));
+            // Version 0.307 : plus d'« Achat groupé » (8 atomes, puis une matière noire pour le garder) : l'achat par dix
+            // et « max » des améliorations en atomes est ouvert d'office, comme pour celles en particules.
 
     private Upgrades() {}
 }

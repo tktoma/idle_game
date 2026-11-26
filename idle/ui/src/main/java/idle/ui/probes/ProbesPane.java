@@ -59,6 +59,12 @@ public final class ProbesPane extends VBox {
     private final Map<ProbeDestination, Button> destinationButtons = new EnumMap<>(ProbeDestination.class);
     private final Label destinationNote = new Label();
     private final FlowPane trips = new FlowPane(8, 8);
+    /**
+     * Version 0.315 : les voyages au-delà des {@link #FIRST_ROW} premiers, et l'onde d'urgence, sur une seconde ligne
+     * centrée sous la première.
+     */
+    private final FlowPane moreTrips = new FlowPane(8, 8);
+    private static final int FIRST_ROW = 3;
     private final Map<ProbeTrip, Button> tripButtons = new EnumMap<>(ProbeTrip.class);
     private final Button urgent = new Button();
     private final Label urgentNote = new Label();
@@ -112,8 +118,10 @@ public final class ProbesPane extends VBox {
             destinations.getChildren().add(button);
         }
         note(destinationNote, "#c9b79a");
-        trips.setAlignment(Pos.CENTER);
-        trips.setMaxWidth(780);
+        for (FlowPane row : List.of(trips, moreTrips)) {
+            row.setAlignment(Pos.CENTER);
+            row.setMaxWidth(780);
+        }
         for (ProbeTrip trip : ProbeTrip.ordinary()) {
             Button button = new Button();
             button.setStyle(BUTTON_STYLE);
@@ -123,7 +131,7 @@ public final class ProbesPane extends VBox {
                 changed.run();
             });
             tripButtons.put(trip, button);
-            trips.getChildren().add(button);
+            (tripButtons.size() <= FIRST_ROW ? trips : moreTrips).getChildren().add(button);
         }
         // L'onde d'urgence chimique : sans destination, elle rapporte l'élément le plus demandé.
         urgent.setStyle(BUTTON_STYLE);
@@ -132,6 +140,7 @@ public final class ProbesPane extends VBox {
             game.launchUrgentWave();
             changed.run();
         });
+        moreTrips.getChildren().add(urgent);
         note(urgentNote, "#c9b79a");
 
         samplesLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
@@ -146,7 +155,7 @@ public final class ProbesPane extends VBox {
             upgradeGrid.add(card);
         }
 
-        getChildren().addAll(intro, viewPane, lootBox, boostLabel, flying, launchTitle, destinations, destinationNote, trips, urgent, urgentNote, samplesLabel, upgradeGrid);
+        getChildren().addAll(intro, viewPane, lootBox, boostLabel, flying, launchTitle, destinations, destinationNote, trips, moreTrips, urgentNote, samplesLabel, upgradeGrid);
     }
 
     private static void note(Label label, String color) {

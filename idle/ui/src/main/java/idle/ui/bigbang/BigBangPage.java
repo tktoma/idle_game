@@ -57,7 +57,8 @@ public final class BigBangPage extends BigBangPageRefresh {
 
     void refreshMolecules() {
         refreshPulse();
-        moleculesIntro.setText("Une molécule se crée avec des exemplaires du tableau périodique et de l'espace libre ("
+        // Version 0.315 : la règle des molécules n'est plus en tête de la sous-page ; elle passe au survol du meilleur achat.
+        String rule = ("Une molécule se crée avec des exemplaires du tableau périodique et de l'espace libre ("
                 + Format.count(game.freeSpace()) + " en ce moment), et reste pour toujours."
                 + Detail.only(" Les exemplaires quittent le tableau avec ce qu'ils y apportaient ; un exemplaire de "
                         + "chaque élément y reste, pour que le tableau puisse toujours exploser. Une molécule occupe "
@@ -83,14 +84,17 @@ public final class BigBangPage extends BigBangPageRefresh {
         bestButton.setDisable(best == null);
         if (best == null) {
             bestLabel.setText("Meilleur achat : aucune création possible pour l'instant");
+            Labels.tip(bestLabel, rule);
             bestButton.setText("Créer le meilleur achat");
         } else {
             int lot = game.moleculesNextCreation(best.id());
-            bestLabel.setText("Meilleur achat : " + best.name() + " " + best.formula()
-                    + (best.kind() == kind ? "" : " (rayon " + best.kind().label() + ")") + ", " + gainText(game.moleculeGain(best.id()))
-                    + " pour " + Format.count(game.moleculeNextSpace(best.id())) + " d'espace"
-                    + Detail.only(". C'est la création possible maintenant qui rapporte le plus par unité d'espace : son bonus "
-                            + "et ce que son état ajoute, rapportés à ce que valent déjà ces grandeurs."));
+            // Version 0.315 : le nom seul ; son rayon, son gain et la règle au survol.
+            String named = "Meilleur achat : " + best.name() + " " + best.formula();
+            if (!named.equals(bestLabel.getText())) bestLabel.setText(named);
+            Labels.tip(bestLabel, named + (best.kind() == kind ? "" : " (rayon " + best.kind().label() + ")") + ", "
+                    + gainText(game.moleculeGain(best.id())) + " pour " + Format.count(game.moleculeNextSpace(best.id()))
+                    + " d'espace. C'est la création possible maintenant qui rapporte le plus par unité d'espace : son bonus "
+                    + "et ce que son état ajoute, rapportés à ce que valent déjà ces grandeurs.\n\n" + rule);
             bestButton.setText(lot > 1 ? "Créer le meilleur achat ×" + lot : "Créer le meilleur achat");
         }
         sortButton.setText(sortedByYield ? "Ordre : meilleur rendement d'abord" : "Ordre : catalogue");
@@ -303,19 +307,17 @@ public final class BigBangPage extends BigBangPageRefresh {
     /** Largeur fixe : le texte change à chaque clic, le bouton reste sous la souris. */
     private static final double PULSE_WIDTH = 420;
 
-    /** Recopie l'état de l'impulsion sur ses deux boutons. */
+    /** Recopie l'état de l'impulsion sur son bouton. */
     private void refreshPulse() {
         boolean unlocked = game.isPulseUnlocked();
         int charges = game.pulseCharges();
         String text = charges > 0
                 ? "Impulsion : +" + Format.count(game.pulseGain()) + " d'espace  (" + charges + " / " + Game.PULSE_MAX_CHARGES + ")"
                 : "Impulsion : prochaine charge dans " + Format.wait(Math.max(0.1, game.secondsUntilPulse()));
-        for (Button button : List.of(pulseButton, moleculesPulseButton)) {
-            button.setVisible(unlocked);
-            button.setManaged(unlocked);
-            button.setText(text);
-            button.setDisable(charges == 0);
-        }
+        pulseButton.setVisible(unlocked);
+        pulseButton.setManaged(unlocked);
+        pulseButton.setText(text);
+        pulseButton.setDisable(charges == 0);
     }
 
     /** Montre ou masque les anomalies du ciel selon ce réglage. */
@@ -334,7 +336,8 @@ public final class BigBangPage extends BigBangPageRefresh {
     void refreshExpansion() {
         refreshPulse();
         BigNum space = game.state().space();
-        spaceLabel.setText(Format.count(space) + (space.gt(BigNum.ONE) ? " unités d'espace" : " unité d'espace"));
+        // Version 0.315 : l'espace au centre du bandeau, son débit et l'espace libre dessous ; le reste au survol du nombre.
+        spaceHead.set(Format.count(space), "+" + Format.amount(game.spacePerSecond()) + " /s | " + Format.count(game.freeSpace()) + " libres");
         BigNum reserved = game.reservedSpace();
         boolean comet = game.isCometVisible();
         cometButton.setVisible(comet);
@@ -347,7 +350,7 @@ public final class BigBangPage extends BigBangPageRefresh {
         skyEventButton.setVisible(sky != null);
         skyEventButton.setManaged(sky != null);
         if (sky != null) skyEventButton.setText(skyEventText(sky) + " (" + Format.wait(game.skyEventVisibleFor()) + ")");
-        rateLabel.setText("+" + Format.amount(game.spacePerSecond()) + " par seconde"
+        String rate = ("+" + Format.amount(game.spacePerSecond()) + " par seconde"
                 + (game.darkMatterSpaceBoost() > 1 ? " (matière noire ×" + ElementText.number(game.darkMatterSpaceBoost()) + ")" : "")
                 + (game.cometBoost() > 1 ? " (sillage de comète ×" + ElementText.number(game.cometBoost()) + ", encore "
                         + Format.wait(game.cometBoostLeft()) + ")" : "")
@@ -359,7 +362,8 @@ public final class BigBangPage extends BigBangPageRefresh {
                 + "  ·  " + Format.count(game.freeSpace()) + " libres");
         rateBreakdown.refresh();
         String next = nextKind();
-        expansionNote.setText("L'espace grandit avec le temps de jeu, et les molécules s'y logent."
+        Labels.tip(spaceHead.value(), Format.count(space) + (space.gt(BigNum.ONE) ? " unités d'espace" : " unité d'espace")
+                + ". " + rate + "\n\nL'espace grandit avec le temps de jeu, et les molécules s'y logent."
                 + (next.isEmpty() ? " Tous les rayons de molécules sont ouverts." : " " + next)
                 + Detail.only(" Une impulsion donne d'un coup " + (int) Game.PULSE_SECONDS + " secondes d'expansion ; une charge "
                         + "revient toutes les " + (int) Game.PULSE_REFILL_SECONDS + " secondes, " + Game.PULSE_MAX_CHARGES

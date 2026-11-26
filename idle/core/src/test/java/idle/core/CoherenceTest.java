@@ -43,7 +43,7 @@ class CoherenceTest {
             game.state().setTimePlayed(10_000);
             game.state().setCosmosLevel(1);
             game.noteStep(GameStats.Step.GALAXY);
-            assertEquals(GameUniverse.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
+            assertEquals(game.cosmosSettleSeconds(), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
             game.state().setTimePlayed(100_000);
             game.testFormUniverse();
             assertTrue(game.startNextUniverse());
@@ -51,8 +51,8 @@ class CoherenceTest {
             game.state().setTimePlayed(400_000);
             game.state().setCosmosLevel(1);
             game.noteStep(GameStats.Step.GALAXY);
-            assertEquals(GameUniverse.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
-            game.state().setTimePlayed(400_000 + GameUniverse.COSMOS_SETTLE_SECONDS);
+            assertEquals(game.cosmosSettleSeconds(), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
+            game.state().setTimePlayed(400_000 + game.cosmosSettleSeconds());
             assertEquals(0, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
             // La toute première galaxie reste datée pour l'écran de fin et le journal.
             assertEquals(10_000, game.stats().reachedAt(GameStats.Step.GALAXY), 1e-9);

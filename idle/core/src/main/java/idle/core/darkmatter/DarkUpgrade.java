@@ -76,8 +76,8 @@ public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost
         /** Se paie en atomes : ils sont dépensés. */
         ATOMS,
         /**
-         * Se débloque par la taille de la matière noire, en mètres : il faut l'avoir atteinte,
-         * mais rien n'est dépensé, la matière noire ne rétrécit pas.
+         * Se paie en taille de la matière noire, en mètres : depuis la version 0.307, elle rétrécit du prix de la case
+         * (avant, il suffisait de l'avoir atteinte). Les paliers de taille suivent la plus grande taille atteinte.
          */
         SIZE,
         /**
@@ -103,7 +103,7 @@ public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost
 
     /**
      * Prix du prochain niveau quand on en possède déjà {@code level}. Les particules et les atomes
-     * s'arrondissent à l'unité supérieure ; une taille à atteindre ne s'arrondit pas.
+     * s'arrondissent à l'unité supérieure ; une taille ne s'arrondit pas.
      */
     public BigNum costAt(int level) {
         BigNum cost = baseCost.multiply(BigNum.of(costGrowth).pow(level));

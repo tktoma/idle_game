@@ -609,19 +609,29 @@ public abstract class GameCollider extends GameDarkTree {
 
     public double overheatLeft() { return state.overheatLeft(); }
 
+    /**
+     * Ce que chaque niveau de la chaîne multiplie, depuis la version 0.302 : les particules ×10 (×1.5 avant), les atomes
+     * de chaque fusion ×1.3 (+10 % avant), la croissance de la matière noire ×1.3 (+20 % avant), l'espace par seconde
+     * ×1.5 (+25 % avant). Le bot analyste notait les améliorations et les générateurs du collisionneur comme « jamais
+     * rentables » et « gros multiplicateurs sans effet » : à côté des autres multiplicateurs, ×57 de particules ou
+     * ×2 d'atomes ne changeaient aucun palier. Multiplicatifs, ils pèsent : l'univers 1 du Speedrunner (5 s) passe
+     * de 20 h 55 à 20 h 16, tout le gain entre le premier et le huitième Big Bang.
+     */
+    public static final double CHAIN_PARTICLES_STEP = 10, CHAIN_ATOMS_STEP = 1.3, CHAIN_DARK_STEP = 1.3, CHAIN_SPACE_STEP = 1.5;
+
     /** Ce par quoi le collisionneur multiplie les particules : la chaîne, et la surchauffe d'un quark top. */
     public double colliderParticlesMultiplier() {
-        return (state.overheatLeft() > 0 ? OVERHEAT_FACTOR : 1) * Math.pow(1.5, colliderUpgradeLevel(ColliderUpgrade.PARTICLES));
+        return (state.overheatLeft() > 0 ? OVERHEAT_FACTOR : 1) * Math.pow(CHAIN_PARTICLES_STEP, colliderUpgradeLevel(ColliderUpgrade.PARTICLES));
     }
 
     /** Ce par quoi la chaîne multiplie les atomes de chaque fusion. */
-    public double colliderAtomsMultiplier() { return 1 + 0.1 * colliderUpgradeLevel(ColliderUpgrade.ATOMS); }
+    public double colliderAtomsMultiplier() { return Math.pow(CHAIN_ATOMS_STEP, colliderUpgradeLevel(ColliderUpgrade.ATOMS)); }
 
     /** Ce par quoi la chaîne multiplie la croissance de la matière noire. */
-    public double colliderDarkGrowthMultiplier() { return 1 + 0.2 * colliderUpgradeLevel(ColliderUpgrade.DARK_MATTER); }
+    public double colliderDarkGrowthMultiplier() { return Math.pow(CHAIN_DARK_STEP, colliderUpgradeLevel(ColliderUpgrade.DARK_MATTER)); }
 
     /** Ce par quoi la chaîne multiplie l'espace par seconde. */
-    public double colliderSpaceMultiplier() { return 1 + 0.25 * colliderUpgradeLevel(ColliderUpgrade.SPACE); }
+    public double colliderSpaceMultiplier() { return Math.pow(CHAIN_SPACE_STEP, colliderUpgradeLevel(ColliderUpgrade.SPACE)); }
 
     void runCollider(double dt) {
         if (dt <= 0 || !isColliderUnlocked()) return;

@@ -56,4 +56,35 @@ class MecaniquesAjouteesTest {
         regular.sansMecaniques.add("calme");
         assertFalse(regular.calmWanted(), "coupé pour la mesure");
     }
+
+    @Test
+    void laReferenceSuitLeProfilDuBot() throws Exception {
+        // Version 0.301 : les façons de jouer du bot analyste changent le profil d'un bot en cours de partie ; la politique
+        // de l'arbre le suit (la référence ne prend pas la bulle du rassemblement, les autres oui).
+        IdleProfiles24 bot = bot(1);
+        assertTrue(bot.tree.reference);
+        AnalyseStrategies.appliquer(bot, AnalyseStrategies.TOUTES.get(1));
+        assertFalse(bot.tree.reference, "le Méthodique n'est pas la référence");
+        assertFalse(bot(3).tree.reference);
+    }
+
+    @Test
+    void leBotV2TenteLesEpreuvesCommeLesProfils() throws Exception {
+        Game game = Bots.load(UNIVERSE1, 42);
+        AdvancedLab lab = new AdvancedLab(game, 20, "EXPERT_COMPLET", 42);
+        Trial startable = null;
+        for (Trial trial : Trial.values()) {
+            if (game.canStartTrial(trial) && !IdleProfiles24.costly(trial) && !trial.isCollider()) { startable = trial; break; }
+        }
+        lab.trialsV2();
+        if (startable == null) {
+            assertNull(game.activeTrial());
+            return;
+        }
+        assertEquals(startable, game.activeTrial());
+        assertEquals(1, lab.trialsStarted);
+        game.abandonTrial();
+        lab.trialsV2();
+        assertNotEquals(startable, game.activeTrial(), "une seule tentative par univers");
+    }
 }

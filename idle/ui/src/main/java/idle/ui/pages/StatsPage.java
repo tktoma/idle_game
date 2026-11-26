@@ -9,6 +9,7 @@ import idle.core.collider.ColliderAchievement;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.math.BigNum;
+import idle.ui.Seen;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
@@ -253,27 +254,45 @@ public final class StatsPage extends StatsPageLines {
                 : Format.amount(stats().bestProduction()) + " particules par seconde");
         row("Le plus d'atomes en une fusion", () -> stats().bestAtomsPerFusion().isZero() ? NOT_YET : Format.amount(stats().bestAtomsPerFusion()));
 
-        section("Deuxième acte : matière noire");
-        stepRecord(GameStats.Step.FIRST_EXPLOSION);
-        row("Explosion la plus rapide", () -> time(stats().fastestExplosionTime()));
+        // Version 0.318 : les actes et les records jamais vus ne se montrent pas, pas même « pas encore ».
+        BooleanSupplier explosion = seen(Seen.EXPLOSION);
+        section("Deuxième acte : matière noire", explosion);
+        stepRecord(GameStats.Step.FIRST_EXPLOSION, explosion);
+        row("Explosion la plus rapide", () -> time(stats().fastestExplosionTime()), explosion);
         for (Challenge challenge : game.challenges()) {
-            row("Défi « " + challenge.name() + " »", () -> time(game.state().challengeTimes().getOrDefault(challenge.id(), 0.0)));
+            row("Défi « " + challenge.name() + " »", () -> time(game.state().challengeTimes().getOrDefault(challenge.id(), 0.0)), explosion);
         }
 
-        section("Troisième acte : Big Bang");
+        BooleanSupplier bang = seen(Seen.BIG_BANG);
+        section("Troisième acte : Big Bang", bang);
         for (GameStats.Step step : GameStats.Step.values()) {
-            if (step.ordinal() >= GameStats.Step.FIRST_BIG_BANG.ordinal()) stepRecord(step);
+            if (step.ordinal() < GameStats.Step.FIRST_BIG_BANG.ordinal()) continue;
+            stepRecord(step, step.ordinal() > GameStats.Step.GALAXY.ordinal() ? seen(Seen.GALAXY) : bang);
         }
-        row("Big Bang le plus rapide", () -> time(stats().fastestBigBangTime()));
-        row("La plus grosse création de molécules", () -> stats().biggestCreation() > 0 ? Format.whole(stats().biggestCreation()) : NOT_YET);
+        row("Big Bang le plus rapide", () -> time(stats().fastestBigBangTime()), bang);
+        row("La plus grosse création de molécules", () -> stats().biggestCreation() > 0 ? Format.whole(stats().biggestCreation()) : NOT_YET, bang);
         for (BangChallenge challenge : game.bangChallenges()) {
-            row("Défi « " + challenge.label() + " »", () -> time(game.state().bangChallengeTimes().getOrDefault(challenge.name(), 0.0)));
+            row("Défi « " + challenge.label() + " »", () -> time(game.state().bangChallengeTimes().getOrDefault(challenge.name(), 0.0)), bang);
         }
 
-        section("Collisionneur");
-        row("Énergie produite", () -> game.colliderEnergyProduced() > 0 ? Format.big(BigNum.of(game.colliderEnergyProduced())) : NOT_YET);
-        row("Collisions", () -> game.state().collisionRuns() > 0 ? Format.whole(game.state().collisionRuns()) : NOT_YET);
-        row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
+        BooleanSupplier collider = seen(Seen.COLLIDER);
+        section("Collisionneur", collider);
+        row("Énergie produite", () -> game.colliderEnergyProduced() > 0 ? Format.big(BigNum.of(game.colliderEnergyProduced())) : NOT_YET, collider);
+        row("Collisions", () -> game.state().collisionRuns() > 0 ? Format.whole(game.state().collisionRuns()) : NOT_YET, collider);
+        row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length, collider);
+    }
+
+    /** Vrai quand le joueur a vu cette étape, maintenant ou une fois. */
+    private BooleanSupplier seen(Seen step) { return () -> seen.has(step, game); }
+
+    /** Le souvenir de ce que le joueur a vu, gardé dans les réglages. */
+    public void setSeen(Seen.Memory memory) { this.seen = memory; }
+
+    /** Un titre de section qui ne se montre qu'à cette condition. */
+    void section(String title, BooleanSupplier visible) {
+        section(title);
+        Node header = building.content.getChildren().get(building.content.getChildren().size() - 1);
+        gatedSections.put(header, visible);
     }
 
     /** Ce qu'affiche un record pas encore tenu. */
@@ -283,8 +302,10 @@ public final class StatsPage extends StatsPageLines {
     private static String time(double seconds) { return seconds > 0 ? Format.duration(seconds) : NOT_YET; }
 
     /** Le record d'une étape, toutes parties confondues, ou « pas encore ». */
-    private void stepRecord(GameStats.Step step) {
-        row(step.label(), () -> Double.isNaN(game.recordOf(step)) ? NOT_YET : Format.duration(game.recordOf(step)));
+    private void stepRecord(GameStats.Step step) { stepRecord(step, () -> true); }
+
+    private void stepRecord(GameStats.Step step, BooleanSupplier visible) {
+        row(step.label(), () -> Double.isNaN(game.recordOf(step)) ? NOT_YET : Format.duration(game.recordOf(step)), visible);
     }
 
     void page(String name, String color, BooleanSupplier unlocked, String howToUnlock) {
@@ -556,12 +577,26 @@ public final class StatsPage extends StatsPageLines {
         }
         for (Runnable updater : selected.updaters) updater.run();
 
+        gatedSections.forEach((header, visible) -> {
+            boolean shown = visible.getAsBoolean();
+            header.setVisible(shown);
+            header.setManaged(shown);
+        });
         boolean more = nextLocked != null;
         nextLabel.setVisible(more);
         nextLabel.setManaged(more);
         if (more) {
-            nextLabel.setText("D'autres statistiques apparaîtront avec votre avancée. Prochaines : « "
-                    + nextLocked.tab.getText() + " », " + nextLocked.howToUnlock + ".");
+            // Version 0.318 : la prochaine sous-page n'est nommée que si elle ne dévoile rien de jamais vu.
+            Seen step = switch (nextLocked.tab.getText()) {
+                case "Matière noire" -> Seen.EXPLOSION;
+                case "Collisionneur" -> Seen.COLLIDER;
+                case "Big Bang" -> Seen.BIG_BANG;
+                case "Univers", "Chronologie" -> Seen.UNIVERSE;
+                default -> null;
+            };
+            nextLabel.setText("D'autres statistiques apparaîtront avec votre avancée."
+                    + (step != null && !seen.has(step, game) ? ""
+                    : " Prochaines : « " + nextLocked.tab.getText() + " », " + nextLocked.howToUnlock + "."));
         }
     }
 }

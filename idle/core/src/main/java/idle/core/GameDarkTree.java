@@ -24,6 +24,7 @@ public abstract class GameDarkTree extends GameSystems {
     public abstract boolean isDarkMatterUnlocked();
     abstract double darkMatterUnits();
     public abstract BigNum darkMatterLightYears();
+    public abstract BigNum darkMatterReachLightYears();
     public abstract int elementUncap(int atomicNumber);
     abstract int effectLevel(DarkUpgrade dark);
     abstract boolean hasDark(Class<? extends DarkEffect> type);
@@ -199,7 +200,7 @@ public abstract class GameDarkTree extends GameSystems {
             if (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter byDarkMatter) {
                 result = result.multiply(BigNum.of(byDarkMatter.perUnit()).pow(darkMatterUnits() * level));
             } else if (dark.effect() instanceof DarkEffect.ParticlesByLightYears byLightYears) {
-                BigNum lightYears = darkMatterLightYears();
+                BigNum lightYears = darkMatterReachLightYears();
                 if (lightYears.gt(BigNum.ONE)) result = result.multiply(lightYears.pow(byLightYears.exponent() * level));
             }
         }

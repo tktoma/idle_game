@@ -101,19 +101,12 @@ class ConfortTest {
 
     @Nested
     class AchatGroupeEnAtomes {
+        /** Version 0.307 : l'achat groupé est ouvert d'office ; ni amélioration en atomes, ni case en matière noire. */
         @Test
-        void ilSOuvreAvecUneMatiereNoire() {
+        void ilNeSAchetePlus() {
             Game game = newGame();
-            assertFalse(game.isBulkAtomBuyUnlocked());
-            game.state().setExplosions(1);
-            game.state().setDarkMatter(BigNum.ONE);
-            assertFalse(game.canBuyDark("dark_shop_bulk"));      // Noyaux sombres d'abord
-            game.state().setDarkLevel("dark_shop_atoms", 1);
-            assertTrue(game.canBuyDark("dark_shop_bulk"));
-            assertTrue(game.buyDark("dark_shop_bulk"));
-            assertTrue(game.isBulkAtomBuyUnlocked());
-            assertTrue(game.isDarkMaxed("dark_shop_bulk"));
-            assertTrue(game.state().darkMatter().isZero());
+            assertTrue(game.upgrades(Resource.ATOMS).stream().noneMatch(u -> u.id().equals("atom_bulk")));
+            assertTrue(game.darkUpgrades().stream().noneMatch(d -> d.id().equals("dark_shop_bulk")));
         }
 
         @Test

@@ -7,7 +7,7 @@ public enum SoundKind {
     DARK_MATTER("Matière noire qui grossit"),
     EXPLOSION("Explosions du tableau"),
     BIG_BANG("Big Bangs"),
-    UNIVERSE("Univers formés et défi final"),
+    UNIVERSE("Univers formés"),
     DIMENSIONS("Dimensions : gestes et points gagnés"),
     UPGRADES("Achats et interrupteurs"),
     CLICKS("Clics sur les boutons"),
@@ -19,7 +19,7 @@ public enum SoundKind {
     EXPANSION("L'expansion de la matière (son de fond)"),
     PROBES("Sondes lancées"),
     CHRONO("Le chrono qui tourne"),
-    NEWS("Autres annonces (succès, défis, skins, éléments…)");
+    NEWS("Autres annonces (succès, éléments…)");
 
     private final String label;
 

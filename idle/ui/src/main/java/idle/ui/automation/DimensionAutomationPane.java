@@ -45,7 +45,8 @@ public final class DimensionAutomationPane extends VBox {
 
     private final Game game;
     private final Button pauseButton = new Button();
-    private final Label intro = new Label();
+    /** Le titre de la page ; son explication au survol (version 0.316). */
+    private final Label title;
     private final Map<DimensionAutomation, Card> cards = new EnumMap<>(DimensionAutomation.class);
     /** Par dimension : le bouton « Couper » sous la carte des paliers de celui qui joue (version 0.269). */
     private final Button[] playSwitches = new Button[Dimension.PLAYABLE + 1];
@@ -69,13 +70,14 @@ public final class DimensionAutomationPane extends VBox {
             game.setAutomationPaused(!game.isAutomationPaused());
             refresh();
         });
-        Labels.note(intro, MAX_WIDTH);
-        intro.setText("Ils jouent les dimensions à votre place et achètent leurs améliorations, l'un après l'autre dans "
+        // Version 0.316 : l'explication n'est plus un paragraphe sous le bouton ; elle passe au survol du titre.
+        Labels.tip(title, "Ils jouent les dimensions à votre place et achètent leurs améliorations, l'un après l'autre dans "
                 + "chaque dimension. Chacun se paie avec la ressource de sa propre dimension : ceux de la ligne en "
                 + Game.dimensionResourceName(1) + ", ceux du plan en " + Game.dimensionResourceName(2) + ", et ainsi de suite "
                 + "jusqu'au mélange. Ceux qui jouent la dimension viennent en dernier, les plus chers, en cinq paliers. « Couper tous les "
                 + "automatismes » les arrête tous ; chacun se met aussi en pause d'un clic. Achetés, ils traversent les univers.");
-        getChildren().addAll(title, pauseButton, intro);
+        this.title = title;
+        getChildren().addAll(title, pauseButton);
 
         for (int number = 1; number <= Dimension.PLAYABLE; number++) {
             String color = DimensionWindow.color(number);
@@ -321,7 +323,8 @@ public final class DimensionAutomationPane extends VBox {
     /** La ligne de ce qui paie une dimension : pour les vérifications. */
     public String balanceText(int number) { return balances[number].getText(); }
 
-    public String introText() { return intro.getText(); }
+    /** L'explication de la page, au survol du titre : pour les vérifications. */
+    public String introText() { return title.getTooltip().getText(); }
 
     public Button pauseButton() { return pauseButton; }
 }

@@ -17,6 +17,19 @@ import org.junit.jupiter.api.Test;
  */
 class FusionEnregistreeTest {
 
+    /**
+     * Version 0.306 : la fusion manuelle attend l'animation de regroupement seulement si l'onglet des particules est
+     * affiché et qu'aucune animation n'est en cours ; demandée pendant une animation, le moteur la fait tout de suite
+     * (avant, elle était refusée).
+     */
+    @Test
+    void uneFusionDemandeePendantLAnimationSeFaitToutDeSuite() {
+        assertFalse(ManualFusion.atOnce(true, false), "onglet affiché, pas d'animation : on regarde le regroupement");
+        assertTrue(ManualFusion.atOnce(true, true), "pendant l'animation : tout de suite, dans le moteur");
+        assertTrue(ManualFusion.atOnce(false, false), "onglet caché : personne ne verrait l'animation");
+        assertTrue(ManualFusion.atOnce(false, true));
+    }
+
     @Test
     void lEnregistrementEstGardeTelQuel() {
         short[] recorded = Sound.FUSION_STEREO;

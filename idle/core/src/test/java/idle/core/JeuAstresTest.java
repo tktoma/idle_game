@@ -356,16 +356,16 @@ class JeuAstresTest extends GameTestSupport {
             assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withTwo * 1.1 - 1e-9);
             // Le délai de rassemblement (0.073) : deux heures après la galaxie depuis la 0.125.
             double galaxyAt = game.stats().reachedAt(GameStats.Step.GALAXY);
-            assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
+            assertEquals(game.cosmosSettleSeconds(), game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
-            game.state().setTimePlayed(galaxyAt + Game.COSMOS_SETTLE_SECONDS);
+            game.state().setTimePlayed(galaxyAt + game.cosmosSettleSeconds());
             assertEquals(0, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
             assertTrue(game.canFormCosmos(Cosmos.CLUSTER));
             assertFalse(game.canFormCosmos(Cosmos.UNIVERSE));             // pas d'univers sans l'amas
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
             long molecules = game.moleculesCreated();
-            double clusterAt = galaxyAt + Game.COSMOS_SETTLE_SECONDS + 100, universeAt = clusterAt + Game.COSMOS_SETTLE_SECONDS;
+            double clusterAt = galaxyAt + game.cosmosSettleSeconds() + 100, universeAt = clusterAt + game.cosmosSettleSeconds();
             game.state().setTimePlayed(clusterAt);
             assertTrue(game.formCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));

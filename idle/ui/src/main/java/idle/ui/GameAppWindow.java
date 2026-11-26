@@ -349,8 +349,8 @@ public abstract class GameAppWindow extends GameAppBase {
      * Les générateurs se regroupent au centre, puis le jeu applique la fusion.
      */
     Card fuseCard() {
-        fuseCard.setPrefWidth(FUSE_WIDTH);
-        fuseCard.setMaxWidth(FUSE_WIDTH);
+        // Version 0.314 : un rond à droite des améliorations, plus une large carte dessous.
+        fuseCard.setRound(FUSE_DIAMETER);
         fuseCard.setVisible(false); // sa place reste réservée pour que rien ne bouge à son apparition
 
         ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.1), fuseCard);
@@ -366,11 +366,15 @@ public abstract class GameAppWindow extends GameAppBase {
         return fuseCard;
     }
 
-    /** La fusion demandée par le joueur, au bouton ou au clavier : les générateurs se regroupent, puis le jeu fusionne. */
+    /**
+     * La fusion demandée par le joueur, au bouton ou au clavier : les générateurs se regroupent, puis le jeu fusionne.
+     * Version 0.306 : une fusion demandée pendant ce regroupement n'est plus refusée ; le moteur la fait tout de suite,
+     * comme une fusion automatique, sans attendre la fin de l'animation (voir {@link ManualFusion#atOnce}).
+     */
     private void fuse() {
-        if (!game.canFuse() || generators.isFusing()) return;
-        if (selectedTab != Tab.PARTICLES) {
-            game.fuse();     // l'onglet n'est pas affiché : personne ne verrait l'animation
+        if (!game.canFuse()) return;
+        if (ManualFusion.atOnce(selectedTab == Tab.PARTICLES, generators.isFusing())) {
+            game.fuse();
             refresh();
             return;
         }

@@ -277,7 +277,7 @@ public abstract class GameChrono extends GameSeed {
         // La date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
         double since = state.stats().reachedThisUniverseAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
         if (Double.isNaN(since)) return 0;
-        return Math.max(0, since + COSMOS_SETTLE_SECONDS * settleShare() - state.timePlayed() - state.settleHeld());
+        return Math.max(0, since + cosmosSettleSeconds() * settleShare() - state.timePlayed() - state.settleHeld());
     }
 
     // ------------------------------------------------------------------

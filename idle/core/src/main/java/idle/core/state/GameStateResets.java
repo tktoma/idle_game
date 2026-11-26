@@ -352,6 +352,7 @@ public abstract class GameStateResets extends GameStateCollider {
         darkMatter = BigNum.ZERO;
         darkMatterSpent = BigNum.ZERO;
         darkMatterSize = Game.DARK_MATTER_START_SIZE;
+        darkMatterReach = Game.DARK_MATTER_START_SIZE;
         explosions = 0;
         tableWeightLevel = 0;
         darkUpgradeLevels.clear();
@@ -371,6 +372,7 @@ public abstract class GameStateResets extends GameStateCollider {
     public void clearDarkMatterKeepingTree() {
         darkMatter = BigNum.ZERO;
         darkMatterSize = Game.DARK_MATTER_START_SIZE;
+        darkMatterReach = Game.DARK_MATTER_START_SIZE;
         explosions = 0;
         tableWeightLevel = 0;
         activeChallenge = null;

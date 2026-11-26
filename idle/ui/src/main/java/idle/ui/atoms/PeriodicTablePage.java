@@ -105,6 +105,24 @@ public final class PeriodicTablePage extends VBox {
     private final Card synthesizeCard = new Card(GameApp.ATOMS_COLOR);
     private final Label resultLabel = new Label();
     private final Label progressLabel = new Label();
+    /**
+     * Le bouton de l'explosion, à droite de la carte de synthèse (version 0.314) : la barre violette en haut de la fenêtre
+     * est partie à la 0.309. Il garde sa place, éteint, entre deux explosions.
+     */
+    private final Button explodeButton = new Button();
+    private Runnable onExplode = () -> { };
+    /** Les secondes qu'il reste pour confirmer l'explosion d'un second clic ; 0 hors confirmation. */
+    private java.util.function.DoubleSupplier armed = () -> 0;
+    /** Ce que l'explosion rapporte et efface, au survol du bouton. */
+    private java.util.function.Supplier<String> explosionHint = () -> "";
+    /**
+     * Le haut de la page (version 0.314) : en grand, le décompte, la carte de synthèse, l'explosion et le dernier tirage sur
+     * une ligne ; en petit ({@link #NARROW_TOP}), la carte et l'explosion côte à côte, le décompte et le tirage dessous.
+     */
+    private final StackPane top = new StackPane();
+    private boolean narrowTop;
+    /** En dessous de cette largeur, le haut de la page passe sur trois lignes. */
+    static final double NARROW_TOP = 760;
     private final Label automationLabel = new Label();
     private final Label detailLabel = new Label();
     private final Label bonusLabel = new Label();
@@ -142,9 +160,9 @@ public final class PeriodicTablePage extends VBox {
     private boolean filterOn = false;
     /** La préférence de famille graduée, et les éléments gratuits, tous les dix découverts. */
     private final javafx.scene.control.ComboBox<String> preference = new javafx.scene.control.ComboBox<>();
-    private final Label preferenceLabel = new Label();
+    /** Ce que la préférence de famille fait à ses chances, au survol de la liste (une ligne à droite avant la 0.314). */
+    private final Tooltip preferenceTip = new Tooltip();
     private final javafx.scene.layout.HBox preferenceRow = new javafx.scene.layout.HBox(8);
-    private final Label freeLabel = new Label();
     private boolean fillingPreference = false;
     private java.util.Set<Integer> filtered = java.util.Set.of();
 
@@ -160,8 +178,19 @@ public final class PeriodicTablePage extends VBox {
             game.synthesize();
             refresh();     // c'est l'affichage qui repère l'élément obtenu, comme pour une synthèse automatique
         });
-        Labels.centered(resultLabel, "-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
-        Labels.centered(progressLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+        resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
+        resultLabel.setWrapText(true);
+        resultLabel.setMaxWidth(260);
+        resultLabel.setTooltip(new Tooltip());
+        progressLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+        progressLabel.setTooltip(new Tooltip());
+        explodeButton.setFocusTraversable(false);
+        explodeButton.setTextAlignment(TextAlignment.CENTER);
+        explodeButton.setTooltip(new Tooltip());
+        explodeButton.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10 18; -fx-cursor: hand;"
+                + " -fx-text-fill: #efe4ff; -fx-background-color: #2a1850; -fx-background-radius: 8; -fx-border-color: #7b4fd6;"
+                + " -fx-border-radius: 8; -fx-border-width: 2;");
+        explodeButton.setOnAction(event -> onExplode.run());
         Labels.centered(automationLabel, "-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(detailLabel, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
         Labels.centered(bonusLabel, "-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
@@ -185,6 +214,13 @@ public final class PeriodicTablePage extends VBox {
             targets.getChildren().add(button);
         }
         Labels.note(targetLabel);
+        // Version 0.314 : ce que coûte une famille visée, au survol des boutons (une ligne dessous avant).
+        Tooltip targetsTip = new Tooltip("Viser une famille coûte le nombre de synthèses indiqué (×3 à ×10). Les premières sont "
+                + "payées sans rien donner ; la dernière donne un élément de la famille, en priorité un que vous n'avez pas. "
+                + "La synthèse automatique suit la cible.");
+        targetsTip.setWrapText(true);
+        targetsTip.setMaxWidth(420);
+        Tooltip.install(targets, targetsTip);
 
         // Les ensembles : dix familles et sept périodes, une tuile chacun. Une tuile ne se clique pas.
         setsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0; -fx-text-fill: #ffe9c2;");
@@ -229,12 +265,14 @@ public final class PeriodicTablePage extends VBox {
                 + "Un ensemble compte les éléments différents, pas les exemplaires : un seul de chaque suffit.");
         Labels.note(legendHint);
 
-        // Les cases grandissent et rétrécissent avec la fenêtre.
-        widthProperty().addListener((observable, before, after) -> fitCells(after.doubleValue()));
+        // Les cases grandissent et rétrécissent avec la fenêtre ; le haut de la page aussi.
+        widthProperty().addListener((observable, before, after) -> {
+            fitCells(after.doubleValue());
+            arrangeTop(after.doubleValue() > 0 && after.doubleValue() < NARROW_TOP);
+        });
+        arrangeTop(false);
 
-        getChildren().add(synthesizeCard);
-        getChildren().add(resultLabel);
-        getChildren().add(progressLabel);
+        getChildren().add(top);
         getChildren().add(automationLabel);
         getChildren().add(targets);
         getChildren().add(targetLabel);
@@ -245,7 +283,6 @@ public final class PeriodicTablePage extends VBox {
             paintCells();
             refresh();
         });
-        getChildren().add(nextFilter);
         // La préférence de famille : une liste, « aucune » d'abord.
         preference.getItems().add("Aucune");
         for (ElementCategory category : ElementCategory.values()) preference.getItems().add(category.label());
@@ -261,12 +298,11 @@ public final class PeriodicTablePage extends VBox {
         });
         Label preferenceTitle = new Label("Famille préférée :");
         preferenceTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffe9c2;");
-        preferenceLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        preference.setTooltip(preferenceTip);
         preferenceRow.setAlignment(Pos.CENTER);
-        preferenceRow.getChildren().addAll(preferenceTitle, preference, preferenceLabel);
-        freeLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
+        // Version 0.314 : le filtre « utiles au prochain astre » à droite de la préférence, sur la même ligne.
+        preferenceRow.getChildren().addAll(preferenceTitle, preference, nextFilter);
         getChildren().add(preferenceRow);
-        getChildren().add(freeLabel);
         getChildren().add(table);
         getChildren().add(detailLabel);
         getChildren().add(bonusLabel);
@@ -316,6 +352,7 @@ public final class PeriodicTablePage extends VBox {
 
         // Une étape de synthèse ciblée a été payée sans rien donner : on le dit, sinon le clic semble perdu.
         if (count > shownSynthesisCount && target != null && game.state().elements().equals(shown)) {
+            resultLabel.getTooltip().setText("");
             resultLabel.setText("Étape payée : encore " + left + (left > 1 ? " synthèses" : " synthèse")
                     + " avant l'élément visé (" + target.label().toLowerCase(Locale.ROOT) + ").");
             resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: " + COLORS.get(target) + ";");
@@ -323,11 +360,12 @@ public final class PeriodicTablePage extends VBox {
         shownSynthesisCount = count;
 
         if (visible) {
-            int doubleDraw = (int) Math.round(game.doubleDrawChance() * 100);
-            progressLabel.setText(game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size() + " éléments"
-                    + "   |   " + game.ownedCopies() + " / " + game.maxTotalCopies() + " exemplaires"
-                    + (doubleDraw > 0 ? "   |   tirage double " + doubleDraw + " %" : ""));
-            automationLabel.setText(automationStatus());
+            refreshProgress();
+            refreshExplosion();
+            String automation = automationStatus();
+            automationLabel.setText(automation);
+            automationLabel.setVisible(!automation.isEmpty());
+            automationLabel.setManaged(!automation.isEmpty());
             legendBox.setVisible(Detail.shown());
             legendBox.setManaged(Detail.shown());
             legendHint.setVisible(Detail.shown());
@@ -416,6 +454,7 @@ public final class PeriodicTablePage extends VBox {
      */
     private void clickCell(Element element) {
         if (game.freeElementsAvailable() > 0 && game.elementCount(element.number()) == 0 && game.claimFreeElement(element.number())) {
+            resultLabel.getTooltip().setText("");
             resultLabel.setText("Élément gratuit : " + element.name() + " (" + element.symbol() + ").");
             refresh();
             return;
@@ -437,17 +476,32 @@ public final class PeriodicTablePage extends VBox {
                 preference.setValue(wanted);
                 fillingPreference = false;
             }
-            preferenceLabel.setText(preferred == null ? "ses chances montent à chaque tirage au hasard, ×2 au plus"
-                    : "chances ×" + String.format(java.util.Locale.ROOT, "%.2f", game.preferenceMultiplier(preferred))
-                            + " (+" + Math.round(Game.PREFERENCE_STEP * 100) + " % par tirage au hasard, ×2 au plus ; l'explosion la remet à ×1)");
+            preferenceTip.setText(preferred == null ? "Ses chances montent à chaque tirage au hasard, ×2 au plus."
+                    : "Chances ×" + String.format(java.util.Locale.ROOT, "%.2f", game.preferenceMultiplier(preferred))
+                            + " (+" + Math.round(Game.PREFERENCE_STEP * 100) + " % par tirage au hasard, ×2 au plus ; l'explosion la remet à ×1).");
         }
+    }
+
+    /**
+     * Le décompte, à gauche de la carte de synthèse (version 0.314) : éléments, exemplaires, tirage double, et au deuxième
+     * univers les éléments gratuits à prendre ; une ligne chacun en grand, une seule ligne en petit. Le survol dit comment
+     * on gagne et on prend les éléments gratuits (c'était une ligne sous la préférence de famille).
+     */
+    private void refreshProgress() {
+        int doubleDraw = (int) Math.round(game.doubleDrawChance() * 100);
         int free = game.freeElementsAvailable();
+        List<String> parts = new ArrayList<>(List.of(game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size() + " éléments",
+                game.ownedCopies() + " / " + game.maxTotalCopies() + " exemplaires"));
+        if (doubleDraw > 0) parts.add("tirage double " + doubleDraw + " %");
         boolean second = game.isSecondUniverse();
-        freeLabel.setVisible(second);
-        freeLabel.setManaged(second);
-        freeLabel.setText(free > 0 ? free + (free > 1 ? " éléments gratuits" : " élément gratuit") + " : cliquez un élément pas encore découvert pour le prendre"
+        if (second && free > 0) parts.add(free + (free > 1 ? " éléments gratuits" : " élément gratuit"));
+        String text = String.join(narrowTop ? "   |   " : "\n", parts);
+        if (!text.equals(progressLabel.getText())) progressLabel.setText(text);
+        progressLabel.getTooltip().setText(!second ? "Les éléments découverts, les exemplaires obtenus sur le maximum, et la chance "
+                + "qu'une synthèse donne deux éléments."
+                : free > 0 ? "Cliquez un élément pas encore découvert pour le prendre gratuitement."
                 : "Éléments gratuits : un tous les " + Game.FREE_ELEMENT_EVERY + " éléments découverts (prochain à "
-                        + ((game.discoveredElements() / Game.FREE_ELEMENT_EVERY + 1) * Game.FREE_ELEMENT_EVERY) + ")");
+                        + ((game.discoveredElements() / Game.FREE_ELEMENT_EVERY + 1) * Game.FREE_ELEMENT_EVERY) + ").");
     }
 
     private void refreshTable() {
@@ -476,7 +530,11 @@ public final class PeriodicTablePage extends VBox {
         shownMaxTotal = maxTotal;
         shownDetail = Detail.shown();
         if (shown != null) announce(owned);
-        if (owned.isEmpty()) resultLabel.setText("");     // tableau vidé par une explosion
+        // Le tableau vidé par une explosion : plus de dernier tirage.
+        if (owned.isEmpty()) {
+            resultLabel.setText("");
+            resultLabel.getTooltip().setText("");
+        }
         shown = new HashMap<>(owned);
 
         paintCells();
@@ -526,11 +584,10 @@ public final class PeriodicTablePage extends VBox {
                     : " -fx-text-fill: " + color + "; -fx-background-color: #16202e; -fx-border-color: " + color + "66;"));
             button.setDisable(chance <= 0);   // famille complète : plus rien à viser
         });
-        targetLabel.setText(target == null
-                ? "Viser une famille coûte le nombre de synthèses indiqué"
-                        + Detail.only(" (×3 à ×10). Les premières sont payées sans rien donner ; la dernière donne un "
-                                + "élément de la famille, en priorité un que vous n'avez pas. La synthèse automatique "
-                                + "suit la cible.")
+        // Sans cible, rien sous les boutons : ce qu'elle coûte se lit à leur survol (version 0.314).
+        targetLabel.setVisible(target != null);
+        targetLabel.setManaged(target != null);
+        targetLabel.setText(target == null ? ""
                 : "Cible : " + target.label().toLowerCase(Locale.ROOT) + ", encore " + left
                         + (left > 1 ? " synthèses" : " synthèse")
                         + Detail.only(". Chaque élément visé coûte " + target.targetTries() + " synthèses ; un élément "
@@ -539,9 +596,8 @@ public final class PeriodicTablePage extends VBox {
 
     /** Remplit une tuile par ensemble : avancement, bonus, et ce qui en est déjà actif. */
     private void refreshSets() {
-        setsTitle.setText("Ensembles : " + game.completedSets() + (game.completedSets() > 1 ? " complets, " : " complet, ")
-                + game.halfSets() + " à moitié, sur "
-                + game.elementSets().size());
+        // Version 0.314 : les complets seuls ; les tuiles disent le reste.
+        setsTitle.setText("Ensembles : " + game.completedSets() + (game.completedSets() > 1 ? " complets" : " complet"));
         setCards.forEach((set, tile) -> {
             int found = game.setProgress(set);
             int size = set.members().size();
@@ -645,17 +701,20 @@ public final class PeriodicTablePage extends VBox {
         if (gained.isEmpty()) return;
         // Plus de deux d'un coup : plusieurs synthèses automatiques entre deux images, on résume.
         if (gained.size() > 2) {
+            resultLabel.getTooltip().setText("");
             resultLabel.setText(gained.size() + " éléments obtenus");
             resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
             return;
         }
         StringBuilder text = new StringBuilder(gained.size() == 2 ? "Tirage double ! " : "");
+        StringBuilder effects = new StringBuilder();
         for (Element element : gained) {
             int copies = owned.get(element.number());
             if (text.length() > 0 && element != gained.get(0)) text.append("\n");
+            // Version 0.314 : l'élément seul ; son effet au survol.
             text.append(copies == 1 ? "Nouvel élément : " : "Exemplaire n° " + copies + " : ")
-                    .append(element.name()).append(" (").append(element.symbol()).append(") — ")
-                    .append(ElementText.describe(element.effect()));
+                    .append(element.name()).append(" (").append(element.symbol()).append(")");
+            effects.append(effects.length() == 0 ? "" : "\n").append(element.name()).append(" : ").append(ElementText.describe(element.effect()));
 
             ScaleTransition pop = new ScaleTransition(Duration.seconds(0.5), cells.get(element.number()));
             pop.setFromX(2.2);
@@ -665,8 +724,68 @@ public final class PeriodicTablePage extends VBox {
             pop.play();
         }
         resultLabel.setText(text.toString());
+        resultLabel.getTooltip().setText(effects.toString());
         resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: " + COLORS.get(gained.get(0).category()) + ";");
     }
+
+    /**
+     * Range le haut de la page : en grand, le décompte, la carte de synthèse, l'explosion et le dernier tirage sur une ligne ;
+     * en petit, la carte et l'explosion côte à côte, à la même hauteur, le décompte et le tirage dessous.
+     */
+    private void arrangeTop(boolean narrow) {
+        if (narrow == narrowTop && !top.getChildren().isEmpty()) return;
+        narrowTop = narrow;
+        progressLabel.setAlignment(narrow ? Pos.CENTER : Pos.CENTER_RIGHT);
+        progressLabel.setTextAlignment(narrow ? TextAlignment.CENTER : TextAlignment.RIGHT);
+        resultLabel.setTextAlignment(narrow ? TextAlignment.CENTER : TextAlignment.LEFT);
+        synthesizeCard.setPrefWidth(narrow ? 260 : 340);
+        synthesizeCard.setMaxWidth(narrow ? 260 : 340);
+        HBox boxes = new HBox(14, synthesizeCard, explodeButton);
+        boxes.setAlignment(Pos.CENTER);
+        javafx.scene.Parent row;
+        if (narrow) {
+            VBox column = new VBox(6, boxes, progressLabel, resultLabel);
+            column.setAlignment(Pos.CENTER);
+            row = column;
+        } else {
+            HBox line = new HBox(18, progressLabel, boxes, resultLabel);
+            line.setAlignment(Pos.CENTER);
+            row = line;
+        }
+        top.getChildren().setAll(row);
+        if (game != null) refreshProgress();
+    }
+
+    /** L'explosion : ce qu'elle fait au clic, ce que dure la confirmation, et ce qu'elle rapporte au survol. */
+    public void setExplosion(Runnable action, java.util.function.DoubleSupplier armedSeconds, java.util.function.Supplier<String> hint) {
+        onExplode = action;
+        armed = armedSeconds;
+        explosionHint = hint;
+    }
+
+    /**
+     * Le bouton de l'explosion : allumé quand le tableau peut exploser ; sinon il garde sa place, éteint, une fois la matière
+     * noire ouverte, et n'existe pas avant. Le second clic de confirmation s'y lit.
+     */
+    private void refreshExplosion() {
+        boolean can = game.canExplode();
+        boolean place = can || game.isDarkMatterUnlocked();
+        explodeButton.setVisible(can);
+        explodeButton.setManaged(place);
+        if (!can) return;
+        double seconds = armed.getAsDouble();
+        String text = seconds > 0 ? "Confirmer l'explosion\n(" + (int) Math.ceil(seconds) + " s)"
+                : "Explosion du tableau\n+" + Format.darkMatter(game.nextExplosionDarkMatter()) + " matière noire";
+        if (!text.equals(explodeButton.getText())) explodeButton.setText(text);
+        String hint = explosionHint.get();
+        if (!hint.equals(explodeButton.getTooltip().getText())) explodeButton.getTooltip().setText(hint);
+    }
+
+    /** Le bouton de l'explosion : pour les vérifications. */
+    Button explodeButton() { return explodeButton; }
+
+    /** Le décompte, à gauche de la carte : pour les vérifications. */
+    String progressText() { return progressLabel.getText(); }
 
     /** Où en est la synthèse automatique : verrouillée, à acheter, en marche ou coupée. */
     private String automationStatus() {
@@ -675,9 +794,8 @@ public final class PeriodicTablePage extends VBox {
             if (automation.kind() == Automation.Kind.SYNTHESIS) synthesis = automation;
         }
         if (synthesis == null) return "";
-        if (game.isPeriodicTableComplete() || game.canExplode()) {
-            return "Le tableau peut exploser : le bouton est tout en haut de la fenêtre";
-        }
+        // Le tableau peut exploser : le bouton est à droite de la carte de synthèse (version 0.314), rien à ajouter.
+        if (game.isPeriodicTableComplete() || game.canExplode()) return "";
         if (!game.isSynthesisAutomationUnlocked()) {
             int left = game.guaranteedUniqueSynthesis() - game.state().synthesisCount();
             return "Synthèse automatique : avec le premier élément unique ★"
@@ -697,10 +815,14 @@ public final class PeriodicTablePage extends VBox {
     /** Écrit le détail de l'élément sélectionné sous le tableau. */
     private void showDetail() {
         if (selected == null) {
-            detailLabel.setText("Survolez ou cliquez un élément pour voir son effet");
-            detailLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+            // Version 0.314 : sans élément choisi, rien sous le tableau (« Survolez ou cliquez un élément… » avant).
+            detailLabel.setText("");
+            detailLabel.setVisible(false);
+            detailLabel.setManaged(false);
             return;
         }
+        detailLabel.setVisible(true);
+        detailLabel.setManaged(true);
         detailLabel.setText(detail(selected, "   |   "));
         detailLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + COLORS.get(selected.category()) + ";");
     }

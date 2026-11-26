@@ -1,5 +1,6 @@
 package idle.ui.darkmatter;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.universe.SkinVisual;
 import idle.core.darkmatter.DarkUpgrade;
@@ -15,7 +16,6 @@ import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.PlanBar;
-import idle.ui.common.StableHeight;
 import idle.ui.common.SubTabs;
 import javafx.geometry.*;
 import javafx.scene.control.*;
@@ -45,7 +45,11 @@ import javafx.scene.layout.*;
  */
 public final class DarkMatterPage extends VBox {
     private final Game game;
-    private final Label balanceLabel = new Label();
+    /**
+     * La matière noire au centre du bandeau (version 0.311 ; en haut de la page avant) : « Matière noire : 120 », et dessous
+     * celle gagnée en tout et les explosions.
+     */
+    private final ResourceHead head = new ResourceHead("Matière noire", GameApp.DARK_MATTER_COLOR);
     /** Au survol : d'où vient la matière noire d'une explosion. */
     private final Breakdown balanceBreakdown;
 
@@ -102,13 +106,12 @@ public final class DarkMatterPage extends VBox {
             public boolean active() { return !game.darkPlan().isEmpty(); }
             public String progress() { return treePlanProgress(); }
         }, "les voies et les liaisons", GameApp.DARK_MATTER_COLOR);
-        this.balanceBreakdown = Breakdown.attach(balanceLabel, game, Breakdown.Of.DARK_MATTER);
+        this.balanceBreakdown = Breakdown.attach(head.value(), game, Breakdown.Of.DARK_MATTER);
         this.challenges = new ChallengesPane(game);
         this.challengesScroll = new ScrollPane(challenges);
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 16, 24));
 
-        balanceLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + ";");
         sizeLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #efe4ff;");
         Labels.centered(landmarkLabel, "-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
         Labels.centered(milestoneLabel, "-fx-font-size: 13px; -fx-text-fill: #7fe0d4;");
@@ -163,7 +166,6 @@ public final class DarkMatterPage extends VBox {
         StackPane pages = new StackPane(pointPane, treeScroll, challengesScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        getChildren().add(StableHeight.of(balanceLabel));
         getChildren().add(subTabs);
         getChildren().add(pages);
         select(0);
@@ -177,6 +179,9 @@ public final class DarkMatterPage extends VBox {
 
     /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
     public HBox subTabs() { return subTabs; }
+
+    /** La matière noire, pour le centre du bandeau. */
+    public ResourceHead head() { return head; }
 
     /** La sous-page affichée : 0 le point, 1 l'arbre, 2 les défis. Pour les vérifications. */
     public int selected() { return selected; }
@@ -318,9 +323,8 @@ public final class DarkMatterPage extends VBox {
         BigNum darkMatter = game.state().darkMatter();
         BigNum earned = game.darkMatterEarned();
         int explosions = game.state().explosions();
-        balanceLabel.setText(Format.darkMatter(darkMatter) + " matière noire"
-                + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
-                + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
+        head.set(Format.darkMatter(darkMatter), (earned.gt(darkMatter) ? Format.count(earned) + " gagnée   |   " : "")
+                + explosions + (explosions > 1 ? " explosions" : " explosion"));
         balanceBreakdown.refresh();
 
         mockNotice.setVisible(Detail.shown());
@@ -336,9 +340,12 @@ public final class DarkMatterPage extends VBox {
         if (selected != 0) return;
 
         BigNum size = game.state().darkMatterSize();
-        sizeLabel.setText("Taille : " + Format.length(size));
-        Landmark reached = SizeScale.reached(size);
-        Landmark next = SizeScale.next(size);
+        // Version 0.307 : les cases de taille se paient en taille ; les repères suivent la plus grande taille atteinte.
+        BigNum reach = game.state().darkMatterReach();
+        sizeLabel.setText("Taille : " + Format.length(size)
+                + (reach.gt(size) ? "   (plus grande atteinte : " + Format.length(reach) + ")" : ""));
+        Landmark reached = SizeScale.reached(reach);
+        Landmark next = SizeScale.next(reach);
         landmarkLabel.setText((reached == null || !Detail.shown() ? "" : "Dépassé : " + describe(reached) + "   |   ")
                 + (next == null ? "Plus grand que tous les repères" : "Prochain repère : " + describe(next)));
 
@@ -360,14 +367,15 @@ public final class DarkMatterPage extends VBox {
                         + "onglet, et le verrou tient d'une partie à l'autre. Un clic sur le point la libère ; tenir le clic donne le reste."
                 : " Verrouillé, l'appui vaut " + share + " de la vitesse, depuis n'importe quel onglet.";
         speedLabel.setText(how + speed + " par seconde" + Detail.only(" d'appui." + more + "\n"
-                + "Élan : " + ElementText.percent(Game.DARK_MATTER_GROWTH_PER_UNIT) + " × " + Format.count(earned)
-                + " matière noire gagnée × avancement de la partie " + ElementText.number(game.darkMatterProgressFactor())
+                + "Élan : " + ElementText.percent(Game.DARK_MATTER_GROWTH_PER_UNIT) + " × √" + Format.count(earned)
+                + " (matière noire gagnée) × avancement de la partie " + ElementText.number(game.darkMatterProgressFactor())
                 + (game.darkExpansionMultiplier().gt(BigNum.ONE)
                         ? " × " + Format.amount(game.darkExpansionMultiplier()) + " (arbre)" : "")
                 + (game.landmarkExpansionMultiplier() > 1
                         ? " × " + ElementText.number(game.landmarkExpansionMultiplier()) + " (paliers)" : "")
                 + ". Résistance : ÷" + Format.amount(game.darkMatterResistance())
-                + ", elle double chaque fois que la taille est multipliée par 1 000."
+                + ", elle décuple chaque fois que la taille est multipliée par 10 000. Chaque case de taille de l'arbre "
+                + "se paie en taille : la matière noire rétrécit, mais les paliers atteints restent."
                 + (game.darkAutoExpansionShare() > 0
                         ? " Elle grossit aussi seule, à " + ElementText.percent(game.darkAutoExpansionShare())
                                 + " de cette vitesse." : "")));

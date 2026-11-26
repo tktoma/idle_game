@@ -60,14 +60,16 @@ class BullesArbrePageTest {
             UniversePage page = page(game);
             SeedView view = page.seedView();
             assertEquals(1, view.bubbleCount(), "au palier 4, une bulle");
-            assertTrue(page.voidCumulLabel().getText().contains("bulles de l'arbre"), page.voidCumulLabel().getText());
+            // Version 0.313 : le total seul sur la ligne, l'explication au survol.
+            assertTrue(page.voidCumulLabel().getText().startsWith("Énergie du vide accumulée : "), page.voidCumulLabel().getText());
+            assertTrue(page.voidCumulLabel().getTooltip().getText().contains("bulles de l'arbre"), page.voidCumulLabel().getTooltip().getText());
             double[] at = view.bubblePoint(0);
             view.hover(at[0], at[1]);
             assertEquals(0, view.hoveredBubble(), "l'étiquette de la bulle s'affiche au survol");
             assertTrue(view.clickBubble(at[0], at[1]));
             assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
             assertEquals(base * 1.5, game.voidAvailable(), 1e-9);
-            assertTrue(page.voidCumulLabel().getText().contains("dépenser pour les bulles"), page.voidCumulLabel().getText());
+            assertTrue(page.voidCumulLabel().getTooltip().getText().contains("dépenser pour les bulles"), page.voidCumulLabel().getTooltip().getText());
             assertFalse(view.clickBubble(5, 5), "à côté, rien");
             return null;
         });

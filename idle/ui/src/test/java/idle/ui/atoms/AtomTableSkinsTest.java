@@ -65,6 +65,58 @@ class AtomTableSkinsTest {
         });
     }
 
+    /**
+     * Version 0.303 : le verre du vitrail est peint une fois par atome, puis reposé à chaque image ; le coup de
+     * grossissement du grand atome et les images suivantes n'en repeignent pas d'autre, et le nombre gardé reste borné.
+     */
+    @Test
+    void leVitrailNeRepeintPasSonVerreAChaqueImage() {
+        FxTestSupport.fx(() -> {
+            AtomModelView view = new AtomModelView(240);
+            view.setSkin(Skin.ATOM_STAINED);
+            view.setWidth(900);
+            view.setHeight(500);
+            view.setOrbs(118);
+            view.setExtraDecades(20);
+            assertEquals(AtomModelView.MAX_COPIES, view.copies());
+            view.frame(0.1);
+            int kept = AtomSkinArt.glassesKept();
+            assertTrue(kept > 0 && kept <= AtomSkinArt.GLASS_CACHE, "des verrières gardées : " + kept);
+            view.celebrate();
+            for (int k = 0; k < 30; k++) view.frame(1 / 60.0);
+            assertEquals(kept, AtomSkinArt.glassesKept(), "le grossissement et les images suivantes reprennent les mêmes");
+            for (int size = 300; size < 1600; size += 20) {
+                view.setWidth(size);
+                view.frame(1 / 60.0);
+            }
+            assertTrue(AtomSkinArt.glassesKept() <= AtomSkinArt.GLASS_CACHE, "jamais plus que la borne");
+            return null;
+        });
+    }
+
+    /**
+     * Version 0.308 : la borne des verrières tient même là où les images se prennent pour de vrai. Sans affichage, le
+     * test du vitrail ne garde aucune image et ne voyait pas que la borne avait disparu (le cache grandissait sans fin
+     * sur la machine du joueur) : ici, le cache est rempli directement.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void lesVerrieresGardeesRestentBornees() throws Exception {
+        var field = AtomSkinArt.class.getDeclaredField("GLASSES");
+        field.setAccessible(true);
+        Map<Object, Object> glasses = (Map<Object, Object>) field.get(null);
+        Map<Object, Object> before = new LinkedHashMap<>(glasses);
+        try {
+            for (int k = 0; k < AtomSkinArt.GLASS_CACHE * 3; k++) glasses.put("essai " + k, null);
+            assertEquals(AtomSkinArt.GLASS_CACHE, glasses.size(), "jamais plus que la borne");
+            assertTrue(glasses.containsKey("essai " + (AtomSkinArt.GLASS_CACHE * 3 - 1)), "la plus récente reste");
+            assertFalse(glasses.containsKey("essai 0"), "la plus ancienne est oubliée");
+        } finally {
+            glasses.clear();
+            glasses.putAll(before);
+        }
+    }
+
     /** Un jeu avec tous les skins, quelques éléments possédés, un au maximum, et une famille visée. */
     private static Game game() {
         Game game = new Game();

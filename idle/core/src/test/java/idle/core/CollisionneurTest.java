@@ -420,7 +420,7 @@ class CollisionneurTest {
             assertEquals(base * 8, game.colliderEnergyPerSecond(), base * 1e-9);
             double space = game.colliderSpaceMultiplier();
             game.state().setColliderUpgradeLevel(ColliderUpgrade.SPACE, 2);
-            assertEquals(space * 1.5, game.colliderSpaceMultiplier(), 1e-9);
+            assertEquals(space * Game.CHAIN_SPACE_STEP * Game.CHAIN_SPACE_STEP, game.colliderSpaceMultiplier(), 1e-9);
         }
 
         @Test
@@ -555,14 +555,14 @@ class CollisionneurTest {
             game.state().setColliderUpgradeLevel(ColliderUpgrade.PARTICLES, 2);
             game.state().setColliderUpgradeLevel(ColliderUpgrade.ATOMS, 3);
             game.state().setColliderUpgradeLevel(ColliderUpgrade.DARK_MATTER, 5);
-            assertEquals(particles.toDouble() * 2.25, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9);
-            assertEquals(atoms.toDouble() * 1.3, game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-6);
-            assertEquals(dark * 2, game.darkMatterMomentum(), dark * 1e-9);
+            assertEquals(particles.toDouble() * 100, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9, "×10 par niveau (0.302)");
+            assertEquals(atoms.toDouble() * Math.pow(1.3, 3), game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-6, "×1.3 par niveau (0.302)");
+            assertEquals(dark * Math.pow(1.3, 5), game.darkMatterMomentum(), dark * 1e-9, "×1.3 par niveau (0.302)");
             Game space = bare(0);
             GameTestSupport.bangs(space, 1);
             BigNum before = space.steadySpacePerSecond();
             space.state().setColliderUpgradeLevel(ColliderUpgrade.SPACE, 2);
-            assertEquals(before.toDouble() * 1.5, space.steadySpacePerSecond().toDouble(), 1e-9);
+            assertEquals(before.toDouble() * 2.25, space.steadySpacePerSecond().toDouble(), 1e-9, "×1.5 par niveau (0.302)");
             space.state().setColliderUpgradeLevel(ColliderUpgrade.MOLECULES, 4);
             assertEquals(0.2, space.moleculeDoublingChance(), 1e-9);
         }

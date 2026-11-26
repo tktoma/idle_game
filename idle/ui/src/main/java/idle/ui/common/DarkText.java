@@ -89,7 +89,7 @@ public final class DarkText {
                     "+" + start.perLevel() + " générateur au départ de chaque partie, à chaque niveau. Actuellement "
                             + (1 + game.startingGenerators()) + " au départ";
             case DarkEffect.ParticlesByLightYears byLightYears -> {
-                BigNum lightYears = game.darkMatterLightYears();
+                BigNum lightYears = game.darkMatterReachLightYears();
                 BigNum now = lightYears.gt(BigNum.ONE) ? lightYears.pow(byLightYears.exponent()) : BigNum.ONE;
                 yield "Particules × (taille de la matière noire en années-lumière)"
                         + (byLightYears.exponent() == 2 ? "²" : byLightYears.exponent() == 1 ? "" : " puissance " + ElementText.number(byLightYears.exponent()))
@@ -134,14 +134,13 @@ public final class DarkText {
             case DarkEffect.HeadStartByDarkMatter by ->
                     "Chaque partie démarre avec " + ElementText.number(by.perUnit()) + " atomes déjà comptés comme créés par "
                             + "matière noire gagnée (" + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " au plus), sauf pendant "
-                            + "un défi. Actuellement " + Format.count(game.darkHeadStartAtoms())
+                            + "un défi. Après une explosion, elle démarre aussi avec autant d'atomes en main, sans ce plafond "
+                            + "mais jamais plus que le plafond d'atomes. Actuellement " + Format.count(game.darkHeadStartAtoms())
+                            + " comptés et " + Format.count(game.darkHeadStartHand()) + " en main"
                             + (game.inChallenge() ? " (défi en cours)" : "");
             case DarkEffect.TargetedSynthesis targeted ->
                     "Ouvre la synthèse ciblée dans le tableau périodique : choisir la famille de l'élément à venir. "
                             + "Viser coûte plusieurs synthèses, de 3 pour les familles courantes à 10 pour les actinides";
-            case DarkEffect.BulkAtomUpgrades bulk ->
-                    "Ouvre l'achat groupé dans l'onglet Atomes : les améliorations payées en atomes s'achètent par un, "
-                            + "par dix ou « au maximum », comme celles payées en particules";
         };
     }
 
@@ -186,7 +185,6 @@ public final class DarkText {
             case DarkEffect.HeadStartByDarkMatter by ->
                     ElementText.number(by.perUnit()) + " atomes d'avance par matière noire";
             case DarkEffect.TargetedSynthesis targeted -> "Choisir la famille à synthétiser";
-            case DarkEffect.BulkAtomUpgrades bulk -> "Atomes : acheter par 10 ou max";
         };
     }
 

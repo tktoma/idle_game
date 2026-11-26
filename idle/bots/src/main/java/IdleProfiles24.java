@@ -183,7 +183,7 @@ this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (prof
 // L'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
 // avec leur sens de l'organisation, et suivent l'ordre de l'expert s'ils suivent l'ordre d'achat du modèle.
 this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^ (profile.id*9173L) ^ 0x7ee1L));
-tree.reference=profile.id==1;tree.off=sansMecaniques;
+tree.reference=reference();tree.off=sansMecaniques;
 // Un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
 this.tree.occasionalHandSeconds=profile.actionEverySeconds();
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
@@ -290,7 +290,14 @@ static final double HOLD_STEP=0.5;
  * d'arrivée. -Didle.pasM=0.5 le règle.
  */
 static final double HOLD_STEP_SLOW=Double.parseDouble(System.getProperty("idle.pasM","2"));
-double holdStep(){return p.actionEverySeconds()<=5?HOLD_STEP:HOLD_STEP_SLOW;}
+double holdStep(){return holdsFuse?FUSE_HOLD_STEP:p.actionEverySeconds()<=5?HOLD_STEP:HOLD_STEP_SLOW;}
+/**
+ * Version 0.307 : vrai pour l'analyste « M et F tenues », qui tient aussi la touche F (fusionner) et ne lâche jamais M.
+ * La touche tenue se répète toutes les 0,08 s ; le jeu se coupe alors en morceaux de {@link #FUSE_HOLD_STEP} seconde,
+ * avec un « tout acheter » et une fusion après chacun.
+ */
+boolean holdsFuse=false;
+static final double FUSE_HOLD_STEP=0.1;
 // La limite passe de 5 à 20 s. Tenir une touche ne demande pas de décider vite : le Speedrunner des audits
 // (une décision toutes les 20 s, attention entière) la tient lui aussi, et son premier univers se forme en 25 h au lieu de
 // 35 h. -Didle.appuiM=5 rend la partie d'avant.
@@ -300,7 +307,7 @@ static final int HOLD_MAX_ACTION_SECONDS=Integer.getInteger("idle.appuiM",20);
  * (AnalyseArrets, appui_m, deux hasards) : la lâcher au 8e Big Bang retarde l'univers de 18 min, à la galaxie de 10 min, à
  * l'amas d'une minute ; après, le pas de jeu n'est plus coupé en demi-secondes et le calcul s'allège.
  */
-boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1 && !sansJouer("appui_m") && !(LACHER_M && RobotCosmosPlanner.cosmosStage(g)>=2);}
+boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1 && !sansJouer("appui_m") && !(LACHER_M && !holdsFuse && RobotCosmosPlanner.cosmosStage(g)>=2);}
 /** {@code -Didle.sansLacherM=true} : M tenue jusqu'au bout de l'univers, comme avant la 0.206. */
 static final boolean LACHER_M=!Boolean.getBoolean("idle.sansLacherM");
 /** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
@@ -309,7 +316,7 @@ private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){if(g.isStarted())tree.tick(g,dt);g.tick(dt);return;}
 double left=dt;
 // Le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
-while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety && !calm)g.buyAllWithParticles();}
+while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety && !calm)g.buyAllWithParticles();if(holdsFuse && g.canFuse())g.fuse();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){

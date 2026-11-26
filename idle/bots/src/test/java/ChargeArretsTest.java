@@ -16,8 +16,8 @@ class ChargeArretsTest {
         for (String ids : plan.values()) {
             for (AnalyseArrets.Coupure c : AnalyseArrets.choisies(ids)) assertTrue(vus.add(c.id()), c.id() + " coupé deux fois");
         }
-        // 14 automatismes (la synthèse sert jusqu'au bout), les 12 améliorations, 2 mécaniques.
-        assertEquals(28, vus.size());
+        // 14 automatismes (la synthèse sert jusqu'au bout), les 11 améliorations (l'achat groupé est d'office depuis la 0.307), 2 mécaniques.
+        assertEquals(27, vus.size());
         assertFalse(vus.contains("auto_synthesis"), "la synthèse sert encore à l'amas : jamais coupée");
         for (String utile : List.of("sondes", "impulsions", "cometes", "anomalies")) assertFalse(vus.contains(utile), utile);
     }

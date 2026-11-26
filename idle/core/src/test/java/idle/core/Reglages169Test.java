@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Une bulle qui garde, achetée entre la formation de l'univers et le lancement du suivant, garde encore
- * sa part de l'univers formé ; le vide raccourcit le rassemblement et la maturation de moitié au plus ; le jalon des
+ * sa part de l'univers formé ; le vide raccourcit la maturation de moitié au plus, le rassemblement de 70 % (0.302) ; le jalon des
  * racines, en gluons, abaisse les paliers du défi final.
  */
 class Reglages169Test {
@@ -74,11 +74,11 @@ class Reglages169Test {
         for (int k = 0; k < 20; k++) {
             game.state().setVoidLevel(Game.VoidUpgrade.SETTLE.ordinal(), k);
             game.state().setVoidLevel(Game.VoidUpgrade.MATURE.ordinal(), k);
-            assertTrue(game.settleShare() >= 0.5 - 1e-12 && game.maturationShare() >= 0.5 - 1e-12, "niveau " + k);
+            assertTrue(game.settleShare() >= 0.3 - 1e-12 && game.maturationShare() >= 0.5 - 1e-12, "niveau " + k);
         }
         game.state().setVoidLevel(Game.VoidUpgrade.SETTLE.ordinal(), Game.VoidUpgrade.SETTLE.max());
         game.state().setVoidLevel(Game.VoidUpgrade.MATURE.ordinal(), Game.VoidUpgrade.MATURE.max());
-        assertEquals(0.5, game.settleShare(), 1e-12, "Assise : 5 niveaux de 10 %");
+        assertEquals(0.3, game.settleShare(), 1e-12, "Assise : 7 niveaux de 10 % depuis la 0.302");
         assertEquals(0.5, game.maturationShare(), 1e-12, "Maturation : 10 niveaux de 5 %");
     }
 
@@ -153,7 +153,7 @@ class Reglages169Test {
      */
     @Test
     void lesPrixDuVideOntLeursPlafonds() {
-        assertEquals(5, Game.VoidUpgrade.SETTLE.max(), "5 × 10 % = −50 %");
+        assertEquals(7, Game.VoidUpgrade.SETTLE.max(), "7 × 10 % = −70 % depuis la 0.302");
         assertEquals(10, Game.VoidUpgrade.MATURE.max(), "10 × 5 % = −50 %");
     }
 

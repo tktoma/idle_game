@@ -427,36 +427,37 @@ class JeuExplosionTest extends GameTestSupport {
         }
 
         @Test
-        void enDebutDePartieUneSecondeDAppuiAjouteTroisPourMille() {
+        void enDebutDePartieUneSecondeDAppuiAjouteDixPourCent() {
             Game game = gameWithDarkMatter(1);
-            assertEquals(0.003, UNIT);
+            assertEquals(0.1, UNIT);                          // 0,003 avant la 0.307
+            assertEquals(0.25, Game.DARK_MATTER_RESISTANCE);  // 0,1 avant la 0.307
             assertEquals(1, game.darkMatterProgressFactor()); // moins d'une particule par seconde, aucun atome
             assertEquals(UNIT, game.darkMatterMomentum(), 1e-12);
             assertValue(1, game.darkMatterResistance());      // taille d'un proton : aucune résistance
             assertValue(Math.exp(UNIT), game.darkMatterGrowthPerSecond());
             assertTrue(game.growDarkMatter(1));
-            // La résistance gagne 0,1 × l'élan par seconde ; la taille est sa puissance dix.
-            assertValue(START * Math.pow(1 + 0.1 * UNIT, 10), game.state().darkMatterSize());
+            // La résistance gagne 0,25 × l'élan par seconde ; la taille est sa puissance quatre.
+            assertValue(START * Math.pow(1 + 0.25 * UNIT, 4), game.state().darkMatterSize());
             game.growDarkMatter(1);
-            assertValue(START * Math.pow(1 + 0.2 * UNIT, 10), game.state().darkMatterSize());
+            assertValue(START * Math.pow(1 + 0.5 * UNIT, 4), game.state().darkMatterSize());
         }
 
         @Test
         void plusElleEstGrandePlusElleGrossitLentement() {
             Game game = gameWithDarkMatter(1);
             game.state().setDarkMatterSize(Game.DARK_MATTER_START_SIZE.multiply(1000));
-            assertEquals(1.995, game.darkMatterResistance().toDouble(), 0.001);   // ×1 000 de taille : deux fois plus lent
+            assertEquals(5.623, game.darkMatterResistance().toDouble(), 0.001);   // ×1 000 de taille : 5,6 fois plus lent
             // Le premier palier de taille (le noyau d'uranium) double les particules : l'avancement en tient compte.
-            assertValue(Math.exp(UNIT * game.darkMatterProgressFactor() / Math.pow(1000, 0.1)), game.darkMatterGrowthPerSecond());
-            game.state().setDarkMatterSize(Game.DARK_MATTER_START_SIZE.multiply(1e30));
-            assertValue(1000, game.darkMatterResistance());   // au million de milliards de mètres : mille fois plus lent
+            assertValue(Math.exp(UNIT * game.darkMatterProgressFactor() / Math.pow(1000, 0.25)), game.darkMatterGrowthPerSecond());
+            game.state().setDarkMatterSize(Game.DARK_MATTER_START_SIZE.multiply(1e12));
+            assertValue(1000, game.darkMatterResistance());   // au millimètre : mille fois plus lent
         }
 
         @Test
         void doublerLElanOuLeTempsDAppuiRevientAuMeme() {
             Game slow = gameWithDarkMatter(1);
             slow.growDarkMatter(2000);
-            Game fast = gameWithDarkMatter(2);
+            Game fast = gameWithDarkMatter(4);                // l'élan suit la racine de la matière noire (0.307)
             fast.growDarkMatter(1000);
             assertEquals(slow.state().darkMatterSize().log10(), fast.state().darkMatterSize().log10(), 1e-9);
         }
@@ -467,18 +468,21 @@ class JeuExplosionTest extends GameTestSupport {
             game.state().setLevel("gen", 2);                  // trois générateurs : 0,75 particule par seconde
             assertEquals(1, game.darkMatterProgressFactor());
             game.state().setLevel("huge", 1);                 // vitesse ×1e30 : 7,5e29 particules par seconde
-            assertEquals(1 + Math.log10(7.5e29), game.darkMatterProgressFactor(), 1e-9);
-            assertEquals(UNIT * (1 + Math.log10(7.5e29)), game.darkMatterMomentum(), 1e-12);
+            // 1 + 3 × log10(1 + ordres de grandeur) depuis la 0.307 (1 + ordres de grandeur avant).
+            double progress = 1 + 3 * Math.log10(1 + Math.log10(7.5e29));
+            assertEquals(progress, game.darkMatterProgressFactor(), 1e-9);
+            assertEquals(UNIT * progress, game.darkMatterMomentum(), 1e-12);
         }
 
         @Test
         void laCroissanceSuitLesAtomesCrees() {
             Game game = gameWithDarkMatter(1);
             game.state().setTotalAtoms(BigNum.of(1000));
-            assertEquals(4, game.darkMatterProgressFactor(), 1e-9);   // 1 + 3 ordres de grandeur
-            assertEquals(4 * UNIT, game.darkMatterMomentum(), 1e-12);
+            double progress = 1 + 3 * Math.log10(4);         // 1 + 3 × log10(1 + 3 ordres de grandeur)
+            assertEquals(progress, game.darkMatterProgressFactor(), 1e-9);
+            assertEquals(progress * UNIT, game.darkMatterMomentum(), 1e-12);
             game.state().setAtoms(BigNum.ZERO);               // dépenser ses atomes ne ralentit rien
-            assertEquals(4, game.darkMatterProgressFactor(), 1e-9);
+            assertEquals(progress, game.darkMatterProgressFactor(), 1e-9);
         }
 
         @Test
@@ -488,7 +492,7 @@ class JeuExplosionTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) {
                 game.state().setElementCount(element.number(), element.category().maxCopies());
             }
-            assertTrue(game.darkMatterProgressFactor() > 4);  // les éléments gonflent la production
+            assertTrue(game.darkMatterProgressFactor() > 1 + 3 * Math.log10(4));  // les éléments gonflent la production
             game.explode();
             assertEquals(1, game.darkMatterProgressFactor()); // plus d'atomes, production de départ
         }
@@ -515,10 +519,10 @@ class JeuExplosionTest extends GameTestSupport {
         void plusIlYADeMatiereNoirePlusElleGrossitVite() {
             Game one = gameWithDarkMatter(1);
             Game four = gameWithDarkMatter(4);
-            assertEquals(4 * UNIT, four.darkMatterMomentum(), 1e-12);
+            assertEquals(2 * UNIT, four.darkMatterMomentum(), 1e-12);   // la racine de 4 (0.307)
             one.growDarkMatter(1);
             four.growDarkMatter(1);
-            assertValue(START * Math.pow(1 + 0.1 * 4 * UNIT, 10), four.state().darkMatterSize());
+            assertValue(START * Math.pow(1 + 0.25 * 2 * UNIT, 4), four.state().darkMatterSize());
             assertTrue(four.state().darkMatterSize().gt(one.state().darkMatterSize()));
         }
 
@@ -534,9 +538,9 @@ class JeuExplosionTest extends GameTestSupport {
 
         @Test
         void elleDepasseLUniversSansProbleme() {
-            Game game = gameWithDarkMatter(1_000_000);        // un élan de 3 000
-            game.growDarkMatter(100);
-            assertEquals(10 * Math.log10(1 + 0.1 * UNIT * 1e6 * 100) - 15, game.state().darkMatterSize().log10(), 1e-6);
+            Game game = gameWithDarkMatter(1_000_000);        // un élan de 100
+            game.growDarkMatter(1e10);
+            assertEquals(4 * Math.log10(1 + 0.25 * UNIT * 1e3 * 1e10) - 15, game.state().darkMatterSize().log10(), 1e-6);
             assertEquals("univers observable", SizeScale.reached(game.state().darkMatterSize()).name());
             assertEquals(null, SizeScale.next(game.state().darkMatterSize()));
         }
@@ -551,7 +555,7 @@ class JeuExplosionTest extends GameTestSupport {
             }
             assertTrue(game.explode());
             assertEquals(size, game.state().darkMatterSize());
-            assertEquals(2 * UNIT, game.darkMatterMomentum(), 1e-12); // deux matières noires maintenant
+            assertEquals(Math.sqrt(2) * UNIT, game.darkMatterMomentum(), 1e-12); // deux matières noires maintenant
         }
 
         @Test

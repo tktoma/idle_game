@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
@@ -25,7 +26,8 @@ import javafx.scene.layout.*;
  * <li>« Dimensions », dès le premier univers : dix points autour d'un onzième, une dimension de plus par univers ;
  * chacune ouvre sa fenêtre. Depuis la version 0.160, le défi final y montre l'avancée de chaque dimension vers son
  * palier ; les dix atteints pendant qu'on joue, la fin s'y joue seule, puis l'écran de fin ; « Revoir la fin » la
- * rejoue ;</li>
+ * rejoue. Version 0.312 : la carte y est seule, sans le bandeau, ses objectifs, ses pastilles, le chrono ni sa ligne
+ * d'infos ({@link #bare()}) ;</li>
  * </ul> Le sous-onglet « Vide » est parti à la version 0.142 : le vide se joue dans son onglet, et son cumul, dans la
  * graine, paie les bulles de l'arbre.
  */
@@ -54,7 +56,11 @@ public final class UniversePage extends VBox {
 
     // Sous-onglet « Univers »
     private final UniverseView view = new UniverseView();
-    private final Label resources = new Label();
+    /**
+     * Les univers au centre du bandeau (version 0.312) : « Univers : 3 », et dessous le palier de la graine et le bonus des
+     * univers formés. Ils étaient en haut de la sous-page Univers.
+     */
+    private final ResourceHead head = new ResourceHead("Univers", COLOR);
     /** Rouvrir les paliers : jouer la partie qui formera l'univers suivant. */
     private final Button next = new Button();
     private final Label nextLine = new Label();
@@ -83,8 +89,16 @@ public final class UniversePage extends VBox {
 
     // Sous-onglet « Graine d'univers »
     private final SeedView seedView = new SeedView();
-    private final Label seedLine = new Label();
-    private final Label voidCumul = new Label();
+    /**
+     * La graine au centre du bandeau sur sa sous-page (version 0.313) : « Graine d'univers : palier 11 sur 11 », le nom du
+     * palier dessous. C'était la grande ligne en haut de la sous-page, suivie d'une explication, partie elle aussi.
+     */
+    private final ResourceHead seedHead = new ResourceHead("Graine d'univers", SEED_COLOR);
+    /**
+     * L'énergie du vide accumulée : depuis la version 0.317, la ligne sous le titre du bandeau, sur la Graine (au-dessus
+     * de la graine avant ; le nom du palier y était).
+     */
+    private final Label voidCumul = seedHead.sub();
     /**
      * Où en est la graine (version 0.137 ; avant, le bouton qui la faisait germer puis l'arrosait) : l'arrosoir le
      * remplace, sur son étagère de la vue.
@@ -111,8 +125,7 @@ public final class UniversePage extends VBox {
         SubTabs.wire(true, this::select, this::refresh, mainTab, dimensionsTab, seedTab);
         subTabs.setAlignment(Pos.CENTER);
 
-        // « Univers » : les bulles, les ressources, le lancement de l'univers suivant.
-        resources.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
+        // « Univers » : les bulles et le lancement de l'univers suivant ; le nombre d'univers est dans le bandeau (0.312).
         CanvasPane holder = CanvasPane.filling(view);
         holder.setMinHeight(220);
         VBox.setVgrow(holder, Priority.ALWAYS);
@@ -137,7 +150,7 @@ public final class UniversePage extends VBox {
         nextLine.setMaxWidth(640);
         VBox nextBox = new VBox(4, nextLine);
         nextBox.setAlignment(Pos.CENTER);
-        mainPane = new VBox(8, resources, nextBox, holder);
+        mainPane = new VBox(8, nextBox, holder);
         mainPane.setAlignment(Pos.TOP_CENTER);
 
         // « Dimensions » : la carte, et une ligne.
@@ -149,19 +162,15 @@ public final class UniversePage extends VBox {
         });
         CanvasPane dimensionsHolder = CanvasPane.filling(dimensions);
         VBox.setVgrow(dimensionsHolder, Priority.ALWAYS);
+        // Version 0.312 : la carte seule, sans la ligne d'infos (son texte reste tenu à jour pour les vérifications).
+        dimensionsLine.setVisible(false);
+        dimensionsLine.setManaged(false);
         HBox dimensionsHead = new HBox(12, dimensionsLine, replayFinale);
         dimensionsHead.setAlignment(Pos.CENTER);
         dimensionsPane = new VBox(8, dimensionsHead, dimensionsHolder);
         dimensionsPane.setAlignment(Pos.TOP_CENTER);
 
         // « Graine d'univers » : le nombre, en grand, et la graine.
-        seedLine.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + SEED_COLOR + ";");
-        Label seedHint = new Label("La graine de l'univers, la seule. Débloquez l'arrosoir sur l'étagère, puis glissez-le sur la"
-                + " graine : penché sur elle, il l'arrose. Le premier arrosage la fait germer, les suivants la font grandir, et"
-                + " chaque palier ouvre un univers. Les ressources des dimensions paient ses améliorations, à gauche.");
-        seedHint.setWrapText(true);
-        seedHint.setMaxWidth(560);
-        seedHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8ab80; -fx-text-alignment: center;");
         CanvasPane seedHolder = CanvasPane.filling(seedView);
         VBox.setVgrow(seedHolder, Priority.ALWAYS);
         seedStatus.setStyle("-fx-font-size: 14px; -fx-text-fill: " + SEED_COLOR + "; -fx-text-alignment: center; -fx-alignment: center;");
@@ -182,9 +191,6 @@ public final class UniversePage extends VBox {
         seedView.setOnBloom(() -> { if (game.catchBloom()) refresh(); });
         VBox.setVgrow(seedStage, Priority.ALWAYS);
         // Le cumul du vide : ce qu'il restait d'énergie du vide à la formation de chaque univers.
-        voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
-        voidCumul.setWrapText(true);
-        voidCumul.setMaxWidth(620);
         seedUpgrades = new SeedUpgradesPane(game);
         ScrollPane upgradesScroll = new ScrollPane(seedUpgrades);
         upgradesScroll.setFitToWidth(true);
@@ -195,7 +201,8 @@ public final class UniversePage extends VBox {
         HBox.setHgrow(seedStage, Priority.ALWAYS);
         HBox seedRow = new HBox(10, upgradesScroll, seedStage);
         VBox.setVgrow(seedRow, Priority.ALWAYS);
-        seedPane = new VBox(8, seedLine, seedHint, voidCumul, seedStatus, seedRow);
+        voidCumul.setTooltip(new Tooltip());
+        seedPane = new VBox(8, seedStatus, seedRow);
         seedPane.setAlignment(Pos.TOP_CENTER);
 
         // Par-dessus les sous-pages : le lancement, et le bouton qui le déclenche, au centre comme celui du tout
@@ -246,6 +253,14 @@ public final class UniversePage extends VBox {
 
     public int selected() { return selected; }
 
+    /** Ce que la sous-page affichée met au centre du bandeau : la graine sur la sienne, les univers ailleurs. */
+    public ResourceHead head() { return selected == SEED ? seedHead : head; }
+
+    /**
+     * Vrai sur la sous-page Dimensions (version 0.312) : la carte y est seule, sans le bandeau, ses objectifs ni le chrono.
+     */
+    public boolean bare() { return selected == DIMENSIONS; }
+
     /** Passe au sous-onglet suivant ou précédent, en boucle, parmi ceux qui sont ouverts. */
     public void step(int direction) {
         List<Integer> shown = new ArrayList<>(List.of(MAIN, SEED));
@@ -263,18 +278,26 @@ public final class UniversePage extends VBox {
         dimensionsTab.setVisible(dims);
         dimensionsTab.setManaged(dims);
         if (selected == DIMENSIONS && !dims) select(MAIN);
-        resources.setText(universes + " univers"
-                + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
-                // Le bonus permanent des univers formés.
-                + (universes > 0 ? "   |   matière noire et sa croissance " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())) : ""));
+        int seed = game.seedStage();
+        List<String> below = new ArrayList<>();
+        if (seed > 0) below.add("graine : palier " + seed + " / " + Game.SEED_STAGES);
+        // Le bonus permanent des univers formés.
+        if (universes > 0) below.add("matière noire " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())));
+        if (universes > UniverseView.MAX_BUBBLES) below.add(UniverseView.MAX_BUBBLES + " dessinés");
+        // Version 0.317 : le nombre seul ; la graine, le bonus de matière noire et la partie en cours au survol.
+        head.set(String.valueOf(universes), "");
         boolean replaying = game.isReplaying();
         // Le deuxième univers attend la brindille de la graine ; il s'ouvre alors tout seul.
         boolean nextOpen = game.canOpenNextUniverse();
         next.setVisible(nextOpen && !launch.isPlaying());
         next.setText("Lancer l'univers " + (universes + 1));
-        nextLine.setText(replaying
-                ? "La partie de l'univers " + (universes + 1) + " est en cours, dans les anciens onglets : former l'univers, à la fin, le crée."
-                : !nextOpen ? nextStageLine(game.nextUniverseStage())
+        String playing = "La partie de l'univers " + (universes + 1) + " est en cours, dans les anciens onglets : former "
+                + "l'univers, à la fin, le crée.";
+        Labels.tip(head.value(), String.join("   |   ", below) + (replaying ? "\n\n" + playing : ""));
+        // Version 0.317 : pendant la partie de l'univers suivant, plus de ligne ; elle est au survol du nombre.
+        nextLine.setVisible(!replaying);
+        nextLine.setManaged(!replaying);
+        nextLine.setText(replaying ? "" : !nextOpen ? nextStageLine(game.nextUniverseStage())
                 : launch.isPlaying() ? "L'univers " + (universes + 1) + " se lance…"
                 : "La graine a atteint son palier " + game.nextUniverseStage() + ", " + Game.SEED_STAGE_NAMES.get(game.nextUniverseStage() - 1)
                         + " : cliquez « Lancer l'univers " + (universes + 1) + " ». " + "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant, et remet tout à zéro."
@@ -313,16 +336,18 @@ public final class UniversePage extends VBox {
         voidCumul.setVisible(!history.isEmpty() || bubbles);
         voidCumul.setManaged(voidCumul.isVisible());
         if (history.isEmpty()) {
-            voidCumul.setText("Énergie du vide accumulée : 0. Ce qu'il reste d'énergie du vide à la formation d'un univers "
-                    + "s'ajoute ici, et paie les bulles de l'arbre.");
+            voidCumul.setText("Énergie du vide accumulée : 0");
+            voidCumul.getTooltip().setText("Ce qu'il reste d'énergie du vide à la formation d'un univers s'ajoute ici, et paie "
+                    + "les bulles de l'arbre.");
         } else {
             StringBuilder each = new StringBuilder();
             history.forEach((universe, stock) -> each.append(each.length() == 0 ? "" : ", ").append("univers ").append(universe)
                     .append(" : ").append(Format.count(BigNum.of(stock))));
             // Elle paie les bulles de l'arbre ; la ligne dit ce qu'il en reste à dépenser.
-            voidCumul.setText("Énergie du vide accumulée : " + Format.count(BigNum.of(game.voidAccumulated())) + " (" + each
-                    + "), ce qu'il restait à la formation de chaque univers. À dépenser pour les bulles de l'arbre : "
-                    + Format.count(BigNum.of(game.voidAvailable())) + ".");
+            // Version 0.313 : le total seul ; le détail par univers et ce qu'il reste à dépenser, au survol.
+            voidCumul.setText("Énergie du vide accumulée : " + Format.count(BigNum.of(game.voidAccumulated())));
+            voidCumul.getTooltip().setText("Par univers : " + each + ", ce qu'il restait à la formation de chacun. À dépenser "
+                    + "pour les bulles de l'arbre : " + Format.count(BigNum.of(game.voidAvailable())) + ".");
         }
         // Il n'y a qu'une graine : pas de compteur, la graine est là dès que l'univers est formé.
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
@@ -333,7 +358,7 @@ public final class UniversePage extends VBox {
         int stage = game.seedStage();
         seedView.setStage(stage);
         long nextWaterings = Game.seedStageWaterings(Math.min(Game.SEED_STAGES, stage + 1));
-        seedLine.setText("La graine d'univers : palier " + stage + " sur " + Game.SEED_STAGES + ", " + Game.SEED_STAGE_NAMES.get(stage - 1));
+        seedHead.set("palier " + stage + " sur " + Game.SEED_STAGES, voidCumul.getText());
         String can = game.isWateringCanUnlocked() ? "" : "Débloquez l'arrosoir sur l'étagère. ";
         String pace = " (arrosoir : " + Format.darkMatter(BigNum.of(game.wateringCanRate())) + " par seconde"
                 + (game.hasHose() ? ", tuyau : " + Format.darkMatter(BigNum.of(game.hoseRate())) + " par seconde" : "")
@@ -402,6 +427,9 @@ public final class UniversePage extends VBox {
 
     /** La ligne au-dessus de la carte des dimensions : pour les vérifications. */
     public String dimensionsLineText() { return dimensionsLine.getText(); }
+
+    /** Vrai si la ligne d'infos au-dessus de la carte se voit : pour les vérifications. */
+    public boolean dimensionsLineVisible() { return dimensionsLine.isVisible(); }
 
     /**
      * Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120 ;

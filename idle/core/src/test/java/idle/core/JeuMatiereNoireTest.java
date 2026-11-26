@@ -447,10 +447,10 @@ class JeuMatiereNoireTest extends GameTestSupport {
         }
 
         @Test
-        void ellesSontSixEtHorsDeLArbre() {
+        void ellesSontCinqEtHorsDeLArbre() {
             Game game = gameWithDarkMatter(1);
             List<DarkUpgrade> shop = game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER);
-            assertEquals(6, shop.size());
+            assertEquals(5, shop.size());   // six avant la 0.307 : Achat groupé est ouvert d'office
             for (DarkUpgrade dark : shop) {
                 assertFalse(dark.branch().inTree());
                 assertEquals(null, dark.requires());
@@ -459,7 +459,8 @@ class JeuMatiereNoireTest extends GameTestSupport {
             }
             game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);
             for (DarkUpgrade dark : shop) assertTrue(game.isDarkAvailable(dark.id()), dark.id());
-            assertEquals(19, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());   // six cases du seuil du Big Bang en 0.097
+            // Six cases du seuil du Big Bang en 0.097 ; trois passées aux atomes et à la taille en 0.319.
+            assertEquals(16, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());
         }
 
         @Test
@@ -579,7 +580,23 @@ class JeuMatiereNoireTest extends GameTestSupport {
             assertValue(Game.UNLOCK_TOTAL_ATOMS.toDouble(), game.state().totalAtoms());
             assertTrue(game.isAutomationUnlocked());
             assertTrue(game.isPeriodicTableUnlocked());
-            assertValue(0, game.state().atoms());
+            // Version 0.307 : autant d'atomes en main, sans le plafond de 30.
+            assertValue(50, game.darkHeadStartHand());
+            assertValue(50, game.state().atoms());
+        }
+
+        /** Version 0.307 : les atomes en main du départ lancé ne dépassent jamais le plafond d'atomes, ni pendant un défi. */
+        @Test
+        void departLanceMetDesAtomesEnMainSousLePlafond() {
+            Game game = gameWithDarkMatter(3);
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord
+            assertTrue(game.buyDark("dark_shop_start"));
+            assertValue(15, game.darkHeadStartHand());
+            assertEquals(0, game.state().atoms().toDouble(), 1e-9, "l'achat ne donne rien en main : seule l'explosion le fait");
+            game.state().setDarkMatter(BigNum.of(1000));     // gagnée = en main + dépensée
+            assertValue(game.atomCap().toDouble(), game.darkHeadStartHand());
+            game.state().setDarkLevel("dark_shop_start", 0);
+            assertValue(0, game.darkHeadStartHand());
         }
     }
 

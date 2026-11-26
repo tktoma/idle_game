@@ -77,6 +77,7 @@ public final class GameState extends GameStateResets {
         data.put("darkMatter", darkMatter);
         data.put("darkMatterSpent", darkMatterSpent);
         data.put("darkMatterSize", darkMatterSize);
+        data.put("darkMatterReach", darkMatterReach);
         data.put("explosions", explosions);
         data.put("tableWeightLevel", tableWeightLevel);
         data.putInts("darkUpgradeLevels", new TreeMap<>(darkUpgradeLevels));
@@ -350,6 +351,9 @@ public final class GameState extends GameStateResets {
         setDarkMatter(data.big("darkMatter", BigNum.ZERO));
         setDarkMatterSpent(data.big("darkMatterSpent", BigNum.ZERO));
         setDarkMatterSize(data.big("darkMatterSize", Game.DARK_MATTER_START_SIZE));
+        // Une sauvegarde d'avant la 0.307 n'a pas de taille atteinte : c'est sa taille.
+        darkMatterReach = darkMatterSize;
+        resetDarkMatterReach(data.big("darkMatterReach", darkMatterSize));
         setExplosions(data.whole("explosions", 0));
         setTableWeightLevel(data.whole("tableWeightLevel", 0));
         data.ints("darkUpgradeLevels").forEach(this::setDarkLevel);

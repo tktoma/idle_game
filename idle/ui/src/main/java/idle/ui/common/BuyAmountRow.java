@@ -8,7 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
 /**
- * La rangée « Quantité par achat » : un niveau, dix, ou tout ce qui est à portée. Les particules et les atomes ont
+ * La rangée « Quantité » (« Quantité par achat » jusqu'à la 0.308) : un niveau, dix, ou tout ce qui est à portée. Les particules et les atomes ont
  * chacun la leur, qui règlent le même choix ({@link Settings#buyAmount()}) ; seule la couleur du bouton éclairé change.
  */
 public final class BuyAmountRow extends HBox {
@@ -24,7 +24,7 @@ public final class BuyAmountRow extends HBox {
     /** Le libellé, puis un bouton par quantité, qui la choisit puis rafraîchit la page. */
     public BuyAmountRow(Settings settings, Runnable refresh) {
         super(6);
-        Label label = new Label("Quantité par achat :");
+        Label label = new Label("Quantité :");
         label.setStyle(Labels.NOTE_STYLE);
         getChildren().add(label);
         setAlignment(Pos.CENTER);

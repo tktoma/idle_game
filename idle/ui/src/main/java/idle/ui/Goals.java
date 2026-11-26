@@ -15,7 +15,7 @@ import idle.core.upgrades.*;
 
 /**
  * Le prochain grand pas de la partie, en une phrase, et le temps qu'il demande quand le jeu peut
- * l'estimer. Sert à la ligne d'objectif sous les onglets et à l'onglet Statistiques.
+ * l'estimer. Sert aux objectifs du bandeau, en haut à gauche ({@link #lines}), et à l'onglet Statistiques.
  */
 public final class Goals {
     /**
@@ -23,7 +23,7 @@ public final class Goals {
      * son propre réglage, d'avant ({@code Settings.chrono}).
      */
     public enum Part {
-        GOAL("L'objectif de la partie", "Le prochain grand pas : la première fusion, l'explosion, le Big Bang…"),
+        GOAL("L'objectif de la partie", "Le prochain grand pas de la partie."),
         ESTIMATE("Le temps qu'il demande", "Ce qui sépare de l'objectif, quand le jeu peut l'estimer : fusions, synthèse, générateur."),
         BIG_BANG("Le prochain Big Bang", "Les conditions du prochain Big Bang, sans ouvrir l'arbre."),
         ACT("Le troisième acte", "Le prochain pas du ciel, après le premier Big Bang."),
@@ -66,6 +66,73 @@ public final class Goals {
         String next = shown.test(Part.PACE) ? pace(pace) : "";
         if (!next.isEmpty()) parts.add(next);
         return String.join("   |   ", parts);
+    }
+
+    /** Une ligne d'objectif du bandeau : le texte court, et le texte complet montré au survol. */
+    public record Line(String brief, String full) {}
+
+    /**
+     * Les objectifs du bandeau, version 0.309 : les mêmes morceaux que {@link #line}, une ligne courte chacun (« Objectif :
+     * le Big Bang », « Acte 3 : autres assemblages », « Record galaxie : 14 h 37 »), le texte de toujours au survol.
+     */
+    public static List<Line> lines(Game game, Predicate<Part> shown, Pace pace) {
+        List<Line> lines = new ArrayList<>();
+        if (shown.test(Part.GOAL)) {
+            lines.add(new Line("Objectif : " + brief(game),
+                    "Objectif : " + (shown.test(Part.ESTIMATE) ? withEstimate(game, game.stats()) : next(game))));
+        }
+        String bang = shown.test(Part.BIG_BANG) ? NextReset.bigBangProgress(game) : "";
+        if (!bang.isEmpty()) {
+            lines.add(new Line("Big Bang : " + game.bigBangConditionsMet() + "/" + game.bigBangConditions().size(),
+                    "Prochain Big Bang : " + bang));
+        }
+        String act = shown.test(Part.ACT) ? act(game) : "";
+        if (!act.isEmpty()) {
+            lines.add(game.hasCosmos(Cosmos.UNIVERSE) ? new Line("Acte 4 : la suite", "Quatrième acte : la suite viendra")
+                    : new Line("Acte 3 : " + briefAct(game, act), "Troisième acte : " + act));
+        }
+        String chrono = shown.test(Part.CHRONO) ? chrono(game) : "";
+        if (!chrono.isEmpty()) {
+            GameStats.Step step = game.nextStep();
+            lines.add(new Line("Record " + Character.toLowerCase(step.label().charAt(0)) + step.label().substring(1) + " : "
+                    + Format.duration(game.recordOf(step)), chrono));
+        }
+        String next = shown.test(Part.PACE) ? pace(pace) : "";
+        if (!next.isEmpty()) lines.add(new Line(pace.step().label() + " : " + Format.wait(pace.secondsLeft()), next));
+        return lines;
+    }
+
+    /** Le prochain grand pas en quelques mots : « le Big Bang », « 118 éléments (96) », « les 10 générateurs ». */
+    static String brief(Game game) {
+        if (!game.isStarted()) return "un premier générateur";
+        if (game.canBigBang()) return "le Big Bang";
+        if (game.canExplode()) return "l'explosion";
+        if (game.isPeriodicTableUnlocked()) {
+            if (!game.isSynthesisAutomationUnlocked()) return "un élément unique ★";
+            return PeriodicTable.ELEMENTS.size() + " éléments (" + game.discoveredElements() + ")";
+        }
+        if (game.state().totalAtoms().sign() > 0) return Format.count(Game.UNLOCK_TOTAL_ATOMS) + " atomes";
+        if (!game.hasAllGenerators()) return "les " + game.generatorsPerAtom() + " générateurs";
+        return "un premier atome";
+    }
+
+    /**
+     * Le pas du troisième acte en quelques mots : la phrase de {@link #act} sans ce qui vient après la première parenthèse
+     * ou la première virgule ; l'attente du rassemblement, elle, devient « rassemblement, 12 min ».
+     */
+    static String briefAct(Game game, String act) {
+        Cosmos scale = game.nextCosmos();
+        if (scale != null && act.startsWith("attendre que ")) {
+            return "rassemblement, " + (long) Math.ceil(game.cosmosSettleRemaining(scale) / 60) + " min";
+        }
+        if (act.startsWith("former d'autres ")) return act.substring("former d'".length());
+        if (act.startsWith("créer d'autres ")) return act.substring("créer d'".length());
+        int cut = act.length();
+        for (String mark : List.of(" (", ", ")) {
+            int at = act.indexOf(mark);
+            if (at > 0) cut = Math.min(cut, at);
+        }
+        return act.substring(0, cut);
     }
 
     /** Le prochain grand pas de la partie en cours, sans estimation de temps. */

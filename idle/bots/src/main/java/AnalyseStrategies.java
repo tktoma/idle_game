@@ -42,6 +42,7 @@ final class AnalyseStrategies {
         if (next.cycle() != null) champ(bot.nextUniverse, NextUniversePolicy.class, "cycle", next.cycle());
         champ(bot.voidPolicy, VoidPolicy.class, "style", IdleProfiles24.VOID_STYLES[s.profil() - 1]);
         champ(bot.tree, UniverseTreePolicy.class, "style", IdleProfiles24.treeStyle(profile, early));
+        bot.tree.reference = profile.id() == 1;
     }
 
     private static void champ(Object target, Class<?> type, String name, Object value) {

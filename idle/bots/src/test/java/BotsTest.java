@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
+import idle.core.darkmatter.SizeScale;
 import idle.core.bigbang.BangChallenge;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
@@ -403,6 +404,26 @@ class BotsTest {
         g.state().setParticles(BigNum.pow10(0.91 * g.bigBangParticles().log10()));
         assertTrue(FirstUniversePolicy.particlesNear(g), "à 91 % des ordres de grandeur");
         assertTrue(FirstUniversePolicy.savingForBigBang(g));
+    }
+
+    @Test
+    void leMoinsCherLeveLePlafondDAtomesPendantLaPreparationDuBigBang() throws Exception {
+        // Correctif 0.305 : en préparation du dernier Big Bang, le moins cher sautait toutes les cases hors matière
+        // noire, y compris celles de la taille, qui ne dépensent rien. Débordement ne s'achetait jamais : les atomes
+        // restaient sous le plafond, loin de ceux du Big Bang (Un clic bloqué plus de 500 h à l'univers 8).
+        Game g = load(FIFTH_BANG);
+        ready(g);
+        g.state().setAtoms(BigNum.ZERO);
+        g.state().setDarkLevel("dark_spontaneous", 3);
+        g.state().setDarkLevel("dark_condensation", 2);
+        g.state().setDarkLevel("dark_overflow", 0);
+        g.state().setDarkMatterSize(SizeScale.LIGHT_YEAR.multiply(1e20));
+        assertTrue(FirstUniversePolicy.finalBangPreparation(g));
+        assertFalse(g.isAtomCapLifted());
+        assertTrue(g.canBuyDark("dark_overflow"));
+        FirstUniversePolicy.cheapestDark(g, 50);
+        assertTrue(g.isAtomCapLifted(), "Débordement acheté");
+        assertTrue(g.state().darkMatter().gte(g.bigBangDarkMatter()), "la réserve du Big Bang reste");
     }
 
     /** Tout est prêt pour un Big Bang sans ciel exigé (quatre Big Bangs), avec 1e13 atomes et la fusion automatique. */

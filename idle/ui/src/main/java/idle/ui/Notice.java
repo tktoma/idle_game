@@ -9,9 +9,9 @@ package idle.ui;
 public enum Notice {
     START("Premier élan", "La création qui prend de l'élan, au tout début."),
     ELEMENTS("Éléments et ensembles", "Un élément nouveau, un ensemble à moitié ou tout réuni."),
-    AUTOMATION("Automatismes", "Le tableau et l'automatisation ouverts, la synthèse automatique, un automatisme offert ou de matière noire."),
+    AUTOMATION("Automatismes", "Le tableau et l'automatisation ouverts, la synthèse automatique, un automatisme offert."),
     EXPLOSION("Explosions", "Le tableau qui peut exploser, et ce qu'une explosion a rapporté."),
-    MILESTONES("Paliers de vitesse et de taille", "Les paliers de vitesse des particules et de taille de la matière noire."),
+    MILESTONES("Paliers de vitesse et de taille", "Les paliers de vitesse des particules, et ceux qui viennent ensuite."),
     CHALLENGES("Défis de matière noire", "Un défi qui s'ouvre, un défi réussi."),
     COLLIDER("Collisionneur", "Le quark top, les améliorations qui s'ouvrent, l'énergie des trous noirs, les hadrons qui se proposent, les paliers de gluons."),
     BIG_BANG("Big Bang et ses défis", "Chaque Big Bang, et les défis de Big Bang commencés ou réussis."),
@@ -22,10 +22,10 @@ public enum Notice {
     SKY_EVENTS("Anomalies du ciel", "Les petites anomalies de l'expansion (les masquer dans le jeu les tait aussi)."),
     PROBES("Sondes", "Une sonde revenue, son butin à prendre."),
     VOID("Le vide", "Le vide qui se propose, son trou noir, ses améliorations au plus haut."),
-    ACHIEVEMENTS("Succès", "Les succès, ceux du collisionneur et ceux du Big Bang."),
+    ACHIEVEMENTS("Succès", "Les succès obtenus, de toutes sortes."),
     TITLES("Titres du profil", "Un titre obtenu, à porter dans l'onglet Profil."),
     RECORDS("Records", "Un record de temps battu sur une étape."),
-    COSMETICS("Skins, thèmes et notations", "Un skin, un thème ou une notation débloqué."),
+    COSMETICS("Thèmes, notations et apparences", "Un thème, une notation ou une apparence débloqués."),
     FINAL("Défi final", "Un palier du défi final atteint, et la fin de la partie."),
     GAME("Partie et sauvegarde", "Ce que dit une partie chargée ou réparée.");
 

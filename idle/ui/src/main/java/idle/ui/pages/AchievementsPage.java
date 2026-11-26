@@ -16,6 +16,7 @@ import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
+import idle.ui.Seen;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -45,6 +46,9 @@ import javafx.scene.layout.VBox;
  */
 public final class AchievementsPage extends VBox {
     private final Game game;
+    /** Ce que le joueur a déjà vu : un succès pas encore obtenu d'une étape jamais vue ne se montre pas (version 0.318). */
+    private Seen.Memory seen = Seen.Memory.none();
+    private final TileGrid grid = new TileGrid(150, 5, 6);
     private final Label countLabel = new Label();
     private final Label bonusLabel = new Label();
     private final Label hintLabel = new Label();
@@ -73,7 +77,7 @@ public final class AchievementsPage extends VBox {
                 + "récompensent une action précise et portent en plus un bonus à elles. L'ordre est celui où on les "
                 + "obtient d'ordinaire ; survolez une tuile pour lire ce qu'elle demande.");
 
-        TileGrid grid = new TileGrid(150, 5, 6);
+
         grid.setMaxWidth(820);
         grid.setPadding(new Insets(8, 0, 0, 0));
         for (Achievement achievement : game.achievements()) {
@@ -132,6 +136,9 @@ public final class AchievementsPage extends VBox {
         else drawnOwned.put(tile, owned);
     }
 
+    /** Le souvenir de ce que le joueur a vu, gardé dans les réglages. */
+    public void setSeen(Seen.Memory memory) { this.seen = memory; }
+
     /** Recopie l'état des succès dans le compte, le bilan des bonus et les tuiles. */
     public void refresh() {
         refreshCollider();
@@ -147,6 +154,8 @@ public final class AchievementsPage extends VBox {
             Achievement achievement = entry.getKey();
             Card tile = entry.getValue();
             boolean owned = game.hasAchievement(achievement.id());
+            Seen step = Seen.of(achievement);
+            grid.show(tile, owned || step == null || seen.has(step, game));
             String own = AchievementText.bonus(achievement);
             // Un succès à bonus propre est d'or quel que soit son rang ; les étapes vont du bronze à l'or dans l'ordre.
             icon(tile, owned, achievement.hasBonus() ? tiles.size() : rank + 1, tiles.size(),

@@ -178,6 +178,8 @@ public final class Card extends VBox {
     private boolean inlinePicture = false;
     /** L'apparence déjà appliquée (état, survol, cliquable), pour ne pas la recalculer à chaque image. */
     private int painted = 0;
+    /** Diamètre d'une carte ronde (la fusion, version 0.314) ; 0 : une carte ordinaire. */
+    private double round = 0;
     /** La clé du dernier remplissage ({@link #filledWith(long)}). */
     private long filled = Long.MIN_VALUE;
     /** Vrai si tenir le clic répète l'action ({@link #setRepeats(boolean)}). */
@@ -519,6 +521,41 @@ public final class Card extends VBox {
         node.setManaged(visible);
     }
 
+    /**
+     * Fait de la carte un rond de ce diamètre, son texte centré (version 0.314 : la fusion, à droite des améliorations des
+     * particules ; depuis la 0.316, son nombre et sa touche dans le rond, au-dessus du titre). Le skin des cartes garde ses
+     * couleurs ; seule la forme change.
+     */
+    public void setRound(double diameter) {
+        round = diameter;
+        setMinSize(diameter, diameter);
+        setPrefSize(diameter, diameter);
+        setMaxSize(diameter, diameter);
+        setAlignment(Pos.CENTER);
+        setPadding(new Insets(10, 16, 10, 16));
+        head.setAlignment(Pos.CENTER);
+        foot.setAlignment(Pos.CENTER);
+        // Version 0.316 : le coin (le nombre) et la marque (la touche) se resserrent au milieu, au-dessus du titre, au lieu
+        // d'aller aux bords de la carte, que le rond coupait ; le texte descend d'autant, le tout centré.
+        // Et l'espace qui pousse le prix tout en bas ne pousse plus rien : le contenu reste groupé au centre du rond.
+        for (javafx.scene.Node node : getChildren()) if (node.getClass() == Region.class) VBox.setVgrow(node, Priority.NEVER);
+        for (HBox row : new HBox[] {head, foot}) {
+            row.setMaxWidth(USE_PREF_SIZE);
+            for (javafx.scene.Node node : row.getChildren()) {
+                if (node.getClass() == Region.class) {
+                    HBox.setHgrow(node, Priority.NEVER);
+                    ((Region) node).setPrefWidth(14);
+                }
+            }
+        }
+        for (Label label : new Label[] {title, line, detail, price}) {
+            label.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            label.setAlignment(Pos.CENTER);
+        }
+        painted = 0;
+        paint();
+    }
+
     /** Colore la carte d'après son état, et un peu plus fort sous la souris quand elle est cliquable. */
     private void paint() {
         boolean lit = hovered && isClickable();
@@ -685,7 +722,7 @@ public final class Card extends VBox {
             }
         }
         dress(skin);
-        setStyle(box);
+        setStyle(round > 0 ? box + " -fx-background-radius: " + round / 2 + "; -fx-border-radius: " + round / 2 + ";" : box);
         corner.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiet + ";" + font);
         if (mirror != null) mirror.setStyle(corner.getStyle());
         mark.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 0 6; -fx-background-radius: 3;"

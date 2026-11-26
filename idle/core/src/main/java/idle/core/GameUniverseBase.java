@@ -156,8 +156,8 @@ public abstract class GameUniverseBase extends GameAtoms {
      * <p>Les prix suivent l'énergie du vide de la partie, comme les bulles de l'arbre. Le premier niveau
      * coûte de l'ordre des premières bulles (500 à 5 000, la graine en vaut 5 200), le dernier de l'ordre des dernières
      * (70 000 à 600 000, l'arbre-monde vaut 69 300 et les derniers rachats 400 000 à 840 000) ; chaque niveau entre les
-     * deux multiplie le prix d'autant. Le gain par paire n'a plus de niveau sans fin : quinze au plus. Le rassemblement et
-     * la maturation raccourcissent de moitié au plus.
+     * deux multiplie le prix d'autant. Le gain par paire n'a plus de niveau sans fin : quinze au plus. La maturation
+     * raccourcit de moitié au plus, le rassemblement de 70 % depuis la version 0.302.
      *
      * <p>Le premier niveau dix fois moins cher (50 à 500), à la portée de l'énergie d'un seul univers,
      * puisque les améliorations du vide repartent de zéro à chaque univers ; le dernier trente fois plus cher (2,1 à
@@ -168,7 +168,7 @@ public abstract class GameUniverseBase extends GameAtoms {
      */
     public enum VoidUpgrade implements Priced {
         GAIN(50, 12_000_000, 15), RATE(80, 15_000_000, 20), ENERGY(60, 9_000_000, 15), SPACE(60, 9_000_000, 15),
-        DECAY(100, 18_000_000, 15), LIGHTEN(200, 6_000_000, 10), MATURE(150, 4_500_000, 10), SETTLE(500, 2_100_000, 5);
+        DECAY(100, 18_000_000, 15), LIGHTEN(200, 6_000_000, 10), MATURE(150, 4_500_000, 10), SETTLE(500, 20_000_000, 7);
 
         final Price price;
 
@@ -220,7 +220,9 @@ public abstract class GameUniverseBase extends GameAtoms {
 
     /**
      * Ce que chaque niveau de rassemblement du vide retire au délai de l'amas et de l'univers : 10 % depuis la version 0.169
-     * (16 % depuis la 0.132), cinq niveaux, −50 % au plus.
+     * (16 % depuis la 0.132), sept niveaux depuis la 0.302 (cinq avant), −70 % au plus. Les prix vont de 500 à
+     * 20 millions (500, 2 924, 17 100, 100 000, 584 805, 3.4 millions, 20 millions ; 500 à 2.1 millions avant) : l'énergie du vide dormait à la fin des parties (3 184 fois le prix de la bulle la moins chère
+     * à partir de l'univers 7, relevé par le bot analyste), elle paie maintenant le rassemblement des derniers univers.
      */
     public static final double VOID_SETTLE_STEP = 0.10;
 
@@ -788,11 +790,21 @@ public abstract class GameUniverseBase extends GameAtoms {
     public static final double CHRONO_LOSS_STEP = 0.1, CHRONO_LOSS_CUT = 0.85, CHRONO_LOSS_MAX = 0.9;
 
     /**
-     * Temps de jeu qu'il faut laisser à l'échelle d'avant pour se rassembler avant de former l'amas,
-     * puis l'univers : deux heures chacun depuis la version 0.125 (45 minutes avant). Un joueur qui réunit la matière plus vite
-     * attend ; l'infatigable, qui met déjà près d'une heure à chaque échelle, ne le voit pas.
+     * Le délai de base de chaque univers, en minutes, avant le vide : le temps de jeu qu'il faut laisser à l'échelle
+     * d'avant pour se rassembler avant de former l'amas, puis l'univers. Un joueur qui réunit la matière plus vite attend.
+     * L'indice est le nombre d'univers déjà formés (le dernier vaut pour le défi final). Version 0.302 : il remplace les
+     * deux heures de partout (de la 0.125 à la 0.301 ; 45 minutes avant). Aux univers 8 à 10, le bot analyste ne prend
+     * que 5 ou 6 niveaux d'Assise : ce délai y fixe seul la fin de l'univers, d'où les valeurs plus basses. Il est calé pour que
+     * le Speedrunner à vitesse humaine (le bot analyste, une décision toutes les 5 s) forme les onze univers aux temps
+     * visés (20, 15, 11, 7, 6.5, 6, 4.5, 3, 2.5, 2 et 1.5 h de jeu) : plus court au premier univers, plus long ensuite
+     * là où le jeu ne laisse plus rien d'autre à faire que d'attendre. Le vide le raccourcit d'autant ({@link #settleShare()}).
+     * Version 0.307 : recalé après la refonte de la matière noire et les nouveaux seuils du premier Big Bang, qui
+     * raccourcissaient les univers 1 à 3 et 8 à 10 (112, 146, 111, 115, 108, 115, 160, 150, 150, 146 et 145 avant).
      */
-    public static final double COSMOS_SETTLE_SECONDS = 120 * 60;
+    static final double[] SETTLE_MINUTES = {123, 158, 160, 117, 110, 115, 165, 173, 183, 165, 145};
+
+    /** Le délai de rassemblement de base de l'univers en cours, avant le vide, en secondes de jeu. */
+    public double cosmosSettleSeconds() { return SETTLE_MINUTES[Math.min(universes(), SETTLE_MINUTES.length - 1)] * 60; }
 
     final Map<Molecule.State, Integer> sortsByState = new EnumMap<>(Molecule.State.class);
 

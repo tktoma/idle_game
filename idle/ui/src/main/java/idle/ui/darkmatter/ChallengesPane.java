@@ -209,14 +209,17 @@ public final class ChallengesPane extends VBox {
     void refresh() {
         dressCards();
         Challenge active = game.activeChallenge();
-        intro.setText(game.completedChallenges() + " / " + game.challenges().size() + " réussis. "
-                + "Une partie rejouée de zéro avec une contrainte ; l'explosion la réussit."
+        // Version 0.315 : le compte seul ; la règle des défis passe au survol.
+        String count = game.completedChallenges() + " / " + game.challenges().size() + " réussis";
+        if (!count.equals(intro.getText())) intro.setText(count);
+        String rule = "Une partie rejouée de zéro avec une contrainte ; l'explosion la réussit."
                 + Detail.only(" Un défi se joue sans les mémoires de la matière noire : rien n'est gardé de la partie "
                         + "précédente, rien n'est offert au départ, et le tableau y retrouve sa masse du début. Ce que "
                         + "l'arbre multiplie reste acquis. La première réussite rapporte la matière noire de l'explosion "
                         + "et laisse une récompense définitive ; rejoué, un défi ne compte plus que pour son temps. "
                         + "Tenté dès son ouverture, un défi est souvent plus court qu'une partie ordinaire, dont le "
-                        + "tableau s'alourdit à chaque explosion."));
+                        + "tableau s'alourdit à chaque explosion.");
+        Labels.tip(intro, rule);
 
         // La fuite ne se montre que dans le deuxième univers, les dix autres réussis ; pendant son arrivée, c'est l'animation qui décide.
         if (reveal < 0) grid.show(cards.get(Challenges.LEAK), game.isLeakChallengeShown());

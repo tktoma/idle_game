@@ -1,5 +1,6 @@
 package idle.ui.bigbang;
 
+import idle.ui.common.ResourceHead;
 import idle.ui.common.SubTabs;
 
 import idle.core.Game;
@@ -39,7 +40,7 @@ public abstract class BigBangPageBase extends VBox {
         this.game = game;
         this.spaceView = new SpaceView(game);
         this.shoppingPane = new ShoppingPane(game, this::refresh);
-        this.rateBreakdown = Breakdown.attach(rateLabel, game, Breakdown.Of.SPACE);
+        this.rateBreakdown = Breakdown.attach(spaceHead.sub(), game, Breakdown.Of.SPACE);
         this.bangChallenges = new BangChallengesPane(game, this::refresh);
         this.bodiesPane = new BodiesPane(game, this::refresh);
         this.bodiesScroll = new ScrollPane(bodiesPane);
@@ -60,9 +61,6 @@ public abstract class BigBangPageBase extends VBox {
         });
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 16, 24));
-
-        countLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        Labels.centered(sinceLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
         moleculesTab.setOnAction(event -> select(0));
         expansionTab.setOnAction(event -> select(EXPANSION));
@@ -99,7 +97,6 @@ public abstract class BigBangPageBase extends VBox {
         // catalogue, l'impulsion, le meilleur achat et le tri, puis les cartes du rayon choisi.
         moleculesPane.setAlignment(Pos.TOP_CENTER);
         moleculesPane.setPadding(new Insets(10, 0, 10, 0));
-        Labels.note(moleculesIntro, 760);
         FlowPane chips = new FlowPane(6, 6);
         chips.setAlignment(Pos.CENTER);
         favoritesChip.setFocusTraversable(false);
@@ -126,7 +123,13 @@ public abstract class BigBangPageBase extends VBox {
         useFilter = moleculeFilter.group("Toutes", useNames);
         Labels.note(moleculesFound, 760);
         gridHolder.setMaxWidth(900);
-        moleculesPane.getChildren().add(moleculesIntro);
+        // Version 0.315 : en haut des molécules, les deux boutons d'achat puis le choix du cycle, sur une ligne ; la
+        // recherche, les états à sa droite et les usages sous les états.
+        actionRow.setAlignment(Pos.CENTER);
+        actionRow.setMaxWidth(900);
+        FlowPane.setMargin(cycleRow, new Insets(0, 0, 0, 24));
+        moleculesPane.getChildren().add(actionRow);
+        moleculeFilter.besideField();
         moleculesPane.getChildren().add(moleculeFilter);
         Labels.centered(needsLabel, "-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         needsLabel.setMaxWidth(760);
@@ -147,16 +150,10 @@ public abstract class BigBangPageBase extends VBox {
             sortShownGrid();
             refresh();
         });
-        bestBar.setAlignment(Pos.TOP_LEFT);
-        bestBar.setMaxWidth(BigBangPage.BEST_BAR_WIDTH);
         bestButton.setMinWidth(BigBangPage.BEST_BUTTON_WIDTH);
-        bestLabel.setWrapText(true);
-        bestLabel.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(bestLabel, Priority.ALWAYS);
-        StableHeight.of(bestBar);
-        pulseBar.setAlignment(Pos.CENTER);
-        moleculesPane.getChildren().add(pulseBar);
-        moleculesPane.getChildren().add(bestBar);
+        Labels.centered(bestLabel, "-fx-font-size: 12px; -fx-text-fill: #ffe9c2;");
+        bestLabel.setMaxWidth(BigBangPage.BEST_BAR_WIDTH);
+        moleculesPane.getChildren().add(StableHeight.of(bestLabel));
         createShownButton.setStyle(ZOOM_STYLE);
         createShownButton.setFocusTraversable(false);
         createShownButton.setOnAction(event -> {
@@ -171,9 +168,6 @@ public abstract class BigBangPageBase extends VBox {
         // L'expansion : les nombres, la vue de l'espace, et de quoi s'en approcher ou s'en éloigner.
         expansionPane.setAlignment(Pos.TOP_CENTER);
         expansionPane.setPadding(new Insets(10, 0, 0, 0));
-        spaceLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #fffaf0;");
-        Labels.centered(rateLabel, "-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        Labels.note(expansionNote, 760);
         zoomOut.setOnAction(event -> spaceView.zoom(1 / SpaceView.ZOOM_STEP));
         zoomIn.setOnAction(event -> spaceView.zoom(SpaceView.ZOOM_STEP));
         zoomAll.setOnAction(event -> spaceView.fit());
@@ -206,8 +200,6 @@ public abstract class BigBangPageBase extends VBox {
         CanvasPane viewPane = CanvasPane.filling(spaceView);
         VBox.setVgrow(viewPane, Priority.ALWAYS);
         spaceView.setStyle("-fx-cursor: open-hand;");
-        expansionPane.getChildren().add(spaceLabel);
-        expansionPane.getChildren().add(rateLabel);
         cometButton.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6;"
                 + " -fx-border-radius: 6; -fx-text-fill: #10151f; -fx-background-color: #bfe6f2; -fx-border-color: #ffffff;");
         cometButton.setFocusTraversable(false);
@@ -216,7 +208,6 @@ public abstract class BigBangPageBase extends VBox {
             Readiness.of(game).compute();
             refresh();
         });
-        expansionPane.getChildren().add(expansionNote);
         expansionPane.getChildren().add(cometButton);
         skyEventButton.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6;"
                 + " -fx-border-radius: 6; -fx-text-fill: #10151f; -fx-background-color: #d9c8ff; -fx-border-color: #ffffff;");
@@ -233,7 +224,6 @@ public abstract class BigBangPageBase extends VBox {
         // Les améliorations d'espace : une carte chacune, montrée quand elle devient accessible.
         upgradesPane.setAlignment(Pos.TOP_CENTER);
         upgradesPane.setPadding(new Insets(10, 0, 10, 0));
-        Labels.note(upgradesIntro, 760);
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             // Une tuile, pas un bouton : l'amélioration est acquise d'elle-même quand son seuil est atteint.
             Card card = new Card(GameApp.BIG_BANG_COLOR);
@@ -241,14 +231,12 @@ public abstract class BigBangPageBase extends VBox {
             upgradesGrid.add(card);
         }
         upgradesGrid.setMaxWidth(820);
-        upgradesPane.getChildren().add(upgradesIntro);
         upgradesPane.getChildren().add(upgradesGrid);
         Labels.transparent(upgradesScroll);
 
         // Les paliers de Big Bang : une carte chacun, toujours montrée ; depuis la version 0.124, un clic paie le palier ouvert.
         milestonesPane.setAlignment(Pos.TOP_CENTER);
         milestonesPane.setPadding(new Insets(10, 0, 10, 0));
-        Labels.note(milestonesIntro, 760);
         for (BigBangMilestone milestone : game.bigBangMilestones()) {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
             card.setOnAction(() -> {
@@ -259,7 +247,6 @@ public abstract class BigBangPageBase extends VBox {
             milestonesGrid.add(card);
         }
         milestonesGrid.setMaxWidth(820);
-        milestonesPane.getChildren().add(milestonesIntro);
         milestonesPane.getChildren().add(milestonesGrid);
         milestonesPane.getChildren().add(bangChallenges);
         Labels.transparent(milestonesScroll);
@@ -313,8 +300,6 @@ public abstract class BigBangPageBase extends VBox {
                 galaxyPane, milestonesScroll, probesScroll, systemsScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        getChildren().add(StableHeight.of(countLabel));
-        getChildren().add(StableHeight.of(sinceLabel));
         // Le petit arbre du cycle : trois choix, un seul jusqu'au prochain Big Bang.
         cycleTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         cycleRow.setAlignment(Pos.CENTER);
@@ -330,7 +315,6 @@ public abstract class BigBangPageBase extends VBox {
             cycleRow.getChildren().add(button);
         }
         getChildren().add(subTabs);
-        getChildren().add(cycleRow);
         getChildren().add(shoppingPane);
         getChildren().add(pages);
         selectKind(kind);
@@ -353,6 +337,15 @@ public abstract class BigBangPageBase extends VBox {
 
     public FlowPane subTabs() { return subTabs; }
 
+    /**
+     * Ce que la page met au centre du bandeau : le nombre de Big Bangs, ou l'espace sur la sous-page Expansion
+     * (version 0.315).
+     */
+    public ResourceHead head() { return selected == EXPANSION ? spaceHead : head; }
+
+    /** Vrai quand la sous-page affichée se passe du chrono : l'Expansion, toute à sa vue (version 0.315). */
+    public boolean hidesChrono() { return selected == EXPANSION; }
+
     static final String CHIP_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
             + " -fx-background-radius: 12; -fx-border-radius: 12;";
     static final String ZOOM_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
@@ -365,11 +358,14 @@ public abstract class BigBangPageBase extends VBox {
     static final double SMALL_PICTURE = 36;
 
     final Game game;
-    final Label countLabel = new Label();
+    /** Le nombre de Big Bangs, au centre du bandeau (version 0.311 ; en haut de la page avant). */
+    final ResourceHead head = new ResourceHead("Big Bangs", GameApp.BIG_BANG_COLOR);
+    /** L'espace créé, au centre du bandeau sur la sous-page Expansion (version 0.315 ; en tête de la sous-page avant). */
+    final ResourceHead spaceHead = new ResourceHead("Espace", GameApp.BIG_BANG_COLOR);
     final Label cycleTitle = new Label();
+    /** Le choix du cycle : son titre et ses trois boutons, au bout de la ligne des achats des molécules (version 0.315). */
     final HBox cycleRow = new HBox(8);
     final Map<CycleChoice, Button> cycleButtons = new EnumMap<>(CycleChoice.class);
-    final Label sinceLabel = new Label();
     final Button moleculesTab = new Button("Molécules");
     final Button expansionTab = new Button("Expansion de la matière");
     final Button upgradesTab = new Button("Améliorations");
@@ -449,7 +445,6 @@ public abstract class BigBangPageBase extends VBox {
     // Sous-page « Molécules »
     private final VBox moleculesPane = new VBox(10);
     final ScrollPane moleculesScroll = new ScrollPane(moleculesPane);
-    final Label moleculesIntro = new Label();
     final Map<Molecule.Kind, Button> kindChips = new EnumMap<>(Molecule.Kind.class);
     final Map<Molecule.Kind, TileGrid> grids = new EnumMap<>(Molecule.Kind.class);
     final Map<Molecule, Card> cards = new LinkedHashMap<>();
@@ -478,21 +473,19 @@ public abstract class BigBangPageBase extends VBox {
     final Button skyEventButton = new Button();
     /** Vrai si le joueur veut voir les anomalies du ciel (un réglage). */
     BooleanSupplier skyEventsShown = () -> true;
-    /** L'impulsion, sur la page Expansion et au-dessus des molécules : deux boutons, la même action. */
+    /** L'impulsion, sur la page Expansion (version 0.315 ; aussi au-dessus des molécules avant). */
     final Button pulseButton = pulseButton();
-    final Button moleculesPulseButton = pulseButton();
     /** La liste de courses du prochain pas, au-dessus des assemblages, des astres et de l'univers. */
     final ShoppingPane shoppingPane;
     // Le meilleur achat : la création qui rapporte le plus pour l'espace qu'elle prend, et le tri des cartes par rendement.
     final Label bestLabel = new Label();
     final Button bestButton = new Button("Créer");
     final Button sortButton = new Button();
-    // Les boutons d'abord, le texte ensuite : le bouton « Créer » ne bouge plus quand le texte change de longueur,
-    // et peut se cliquer à la chaîne.
-    private final HBox bestBar = new HBox(8, bestButton, sortButton, bestLabel);
+    // Les boutons d'abord, à gauche de la ligne : le bouton « Créer » ne bouge pas quand le choix du cycle change, et
+    // peut se cliquer à la chaîne. Le meilleur achat, nommé seul, est dessous (version 0.315).
+    private final FlowPane actionRow = new FlowPane(8, 6, bestButton, sortButton, cycleRow);
     /** Ce que demande le prochain pas, rayon par rayon et état par état. */
     final Label needsLabel = new Label();
-    private final HBox pulseBar = new HBox(moleculesPulseButton);
     boolean sortedByYield = false;
     Molecule best = null;
     Molecule bestHere = null;
@@ -504,11 +497,8 @@ public abstract class BigBangPageBase extends VBox {
 
     // Sous-page « Expansion de la matière »
     final VBox expansionPane = new VBox(6);
-    final Label spaceLabel = new Label();
-    final Label rateLabel = new Label();
-    /** Au survol : d'où vient l'espace créé chaque seconde. */
+    /** Au survol du débit, sous l'espace du bandeau : d'où vient l'espace créé chaque seconde. */
     final Breakdown rateBreakdown;
-    final Label expansionNote = new Label();
     final SpaceView spaceView;
     final Button zoomOut = new Button("Reculer");
     final Button zoomIn = new Button("Approcher");
@@ -522,14 +512,12 @@ public abstract class BigBangPageBase extends VBox {
     // Sous-page « Améliorations »
     private final VBox upgradesPane = new VBox(10);
     final ScrollPane upgradesScroll = new ScrollPane(upgradesPane);
-    final Label upgradesIntro = new Label();
     final TileGrid upgradesGrid = new TileGrid(230, 3, 8);
     final Map<SpaceUpgrade, Card> upgradeCards = new LinkedHashMap<>();
 
     // Sous-page « Paliers » : les paliers de Big Bang
     private final VBox milestonesPane = new VBox(10);
     final ScrollPane milestonesScroll = new ScrollPane(milestonesPane);
-    final Label milestonesIntro = new Label();
     private final TileGrid milestonesGrid = new TileGrid(230, 3, 8);
     final Map<BigBangMilestone, Card> milestoneCards = new LinkedHashMap<>();
 

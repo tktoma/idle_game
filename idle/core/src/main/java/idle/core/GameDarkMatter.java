@@ -141,7 +141,8 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /**
      * Efface la partie en cours comme le fait une explosion : toute la matière disparaît, sauf ce
-     * que l'arbre de matière noire permet de garder, et le départ lancé est appliqué.
+     * que l'arbre de matière noire permet de garder, et le départ lancé est appliqué (atomes comptés comme créés et,
+     * depuis la version 0.307, atomes en main).
      */
     private void clearRun() {
         // Ce que la matière noire permet de garder, mis de côté avant de tout effacer.
@@ -175,6 +176,9 @@ public abstract class GameDarkMatter extends GameParticles {
         cadences.forEach(state::setAutomationSpeedLevel);
         for (int number : keptElements) state.setElementCount(number, 1);
         applyHeadStart();
+        // Le départ lancé met aussi des atomes en main, de quoi racheter tout de suite les premières améliorations.
+        BigNum hand = darkHeadStartHand();
+        if (state.atoms().lt(hand)) state.setAtoms(hand);
     }
 
     // ------------------------------------------------------------------
@@ -318,7 +322,7 @@ public abstract class GameDarkMatter extends GameParticles {
      * matière noire a dépassés ({@link SizeScale#MILESTONES}). Aucun avant la première explosion.
      */
     public int landmarksReached() {
-        return isDarkMatterUnlocked() ? SizeScale.milestonesReached(state.darkMatterSize()) : 0;
+        return isDarkMatterUnlocked() ? SizeScale.milestonesReached(state.darkMatterReach()) : 0;
     }
 
     /** Nombre de paliers atteints qui donnent ce bonus. */
@@ -533,11 +537,13 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /**
      * Ce que l'avancement de la partie en cours apporte à la croissance de la matière noire :
-     * {@code 1 + ordres de grandeur de la production + ordres de grandeur des atomes créés}. La
+     * {@code 1 + 3 × log10(1 + ordres de grandeur de la production + ordres de grandeur des atomes créés)}. La
      * production se compte à partir de {@link #TEMPO} particules par seconde, celle d'une partie
      * qui commence. Avec 12 × 10¹² particules par seconde ({@link #TEMPO} = 12) et 1 000 atomes créés depuis
-     * la dernière explosion, le facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
-     * et des atomes : faible au début d'une partie, de plus en plus fort ensuite.
+     * la dernière explosion, le facteur vaut 1 + 3 × log10(16) = 4,6. L'élan de la matière noire suit ainsi le rythme des
+     * particules et des atomes, mais doucement : avant la version 0.307, il comptait les ordres de grandeur eux-mêmes
+     * (1 + 12 + 3 = 16 ici), et montait jusqu'à 850 000 à la fin du premier univers, où la production compte des centaines
+     * de milliers de chiffres ; il ne dépasse plus 18.
      *
      * <p>La production comptée est celle de tous les générateurs réunis
      * ({@link #productionAtFusion()}), pour ne pas retomber à chaque fusion.
@@ -545,16 +551,16 @@ public abstract class GameDarkMatter extends GameParticles {
     public double darkMatterProgressFactor() {
         double production = Math.max(0, productionAtFusion().divide(TEMPO).log10());
         double atoms = Math.max(0, state.totalAtoms().log10());
-        return 1 + production + atoms;
+        return 1 + DARK_MATTER_PROGRESS_WEIGHT * Math.log10(1 + production + atoms);
     }
 
     /**
-     * Élan de la croissance de la matière noire : {@code DARK_MATTER_GROWTH_PER_UNIT × matière noire gagnée × facteur
+     * Élan de la croissance de la matière noire : {@code DARK_MATTER_GROWTH_PER_UNIT × √(matière noire gagnée) × facteur
      * d'avancement × multiplicateur de l'arbre}. C'est son taux de croissance par seconde d'appui quand elle a la
      * taille d'un proton ; ensuite sa résistance le divise.
      */
     public double darkMatterMomentum() {
-        return DARK_MATTER_GROWTH_PER_UNIT * darkMatterUnits() * darkMatterProgressFactor()
+        return DARK_MATTER_GROWTH_PER_UNIT * Math.sqrt(darkMatterUnits()) * darkMatterProgressFactor()
                 * darkExpansionMultiplier().min(BigNum.of(1, 100)).toDouble() * landmarkExpansionMultiplier()
                 * (1 + achievementBonus(Achievement.Bonus.EXPANSION))
                 * moleculeBoost(Molecule.Stat.DARK_GROWTH)
@@ -584,6 +590,9 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Taille de la matière noire en années-lumière : la distance qu'elle a « parcourue » en grossissant. */
     public BigNum darkMatterLightYears() { return state.darkMatterSize().divide(SizeScale.LIGHT_YEAR); }
+
+    /** La plus grande taille atteinte, en années-lumière : ce que comptent les effets « par année-lumière » (0.307). */
+    public BigNum darkMatterReachLightYears() { return state.darkMatterReach().divide(SizeScale.LIGHT_YEAR); }
 
     /**
      * Fait grossir la matière noire comme si le joueur la maintenait appuyée pendant {@code seconds}

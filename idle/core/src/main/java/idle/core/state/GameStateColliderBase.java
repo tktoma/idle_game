@@ -495,6 +495,7 @@ public abstract class GameStateColliderBase extends GameStateUnlocks {
             darkMatter = from.darkMatter;
             darkMatterSpent = from.darkMatterSpent;
             darkMatterSize = from.darkMatterSize;
+            darkMatterReach = from.darkMatterReach;
             explosions = from.explosions;
             tableWeightLevel = from.tableWeightLevel;
             darkUpgradeLevels.clear();

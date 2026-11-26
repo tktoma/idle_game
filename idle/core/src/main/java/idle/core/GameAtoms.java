@@ -166,15 +166,6 @@ public abstract class GameAtoms extends GameAutomationBuy {
     /** Vrai une fois la synthèse ciblée achetée avec de la matière noire : d'ici là, la synthèse tire toujours au hasard. */
     public boolean isTargetedSynthesisUnlocked() { return hasDark(DarkEffect.TargetedSynthesis.class); }
 
-    /** Vrai une fois acquis l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à portée. */
-    public boolean isBulkAtomBuyUnlocked() {
-        if (hasDark(DarkEffect.BulkAtomUpgrades.class)) return true;
-        for (Upgrade upgrade : upgrades.values()) {
-            if (upgrade.effect() instanceof Effect.BulkAtomBuy && state.levelOf(upgrade.id()) > 0) return true;
-        }
-        return false;
-    }
-
     /** Synthèses déjà payées pour la synthèse ciblée en cours. */
     public int synthesisTries() { return state.synthesisTries(); }
 

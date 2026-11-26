@@ -111,7 +111,8 @@ final class HelpPane extends Overlay {
         sections.add(new Section("Particules", "Un générateur crée des particules. Elles paient trois améliorations : la "
                 + "vitesse de création, le couplage (chaque générateur renforce les autres) et un générateur de plus. "
                 + "Réunis, les " + generators + " générateurs fusionnent en atomes : il n'en reste qu'un, et les "
-                + "particules repartent de zéro. Chaque générateur montre son palier de vitesse : quatorze, de la vitesse de "
+                + "particules repartent de zéro. Fusionner à la main regroupe les générateurs avant de donner les atomes ; "
+                + "une fusion demandée pendant ce regroupement se fait tout de suite. Chaque générateur montre son palier de vitesse : quatorze, de la vitesse de "
                 + "base à 10 par seconde, puis 100, 10⁴, 10⁸… (la vitesse élevée au carré) jusqu'à 10⁴⁰⁹⁶, la vitesse de la fin "
                 + "du premier univers. Le noyau passe du presque blanc au noir et garde un rond par palier franchi ; le trait "
                 + "s'épaissit, l'allure repart de zéro, et le son de chaque particule récupérée descend d'une note."
@@ -165,7 +166,8 @@ final class HelpPane extends Overlay {
         if (game.isDarkMatterUnlocked() || game.isBigBangUnlocked()) {
             sections.add(new Section("Matière noire", "L'explosion remet toute la matière à zéro et laisse de la matière "
                     + "noire. Tenez le clic sur son point pour la faire grossir. Son arbre a trois branches : l'une se "
-                    + "paie en particules, l'autre en atomes, la troisième s'ouvre avec la taille. Sept bifurcations proposent deux voies côte à côte : en "
+                    + "paie en particules, l'autre en atomes, la troisième en taille : la matière noire rétrécit du prix de la case et doit regrossir, mais les "
+                    + "paliers de taille déjà atteints restent. Sept bifurcations proposent deux voies côte à côte : en "
                     + "prendre une ferme l'autre jusqu'au prochain Big Bang, où le choix se refait ; la Superposition du "
                     + "collisionneur, à partir du cinquième Big Bang, ouvre les deux. À gauche, la voie de présence, la plus "
                     + "forte : elle renforce les paliers de vitesse ou rapporte de la matière noire. À droite, la voie d'absence, "
@@ -234,7 +236,9 @@ final class HelpPane extends Overlay {
             sections.add(new Section("S'y retrouver au troisième acte", "Au-dessus des assemblages, des astres et de "
                     + "l'univers, la liste de courses dit ce qu'il manque pour le prochain pas, avec un bouton sur chaque "
                     + "ligne. Sur la page des molécules, la ligne « Meilleur achat » nomme la création qui rapporte le plus "
-                    + "pour l'espace qu'elle prend, et un bouton range les cartes par rendement."));
+                    + "pour l'espace qu'elle prend (son gain au survol) ; en haut, le bouton qui la crée et celui qui range les "
+                    + "cartes par rendement, puis le choix du cycle, qui ne se fait que sur cette page. Sur la page Expansion, "
+                    + "le bandeau compte l'espace créé à la place des Big Bangs, et l'impulsion n'a plus que son bouton là."));
             sections.add(new Section("Comètes et défis", "De temps en temps une comète traverse "
                     + "l'expansion de la matière : la saisir double l'espace créé pendant "
                     + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. D'autres petites "
@@ -264,8 +268,8 @@ final class HelpPane extends Overlay {
                 + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne"
                 // Les info-bulles : trois skins, par les heures de jeu.
                 + (game.isSkinsUnlocked() ? " (elle a ses skins, dans l'onglet Skins : Parchemin à une heure de jeu, Pense-bête à cinq, Terminal à dix)" : "")
-                + ". Sous "
-                + "les onglets, l'objectif rappelle le prochain pas"
+                + ". En haut à gauche du bandeau, "
+                + "l'objectif rappelle en quelques mots le prochain pas (le texte complet au survol)"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ", et le temps qu'il reste avant la prochaine étape, au rythme des dix dernières minutes (rien quand l'avancée ne bouge pas assez pour l'estimer)"
                 + ". Dans les statistiques, la sous-page « Achats » garde vos achats de la session : leur prix, ce qu'ils "
@@ -276,7 +280,15 @@ final class HelpPane extends Overlay {
                         + "les paliers de la graine et le défi final" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
                 + "sous-onglet « Notifications et signes », coupent les annonces par catégorie (leur son reste : il se règle "
-                + "avec les sons), cachent les morceaux de l'objectif un par un et les pastilles ● des onglets par sorte."));
+                + "avec les sons), cachent les morceaux de l'objectif un par un et les pastilles ● des onglets par sorte. "
+                // Version 0.318 : rien de ce qui n'a pas encore été vu.
+                + "Sous le bandeau, à gauche, une pastille de couleur s'allume pour chaque grand pas possible tout de suite : "
+                + "orange pour la fusion" + (Seen.EXPLOSION.in(game) ? ", violette pour l'explosion" : "")
+                + (Seen.BIG_BANG.in(game) ? ", rouge pour le Big Bang" : "") + (Seen.UNIVERSE.in(game) ? ", verte pour l'univers" : "")
+                + ". Son nom s'affiche au survol" + (Seen.EXPLOSION.in(game) ? " ; un clic sur la violette fait exploser le tableau, les "
+                        + "autres mènent à l'onglet où le pas se fait. Le tableau périodique a aussi son bouton d'explosion, à droite de "
+                        + "la carte de synthèse" : " ; un clic mène à l'onglet où le pas se fait")
+                + ". Les pages s'en tiennent à l'essentiel : les phrases d'explication s'affichent au survol de ce qu'elles expliquent."));
         // Le profil : là dès le premier générateur.
         if (game.isStarted()) sections.add(new Section("Profil", "L'onglet Profil dit qui joue : un nom, à écrire dans le "
                 + "champ du haut (Entrée le valide), un avatar à choisir dans la galerie, ou une image à vous (PNG, JPG, GIF, BMP), "
@@ -323,7 +335,10 @@ final class HelpPane extends Overlay {
                 + "croisement " + Math.round(Game.COLLISION_CHANCE * 100) + " % de chances de sortir un quark, puis les saveurs une à une (étrange, charmée, belle, top), les "
                 + "automates des générateurs, la vitesse des faisceaux, la production d'énergie et des générateurs, et la chaîne qui "
                 + "renforce le reste du jeu, dans son sous-onglet « Chaîne », payée en énergie et en quarks : particules, atomes, "
-                + "matière noire, vitesse de l'espace, dédoublement des molécules. L'énergie produite depuis le début ouvre les deux "
+                + "matière noire, vitesse de l'espace, dédoublement des molécules ; chaque niveau multiplie (particules ×"
+                + ElementText.number(Game.CHAIN_PARTICLES_STEP) + ", atomes de chaque fusion ×" + ElementText.number(Game.CHAIN_ATOMS_STEP)
+                + ", croissance de la matière noire ×" + ElementText.number(Game.CHAIN_DARK_STEP) + ", espace par seconde ×"
+                + ElementText.number(Game.CHAIN_SPACE_STEP) + "). L'énergie produite depuis le début ouvre les deux "
                 + "trous noirs : " + Format.count(BigNum.of(Game.BLACK_HOLE_ENERGY)) + " pour le trou noir, "
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
@@ -371,7 +386,7 @@ final class HelpPane extends Overlay {
                         + "sépia) est libre et change leurs couleurs partout d'un coup." : "")
                 + " Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite ; son étage se paie en facettes du plan, dès le deuxième univers (le tuyau en sphères du "
-                + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis une ligne à lui, sous celle de l'objectif, "
+                + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis une ligne à lui, sous le bandeau, "
                 + "sur tous les onglets et dans la fenêtre des dimensions. Les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (voir plus bas). Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
@@ -526,14 +541,15 @@ final class HelpPane extends Overlay {
                 + "particules, une par seconde au départ. Chacune coûte une demi-seconde de production du collisionneur, tient un "
                 + "cinquième de seconde d'expansion d'espace libre pendant ses " + (int) Game.VOID_PAIR_LIFE + " secondes de vie, et donne 1 énergie du vide à sa "
                 + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
-                + "départ). L'énergie du vide fond de " + String.format(Locale.ROOT, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
+                + "départ). L'énergie du vide fond de " + String.format(Locale.ROOT, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre (au survol du nombre, dans le bandeau ; dessous, le gain, les paires et la fonte), le gain par seconde "
                 + "divisé par la fonte. Elle paie huit améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
                 + "coût en énergie, espace par paire, fonte plus lente, et trois qui raccourcissent le troisième acte : allègement "
                 + "du ciel (−" + Math.round(Game.VOID_LIGHTEN_STEP * 100) + " % par niveau des molécules et de la matière que "
                 + "demandent les astres, l'amas et l'univers), maturation plus courte (−" + Math.round(Game.VOID_MATURE_STEP * 100)
                 + " % par niveau du temps de maturation des astres, aussi pour ceux qui mûrissent déjà) et rassemblement plus court "
-                + "(−" + Math.round(Game.VOID_SETTLE_STEP * 100) + " % par niveau du délai de l'amas et de l'univers) ; ces deux-là "
-                + "s'arrêtent à −50 %. Le premier niveau de chaque amélioration coûte à peu près une première bulle de l'arbre, "
+                + "(−" + Math.round(Game.VOID_SETTLE_STEP * 100) + " % par niveau du délai de l'amas et de l'univers, qui change d'un univers à l'autre) ; la maturation "
+                + "s'arrête à −" + Math.round(Game.VOID_MATURE_STEP * Game.VoidUpgrade.MATURE.max() * 100) + " %, le rassemblement à −"
+                + Math.round(Game.VOID_SETTLE_STEP * Game.VoidUpgrade.SETTLE.max() * 100) + " %. Le premier niveau de chaque amélioration coûte à peu près une première bulle de l'arbre, "
                 + "le dernier à peu près une des dernières bulles. Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
                 + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
                 + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers, où il paie les bulles de l'arbre ; "

@@ -12,6 +12,7 @@ import java.util.*;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
@@ -24,8 +25,8 @@ import javafx.scene.text.TextAlignment;
  * en-tête qui dit avec quoi la branche se paie et ce que le joueur en a :
  * <ul>
  * <li><b>particules</b> et <b>atomes</b> : les cases s'enchaînent, chacune demande celle du dessus ;</li>
- * <li><b>taille</b> : les cases s'enchaînent aussi, mais se débloquent en atteignant une taille, sans rien dépenser
- * ;</li>
+ * <li><b>taille</b> : les cases s'enchaînent aussi, et se paient en taille : la matière noire rétrécit du prix de la
+ * case (version 0.307 ; avant, il suffisait d'atteindre la taille, sans rien dépenser) ;</li>
  * <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas les unes des autres : au
  * lieu de s'enchaîner, elles partent toutes d'un même tronc. Cette colonne vient en tête.</li>
  * </ul>
@@ -65,7 +66,8 @@ public final class DarkMatterTreePane extends Pane {
 
     private static final String OFF = "#3a3550";
     private static final double TOP = 8;
-    private static final double ROOT_HEIGHT = 40;
+    /** La racine, un rond (version 0.315) : le compte de matière noire est déjà dans le bandeau, il passe au survol. */
+    private static final double ROOT_HEIGHT = 56;
     /** De la racine au trait horizontal qui distribue les branches, puis de ce trait aux en-têtes. */
     private static final double BUS_GAP = 16;
     private static final double HEADER_HEIGHT = 48;
@@ -88,6 +90,9 @@ public final class DarkMatterTreePane extends Pane {
     /** Le style de la racine et celui des en-têtes (à finir par leur couleur de fond) ; un skin y ajoute le sien. */
     private static final String ROOT_STYLE = CARD_STYLE + " -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a0f2e;"
             + " -fx-background-color: " + GameApp.DARK_MATTER_COLOR + ";";
+    /** Ajouté après le skin : la racine reste ronde, quel que soit l'habillage. */
+    private static final String ROUND = " -fx-background-radius: " + ROOT_HEIGHT / 2 + "; -fx-border-radius: " + ROOT_HEIGHT / 2
+            + "; -fx-border-width: 2;";
     private static final String HEADER_STYLE = CARD_STYLE + " -fx-font-weight: bold; -fx-text-fill: #10151f; -fx-background-color: ";
 
     /** Une case de l'arbre : l'amélioration, sa carte, sa place et les traits qui y mènent. */
@@ -283,7 +288,8 @@ public final class DarkMatterTreePane extends Pane {
         }
 
         root.setAlignment(Pos.CENTER);
-        root.setStyle(ROOT_STYLE);
+        root.setStyle(ROOT_STYLE + ROUND);
+        root.setTooltip(new Tooltip());
         getChildren().add(root);
         for (DarkUpgrade.Branch branch : branches) {
             Label header = new Label();
@@ -443,7 +449,7 @@ public final class DarkMatterTreePane extends Pane {
             for (LinkCell link : links) link.card.setInlinePicture(art ? link.art : null);
             // Le fond de l'arbre et ses en-têtes prennent le skin, eux aussi.
             setBackground(DarkTreeSkinArt.backdrop(skin));
-            root.setStyle(ROOT_STYLE + DarkTreeSkinArt.header(skin, GameApp.DARK_MATTER_COLOR));
+            root.setStyle(ROOT_STYLE + DarkTreeSkinArt.header(skin, GameApp.DARK_MATTER_COLOR) + ROUND);
             for (DarkUpgrade.Branch branch : branches) {
                 headers.get(branch).setStyle(HEADER_STYLE + COLORS.get(branch) + ";" + DarkTreeSkinArt.header(skin, COLORS.get(branch)));
             }
@@ -458,13 +464,14 @@ public final class DarkMatterTreePane extends Pane {
     public void refresh() {
         dressFrame();
         BigNum earned = game.darkMatterEarned();
-        root.setText("Matière noire : " + Format.count(earned) + (earned.gt(BigNum.ONE) ? " gagnées" : " gagnée"));
+        String rootText = "Matière noire : " + Format.count(earned) + (earned.gt(BigNum.ONE) ? " gagnées" : " gagnée");
+        if (!rootText.equals(root.getTooltip().getText())) root.getTooltip().setText(rootText);
         for (DarkUpgrade.Branch branch : branches) {
             BigNum owned = game.darkBalance(branch);
             headers.get(branch).setText(switch (branch) {
                 case PARTICLES -> "Particules\n" + Format.count(owned) + " à dépenser";
                 case ATOMS -> "Atomes\n" + Format.count(owned) + " à dépenser";
-                case SIZE -> "Taille\n" + Format.length(owned) + " atteinte";
+                case SIZE -> "Taille\n" + Format.length(owned) + " à dépenser";
                 case DARK_MATTER -> "Matière noire\n" + Format.count(owned) + " à dépenser";
             });
         }
@@ -502,7 +509,8 @@ public final class DarkMatterTreePane extends Pane {
             cell.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY
                             : !available ? Card.State.LOCKED : level > 0 ? Card.State.STARTED : Card.State.WAITING,
                     oneTime ? "" : level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : ""),
-                    !maxed ? key ? "★ " + KEY_LINE : "" : oneTime ? "acquise" : "max",
+                    // Version 0.316 : plus d'étiquette « ★ la case qui compte le plus » ; la ligne de la carte le dit.
+                    !maxed ? "" : oneTime ? "acquise" : "max",
                     key ? "★ " + upgrade.name() : upgrade.name(), DarkText.brief(upgrade.effect(), game) + (key ? " : " + KEY_LINE : ""),
                     Detail.shown() ? DarkText.describe(upgrade.effect(), game) + "." + (key ? " " + KEY_DETAIL : "") : "",
                     maxed ? "" : price(upgrade, available), "");
@@ -721,8 +729,7 @@ public final class DarkMatterTreePane extends Pane {
         }
         double pitch = cardHeight + ROW_GAP;
 
-        double rootWidth = Math.min(260, width - 16);
-        root.resizeRelocate(Math.floor((width - rootWidth) / 2), TOP, rootWidth, ROOT_HEIGHT);
+        root.resizeRelocate(Math.floor((width - ROOT_HEIGHT) / 2), TOP, ROOT_HEIGHT, ROOT_HEIGHT);
 
         Map<DarkUpgrade.Branch, Double> headerYs = new EnumMap<>(DarkUpgrade.Branch.class);
         Map<DarkUpgrade.Branch, Double> centers = new EnumMap<>(DarkUpgrade.Branch.class);

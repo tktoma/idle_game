@@ -135,10 +135,10 @@ final class AtomModelView extends Canvas {
         // Les copies d'abord, des plus petites aux plus grandes : le grand atome passe devant toutes.
         for (Copy copy : sortedCopies(copies())) {
             double fade = 0.35 + 0.55 * copy.scale() / MAX_COPY_SCALE;
-            drawAtom(g, copy.x(), copy.y(), side * copy.scale(), MAX_ORBS, copy.turn(), copy.tilt(), time + copy.phase(), fade, false);
+            drawAtom(g, copy.x(), copy.y(), side * copy.scale(), side * copy.scale(), MAX_ORBS, copy.turn(), copy.tilt(), time + copy.phase(), fade, false);
         }
         double arrive = sinceArrive < ARRIVE_SECONDS ? 1 + 0.6 * (1 - sinceArrive / ARRIVE_SECONDS) : 1;
-        drawAtom(g, cx, cy, side * arrive, orbs, 0, 1, time, 1, true);
+        drawAtom(g, cx, cy, side * arrive, side, orbs, 0, 1, time, 1, true);
         g.setGlobalAlpha(1);
     }
 
@@ -210,11 +210,12 @@ final class AtomModelView extends Canvas {
      *
      * @param fade  transparence d'ensemble (1 : pleine)
      * @param main  vrai pour le grand atome : seule sa dernière orbe arrivée joue son apparition
+     * @param restingSize le côté au repos, sans le coup de grossissement d'un atome créé
      */
-    private void drawAtom(GraphicsContext g, double cx, double cy, double size, int orbCount, double turn, double tilt,
+    private void drawAtom(GraphicsContext g, double cx, double cy, double size, double restingSize, int orbCount, double turn, double tilt,
             double clock, double fade, boolean main) {
         if (AtomSkinArt.draws(skin)) {
-            AtomSkinArt.draw(skin, g, cx, cy, size, orbCount, turn, tilt, clock, fade, main, sinceLastOrb);
+            AtomSkinArt.draw(skin, g, cx, cy, size, orbCount, turn, tilt, clock, fade, main, sinceLastOrb, restingSize);
             return;
         }
         double nucleus = size * 0.07;

@@ -29,7 +29,7 @@ public final class ChronoCorner extends VBox {
         HBox card = new HBox(10);
         card.setAlignment(Pos.CENTER);
         card.setStyle("-fx-background-color: #0e131b; -fx-border-color: transparent transparent #1d2633 transparent; -fx-padding: 2 12;");
-        Label title = new Label("Le chrono");
+        Label title = new Label("Chrono");
         title.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #8fd3ff;");
         title.setMinWidth(USE_PREF_SIZE);
         line.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8c8d8;");
@@ -45,18 +45,20 @@ public final class ChronoCorner extends VBox {
             game.setChronoSpeed(Math.round(after.doubleValue() * 4) / 4.0);
             refreshText();
         });
-        card.getChildren().addAll(title, line, speed);
+        line.setTooltip(new Tooltip());
+        // Version 0.309 : le titre, le curseur, puis l'accélération et le temps gardé ; la phrase entière au survol.
+        card.getChildren().addAll(title, speed, line);
         getChildren().add(card);
         setVisible(false);
         setManaged(false);
     }
 
     /**
-     * Recopie le chrono ; {@code seedShown} vrai quand la sous-page Graine est affichée : la carte se cache, le chrono y
-     * est déjà. Vrai si la carte est visible.
+     * Recopie le chrono ; {@code hidden} vrai quand la sous-page affichée s'en passe : la Graine, qui a déjà le sien, et
+     * depuis la version 0.315 l'Expansion du Big Bang. Vrai si la carte est visible.
      */
-    public boolean refresh(boolean seedShown) {
-        boolean shown = game.isChronoUnlocked() && !seedShown;
+    public boolean refresh(boolean hidden) {
+        boolean shown = game.isChronoUnlocked() && !hidden;
         setVisible(shown);
         setManaged(shown);
         if (!shown) return false;
@@ -72,7 +74,8 @@ public final class ChronoCorner extends VBox {
 
     private void refreshText() {
         double chosen = game.chronoSpeed();
-        line.setText("Gardé " + Format.duration(game.chronoStored()) + " sur " + Format.duration(game.chronoCapacity())
+        line.setText("×" + Format.darkMatter(chosen) + "   " + Format.duration(game.chronoStored()));
+        line.getTooltip().setText("Gardé " + Format.duration(game.chronoStored()) + " sur " + Format.duration(game.chronoCapacity())
                 + (chosen <= 1 + 1e-9 ? " · ×1, il se remplit"
                 : " · ×" + Format.darkMatter(chosen) + (game.isChronoRunning() ? ", le jeu accélère" : ", vide : il attend")));
     }

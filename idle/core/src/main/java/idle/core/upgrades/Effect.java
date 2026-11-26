@@ -99,12 +99,6 @@ public sealed interface Effect {
         public double shareAt(int level) { return level <= 0 ? 0 : shares.get(Math.min(level, shares.size()) - 1); }
     }
 
-    /**
-     * Ouvre l'achat par dix et « max » des améliorations payées en atomes. La même chose s'achète
-     * aussi en matière noire ({@link DarkEffect.BulkAtomUpgrades}), pour toujours ; payée en atomes,
-     * elle tient jusqu'à la prochaine explosion, comme les autres améliorations en atomes.
-     */
-    record BulkAtomBuy() implements Effect {}
 
     /**
      * Augmente les atomes gagnés à la fusion selon la production de particules : {@code +perDecade} chaque fois que la

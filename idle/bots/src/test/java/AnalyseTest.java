@@ -257,6 +257,34 @@ class AnalyseTest {
         assertEquals(3600, BotAnalyste.profil("absent").cycleSeconds());
         assertEquals(300, BotAnalyste.profil("absent").onlineSeconds());
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.profil("lent"));
+        assertTrue(BotAnalyste.profil("mf") == BotAnalyste.TOUCHES_MF, "les touches M et F tenues (0.307)");
+        assertEquals(1, BotAnalyste.TOUCHES_MF.id(), "les choix du Speedrunner");
+    }
+
+    /**
+     * Version 0.307 : l'analyste « M et F tenues » fusionne dès que les générateurs le permettent, entre deux morceaux de
+     * 0,1 s, et garde M tenue même après l'amas ; le Speedrunner, lui, ne touche pas à F.
+     */
+    @Test
+    void lesTouchesMEtFTenuesFusionnentDesQueCEstPossible() {
+        Game avec = Bots.fresh(201);
+        IdleProfiles24 mf = new IdleProfiles24(avec, BotAnalyste.TOUCHES_MF, 201, 5);
+        mf.holdsFuse = true;
+        mf.quiet = true;
+        mf.begin();
+        Game sans = Bots.fresh(201);
+        IdleProfiles24 speed = new IdleProfiles24(sans, BotAnalyste.ANALYSTE, 201, 5);
+        speed.quiet = true;
+        speed.begin();
+        assertEquals(0.1, mf.holdStep(), 1e-12);
+        assertEquals(0.5, speed.holdStep(), 1e-12);
+        for (int i = 0; i < 720; i++) {     // une heure de jeu
+            mf.stepOnce();
+            speed.stepOnce();
+        }
+        assertTrue(avec.state().stats().fusions() >= sans.state().stats().fusions(),
+                "M+F : " + avec.state().stats().fusions() + " fusions, Speedrunner : " + sans.state().stats().fusions());
+        assertTrue(avec.state().stats().fusions() > 0);
     }
 
     @Test
@@ -317,7 +345,7 @@ class AnalyseTest {
         for (String id : AnalyseDurables.DURABLES) {
             assertTrue(Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id) && u.resource() == Resource.ATOMS), id);
         }
-        assertEquals(9, AnalyseDurables.DURABLES.size());
+        assertEquals(8, AnalyseDurables.DURABLES.size(), "Achat groupé retiré en 0.307");
         assertEquals(4, AnalyseDurables.PALIERS.size());
     }
 

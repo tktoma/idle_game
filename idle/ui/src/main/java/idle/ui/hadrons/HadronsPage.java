@@ -1,5 +1,6 @@
 package idle.ui.hadrons;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.GameUniverseBase.TreeBubble;
 import idle.core.collider.GluonMilestone;
@@ -63,10 +64,15 @@ public final class HadronsPage extends VBox {
     private final VBox[] panes = new VBox[3];
     private int selected = GLUONS;
     /** En tête des trois sous-onglets : les gluons et les paliers atteints. */
-    private final Label gluonsLine = new Label();
+    /** Les gluons au centre du bandeau, les paliers atteints dessous (version 0.311 ; sous les sous-onglets avant). */
+    private final ResourceHead head = new ResourceHead("Gluons", COLOR);
     private final Map<Quark, Label> quarks = new EnumMap<>(Quark.class);
-    private final Label effectNote = new Label();
-    private final Label exoticNote = new Label();
+    /**
+     * Version 0.317 : les phrases de la page ne s'y écrivent plus ; elles passent au survol. Ce que font les hadrons, au
+     * survol de « Quarks en main » ; les exotiques fermées, au survol de leur titre.
+     */
+    private final Label quarksTitle = heading("Quarks en main");
+    private final Label exoticTitle = heading("Particules exotiques");
     private final TileGrid exoticGrid = new TileGrid(250, 3, 10);
     private final Map<Hadron, Card> cards = new EnumMap<>(Hadron.class);
     private final Map<Hadron, Label> bonuses = new EnumMap<>(Hadron.class);
@@ -77,10 +83,8 @@ public final class HadronsPage extends VBox {
     /** Le jalon des racines : dix paliers de gluons, sous les paliers, avec la bulle des racines. */
     private Card rootsCard;
     private final Region rootsGauge = new Region();
-    private final Label milestonesNote = new Label();
     private final BindingView view;
     private final Map<Hadron, Button> bindHere = new EnumMap<>(Hadron.class);
-    private final Label bindingNote = new Label();
     /** Ce que la page montre (quarks, hadrons, ce qui se lie, affichage) : ses textes ne se refont que si cela change. */
     private String shownKey = "";
 
@@ -89,7 +93,6 @@ public final class HadronsPage extends VBox {
         this.game = game;
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(14, 16, 14, 16));
-        gluonsLine.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
 
         HBox quarkRow = new HBox(18);
         quarkRow.setAlignment(Pos.CENTER);
@@ -99,30 +102,23 @@ public final class HadronsPage extends VBox {
             quarks.put(quark, label);
             quarkRow.getChildren().add(label);
         }
-        Label quarksTitle = new Label("Quarks en main");
-        quarksTitle.setStyle(HEADING_STYLE);
-
-        Labels.note(effectNote, MAX_WIDTH);
-        Labels.note(exoticNote, MAX_WIDTH);
-        exoticNote.setText("La bulle du cœur de l'arbre-monde les ouvre : mésons, un quark et un antiquark, et baryons étranges.");
 
         TileGrid nucleonGrid = new TileGrid(250, 3, 10);
         for (Hadron hadron : Hadron.values()) (hadron.isExotic() ? exoticGrid : nucleonGrid).add(tile(hadron));
         nucleonGrid.setMaxWidth(MAX_WIDTH);
         exoticGrid.setMaxWidth(MAX_WIDTH);
 
-        VBox gluons = new VBox(8, quarksTitle, quarkRow, effectNote, heading("Nucléons"), nucleonGrid,
-                heading("Particules exotiques"), exoticNote, exoticGrid);
+        VBox gluons = new VBox(8, quarksTitle, quarkRow, heading("Nucléons"), nucleonGrid, exoticTitle, exoticGrid);
         gluons.setAlignment(Pos.TOP_CENTER);
         panes[GLUONS] = scrolled(gluons);
 
         // « Paliers » : une carte par palier, avec sa barre.
-        Labels.note(milestonesNote, MAX_WIDTH);
-        milestonesNote.setText("Chaque quark lié dans un hadron compte un gluon. Un palier atteint agit aussitôt, sans rien "
+        // Version 0.317 : l'explication des paliers passe au survol du nombre de gluons, dans le bandeau.
+        Labels.tip(head.value(), "Chaque quark lié dans un hadron compte un gluon. Un palier atteint agit aussitôt, sans rien "
                 + "payer : il fait garder quelque chose à l'explosion ou au Big Bang, en plus de ce que l'arbre de matière "
                 + "noire et les paliers du Big Bang gardent déjà. Les gluons suivent les hadrons qu'on a : un nouvel univers "
                 + "les reprend avec eux, sauf avec la bulle de l'arbre ancien, à gauche.");
-        VBox milestones = new VBox(10, milestonesNote);
+        VBox milestones = new VBox(10);
         milestones.setAlignment(Pos.TOP_CENTER);
         for (GluonMilestone milestone : GluonMilestone.values()) milestones.getChildren().add(buildMilestone(milestone));
         rootsCard = gaugeCard(rootsGauge);
@@ -145,11 +141,12 @@ public final class HadronsPage extends VBox {
             bindHere.put(hadron, button);
             buttons.getChildren().add(button);
         }
-        Labels.note(bindingNote, MAX_WIDTH);
-        bindingNote.setText("Les gluons à l'œuvre : les quarks en main flottent, chacun de la couleur de sa saveur (un "
+        // Version 0.317 : la phrase de la vue passe au survol des boutons qui lient.
+        String bindingText = ("Les gluons à l'œuvre : les quarks en main flottent, chacun de la couleur de sa saveur (un "
                 + "anneau pour un antiquark). Un hadron lié, ici ou dans « Gluons », se joue ici : ses quarks se rapprochent, "
                 + "les gluons les relient, et il rejoint la rangée des hadrons formés.");
-        panes[BINDING] = new VBox(10, drawing, buttons, bindingNote);
+        for (Button button : bindHere.values()) Labels.tip(button, bindingText);
+        panes[BINDING] = new VBox(10, drawing, buttons);
         panes[BINDING].setAlignment(Pos.TOP_CENTER);
 
         StackPane pages = new StackPane(panes);
@@ -158,7 +155,7 @@ public final class HadronsPage extends VBox {
 
         SubTabs.wire(true, this::select, this::refresh, gluonsTab, milestonesTab, bindingTab);
         subTabs.setAlignment(Pos.CENTER);
-        getChildren().addAll(subTabs, gluonsLine, pages);
+        getChildren().addAll(subTabs, pages);
         select(GLUONS);
         refresh();
     }
@@ -326,18 +323,18 @@ public final class HadronsPage extends VBox {
         long gluons = game.gluons();
         int reached = 0;
         for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) reached++;
-        gluonsLine.setText("Gluons : " + Format.whole(gluons) + "   |   paliers atteints : " + reached + " / " + GluonMilestone.values().length);
+        head.set(Format.whole(gluons), "paliers atteints : " + reached + " / " + GluonMilestone.values().length);
         for (Quark quark : KEPT) {
             quarks.get(quark).setText(quark.symbol() + "  " + quark.label() + " : " + Format.whole(game.state().quarks(quark)));
         }
-        effectNote.setText("Les gluons lient les quarks du collisionneur en hadrons : chacun prend ses quarks, un antiquark "
+        Labels.tip(quarksTitle, "Les gluons lient les quarks du collisionneur en hadrons : chacun prend ses quarks, un antiquark "
                 + "(la barre de la formule) coûte un quark de sa saveur. Chaque sorte renforce une grandeur, ou divise un prix, "
                 + "d'autant plus qu'on en a : ×(1 + " + boost(Game.HADRON_BOOST_STEP, 2) + " × log₁₀(1 + n)) pour n hadrons, "
                 + "×" + boost(boostOf(9), 2) + " à 9, ×" + boost(boostOf(99), 2) + " à 99. Chaque quark lié compte un gluon, pour les "
                 + "paliers. " + (kept ? "La bulle de l'arbre ancien, à gauche, les garde d'un univers à l'autre."
                         : "Un nouvel univers les reprend, sauf avec la bulle de l'arbre ancien, à gauche."));
-        exoticNote.setVisible(!exotic);
-        exoticNote.setManaged(!exotic);
+        Labels.tip(exoticTitle, exotic ? ""
+                : "La bulle du cœur de l'arbre-monde les ouvre : mésons, un quark et un antiquark, et baryons étranges.");
         exoticGrid.setVisible(exotic);
         exoticGrid.setManaged(exotic);
         for (Hadron hadron : Hadron.values()) {
@@ -405,17 +402,18 @@ public final class HadronsPage extends VBox {
         return label == null ? "" : label.getText();
     }
 
-    /** La phrase qui dit ce que font les hadrons : pour les vérifications. */
-    public Label effectNote() { return effectNote; }
+    /** Ce que font les hadrons, au survol de « Quarks en main » : pour les vérifications. */
+    public String effectText() { return quarksTitle.getTooltip() == null ? "" : quarksTitle.getTooltip().getText(); }
 
-    /** La phrase des exotiques fermées : pour les vérifications. */
-    public Label exoticNote() { return exoticNote; }
+    /** La phrase des exotiques fermées, au survol de leur titre, vide une fois ouvertes : pour les vérifications. */
+    public String exoticText() { return exoticTitle.getTooltip() == null ? "" : exoticTitle.getTooltip().getText(); }
 
     /** Les cartes des exotiques : cachées tant qu'elles sont fermées. */
     public TileGrid exoticGrid() { return exoticGrid; }
 
     /** En tête de page : les gluons et les paliers atteints. */
-    public Label gluonsLine() { return gluonsLine; }
+    /** Les gluons, pour le centre du bandeau. */
+    public ResourceHead head() { return head; }
 
     public Button gluonsTab() { return gluonsTab; }
 

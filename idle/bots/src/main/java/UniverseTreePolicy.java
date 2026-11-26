@@ -221,7 +221,10 @@ final class UniverseTreePolicy {
         this.random = random;
     }
 
-    /** Vrai pour le profil de référence (le Speedrunner) : ni la bulle du rassemblement ni le clic tenu (0.299). */
+    /**
+     * Vrai pour le profil de référence (le Speedrunner) : ni la bulle du rassemblement ni le clic tenu (0.299). Les façons de
+     * jouer du bot analyste, qui changent le profil d'un bot en cours de partie, le changent aussi (0.301).
+     */
     boolean reference;
 
     /** La part du temps où le joueur le plus attentif tient le clic du rassemblement : il fait aussi autre chose. */

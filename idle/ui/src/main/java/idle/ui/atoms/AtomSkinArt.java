@@ -1,7 +1,13 @@
 package idle.ui.atoms;
 
 import idle.core.universe.Skin;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.*;
 import javafx.scene.shape.StrokeLineCap;
 
@@ -32,8 +38,32 @@ final class AtomSkinArt {
     private static final Color[] GLASS = {Color.web("#2a4fcf"), Color.web("#c62a3a"), Color.web("#2a9a5a"),
         Webs.C_E2A52A, Webs.C_7A3AB8, Webs.C_2AA5C6};
 
+    /** Le plus grand nombre de verrières gardées en image (une par atome, taille et inclinaison). */
+    static final int GLASS_CACHE = 96;
+
+    /**
+     * Les verrières déjà peintes : le verre et le plomb d'un atome du vitrail, en image. Version 0.303 : ils ne bougent
+     * pas, mais leurs quelque 130 polygones par atome, redessinés à chaque image pour le grand atome et ses 40 copies,
+     * faisaient tomber les images par seconde jusqu'à bloquer le jeu. Seules les perles et la rosace bougent encore.
+     */
+    private static final Map<GlassKey, Image> GLASSES = new LinkedHashMap<>(GLASS_CACHE, 0.75f, true) {
+        /** Au-delà de la borne, la verrière la moins récemment posée est oubliée. Version 0.308 : rétablie (perdue en 0.303). */
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<GlassKey, Image> eldest) { return size() > GLASS_CACHE; }
+    };
+
+    /** Ce qui fixe une verrière : sa taille au pixel près, son inclinaison, ses couches et sa transparence. */
+    private record GlassKey(int size, long turn, long tilt, int shells, long fade) {
+        static GlassKey of(double size, double turn, double tilt, int shells, double fade) {
+            return new GlassKey((int) Math.ceil(size), Math.round(turn * 1e4), Math.round(tilt * 1e4), shells, Math.round(fade * 1e3));
+        }
+    }
+
     private AtomSkinArt() {
     }
+
+    /** Nombre de verrières gardées en image. */
+    static int glassesKept() { return GLASSES.size(); }
 
     /** Vrai pour les skins de l'atome dessinés ici : ceux de la version 0.191. */
     static boolean draws(Skin skin) {
@@ -89,16 +119,18 @@ final class AtomSkinArt {
      * @param fade        la transparence d'ensemble (1 : pleine)
      * @param main        vrai pour le grand atome : sa dernière orbe arrivée joue son apparition
      * @param sinceLastOrb le temps écoulé depuis l'arrivée de la dernière orbe, en secondes
+     * @param restingSize le côté de l'atome au repos, sans le coup de grossissement d'un atome créé : la verrière du
+     *                    vitrail est peinte une fois à cette taille, puis agrandie avec l'atome le temps du coup
      */
     static void draw(Skin skin, GraphicsContext g, double cx, double cy, double size, int orbCount, double turn, double tilt,
-            double clock, double fade, boolean main, double sinceLastOrb) {
+            double clock, double fade, boolean main, double sinceLastOrb, double restingSize) {
         Frame f = Frame.of(cx, cy, turn, tilt);
         double nucleus = size * 0.07;
         int shells = AtomModelView.occupiedShells(orbCount);
         double innerRadius = nucleus * 1.6;
         double outerRadius = innerRadius + (size * 0.46 - innerRadius) * Math.min(1, shells / 4.0);
         double orbRadius = Math.max(main ? 2 : 0.7, size * 0.011);
-        if (skin == Skin.ATOM_STAINED) panels(g, f, nucleus, innerRadius, outerRadius, shells, fade);
+        if (skin == Skin.ATOM_STAINED) glass(g, cx, cy, size, restingSize, turn, tilt, shells, fade);
         int remaining = orbCount;
         for (int shell = 0; shell < shells; shell++) {
             int onShell = Math.min(remaining, AtomModelView.SHELL_CAPACITIES[shell]);
@@ -111,7 +143,6 @@ final class AtomSkinArt {
                 case ATOM_CHALK -> chalkOrbit(g, f, radius, shell, fade);
                 case ATOM_RINGS -> ring(g, f, radius, ringTilt, shell, fade);
                 case ATOM_GEARS -> wheel(g, f, radius, shell, clock, fade);
-                case ATOM_STAINED -> leadCircle(g, f, radius, fade);
                 default -> { }
             }
             boolean lastShell = remaining == 0;
@@ -132,7 +163,7 @@ final class AtomSkinArt {
                     case ATOM_CLOUD -> cloud(g, x, y, orbRadius, shell * 97 + i * 13, clock, fade);
                     case ATOM_RINGS -> rock(g, x, y, orbRadius * (0.8 + 0.4 * ((i * 5 + shell) % 3) / 2.0), Math.sin(angle) > 0, fade);
                     case ATOM_GEARS -> bearing(g, x, y, orbRadius, fade);
-                    default -> bead(g, x, y, orbRadius * 1.2, GLASS[(i + shell * 2) % GLASS.length], fade);
+                    default -> bead(g, x, y, orbRadius * 1.2, (i + shell * 2) % GLASS.length, fade);
                 }
             }
         }
@@ -352,6 +383,63 @@ final class AtomSkinArt {
 
     // ---- Vitrail -----------------------------------------------------------------------------------
 
+    /**
+     * La verrière d'un atome : ses panneaux de verre et ses cercles de plomb, peints une fois en image à la taille au
+     * repos, puis posés d'un seul coup (agrandis le temps d'un coup de grossissement). Sans image possible (pas
+     * d'affichage), elle est peinte directement.
+     */
+    private static void glass(GraphicsContext g, double cx, double cy, double size, double restingSize, double turn, double tilt,
+            int shells, double fade) {
+        if (shells <= 0) return;
+        double rest = restingSize > 0 ? restingSize : size;
+        GlassKey key = GlassKey.of(rest, turn, tilt, shells, fade);
+        Image image = GLASSES.get(key);
+        if (image == null) {
+            image = paintGlass(key.size(), turn, tilt, shells, fade);
+            if (image != null) GLASSES.put(key, image);
+        }
+        if (image == null) {
+            paintGlass(g, Frame.of(cx, cy, turn, tilt), size, shells, fade);
+            return;
+        }
+        double scale = size / key.size(), w = image.getWidth() * scale, h = image.getHeight() * scale;
+        g.setGlobalAlpha(1);
+        g.drawImage(image, cx - w / 2, cy - h / 2, w, h);
+    }
+
+    /** La toile où les verrières sont peintes avant d'être prises en image : une seule, qui ne fait que grandir. */
+    private static Canvas scratch;
+
+    /** La verrière en image, transparente autour, ou {@code null} si l'image ne peut pas être prise. */
+    private static Image paintGlass(int size, double turn, double tilt, int shells, double fade) {
+        int side = size + 8;
+        try {
+            if (scratch == null) scratch = new Canvas();
+            Canvas canvas = scratch;
+            canvas.setWidth(Math.max(canvas.getWidth(), side));
+            canvas.setHeight(Math.max(canvas.getHeight(), side));
+            GraphicsContext g = canvas.getGraphicsContext2D();
+            g.setGlobalAlpha(1);
+            g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+            paintGlass(g, Frame.of(side / 2.0, side / 2.0, turn, tilt), size, shells, fade);
+            SnapshotParameters parameters = new SnapshotParameters();
+            parameters.setFill(Color.TRANSPARENT);
+            parameters.setViewport(new Rectangle2D(0, 0, side, side));
+            return canvas.snapshot(parameters, null);
+        } catch (RuntimeException | Error noDisplay) {
+            return null;
+        }
+    }
+
+    /** Peint le verre et le plomb d'un atome de côté {@code size} (mêmes rayons que {@link #draw}). */
+    private static void paintGlass(GraphicsContext g, Frame f, double size, int shells, double fade) {
+        double nucleus = size * 0.07;
+        double innerRadius = nucleus * 1.6;
+        double outerRadius = innerRadius + (size * 0.46 - innerRadius) * Math.min(1, shells / 4.0);
+        panels(g, f, nucleus, innerRadius, outerRadius, shells, fade);
+        for (int shell = 0; shell < shells; shell++) leadCircle(g, f, innerRadius + (outerRadius - innerRadius) * (shell + 1) / shells, fade);
+    }
+
     /** Les panneaux de verre : une couronne par couche, découpée en secteurs de couleurs alternées, le plomb entre. */
     private static void panels(GraphicsContext g, Frame f, double nucleus, double innerRadius, double outerRadius, int shells, double fade) {
         double inner = nucleus * 1.1;
@@ -389,14 +477,22 @@ final class AtomSkinArt {
         g.strokePolyline(c[0], c[1], 49);
     }
 
-    /** Une perle de verre : un rond coloré clair, cerné de plomb, un éclat blanc. */
-    private static void bead(GraphicsContext g, double x, double y, double r, Color glass, double fade) {
-        g.setFill(glass.interpolate(Color.WHITE, 0.45));
+    /** Le verre des perles : chaque verre éclairci, calculé une fois (version 0.303 : avant, à chaque perle et chaque image). */
+    private static final Color[] BEADS = new Color[GLASS.length];
+
+    static {
+        for (int k = 0; k < GLASS.length; k++) BEADS[k] = GLASS[k].interpolate(Color.WHITE, 0.45);
+    }
+
+    /** Une perle de verre : un rond coloré clair, cerné de plomb, un éclat blanc (qu'une perle trop petite n'a pas). */
+    private static void bead(GraphicsContext g, double x, double y, double r, int glass, double fade) {
+        g.setFill(BEADS[glass]);
         g.setGlobalAlpha(fade);
         g.fillOval(x - r, y - r, r * 2, r * 2);
         g.setStroke(LEAD);
         g.setLineWidth(1.2);
         g.strokeOval(x - r, y - r, r * 2, r * 2);
+        if (r < 1.5) return;
         g.setFill(Color.WHITE);
         g.setGlobalAlpha(0.8 * fade);
         g.fillOval(x - r * 0.55, y - r * 0.6, r * 0.5, r * 0.5);

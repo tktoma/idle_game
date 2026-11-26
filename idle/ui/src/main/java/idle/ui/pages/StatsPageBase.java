@@ -106,6 +106,12 @@ public abstract class StatsPageBase extends VBox {
     abstract void timeline();
     abstract void records();
     abstract void page(String name, String color, BooleanSupplier unlocked, String howToUnlock);
+
+    /** Ce que le joueur a déjà vu (version 0.318) : les records d'un acte jamais vu ne se montrent pas. */
+    idle.ui.Seen.Memory seen = idle.ui.Seen.Memory.none();
+
+    /** Les titres de section qui ne se montrent qu'à une condition. */
+    final java.util.Map<javafx.scene.Node, BooleanSupplier> gatedSections = new java.util.LinkedHashMap<>();
     abstract void section(String title);
     abstract void curves();
     abstract void curve(String name, BooleanSupplier available, Supplier<ChartPane> maker, Line... lines);
@@ -573,6 +579,8 @@ public abstract class StatsPageBase extends VBox {
         row("Améliorations en matière noire acquises", () -> owned(false) + " / " + count(false));
         row("Atomes comptés au départ de chaque partie", () -> Format.count(game.darkHeadStartAtoms()),
                 () -> game.darkHeadStartAtoms().sign() > 0);
+        row("Atomes en main au départ de chaque partie", () -> Format.count(game.darkHeadStartHand()),
+                () -> game.darkHeadStartHand().sign() > 0);
     }
 
     /** Une courbe d'un graphique qui suit le temps : son nom, sa couleur, et la valeur à lire dans chaque relevé. */

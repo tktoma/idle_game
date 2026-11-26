@@ -95,6 +95,7 @@ public final class BangChallengesPane extends VBox {
         if (!unlocked) {
             intro.setText("Ils s'ouvrent au cinquième Big Bang : refaire un Big Bang sous une contrainte, pour une "
                     + "récompense qui reste.");
+            Labels.tip(intro, "");
             return;
         }
         // Dans le deuxième univers, chaque défi réussi multiplie aussi tout le troisième acte.
@@ -110,12 +111,19 @@ public final class BangChallengesPane extends VBox {
                         + ", maturation ×" + ElementText.number(game.universeBangFactor(Game.BANG_UNIVERSE_MATURATION))
                         + ", vitesse des sondes ×" + ElementText.number(game.universeBangFactor(Game.BANG_UNIVERSE_PROBE_SPEED))
                         + ", récompenses des sondes ×" + ElementText.number(game.universeBangFactor(Game.BANG_UNIVERSE_PROBE_REWARDS)) + (game.planetsTwice() ? ", planètes deux fois." : ".") : "");
-        intro.setText(game.completedBangChallenges() + " / " + game.bangChallenges().size() + " réussis." + second + " Commencer un défi "
+        String count = game.completedBangChallenges() + " / " + game.bangChallenges().size() + " réussis.";
+        // Version 0.315 : sous le titre, le compte et ce que les défis donnent aux astres et aux sondes ; le reste au survol.
+        String shown = count + (!game.isSecondUniverse() ? "" : " Deuxième univers : chaque défi réussi donne maturation des astres ×"
+                + ElementText.number(Game.BANG_UNIVERSE_MATURATION) + ", vitesse des sondes ×"
+                + ElementText.number(Game.BANG_UNIVERSE_PROBE_SPEED) + ", récompenses des sondes ×"
+                + ElementText.number(Game.BANG_UNIVERSE_PROBE_REWARDS) + ".");
+        if (!shown.equals(intro.getText())) intro.setText(shown);
+        Labels.tip(intro, count + second + " Commencer un défi "
                 + "remet la partie à zéro comme un Big Bang, sans en compter un ; le Big Bang suivant le réussit."
-                + Detail.only(" Tout ce qu'un Big Bang garde est gardé : l'arbre de matière noire, les défis d'explosion "
+                + " Tout ce qu'un Big Bang garde est gardé : l'arbre de matière noire, les défis d'explosion "
                         + "réussis, et tout le troisième acte. La contrainte tient jusqu'au Big Bang, qui compte normalement. "
                         + "Un défi s'abandonne d'un clic sur sa carte : la contrainte tombe, la partie continue, rien n'est "
-                        + "gagné. Réussi, il se rejoue pour son temps. Un seul à la fois, et pas pendant un défi d'explosion."));
+                        + "gagné. Réussi, il se rejoue pour son temps. Un seul à la fois, et pas pendant un défi d'explosion.");
         for (BangChallenge challenge : game.bangChallenges()) {
             Card card = cards.get(challenge);
             boolean done = game.isBangChallengeCompleted(challenge);

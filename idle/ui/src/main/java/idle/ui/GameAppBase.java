@@ -3,6 +3,7 @@ package idle.ui;
 import idle.core.Absence;
 import idle.core.Enums;
 import idle.core.Game;
+import idle.core.darkmatter.Challenge;
 import idle.core.Resource;
 import idle.core.upgrades.Upgrade;
 import idle.ui.atoms.AtomView;
@@ -15,8 +16,10 @@ import idle.ui.common.Breakdown;
 import idle.ui.common.BurstView;
 import idle.ui.common.BuyAmountRow;
 import idle.ui.common.Card;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import idle.ui.common.Labels;
-import idle.ui.common.StableHeight;
+import idle.ui.common.ResourceHead;
 import idle.ui.common.TabIcon;
 import idle.ui.common.TileGrid;
 import idle.ui.darkmatter.DarkMatterPage;
@@ -59,6 +62,11 @@ public abstract class GameAppBase extends Application {
 
     /** Seul {@link GameApp} prolonge la chaîne. */
     GameAppBase() {
+        // Version 0.318 : les pages hors du jeu ne montrent que ce qui a déjà été vu.
+        achievementsPage.setSeen(settings.seen());
+        statsPage.setSeen(settings.seen());
+        profilePage.setSeen(settings.seen());
+        skinsPage.setSeen(settings.seen());
     }
 
     // Ce que fournissent les parties suivantes.
@@ -126,9 +134,10 @@ public abstract class GameAppBase extends Application {
     abstract double timeFactor();
     abstract void refresh();
 
-    /** Largeur maximale de la rangée des améliorations, et de la carte de fusion en dessous. */
+    /** Largeur maximale de la grille des améliorations ; le rond de la fusion se pose à sa droite (0.314). */
     private static final double UPGRADES_WIDTH = 760;
-    static final double FUSE_WIDTH = 380;
+    /** Diamètre du rond de la fusion, à droite des améliorations des particules (une carte de 380 pixels avant la 0.314). */
+    static final double FUSE_DIAMETER = 150;
     /** Nombre maximal de générateurs dessinés ; les suivants produisent sans être affichés. */
     static final int MAX_VISIBLE_GENERATORS = 30;
     /**
@@ -193,10 +202,13 @@ public abstract class GameAppBase extends Application {
      */
     SaveStore store = SaveStore.of(List.of("--sans-sauvegarde"));
     final GeneratorPane generators = new GeneratorPane();
-    final Label particlesLabel = new Label();
-    final Label productionLabel = new Label();
+    /**
+     * Le compteur des particules au centre du bandeau : « Particules : 4.65e74897724 », et dessous son débit. Le titre de
+     * l'onglet et le compteur ne font plus qu'un (0.309).
+     */
+    final ResourceHead particlesHead = new ResourceHead("Particules", PARTICLES_COLOR);
     /** Au survol de la production : d'où elle vient, un facteur par ligne. */
-    final Breakdown productionBreakdown = Breakdown.attach(productionLabel, game, Breakdown.Of.PARTICLES);
+    final Breakdown productionBreakdown = Breakdown.attach(particlesHead.sub(), game, Breakdown.Of.PARTICLES);
     final Card fuseCard = new Card(ATOMS_COLOR);
 
     // Les onglets, visibles à partir du premier atome.
@@ -293,7 +305,7 @@ public abstract class GameAppBase extends Application {
     /** Le centre de l'onglet « Particules » : les générateurs, et le bouton de démarrage tant que la partie n'a pas commencé. */
     final StackPane center = new StackPane(generators);
     /** Le compteur et les améliorations, sous les générateurs. */
-    final VBox controls = new VBox(12, particlesLabel, productionLabel);
+    final VBox controls = new VBox(12);
     Button startButton;
     /** Le retour de l'onglet Particules : son âge en secondes, négatif hors animation. */
     double particlesTabPop = -1;
@@ -316,19 +328,19 @@ public abstract class GameAppBase extends Application {
     Tab gameTab = Tab.PARTICLES;
     boolean narrow = false;
 
-    // L'explosion : le bouton au-dessus des onglets, et ce qui recouvre la fenêtre pendant qu'elle a lieu.
-    final Button explosionButton = new Button();
-    /** Rappel du défi en cours, entre le bouton d'explosion et les onglets. */
+    /** Rappel du défi en cours, au-dessus des onglets. */
     final Label challengeLabel = new Label();
-    /** L'objectif du moment, sous les onglets. */
-    final Label goalLabel = new Label();
     /** Le rappel de la touche de détail, à droite de l'objectif. */
     final Label detailHint = new Label();
     /** Vrai tant que la touche de détail est enfoncée : pour ne pas basculer à chaque répétition du clavier. */
     boolean detailKeyDown = false;
     // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
     final ToastPane toasts = new ToastPane();
-    /** Le chrono dans un coin, en bas à gauche, hors de la sous-page Graine. */
+    /** Les pastilles des grands pas possibles, sous le bandeau à gauche (version 0.309). */
+    final StepDots stepDots = new StepDots();
+    /** La ligne sous le bandeau : les pastilles à gauche, le chrono au milieu. */
+    final StackPane steps = new StackPane();
+    /** Le chrono, sous le bandeau, hors de la sous-page Graine. */
     final idle.ui.universe.ChronoCorner chronoCorner = new idle.ui.universe.ChronoCorner(game);
     /** Version 0.203 : le même chrono, dans l'en-tête de la fenêtre d'une dimension, qui recouvre tout le reste. */
     final idle.ui.universe.ChronoCorner dimensionChrono = new idle.ui.universe.ChronoCorner(game);
@@ -358,6 +370,45 @@ public abstract class GameAppBase extends Application {
     /** Joue ce son au début de l'animation d'une action du joueur. */
     void soundWithAnimation(Sound.Cue cue) {
         if (settings.sound()) sound.play(cue, settings.volume());
+    }
+
+    /**
+     * Le texte au survol de la pastille de l'explosion et du bouton du tableau périodique (0.314) : ce qu'elle rapporte, et le second clic qui la confirme quand la
+     * confirmation est réglée. C'était le texte de la barre violette (jusqu'à la 0.308).
+     */
+    String explosionHint(Challenge challenge) {
+        if (explosionArmed > 0) return "Cliquer encore pour confirmer l'explosion : tout repart de zéro (" + (int) Math.ceil(explosionArmed) + " s)";
+        if (game.isChallengeReplay()) {
+            return "Terminer le défi « " + challenge.name() + " » en " + Format.duration(game.stats().runTime())
+                    + ". Déjà réussi, il ne compte que pour son temps : ni matière noire, ni tableau plus lourd.";
+        }
+        return "Un clic : faire exploser le tableau, +" + Format.darkMatter(game.nextExplosionDarkMatter()) + " matière noire"
+                + (game.earnsSpeedPrime() ? " (prime de vitesse : encore " + Format.wait(Math.max(1, game.speedPrimeLeft())) + ")" : "")
+                + (challenge == null ? "" : ", défi « " + challenge.name() + " » réussi")
+                + NextReset.explosionSuffix(game)
+                + ".\nTout repart de zéro : particules, atomes, éléments. "
+                + (game.state().tableWeightLevel() < Game.TABLE_WEIGHT_MAX_LEVEL
+                        ? "Le tableau suivant sera " + ElementText.number(Game.TABLE_WEIGHT_GROWTH)
+                                + " fois plus lourd : plafond d'atomes et prix maximal d'une synthèse."
+                        : "Le tableau a atteint sa masse maximale : il ne s'alourdira plus.");
+    }
+
+    /**
+     * La ressource que l'onglet met au centre du bandeau (versions 0.309 à 0.311) ; {@code null} : rien, l'onglet n'a pas
+     * de ressource à lui. Les particules, qui n'y sont qu'une fois la partie commencée, sont traitées à part.
+     */
+    ResourceHead headOf(Tab tab) {
+        return switch (tab) {
+            case ATOMS -> atomsPage.head();
+            case AUTOMATION -> automationPage.head();
+            case DARK_MATTER -> darkMatterPage.head();
+            case COLLIDER -> colliderPage.pane().head();
+            case BIG_BANG -> bigBangPage.head();
+            case VOID -> voidPage.head();
+            case HADRONS -> hadronsPage.head();
+            case UNIVERSE -> universePage.head();
+            default -> null;
+        };
     }
 
     /** Le grondement de la matière noire qui grossit, de plus en plus vite avec son élan. */
@@ -445,6 +496,8 @@ public abstract class GameAppBase extends Application {
     /** L'aide « Comment jouer », par-dessus la fenêtre, et le bouton qui l'ouvre, sous les onglets. */
     final HelpPane helpPane = new HelpPane(game, settings);
     final Button helpButton = new Button();
+    /** Le bandeau du haut : objectifs, ce que l'onglet y met au centre, aide et détails (version 0.309). */
+    final PageHeader header = new PageHeader(helpButton, detailHint);
     /** Ce qui est prêt quelque part, pour la pastille des onglets. */
     final Readiness readiness = Readiness.of(game);
     final Label shortcutsLabel = new Label();
@@ -463,6 +516,8 @@ public abstract class GameAppBase extends Application {
         settingsPage.setSoundTest(() -> sound.test(settings.volume()));
         // Les catégories de sons coupées dans les réglages ne sonnent pas.
         sound.setAllowed(settings::soundKind);
+        // Version 0.303 : la sortie audio est réveillée tout de suite, pour que les premiers sons ne se perdent pas.
+        sound.warmUp();
         // Un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
         // Une particule récupérée (l'onde atteint le noyau) : le son de son palier de vitesse.
         ParticleView.setOnCollected(speedStage -> { if (settings.sound()) sound.particle(speedStage, settings.volume()); });
@@ -521,8 +576,6 @@ public abstract class GameAppBase extends Application {
             settings.forget();
         }
 
-        particlesLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;");
-        productionLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #8fa3b8;");
 
         // En bas : le compteur et les améliorations. Cachés tant que la partie n'a pas démarré,
         // mais leur place est réservée pour que rien ne bouge à leur apparition.
@@ -531,8 +584,7 @@ public abstract class GameAppBase extends Application {
         controls.setSpacing(8);
         controls.setAlignment(Pos.TOP_CENTER);
 
-        // La quantité achetée à chaque clic : un niveau, dix, ou tout ce qui est à portée.
-        controls.getChildren().add(amountRow);
+        // La quantité achetée à chaque clic : en haut à droite, sous l'aide et les détails (version 0.309).
         // Le deuxième univers : le régime des générateurs, la synergie et la prime de cycle parfait.
         regimeButton.setFocusTraversable(false);
         regimeButton.setOnAction(event -> {
@@ -556,8 +608,12 @@ public abstract class GameAppBase extends Application {
             if (action != null) upgradeActions.putIfAbsent(action, upgrade);
         }
         upgradeGrid.setMaxWidth(UPGRADES_WIDTH);
-        controls.getChildren().add(upgradeGrid);
-        controls.getChildren().add(fuseCard());
+        // Les améliorations, et à leur droite le rond de la fusion (version 0.314).
+        HBox upgradesRow = new HBox(14, upgradeGrid, fuseCard());
+        upgradesRow.setAlignment(Pos.CENTER);
+        HBox.setHgrow(upgradeGrid, Priority.ALWAYS);
+        upgradesRow.setMaxWidth(UPGRADES_WIDTH + FUSE_DIAMETER + 14);
+        controls.getChildren().add(upgradesRow);
         Labels.centered(shortcutsLabel, "-fx-font-size: 11px; -fx-text-fill: #6f8296;");
         controls.getChildren().add(shortcutsLabel);
 
@@ -618,36 +674,33 @@ public abstract class GameAppBase extends Application {
         selectTab(Tab.PARTICLES);
 
         // En haut : la barre d'onglets ; à droite, le panneau du profil de test si le jeu est lancé avec --test.
-        // Au-dessus des onglets : le bouton d'explosion, quand tous les éléments sont découverts.
-        explosionButton.setMaxWidth(Double.MAX_VALUE);
-        explosionButton.setWrapText(true);
-        explosionButton.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 20; -fx-cursor: hand;"
-                + " -fx-text-fill: #1a0f2e; -fx-background-color: " + DARK_MATTER_COLOR + "; -fx-background-radius: 0;");
-        explosionButton.setOnAction(event -> requestExplosion());
         challengeLabel.setMaxWidth(Double.MAX_VALUE);
         challengeLabel.setWrapText(true);
         challengeLabel.setAlignment(Pos.CENTER);
         challengeLabel.setTextAlignment(TextAlignment.CENTER);
         challengeLabel.setStyle("-fx-font-size: 12px; -fx-padding: 5 16; -fx-text-fill: #efe4ff; -fx-background-color: #2a2040;");
-        goalLabel.setMaxWidth(Double.MAX_VALUE);
-        goalLabel.setMinWidth(0);
-        goalLabel.setWrapText(true);
-        StableHeight.of(goalLabel);   // la ligne d'objectif change sans cesse : sa hauteur ne doit pas faire sauter la page
-        goalLabel.setAlignment(Pos.CENTER);
-        goalLabel.setTextAlignment(TextAlignment.CENTER);
-        goalLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #8fa3b8;");
-        HBox.setHgrow(goalLabel, Priority.ALWAYS);
-        // Sous les onglets : l'objectif du moment, et à droite le rappel de la touche de détail.
+        // Sous les onglets, le bandeau : les objectifs à gauche, l'aide et les détails à droite.
         helpButton.setFocusTraversable(false);
         helpButton.setOnAction(event -> {
             helpPane.toggle();
             refresh();
         });
-        HBox infoBar = new HBox(10, goalLabel, helpButton, detailHint);
-        infoBar.setAlignment(Pos.CENTER);
-        infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
-        // Le chrono a sa ligne, sous celle de l'objectif : il ne flotte plus par-dessus les pages.
-        VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar, chronoCorner);
+        // Sous le bandeau : les pastilles des grands pas à gauche, le chrono au milieu. Il ne flotte plus par-dessus les pages.
+        // Version 0.313 : le chrono ne prend que sa largeur, et les pastilles passent devant. Il s'étirait sur toute la ligne
+        // et son fond les recouvrait : elles ne se voyaient que sur la sous-page Graine, où il se cache.
+        chronoCorner.setMaxWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        steps.getChildren().addAll(chronoCorner, stepDots);
+        StackPane.setAlignment(stepDots, Pos.CENTER_LEFT);
+        stepDots.setMaxWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        steps.setPadding(new Insets(4, 14, 0, 18));
+        steps.setMinHeight(2 * StepDots.RADIUS + 14);
+        stepDots.setOnClick(StepDots.Step.FUSION, () -> selectTab(Tab.PARTICLES));
+        stepDots.setOnClick(StepDots.Step.EXPLOSION, this::requestExplosion);
+        // Le bouton de l'explosion du tableau périodique : le même, avec la même confirmation (0.314).
+        atomsPage.setExplosion(this::requestExplosion, () -> explosionArmed, () -> explosionHint(game.activeChallenge()));
+        stepDots.setOnClick(StepDots.Step.BIG_BANG, () -> selectTab(Tab.DARK_MATTER));
+        stepDots.setOnClick(StepDots.Step.UNIVERSE, () -> selectTab(Tab.UNIVERSE));
+        VBox top = new VBox(challengeLabel, tabBar, header, steps);
         topBox = top;
         sideBar.setStyle("-fx-background-color: #0e131b; -fx-padding: 10 8; -fx-spacing: 6; -fx-border-color: transparent #1d2633 transparent transparent;");
         sideBar.setMinWidth(GameAppTabs.SIDE_BAR);
@@ -943,6 +996,8 @@ public abstract class GameAppBase extends Application {
         });
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, event -> cosmetics.input());
         scene.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> cosmetics.input());
+        // Version 0.307 : la molette plus rapide, la barre de défilement visible, saisissable, et son rail cliquable.
+        idle.ui.common.Scrolling.install(scene);
         // La fenêtre perd la main touche enfoncée : le relâchement ne viendra jamais, on l'anticipe.
         stage.focusedProperty().addListener((observable, before, focused) -> {
             if (!focused) {

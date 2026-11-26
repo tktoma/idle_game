@@ -1,5 +1,6 @@
 package idle.ui.vacuum;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.universe.SkinVisual;
 import idle.ui.Readiness;
@@ -38,15 +39,20 @@ public final class VoidPage extends VBox {
     public static final String HOLE_COLOR = "#ff9a3a";
 
     private final Game game;
-    private final Label energy = new Label();
-    private final Label pairsLine = new Label();
+    /**
+     * L'énergie du vide au centre du bandeau (version 0.311 ; sous les sous-onglets avant). Dessous, depuis la version
+     * 0.317, le gain, les paires et la fonte (la ligne des paires de la page, avant ; l'équilibre y était) ; l'équilibre,
+     * le détail et l'explication de la page au survol du nombre.
+     */
+    private final ResourceHead head = new ResourceHead("Énergie du vide", COLOR);
     private final Label costLine = new Label();
     private final Label shareLabel = new Label();
     private final Slider share = new Slider(0, 100, 25);
     private final Label holeLine = new Label();
     private final Button sacrifice = new Button();
     private final VBox holeBox;
-    private final Label note = new Label();
+    /** L'explication des paires (le paragraphe du bas de la page avant la version 0.317), au survol du nombre. */
+    private String note = "";
     private final Map<VoidUpgrade, Card> cards = new EnumMap<>(VoidUpgrade.class);
     /** Ce que les cartes montrent (niveaux, achetables, détails, signes) : leurs longs textes ne se refont que si ça change. */
     private String cardsKey = "";
@@ -69,8 +75,7 @@ public final class VoidPage extends VBox {
         this.game = game;
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(14, 16, 14, 16));
-        energy.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        for (Label label : new Label[] {pairsLine, costLine, shareLabel}) {
+        for (Label label : new Label[] {costLine, shareLabel}) {
             Labels.centered(label, "-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
             label.setMaxWidth(860);
             // Le dessin prend la hauteur qui reste : les lignes gardent la leur, entières, sans « … ».
@@ -118,7 +123,6 @@ public final class VoidPage extends VBox {
             cards.put(upgrade, card);
             upgrades.add(card);
         }
-        Labels.note(note, 860);
 
         Labels.note(upgradesNote, 860);
         upgradesNote.setText("Payées en énergie du vide, elles ne valent que pour cet univers : à sa formation, elles repartent "
@@ -126,8 +130,7 @@ public final class VoidPage extends VBox {
 
         // « Paires » : le rythme, les coûts, le réglage, l'écume, le trou noir.
         holeBox.setMinHeight(Region.USE_PREF_SIZE);
-        note.setMinHeight(Region.USE_PREF_SIZE);
-        pairsPane = new VBox(10, pairsLine, costLine, shareRow, pane, holeBox, note);
+        pairsPane = new VBox(10, costLine, shareRow, pane, holeBox);
         pairsPane.setAlignment(Pos.TOP_CENTER);
         // « Améliorations » : les huit cartes.
         VBox upgradesBox = new VBox(10, upgrades, upgradesNote);
@@ -142,7 +145,7 @@ public final class VoidPage extends VBox {
 
         SubTabs.wire(true, this::select, this::refresh, pairsTab, upgradesTab);
         subTabs.setAlignment(Pos.CENTER);
-        getChildren().addAll(subTabs, energy, pages);
+        getChildren().addAll(subTabs, pages);
         select(PAIRS);
         refresh();
     }
@@ -169,7 +172,8 @@ public final class VoidPage extends VBox {
     public Button upgradesTab() { return upgradesTab; }
 
     /** La réserve et son équilibre, en haut des deux sous-onglets : pour les vérifications. */
-    public Label energyLabel() { return energy; }
+    /** L'énergie du vide, pour le centre du bandeau. */
+    public ResourceHead head() { return head; }
 
     /** Vrai s'il y a quelque chose à faire dans le vide : une amélioration à prendre, des particules à sacrifier. */
     public static boolean ready(Game game) {
@@ -180,14 +184,18 @@ public final class VoidPage extends VBox {
 
     /** Recopie la partie : la réserve et son équilibre, les paires, le réglage, le trou noir, les améliorations. */
     public void refresh() {
-        energy.setText("Énergie du vide : " + Format.count(game.voidEnergy()) + "   |   équilibre : "
-                + Format.count(BigNum.of(game.voidEquilibrium())));
-        upgradesTab.setText("Améliorations" + Readiness.dot(Readiness.Kind.VOID, ready(game)));
         double rate = game.voidRate();
-        pairsLine.setText(decimal(rate) + " paire" + (rate >= 2 ? "s" : "") + " par seconde (" + limitText(game.voidLimit()) + "), "
-                + Format.count(BigNum.of(game.voidPairs())) + " vivantes, " + decimal(game.voidPairLife()) + " s chacune. "
-                + "Gain : " + decimal(game.voidGainPerSecond()) + " par seconde ; fonte : " + percent(game.voidDecay()) + " par seconde.");
-        costLine.setText("Une paire coûte " + amount(BigNum.of(game.voidPairEnergy())) + " énergie du collisionneur et tient "
+        head.set(Format.count(game.voidEnergy()), "+" + decimal(game.voidGainPerSecond()) + " énergie du vide /s   |   "
+                + decimal(rate) + (rate >= 2 ? " paires" : " paire") + " /s, " + decimal(game.voidPairLife()) + " s chacune   |   fonte : "
+                + percent(game.voidDecay()) + " /s");
+        upgradesTab.setText("Améliorations" + Readiness.dot(Readiness.Kind.VOID, ready(game)));
+        // Version 0.317 : la ligne des paires monte dans le bandeau ; l'équilibre, la borne et les paires vivantes au survol.
+        Labels.tip(head.value(), "Équilibre : " + Format.count(BigNum.of(game.voidEquilibrium())) + ". "
+                + decimal(rate) + " paire" + (rate >= 2 ? "s" : "") + " par seconde (" + limitText(game.voidLimit()) + "), "
+                + Format.count(BigNum.of(game.voidPairs())) + " vivantes, " + decimal(game.voidPairLife()) + " s chacune.\n\n" + note);
+        costLine.setText("Par paire : coûte " + amount(BigNum.of(game.voidPairEnergy())) + " énergie du collisionneur, tient "
+                + amount(game.voidPairSpace()) + " d'espace, donne " + decimal(game.voidPairGain()) + " énergie du vide");
+        Labels.tip(costLine, "Une paire coûte " + amount(BigNum.of(game.voidPairEnergy())) + " énergie du collisionneur et tient "
                 + amount(game.voidPairSpace()) + " d'espace tant qu'elle vit ; elle donne " + decimal(game.voidPairGain())
                 + " énergie du vide à sa naissance.");
         copying = true;
@@ -200,7 +208,9 @@ public final class VoidPage extends VBox {
         holeBox.setManaged(hole);
         if (hole) {
             double mass = game.voidMass();
-            holeLine.setText("Trou noir : masse " + decimal(mass) + " (" + Format.count(game.state().voidSacrificed())
+            // Version 0.317 : la masse seule ; ce qu'elle fait au survol.
+            holeLine.setText("Trou noir : masse " + decimal(mass));
+            Labels.tip(holeLine, "Trou noir : masse " + decimal(mass) + " (" + Format.count(game.state().voidSacrificed())
                     + " particules sacrifiées). Les paires vivent " + decimal(game.voidPairLife()) + " s au lieu de "
                     + decimal(Game.VOID_PAIR_LIFE) + " et rendent leur espace plus vite ; la fonte est divisée par "
                     + decimal(1 + mass / 5) + "." + maturationText(game)
@@ -231,7 +241,7 @@ public final class VoidPage extends VBox {
         }
         if (notedHole == null || notedHole != hole) {
             notedHole = hole;
-            note.setText("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
+            note = ("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
                     + "l'espace libre, celui que les molécules n'ont pas pris. Le réglage borne ce que le vide en prend. L'énergie du vide "
                     + "fond de " + percent(Game.VOID_DECAY) + " par seconde : elle monte vers l'équilibre, le gain par seconde divisé par la fonte. "
                     + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers), "
@@ -286,7 +296,7 @@ public final class VoidPage extends VBox {
         };
     }
 
-    private static String detail(VoidUpgrade upgrade) {
+    private String detail(VoidUpgrade upgrade) {
         String price = " Prix ×" + ElementText.number(upgrade.growth()) + " par niveau.";
         return switch (upgrade) {
             case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond." + price;
@@ -306,10 +316,11 @@ public final class VoidPage extends VBox {
                     + " niveaux, −" + percent(Game.VOID_MATURE_STEP * upgrade.max()) + " du temps au plus : le trou noir supermassif "
                     + "passe de 6 h à " + hours(6 * (1 - Game.VOID_MATURE_STEP * upgrade.max())) + ". Les astres qui mûrissent déjà "
                     + "voient leur reste raccourcir d'autant. Seulement dans cet univers." + price;
-            case SETTLE -> "Le rassemblement qu'attendent l'amas de galaxies et l'univers, deux heures chacun, raccourcit de "
-                    + percent(Game.VOID_SETTLE_STEP) + " par niveau, " + upgrade.max() + " niveaux, −"
-                    + percent(Game.VOID_SETTLE_STEP * upgrade.max()) + " au plus : " + minutesOf(Game.COSMOS_SETTLE_SECONDS
-                    * (1 - Game.VOID_SETTLE_STEP * upgrade.max())) + " au lieu de deux heures. Seulement dans cet univers." + price;
+            case SETTLE -> "Le rassemblement qu'attendent l'amas de galaxies et l'univers, " + minutesOf(game.cosmosSettleSeconds())
+                    + " chacun dans cet univers, raccourcit de " + percent(Game.VOID_SETTLE_STEP) + " par niveau, " + upgrade.max()
+                    + " niveaux, −" + percent(Game.VOID_SETTLE_STEP * upgrade.max()) + " au plus : "
+                    + minutesOf(game.cosmosSettleSeconds() * (1 - Game.VOID_SETTLE_STEP * upgrade.max()))
+                    + " au lieu de " + minutesOf(game.cosmosSettleSeconds()) + ". Seulement dans cet univers." + price;
         };
     }
 

@@ -1,5 +1,6 @@
 package idle.ui.collider;
 
+import idle.ui.common.ResourceHead;
 import idle.core.Game;
 import idle.core.collider.ColliderGenerator;
 import idle.core.collider.ColliderUpgrade;
@@ -12,7 +13,6 @@ import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
-import idle.ui.common.StableHeight;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Locale;
@@ -37,7 +37,8 @@ public final class ColliderPane extends VBox {
     private final Game game;
     private final Runnable changed;
     private final Label intro = new Label();
-    private final Label energyLabel = new Label();
+    /** L'énergie du collisionneur au centre du bandeau, son débit dessous (version 0.311 ; en haut de la page avant). */
+    private final ResourceHead head = new ResourceHead("Énergie", COLOR);
     private final Label flavorsTitle = new Label("Ce que peut donner une collision");
     private final FlowPane flavors = new FlowPane(8, 6);
     private final Map<Quark, Label> flavorLabels = new EnumMap<>(Quark.class);
@@ -78,8 +79,6 @@ public final class ColliderPane extends VBox {
                 + "croisement capte trois secondes de production et assure une collision au butin doublé. L'énergie et les "
                 + "quarks paient la chaîne, qui renforce le reste du jeu ; l'énergie produite ouvre les deux trous noirs.");
         note(intro, "#8fa3b8");
-        energyLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        StableHeight.of(energyLabel);
 
         flavorsTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #cfe8ff;");
         flavors.setAlignment(Pos.CENTER);
@@ -181,7 +180,7 @@ public final class ColliderPane extends VBox {
         chainGroup.getChildren().addAll(quarksOnChain, upgradeTitles.get(ColliderUpgrade.Section.CHAIN), upgradeGrids.get(ColliderUpgrade.Section.CHAIN),
                 chainNote);
         upgradeGroup.getChildren().add(upgradesLeft);
-        getChildren().addAll(intro, energyLabel, energyGroup, chainGroup, upgradeGroup);
+        getChildren().addAll(intro, energyGroup, chainGroup, upgradeGroup);
         select(ENERGY);
     }
 
@@ -312,10 +311,12 @@ public final class ColliderPane extends VBox {
         return quarks.toString();
     }
 
+    /** L'énergie du collisionneur, pour le centre du bandeau. */
+    public ResourceHead head() { return head; }
+
     /** Recopie l'état du collisionneur ; appelé à chaque image tant que la page est affichée. */
     void refresh() {
-        energyLabel.setText("Énergie : " + energy(game.colliderEnergy())
-                + "   (+" + energy(game.colliderEnergyPerSecond()) + " par seconde)");
+        head.set(energy(game.colliderEnergy()), "+" + energy(game.colliderEnergyPerSecond()) + " /s");
         intro.setVisible(Detail.shown());
         intro.setManaged(Detail.shown());
         if (section == ENERGY) {

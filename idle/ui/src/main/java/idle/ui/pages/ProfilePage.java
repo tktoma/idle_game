@@ -3,6 +3,7 @@ package idle.ui.pages;
 import idle.core.Game;
 import idle.core.molecules.Molecule;
 import idle.core.profile.Title;
+import idle.ui.Seen;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
 import idle.core.universe.Skin;
@@ -80,6 +81,10 @@ public final class ProfilePage extends VBox {
     private static final double MAX_WIDTH = 760;
 
     private final Game game;
+    /** Ce que le joueur a déjà vu : un titre ou un avatar fermé d'une étape jamais vue ne se montre pas (version 0.318). */
+    private Seen.Memory seen = Seen.Memory.none();
+    private final TileGrid gallery = new TileGrid(150, 5, 8);
+    private final TileGrid titles = new TileGrid(230, 3, 8);
     /** Le dossier des données, où se copie l'image importée ; {@code null} quand le jeu ne sauvegarde pas. */
     private final Supplier<Path> folder;
     private final Button[] tabs = new Button[NAMES.length];
@@ -214,7 +219,7 @@ public final class ProfilePage extends VBox {
         header.setStyle("-fx-padding: 16 20; -fx-background-color: #121821; -fx-background-radius: 8;"
                 + " -fx-border-color: " + COLOR + "55; -fx-border-radius: 8;");
 
-        TileGrid gallery = new TileGrid(150, 5, 8);
+
         gallery.setMaxWidth(MAX_WIDTH + 80);
         for (Avatar avatar : Avatar.values()) {
             Card card = new Card(COLOR);
@@ -244,7 +249,7 @@ public final class ProfilePage extends VBox {
         importNote.setVisible(false);
         importNote.setManaged(false);
 
-        TileGrid titles = new TileGrid(230, 3, 8);
+
         titles.setMaxWidth(MAX_WIDTH + 80);
         for (Title title : Title.values()) {
             Card card = new Card(COLOR);
@@ -423,6 +428,30 @@ public final class ProfilePage extends VBox {
     // Le profil
     // ------------------------------------------------------------------
 
+    /** Le souvenir de ce que le joueur a vu, gardé dans les réglages. */
+    public void setSeen(Seen.Memory memory) {
+        this.seen = memory;
+        galleryKey = "";
+        titlesKey = "";
+    }
+
+    /** Combien d'étapes ont été vues : les cartes se refont quand il grandit. */
+    private int seenCount() {
+        seen.note(game);
+        return seen.all().size();
+    }
+
+    /** L'étape qu'un avatar fermé dévoilerait : celle de son titre, ou de sa condition. */
+    static Seen step(Avatar avatar) {
+        if (avatar.unlock() != null) return Seen.of(avatar.unlock());
+        return switch (avatar) {
+            case PROBE -> Seen.PROBES;
+            case WATERING_CAN -> Seen.HOSE;
+            case CHRONO -> Seen.CHRONO;
+            default -> null;
+        };
+    }
+
     private void refreshProfile() {
         seenTitles = game.state().earnedTitles().size();
         // Le joueur écrit : son texte n'est pas recopié par-dessus.
@@ -432,6 +461,13 @@ public final class ProfilePage extends VBox {
         playedLabel.setText("Temps de jeu : " + Format.duration(game.state().timePlayed()));
         universesLabel.setText("Univers formés : " + Format.whole(game.universes()));
         bangsLabel.setText("Big Bangs : " + Format.whole(game.bigBangs()));
+        // Version 0.318 : les univers et les Big Bangs ne se comptent qu'une fois vus.
+        boolean universe = seen.has(Seen.UNIVERSE, game);
+        universesLabel.setVisible(universe);
+        universesLabel.setManaged(universe);
+        boolean bang = seen.has(Seen.BIG_BANG, game);
+        bangsLabel.setVisible(bang);
+        bangsLabel.setManaged(bang);
         titlesLabel.setText("Titres obtenus : " + game.state().earnedTitles().size() + " / " + Title.values().length);
         Image custom = customImage();
         String avatar = wornAvatar(custom);
@@ -450,12 +486,14 @@ public final class ProfilePage extends VBox {
         for (AvatarView picture : avatarPictures.values()) picture.setAvatarStyle(style);
 
         String key = avatar + "/" + game.state().earnedTitles().size() + "/" + (custom != null) + "/" + Detail.shown() + "/" + Card.signsShown()
-                + "/" + (folder.get() != null);
+                + "/" + (folder.get() != null) + "/" + seenCount();
         if (!key.equals(galleryKey)) {
             galleryKey = key;
             for (Map.Entry<Avatar, Card> each : avatarCards.entrySet()) {
                 Avatar shown = each.getKey();
                 boolean open = shown.isOpen(game);
+                Seen step = step(shown);
+                gallery.show(each.getValue(), open || step == null || seen.has(step, game));
                 boolean wearing = open && shown.id().equals(avatar);
                 each.getValue().show(!open ? Card.State.LOCKED : wearing ? Card.State.ON : Card.State.READY, "",
                         wearing ? "porté" : "", shown.label(),
@@ -472,7 +510,8 @@ public final class ProfilePage extends VBox {
             importButton.setText(folder.get() == null ? "Jeu lancé sans sauvegarde : pas d'image importée" : "Choisir une image…");
         }
 
-        key = game.state().chosenTitle() + "/" + game.state().earnedTitles().size() + "/" + Detail.shown() + "/" + Card.signsShown();
+        key = game.state().chosenTitle() + "/" + game.state().earnedTitles().size() + "/" + Detail.shown() + "/" + Card.signsShown()
+                + "/" + seenCount();
         if (!key.equals(titlesKey)) {
             titlesKey = key;
             int number = 0;
@@ -480,6 +519,8 @@ public final class ProfilePage extends VBox {
                 Title title = each.getKey();
                 number++;
                 boolean earned = game.hasTitle(title);
+                Seen step = Seen.of(title);
+                titles.show(each.getValue(), earned || step == null || seen.has(step, game));
                 boolean wearing = title == worn;
                 each.getValue().show(!earned ? Card.State.LOCKED : wearing ? Card.State.ON : Card.State.READY, "n° " + number,
                         wearing ? "porté" : "", title.label(), title.condition(), "",
@@ -492,7 +533,8 @@ public final class ProfilePage extends VBox {
             titlesNote.setText(worn == null ? "Le premier titre tombe avec le premier générateur. Un titre ne donne aucun bonus : il dit jusqu'où vous êtes allé."
                     : "Un clic sur un titre obtenu le porte." + (chosen ? "" : " Sans choix, vous portez le plus récent.")
                             + Detail.only(" Le plus récent est le dernier de la liste parmi ceux obtenus. Un titre ne donne aucun bonus ; "
-                                    + "il reste acquis pour de bon, Big Bang, univers et « Recommencer de zéro » compris."));
+                                    + "il reste acquis pour de bon" + (seen.has(Seen.UNIVERSE, game) ? ", Big Bang, univers et « Recommencer de zéro » compris"
+                                    : seen.has(Seen.BIG_BANG, game) ? ", Big Bang et « Recommencer de zéro » compris" : ", « Recommencer de zéro » compris") + "."));
         }
     }
 

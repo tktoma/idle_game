@@ -588,15 +588,19 @@ final class Sound extends SoundSamples {
             double seconds = pcm.bytes().length / 2.0 / (pcm.stereo() ? 2 : 1) / RATE;
             voiceEnds.add(now + (long) (seconds * 1e9));
         }
-        if (player == null) {
-            player = Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(runnable, "sons");
-                thread.setDaemon(true);
-                return thread;
-            });
-        }
+        startPlayer();
         player.execute(() -> sink.accept(pcm));
         return true;
+    }
+
+    /** Crée le fil des sons s'il n'existe pas encore. */
+    private void startPlayer() {
+        if (player != null) return;
+        player = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sons");
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 
     /**
@@ -639,7 +643,35 @@ final class Sound extends SoundSamples {
     /** Vrai tant que la sortie audio n'a pas échoué. */
     boolean available() { return !broken; }
 
+    /**
+     * Une sortie qui refuse un son (le mélangeur pas encore prêt au lancement, une sortie pleine un instant) a droit à
+     * un nouvel essai, ce temps-là après (version 0.303 : avant, le son était perdu, surtout le son de particule au début).
+     */
+    static final long RETRY_MILLIS = 30;
+
     private void output(Pcm pcm) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(RETRY_MILLIS);
+                } catch (InterruptedException stop) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+            if (open(pcm)) {
+                failures = 0;
+                return;
+            }
+        }
+        // Pas de carte son, système sans audio : le jeu continue en silence. Une sortie pleine un instant ne coupe
+        // que ce son : il faut une suite d'échecs pour tout couper.
+        lost++;
+        if (++failures >= FAILURES_BEFORE_SILENCE) broken = true;
+    }
+
+    /** Ouvre un clip pour ce son et le lance. Faux si la sortie l'a refusé. */
+    private static boolean open(Pcm pcm) {
         try {
             Clip clip = AudioSystem.getClip();
             clip.addLineListener(event -> { if (event.getType() == LineEvent.Type.STOP) clip.close(); });
@@ -655,12 +687,30 @@ final class Sound extends SoundSamples {
                 clip.open(FORMAT, pcm.bytes(), 0, pcm.bytes().length);
             }
             clip.start();
-            failures = 0;
+            return true;
         } catch (Exception | LinkageError noAudio) {
-            // Pas de carte son, système sans audio : le jeu continue en silence. Une sortie pleine un instant ne coupe
-            // que ce son : il faut une suite d'échecs pour tout couper.
-            if (++failures >= FAILURES_BEFORE_SILENCE) broken = true;
+            return false;
         }
+    }
+
+    /** Les sons refusés par la sortie même après le nouvel essai, depuis le lancement. */
+    private volatile int lost;
+
+    /** Les sons refusés par la sortie depuis le lancement (affichés dans le panneau de test). */
+    int lost() { return lost; }
+
+    /** Le silence qui réveille la sortie audio au lancement : un dixième de seconde. */
+    static final int WARM_UP_SAMPLES = (int) (RATE / 10);
+
+    /**
+     * Réveille la sortie audio dès le lancement, par un son muet, sur le fil des sons (version 0.303) : le premier clip
+     * ouvert prépare le mélangeur, ce qui peut prendre du temps. Avant, c'était le premier vrai son qui le payait, souvent
+     * une particule, qui pouvait ne pas sonner.
+     */
+    void warmUp() {
+        if (broken) return;
+        startPlayer();
+        player.execute(() -> sink.accept(new Pcm(new byte[WARM_UP_SAMPLES * 2], false)));
     }
 
     /** Le passage de la saison {@code season} (0 le printemps à 3 l'hiver). */

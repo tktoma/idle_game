@@ -46,7 +46,7 @@ public final class NextReset {
         return before.lt(threshold) && after.gte(threshold);
     }
 
-    /** « , ouvre le défi « Sobriété » et 2 autres » : la suite du texte du bouton d'explosion. Vide s'il n'y a rien à annoncer. */
+    /** « , ouvre le défi « Sobriété » et 2 autres » : la suite du texte de la pastille de l'explosion. Vide s'il n'y a rien à annoncer. */
     static String explosionSuffix(Game game) {
         // La toute première : elle ouvre l'arbre, et c'est ce qu'il faut dire avant tout le reste.
         if (game.darkMatterEarned().sign() == 0 && game.nextExplosionDarkMatter().sign() > 0) return ", ouvre l'arbre de matière noire";

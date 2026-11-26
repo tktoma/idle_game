@@ -7,6 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.math.BigNum;
+import idle.core.achievements.Achievements;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.save.SaveCodec;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Upgrades;
+import java.util.Random;
 import idle.core.molecules.*;
 import idle.core.sky.*;
 import org.junit.jupiter.api.*;
@@ -19,30 +25,19 @@ import org.junit.jupiter.api.*;
 class RetoursTest {
     private static Game newGame() { return GameTestSupport.realGame(); }
 
+    /** Version 0.307 : l'achat groupé n'est plus une amélioration ; une sauvegarde qui en avait un niveau se relit sans lui. */
     @Nested
     class AchatGroupeEnAtomes {
         @Test
-        void ilSAcheteEnAtomesDesLesPremiersAtomes() {
+        void uneAncienneSauvegardeLOublie() throws Exception {
             Game game = newGame();
-            assertFalse(game.isBulkAtomBuyUnlocked());
-            game.state().setAtoms(BigNum.of(8));
-            assertTrue(game.buy("atom_bulk"));
-            assertTrue(game.isBulkAtomBuyUnlocked());
-            assertTrue(game.isMaxed("atom_bulk"));               // un seul niveau
-        }
-
-        @Test
-        void ilTientAuxFusionsMaisPasALExplosion() {
-            Game game = newGame();
-            game.state().setAtoms(BigNum.of(8));
-            game.buy("atom_bulk");
-            game.state().setParticles(BigNum.of(1, 9));
-            while (game.buy("generator")) { /* de quoi fusionner */ }
-            assertTrue(game.fuse());
-            assertTrue(game.isBulkAtomBuyUnlocked());            // les améliorations en atomes restent à la fusion
-            GameTestSupport.fillTableToMax(game);
-            assertTrue(game.explode());
-            assertFalse(game.isBulkAtomBuyUnlocked());           // mais pas à l'explosion (celui de l'arbre, lui, reste : ConfortTest)
+            game.state().setLevel("atom_bulk", 1);
+            game.state().setDarkLevel("dark_shop_bulk", 1);
+            Game again = new Game(SaveCodec.read(SaveCodec.write(game.state(), 0)).state(), Upgrades.DEFAULT,
+                    Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(1));
+            assertEquals(2, again.restored(), "les deux identifiants disparus sont écartés au chargement");
+            assertEquals(0, again.state().levelOf("atom_bulk"));
+            assertEquals(0, again.state().darkLevelOf("dark_shop_bulk"));
         }
     }
 

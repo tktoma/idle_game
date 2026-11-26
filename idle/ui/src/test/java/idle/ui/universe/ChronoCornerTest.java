@@ -32,14 +32,18 @@ class ChronoCornerTest {
             assertFalse(corner.refresh(true), "sur la sous-page Graine, le chrono y est déjà");
             assertTrue(corner.refresh(false));
             assertTrue(corner.isVisible() && corner.isManaged());
-            assertTrue(corner.text().getText().startsWith("Gardé"), corner.text().getText());
-            assertTrue(corner.text().getText().contains("×1, il se remplit"), corner.text().getText());
+            // Version 0.309 : l'accélération et le temps gardé, sans phrase ; la phrase au survol.
+            assertTrue(corner.text().getText().startsWith("×1 "), corner.text().getText());
+            assertFalse(corner.text().getText().contains("Gardé"), corner.text().getText());
+            assertTrue(corner.text().getTooltip().getText().startsWith("Gardé"), corner.text().getTooltip().getText());
+            assertTrue(corner.text().getTooltip().getText().contains("×1, il se remplit"), corner.text().getTooltip().getText());
             assertEquals(Game.CHRONO_MAX_SPEED, corner.slider().getMax(), 1e-9);
             corner.slider().setValue(1.6);
             assertEquals(1.5, game.chronoSpeed(), 1e-9, "le réglage va par quarts");
             game.state().setChronoStored(60);
             corner.refresh(false);
-            assertTrue(corner.text().getText().contains("×1.5, le jeu accélère"), corner.text().getText());
+            assertTrue(corner.text().getText().startsWith("×1.5 "), corner.text().getText());
+            assertTrue(corner.text().getTooltip().getText().contains("×1.5, le jeu accélère"), corner.text().getTooltip().getText());
             // Le réglage fait ailleurs se recopie dans la carte.
             game.setChronoSpeed(2);
             corner.refresh(false);

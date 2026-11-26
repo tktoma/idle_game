@@ -73,7 +73,7 @@ class Reglages171Test {
     void lesPrixDuVideVontDuPremierAuDernierNiveau() {
         double[][] attendus = {
                 {50, 12_000_000}, {80, 15_000_000}, {60, 9_000_000}, {60, 9_000_000}, {100, 18_000_000},
-                {200, 6_000_000}, {150, 4_500_000}, {500, 2_100_000}};
+                {200, 6_000_000}, {150, 4_500_000}, {500, 20_000_000}}; // rassemblement : sept niveaux depuis la 0.302
         for (VoidUpgrade upgrade : VoidUpgrade.values()) {
             double[] prix = attendus[upgrade.ordinal()];
             assertEquals(prix[0], upgrade.cost(0), 1e-9, upgrade + " : premier niveau");
@@ -96,8 +96,9 @@ class Reglages171Test {
             assertTrue(upgrade.growth() >= 1.8 && upgrade.growth() <= 8.1, upgrade + " : ×" + upgrade.growth() + " par niveau");
             for (int level = 0; level < upgrade.max(); level++) total += upgrade.cost(level);
         }
-        // 1,3 × 10⁸ en tout : sous le plafond de l'équilibre (5,4 × 10⁷) multiplié par les quelques univers où il est atteint.
-        assertTrue(total > 1.2e8 && total < 1.4e8, "tous les niveaux : " + total);
+        // 1.54 × 10⁸ en tout depuis la 0.302 (1.3 × 10⁸ avant : le rassemblement a deux niveaux de plus, 3.4 et 20 millions,
+        // payés par l'énergie du vide qui dormait en fin de partie).
+        assertTrue(total > 1.4e8 && total < 1.7e8, "tous les niveaux : " + total);
     }
 
     @Test
@@ -111,6 +112,8 @@ class Reglages171Test {
         assertEquals(VoidUpgrade.GAIN.cost(7), game.voidCost(VoidUpgrade.GAIN), 1e-9, "le niveau suivant au nouveau prix");
         assertEquals(50 * Math.pow(VoidUpgrade.GAIN.growth(), 7), game.voidCost(VoidUpgrade.GAIN), 1e-6);
         game.state().setVoidEnergy(BigNum.of(1e9));
+        assertTrue(game.canBuyVoid(VoidUpgrade.SETTLE), "cinq niveaux : les deux de la 0.302 restent à acheter");
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 7);
         assertFalse(game.canBuyVoid(VoidUpgrade.SETTLE), "au plafond");
     }
 
